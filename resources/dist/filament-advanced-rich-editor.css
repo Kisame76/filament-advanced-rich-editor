@@ -1,0 +1,451 @@
+/*
+ * filament-advanced-rich-editor
+ *
+ * Standalone stylesheet, registered through FilamentAsset::register(). It is served as
+ * its own file and is NEVER piped through the consuming app's Tailwind build, so it must
+ * stay plain CSS — no @apply, no @variant, no Tailwind utilities.
+ *
+ * Colours are expressed with the custom properties Filament registers at runtime
+ * (--gray-*, --primary-*, --color-white, --prose-*), each with a literal fallback, so the
+ * package follows the panel's own colour registration instead of hard-coding a palette.
+ *
+ * Dark mode uses `:where(.dark, .dark *)` — the exact selector Tailwind v4 compiles
+ * Filament's `dark:` variant to (verified against the panel's published app.css). Because
+ * :where() contributes zero specificity, each dark rule carries the same weight as the
+ * light rule above it and wins purely on source order, matching upstream's behaviour.
+ *
+ * Custom properties a consumer may override:
+ *   --fi-arte-sticky-offset  distance from the viewport top the pinned toolbar rests at
+ *   --fi-arte-sticky-bg      opaque background painted behind the pinned toolbar
+ *   --fi-arte-divider-color  colour of the vertical toolbar rule
+ *   --fi-arte-toolbar-radius top corner radius of the pinned toolbar
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Toolbar divider                                                            */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A rule spanning the toolbar's full height would run into the 0.5rem block padding
+ * around the 2rem button row, so it is deliberately shorter than the buttons and centred
+ * against them. `align-self` rather than a fixed margin keeps that alignment when the
+ * toolbar wraps onto a second row.
+ *
+ * RichEditor::getToolbarButtons() groups consecutive non-array items, so a top-level
+ * 'divider' token arrives wrapped in its own .fi-fo-rich-editor-toolbar-group. Styling
+ * the divider element itself rather than that wrapper means the same rule also covers a
+ * divider placed inside a group.
+ */
+.fi-arte-toolbar-divider {
+    flex: 0 0 auto;
+    align-self: center;
+    width: 1px;
+    height: 1.5rem;
+    background-color: var(--fi-arte-divider-color, var(--gray-200, #e4e4e7));
+}
+
+.fi-arte-toolbar-divider:where(.dark, .dark *) {
+    background-color: var(
+        --fi-arte-divider-color,
+        color-mix(in oklab, var(--color-white, #fff) 10%, transparent)
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sticky toolbar                                                             */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Upstream sets `position: relative` on the toolbar; replacing it with `sticky` preserves
+ * the containing block the dropdown menus are anchored to.
+ *
+ * The background has to be opaque, otherwise editor content scrolls visibly through the
+ * pinned bar. Filament's input wrapper is plain white in light mode; in dark mode it is
+ * two stacked white/5 overlays (section content container + input wrapper) on top of
+ * gray-900, and the color-mix below is the flattened equivalent of those two overlays.
+ *
+ * The bottom border is restated because a pinned bar has nothing but that border
+ * separating it from the content sliding underneath.
+ *
+ * z-index 10 is the value Filament already uses for its own sticky custom-block headers,
+ * so the two never fight when both are pinned.
+ */
+.fi-fo-rich-editor-toolbar.fi-arte-sticky {
+    position: sticky;
+    top: var(--fi-arte-sticky-offset, 4rem);
+    z-index: 10;
+    background-color: var(--fi-arte-sticky-bg, var(--color-white, #fff));
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--gray-200, #e4e4e7);
+    /*
+     * The input wrapper rounds its corners but does not clip its children, so an opaque
+     * bar would paint square corners over the rounded ones. `inherit` is no help here -
+     * the toolbar's parent is the editor's plain wire:ignore container - so the radius is
+     * restated. It matches Filament's `rounded-lg` and can be retuned by a theme through
+     * the custom property.
+     */
+    border-start-start-radius: var(--fi-arte-toolbar-radius, 0.5rem);
+    border-start-end-radius: var(--fi-arte-toolbar-radius, 0.5rem);
+}
+
+.fi-fo-rich-editor-toolbar.fi-arte-sticky:where(.dark, .dark *) {
+    background-color: var(
+        --fi-arte-sticky-bg,
+        color-mix(in oklab, var(--color-white, #fff) 10%, var(--gray-900, #18181b))
+    );
+    border-bottom-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Task lists                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * These two classes live in the stored rich content, not only in the editor, so they are
+ * deliberately NOT scoped under .fi-arte — the same markup has to render correctly in
+ * text entries, tables and front-end output produced by RichContentRenderer.
+ *
+ * .fi-prose reaches lists through `ul:where(:not(.fi-not-prose, …))` selectors, which
+ * carry element-level specificity only. A single class here therefore outranks the disc
+ * marker and the list indentation without needing !important.
+ */
+.fi-arte-task-list {
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+    list-style: none;
+}
+
+.fi-arte-task-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding-inline-start: 0;
+    list-style: none;
+}
+
+/* WebKit still paints a marker on a `display: flex` list item unless it is emptied. */
+.fi-arte-task-item::marker {
+    content: '';
+}
+
+/* Tighter than prose's 1rem sibling rhythm: a checklist should read as a single block. */
+.fi-arte-task-item + .fi-arte-task-item {
+    margin-top: 0.25rem;
+}
+
+/*
+ * The checkbox is centred inside a box exactly one prose line tall so that it lands on
+ * the item's FIRST line. Centring it against the whole item would drift downwards on
+ * multi-line entries and break the checklist's left column.
+ */
+.fi-arte-task-item > label {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    /*
+     * As tall as the item's first line, so the control ends up on its optical centre.
+     * The editor's node view measures that line and writes --fi-arte-task-line, which is
+     * the only way to follow an inline font size applied to the text. Outside the editor
+     * the fallbacks apply: the real line box where `lh` is supported, otherwise a size
+     * relative to the font.
+     */
+    height: var(--fi-arte-task-line, 1.5em);
+    /* Half the line's leading, so the control centres on the text rather than the box. */
+    margin: var(--fi-arte-task-line-offset, 0px) 0 0 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+@supports (height: 1lh) {
+    .fi-arte-task-item > label {
+        height: var(--fi-arte-task-line, 1lh);
+    }
+}
+
+.fi-arte-task-item > label > input[type='checkbox'] {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    accent-color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-task-item > label > input[type='checkbox']:where(.dark, .dark *) {
+    accent-color: var(--primary-500, #3b82f6);
+}
+
+/*
+ * TipTap emits a sibling span next to the input as a hook for a custom check mark. It is
+ * unused here, and an empty inline box would still consume the flex gap — but only hide
+ * it while it really is empty, so a future custom mark keeps working.
+ */
+.fi-arte-task-item > label > span:empty {
+    display: none;
+}
+
+/*
+ * `min-width: 0` lets long unbroken words wrap instead of widening the flex row.
+ *
+ * The margin reset matters as much: Filament's prose styles give block children a top
+ * margin, which would push the text a full paragraph gap below the checkbox that is
+ * supposed to sit on its first line.
+ */
+.fi-arte-task-item > div {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-block: 0;
+}
+
+.fi-arte-task-item > div > :first-child {
+    margin-top: 0;
+}
+
+.fi-arte-task-item > div > :last-child {
+    margin-bottom: 0;
+}
+
+/*
+ * A sub-list nests inside the item's content div, which the checkbox column has already
+ * offset, so it needs no further indent. When TipTap instead emits the sub-list as a
+ * direct child of the item, `flex-basis: 100%` drops it onto its own row and the padding
+ * restores that same one-column step by hand.
+ */
+.fi-arte-task-list .fi-arte-task-list {
+    margin-block: 0.25rem;
+    padding-inline-start: 0;
+}
+
+.fi-arte-task-item > .fi-arte-task-list {
+    flex: 1 0 100%;
+    padding-inline-start: 1.5rem;
+}
+
+/* Completed items read as muted; the checkbox itself stays at full contrast. */
+.fi-arte-task-item[data-checked='true'] > div {
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-task-item[data-checked='true'] > div:where(.dark, .dark *) {
+    color: var(--gray-500, #71717a);
+}
+
+/*
+ * Struck through on the item's own paragraphs only. Text decoration propagates into
+ * in-flow block descendants and cannot be cancelled further down the tree, so setting it
+ * on the content wrapper would permanently strike out every nested sub-item too.
+ */
+.fi-arte-task-item[data-checked='true'] > div > p {
+    text-decoration-line: line-through;
+}
+
+/* Colour is inherited, so a checked parent would otherwise mute its unchecked children. */
+.fi-arte-task-item[data-checked='true'] .fi-arte-task-list {
+    color: var(--prose-color, var(--gray-700, #3f3f46));
+}
+
+.fi-arte-task-item[data-checked='true'] .fi-arte-task-list:where(.dark, .dark *) {
+    color: var(--prose-color, var(--gray-300, #d4d4d8));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Textual toolbar dropdowns                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Scoped to .fi-arte so a plain Filament RichEditor on the same page stays untouched.
+ * Filament already lays the textual menu out (column direction, min-width, small type);
+ * the one gap is icon sizing, because generate_icon_html() emits 1.25rem icons that tower
+ * over the 0.8125rem option labels beside them.
+ */
+.fi-arte
+    .fi-fo-rich-editor-dropdown-tool-textual
+    .fi-fo-rich-editor-dropdown-tool-option
+    svg {
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 1rem;
+}
+
+/*
+ * The headings dropdown can list six levels. Capping the menu keeps it inside the
+ * viewport when the toolbar is pinned near the bottom of a tall form.
+ */
+.fi-arte
+    .fi-fo-rich-editor-dropdown-tool-textual
+    .fi-fo-rich-editor-dropdown-tool-menu {
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Toolbar alignment                                                          */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Filament's toolbar is a wrapping flex row, so the groups are positioned with
+ * `justify-content`. Only the horizontal axis is touched; spacing, wrapping and the
+ * bottom border stay upstream's.
+ */
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-start {
+    justify-content: flex-start;
+}
+
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-center {
+    justify-content: center;
+}
+
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-end {
+    justify-content: flex-end;
+}
+
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-between {
+    justify-content: space-between;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Font size stepper                                                          */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Sized to sit in the same 2rem button row as the tools, so a toolbar that mixes the
+ * stepper with plain buttons keeps one baseline.
+ */
+.fi-arte-font-size {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    height: 2rem;
+    padding-inline: 0.125rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.1));
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.fi-arte-font-size:where(.dark, .dark *) {
+    border-color: var(--fi-arte-divider-color, rgba(255, 255, 255, 0.1));
+}
+
+.fi-arte-font-size-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--gray-500, #71717a);
+}
+
+.fi-arte-font-size-btn:hover:not([disabled]) {
+    background-color: rgba(9, 9, 11, 0.05);
+    color: var(--gray-700, #3f3f46);
+}
+
+.fi-arte-font-size-btn:hover:not([disabled]):where(.dark, .dark *) {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--gray-200, #e4e4e7);
+}
+
+.fi-arte-font-size-btn[disabled] {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* A bare field: the group's own border already frames it. */
+.fi-arte-font-size-input {
+    width: 2.25rem;
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1;
+    color: inherit;
+    -moz-appearance: textfield;
+}
+
+.fi-arte-font-size-input:focus {
+    outline: none;
+}
+
+.fi-arte-font-size-unit {
+    margin-inline-end: 0.25rem;
+    color: var(--gray-400, #a1a1aa);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Image resizing                                                             */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The size readout that follows a drag. Appended to the resize wrapper by the assist
+ * extension and removed again when the drag ends, so it only exists while it is useful.
+ */
+.fi-arte-image-size {
+    position: absolute;
+    inset-block-end: 0.5rem;
+    inset-inline-end: 0.5rem;
+    z-index: 10;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.375rem;
+    background-color: rgba(9, 9, 11, 0.75);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    /* Never in the way of the handle being dragged. */
+    pointer-events: none;
+}
+
+/* The unlocked state is the notable one, so it is the one that gets the accent. */
+.fi-arte-image-lock.fi-active {
+    color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-image-lock.fi-active:where(.dark, .dark *) {
+    color: var(--primary-400, #60a5fa);
+}
+
+/*
+ * An image whose file did not load. Without this the node keeps its size and renders as
+ * an empty hole, which reads like a bug in the editor rather than a missing file.
+ */
+.fi-arte [data-resize-wrapper][data-arte-image='error'] {
+    border: 1px dashed rgba(9, 9, 11, 0.35);
+    border-radius: 0.5rem;
+    background-color: rgba(9, 9, 11, 0.06);
+}
+
+.fi-arte [data-resize-wrapper][data-arte-image='error']:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.35);
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.fi-arte [data-resize-wrapper][data-arte-image='error']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    /* A crossed-out picture frame, drawn rather than shipped as an asset. */
+    background-color: currentColor;
+    opacity: 0.55;
+    inline-size: 2rem;
+    block-size: 2rem;
+    -webkit-mask-image: var(--fi-arte-image-error-icon);
+    mask-image: var(--fi-arte-image-error-icon);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+.fi-arte {
+    --fi-arte-image-error-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z'/%3E%3Cpath stroke-linecap='round' d='M3 21L21 3'/%3E%3C/svg%3E");
+}

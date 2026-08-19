@@ -1,0 +1,8 @@
+# Larastan is pulled in through phpstan/extension-installer, so its extension.neon
+# must not be included here — doing so would register the extension twice.
+parameters:
+    level: 5
+    paths:
+        - src
+        - config
+    tmpDir: build/phpstan
