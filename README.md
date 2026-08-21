@@ -23,6 +23,8 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Spatie Media Library** — opt in per field to store attachments in a media collection
 - **Anchored headings and a table of contents** — both from one slug pass, so a link in the
   list and an `id` on the page cannot drift apart
+- **Links with `rel`, `referrerpolicy` and `hreflang`** — and `noopener noreferrer` added
+  automatically to anything opening in a new window
 - **Markdown export** — task lists keep their checkboxes
 - **Configurable project-wide** — one config file sets the default toolbar for every field
 
@@ -411,6 +413,73 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 
 RichContentRenderer::make($html)->plugins([TextDirectionPlugin::make()])->toHtml();
 ```
+
+### Links
+
+The `link` dialog asks for the attributes a link in a published document carries, not only
+the ones a link in a form does:
+
+| Field | Attribute |
+| --- | --- |
+| URL | `href` |
+| Opens in | `target` — same window, new window, parent frame, top frame |
+| Relationship | `rel` — checkboxes for `nofollow`, `noopener`, `noreferrer`, `sponsored`, `ugc`, plus a field for the rest |
+| Referrer policy | `referrerpolicy` — the eight the specification defines |
+| Language of the linked page | `hreflang` |
+| Anchor | `id`, so something can link to this spot in the text |
+
+`rel` is checkboxes and `referrerpolicy` a select rather than the free text fields the
+obvious implementation reaches for. Both are closed vocabularies, and a typo in either
+produces an attribute that is silently inert — worse than a missing one, because the author
+believes it is doing something. `rel` itself is an open list, which is what the field beside
+the checkboxes is for: `me`, `alternate`, `license` and anything else valid go there, and
+the two halves are merged into one attribute with each value appearing once.
+
+**A link that opens in a new window is given `rel="noopener noreferrer"` whether or not
+anyone ticked them.** `target="_blank"` on its own hands the opened page a handle on the
+window that opened it, which it can navigate somewhere else while the reader is looking at
+the new tab. Nothing further down the stack prevents that, and nobody ticking "new window"
+is thinking about it.
+
+```php
+AdvancedRichEditor::make('content')
+    ->linkAttributes(false);   // default: config('filament-advanced-rich-editor.link.attributes')
+```
+
+Turning it off falls back to Filament's own dialog — a URL and a checkbox — and to
+Filament's own link mark. Note that this is a heavier switch than hiding a button: the
+extra attributes are part of the schema, and content is re-parsed on every hydration and
+again on every save, so a field that stops declaring them drops them on the next save in
+documents that already carry them.
+
+**Why the mark is replaced rather than extended.** Filament declares `href`, `target`,
+`rel` and `class`; the parser keeps only what something declares, so anything else is
+dropped. Two extensions of the same name are both applied, and a second link mark
+alongside Filament's renders `<a><a>text</a></a>`. This package therefore swaps Filament's
+mark out by name — in its own renderer and in its own field, carrying the protocol allow
+list across — rather than rebinding `Tiptap\Marks\Link` in the container, which would
+change every other package's links too.
+
+Everything the dialog writes survives Filament's sanitiser: `rel`, `target`, `hreflang`,
+`referrerpolicy` and `id` all reach the page as written.
+
+### Anchors in the editor
+
+An `id` typed into a heading through the [source code view](#source-code) is kept. TipTap's
+heading declares `level` and nothing else, so without this half the anchor is dropped the
+moment the document is parsed — and the link pointing at it stops working on the next save,
+with nothing to say it happened.
+
+```html
+<h2 id="preise">Preise</h2>
+```
+
+An id that could not be linked to — one with a space or a quote in it — is dropped rather
+than stored. It would survive the sanitiser and still not be a fragment any browser jumps
+to. The same rule applies to the anchor on a link.
+
+Anchors this package generates while rendering are a separate thing and need no
+configuration in the editor; see [Anchors](#anchors).
 
 ### Source code
 
@@ -1017,6 +1086,7 @@ AdvancedRichEditor::make('content')
     ->stickyToolbar(true)                          // pin the toolbar while scrolling
     ->stickyToolbarOffset('4rem')                  // distance from the top of the viewport
     ->maxHeight('400px')                           // cap the field and scroll inside it
+    ->linkAttributes(true)                         // rel, referrerpolicy, hreflang, anchor
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists

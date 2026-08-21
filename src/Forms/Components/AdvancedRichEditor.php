@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\Forms\Components;
 
 use Closure;
+use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\HasFileAttachmentProvider;
@@ -12,10 +13,13 @@ use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\TextColor;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\SourceCodeAction;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
@@ -25,6 +29,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
@@ -37,6 +42,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
 use LogicException;
+use Tiptap\Editor;
 
 class AdvancedRichEditor extends RichEditor
 {
@@ -121,6 +127,8 @@ class AdvancedRichEditor extends RichEditor
 
     protected bool|Closure|null $hasFullscreen = null;
 
+    protected bool|Closure|null $hasLinkAttributes = null;
+
     protected bool|Closure|null $hasImageToolbar = null;
 
     /**
@@ -169,6 +177,21 @@ class AdvancedRichEditor extends RichEditor
                 ->label(__('filament-forms::components.rich_editor.tools.blockquote'))
                 ->jsHandler('$getEditor()?.chain().focus().toggleBlockquote().run()')
                 ->icon(Icons::get('blockquote')),
+
+            // Filament's link tool hands the dialog the URL and whether the target is
+            // `_blank`, which is everything its own dialog asks for. Reopening a link that
+            // carries more than that would show those fields empty and write the emptiness
+            // back on save, so the tool passes the whole set. `url` is passed alongside
+            // `href` so that a field with `->linkAttributes(false)`, which falls back to
+            // Filament's dialog, still fills in.
+            RichEditorTool::make('link')
+                ->label(__('filament-forms::components.rich_editor.tools.link'))
+                ->action(arguments: '{ url: $getEditor().getAttributes(\'link\')?.href, href: $getEditor().getAttributes(\'link\')?.href, shouldOpenInNewTab: $getEditor().getAttributes(\'link\')?.target === \'_blank\', target: $getEditor().getAttributes(\'link\')?.target, rel: $getEditor().getAttributes(\'link\')?.rel, hreflang: $getEditor().getAttributes(\'link\')?.hreflang, referrerpolicy: $getEditor().getAttributes(\'link\')?.referrerpolicy, id: $getEditor().getAttributes(\'link\')?.id }')
+                ->toggle()
+                // Filament's own drawing and alias, because nothing about the button
+                // changed - only what the dialog behind it asks for.
+                ->icon(Heroicon::Link)
+                ->iconAlias('forms:components.rich-editor.toolbar.link'),
 
             RichEditorTool::make('imageRotateLeft')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_rotate_left'))
@@ -282,6 +305,15 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTextDirection()
                 ? [TextDirectionPlugin::make()]
+                : [],
+        );
+
+        // The editor half of the widened link and of the heading anchor. Both are
+        // attributes on nodes Filament owns, and both are dropped by the parser unless
+        // something declares them.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasLinkAttributes()
+                ? [LinkPlugin::make()]
                 : [],
         );
 
@@ -657,6 +689,63 @@ class AdvancedRichEditor extends RichEditor
     public function getStickyToolbarOffset(): string
     {
         return (string) ($this->evaluate($this->stickyToolbarOffset) ?? config('filament-advanced-rich-editor.sticky.offset') ?? '4rem');
+    }
+
+    /**
+     * Whether the link tool offers `rel`, `referrerpolicy`, `hreflang` and an anchor, and
+     * whether the schema keeps them.
+     *
+     * Both halves move together on purpose. A dialog that writes an attribute the schema
+     * drops is a dialog that lies, and a schema that keeps one nothing can write is dead
+     * weight.
+     */
+    public function linkAttributes(bool|Closure $condition = true): static
+    {
+        $this->hasLinkAttributes = $condition;
+
+        return $this;
+    }
+
+    public function hasLinkAttributes(): bool
+    {
+        return (bool) ($this->evaluate($this->hasLinkAttributes) ?? config('filament-advanced-rich-editor.link.attributes') ?? true);
+    }
+
+    /**
+     * @return array<Action>
+     */
+    public function getDefaultActions(): array
+    {
+        if (! $this->hasLinkAttributes()) {
+            return parent::getDefaultActions();
+        }
+
+        // Replaced by name rather than appended: two actions called `link` would leave
+        // which dialog opens to the order of the array.
+        return [
+            ...array_filter(
+                parent::getDefaultActions(),
+                static fn (Action $action): bool => $action->getName() !== 'link',
+            ),
+            LinkAction::make(),
+        ];
+    }
+
+    /**
+     * The editor a save is parsed through.
+     *
+     * Filament builds Filament's renderer here, so without this the widened link mark and
+     * the heading anchor would reach a rendered page but not the schema that a save and a
+     * hydration go through - and an attribute that survives being shown but not being
+     * saved is worse than one that was never offered.
+     */
+    public function getTipTapEditor(): Editor
+    {
+        return AdvancedRichContentRenderer::make()
+            ->plugins($this->getPlugins())
+            ->linkProtocols($this->getLinkProtocols())
+            ->linkAttributes($this->hasLinkAttributes())
+            ->getEditor();
     }
 
     /**

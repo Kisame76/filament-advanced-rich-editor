@@ -6,11 +6,13 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
 use Tiptap\Core\Extension;
 use Tiptap\Editor;
+use Tiptap\Marks\Link as BaseLink;
 
 /**
  * Filament's renderer with the output this package adds on top.
@@ -38,6 +40,8 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     protected string $anchorSymbol = '#';
 
     protected string $anchorClass = 'fi-arte-anchor';
+
+    protected bool $hasLinkAttributes = true;
 
     /**
      * What this package asks the converter for on top of its own defaults.
@@ -67,6 +71,21 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     public static function bind(): void
     {
         app()->bind(RichContentRenderer::class, static::class);
+    }
+
+    /**
+     * Whether links carry `hreflang`, `referrerpolicy` and an `id` on top of what Filament
+     * declares.
+     *
+     * On by default: content that already holds those attributes should keep them. Turning
+     * it off matches a field that was set up the same way, and strips them on the next
+     * render.
+     */
+    public function linkAttributes(bool $condition = true): static
+    {
+        $this->hasLinkAttributes = $condition;
+
+        return $this;
     }
 
     /**
@@ -104,8 +123,23 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      */
     public function getTipTapPhpExtensions(): array
     {
+        if (! $this->hasLinkAttributes) {
+            return [...parent::getTipTapPhpExtensions(), app(Anchor::class)];
+        }
+
+        $extensions = array_map(
+            // Filament's link mark is replaced rather than joined by a second one. Two
+            // extensions of the same name are both applied, which renders a link nested
+            // inside a link; and the options carry the protocol allow list the field or
+            // the renderer configured, so they are carried across rather than rebuilt.
+            static fn (Extension $extension): Extension => $extension instanceof BaseLink && ! ($extension instanceof Link)
+                ? new Link($extension->options)
+                : $extension,
+            parent::getTipTapPhpExtensions(),
+        );
+
         return [
-            ...parent::getTipTapPhpExtensions(),
+            ...$extensions,
             // Declared unconditionally. An anchor already in the stored markup should
             // survive being rendered whether or not this render asked for new ones, and
             // an attribute nothing writes costs nothing.

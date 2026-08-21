@@ -38,6 +38,16 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- The link dialog asks for `rel`, `referrerpolicy`, `hreflang` and an anchor on top of the
+  URL and the target, with `rel` as checkboxes and `referrerpolicy` as a select - both are
+  closed vocabularies, and a typo in a free text field produces an attribute that is
+  silently inert. A link opening in a new window is given `rel="noopener noreferrer"`
+  whether or not anyone ticked them: `target="_blank"` on its own hands the opened page a
+  handle on the window that opened it. `->linkAttributes(false)` falls back to Filament's
+  dialog and mark
+- An `id` typed into a heading through the source code view is kept. TipTap's heading
+  declares `level` and nothing else, so the anchor used to be dropped the moment the
+  document was parsed - and the link pointing at it stopped working on the next save
 - `AdvancedRichContentRenderer`, Filament's renderer with this package's additions. A
   subclass rather than macros on Filament's own class, so installing this package does not
   change what every other package's content renders as; `::bind()` takes it over

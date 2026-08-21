@@ -131,6 +131,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Link attributes
+    |--------------------------------------------------------------------------
+    | Whether the link dialog offers `rel`, `referrerpolicy`, `hreflang` and an anchor on
+    | top of the URL and the target, and whether the schema keeps them. Both halves move
+    | together: a dialog writing an attribute the schema drops would be lying.
+    |
+    | Turning this off falls back to Filament's own dialog and its own link mark, and the
+    | extra attributes are stripped from content that already carries them on the next
+    | save. Per field: `->linkAttributes()`.
+    */
+    'link' => [
+        'attributes' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Help
     |--------------------------------------------------------------------------
     | The question mark at the end of the toolbar, listing the keyboard shortcuts that

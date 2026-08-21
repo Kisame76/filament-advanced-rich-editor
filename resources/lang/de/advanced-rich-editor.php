@@ -5,6 +5,23 @@ declare(strict_types=1);
 return [
     'tools' => [
         'image' => 'Bild',
+        'link' => [
+            'target' => [
+                'label' => 'Öffnet in',
+                'self' => 'Gleichem Fenster',
+                'blank' => 'Neuem Fenster',
+                'parent' => 'Übergeordnetem Frame',
+                'top' => 'Oberstem Frame',
+            ],
+            'rel' => [
+                'label' => 'Beziehung (rel)',
+                'new_tab_hint' => 'Ein Link, der in einem neuen Fenster öffnet, bekommt noopener und noreferrer automatisch.',
+                'other' => 'Weitere rel-Werte',
+            ],
+            'referrerpolicy' => 'Referrer-Richtlinie',
+            'hreflang' => 'Sprache der Zielseite',
+            'id' => 'Anker',
+        ],
         'task_list' => 'Aufgabenliste',
         'heading_level' => 'Überschrift :level',
         'font_family' => 'Schriftart',

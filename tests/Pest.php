@@ -211,3 +211,29 @@ function document(string $html, array $extensions = []): Editor
 
     return $editor;
 }
+
+/**
+ * The attributes of the first `<a>` in a fragment, and how many there are.
+ *
+ * Attribute order in rendered markup is decided by the schema and carries no meaning, so
+ * a test that spelled the tag out would fail on a reordering that changed nothing. The
+ * count is part of the answer because a mark registered twice renders nested links.
+ *
+ * @return array{count: int, attributes: array<string, string>}
+ */
+function links(string $html): array
+{
+    $document = new DOMDocument;
+    $document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR);
+
+    $anchors = $document->getElementsByTagName('a');
+    $attributes = [];
+
+    foreach ($anchors->item(0)?->attributes ?? [] as $attribute) {
+        $attributes[$attribute->nodeName] = $attribute->nodeValue;
+    }
+
+    ksort($attributes);
+
+    return ['count' => $anchors->count(), 'attributes' => $attributes];
+}
