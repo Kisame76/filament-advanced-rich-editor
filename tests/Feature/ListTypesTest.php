@@ -8,7 +8,7 @@ it('reads the list types from the config file', function (): void {
     config()->set('filament-advanced-rich-editor.lists', ['orderedList', 'bulletList']);
 
     expect(editor()->getListTypes())->toBe(['orderedList', 'bulletList'])
-        ->and(toolbarShape(editor())[8][1])->toBe('dropdown:orderedList,bulletList');
+        ->and(toolbarDropdownName(editor(), 'bulletList'))->toBe('dropdown:orderedList,bulletList');
 });
 
 it('falls back to all three list types when the config was never merged', function (): void {
@@ -20,8 +20,8 @@ it('falls back to all three list types when the config was never merged', functi
 it('lets a field choose its own list types', function (): void {
     $editor = editor()->listTypes(['taskList', 'bulletList']);
 
-    expect(toolbarShape($editor)[8][1])->toBe('dropdown:taskList,bulletList')
-        ->and(resolvedButtonNames($editor->getToolbarButtons()[8][1]))->toBe(['taskList', 'bulletList']);
+    expect(toolbarDropdownName($editor, 'bulletList'))->toBe('dropdown:taskList,bulletList')
+        ->and(resolvedButtonNames(toolbarDropdown($editor, 'bulletList')))->toBe(['taskList', 'bulletList']);
 });
 
 it('accepts a closure for the list types', function (): void {
@@ -63,7 +63,8 @@ it('evaluates the task list condition late enough to be a closure', function ():
 });
 
 it('drops the task list option from the dropdown instead of rendering a dead entry', function (): void {
-    $lists = editor()->taskList(false)->getToolbarButtons()[8][1];
+    $editor = editor()->taskList(false);
+    $lists = toolbarDropdown($editor, 'bulletList');
 
     expect($lists->getButtons())->toBe(['bulletList', 'orderedList', 'taskList'])
         ->and(resolvedButtonNames($lists))->toBe(['bulletList', 'orderedList']);

@@ -7,21 +7,66 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 Initial release.
 
 - `AdvancedRichEditor` field — a drop-in replacement for Filament's `RichEditor`
-- Fully configurable toolbar with nested groups, dropdowns and dividers
-- `headings`, `lists` and `alignment` dropdown tokens, plus custom tokens from config
+- Fully configurable toolbar with nested groups, dropdowns and dividers, grouped by what
+  a button does
+- `headings`, `lists`, `alignment` and `lineHeight` dropdown tokens, plus custom tokens from config
+- `more` overflow dropdown at the end of the toolbar for the tools that do not earn a button
+  of their own (`subscript`, `superscript`, `code`, `clearFormatting`, `horizontalRule`,
+  `details` by default), configurable through `more` / `->moreTools()`
+- Emoji picker (`emoji` tool): the full Unicode list, grouped and searchable, opening under
+  the line being written and staying open across picks (draggable, with a close button),
+  inserted as plain characters and so free of any server side extension; `emoji` /
+  `->emoji()`
+- Left-to-right and right-to-left blocks (`ltr` and `rtl` tools) writing a `dir` attribute
+  on paragraphs, headings, quotes, list items and code blocks, mirrored on the PHP side.
+  Registered but deliberately not in the default toolbar - `dir` only shows itself in a
+  document that mixes scripts; `text_direction` / `->textDirection()`
+- Line spacing (`lineHeight` token) writing a unitless `line-height` on paragraphs, headings,
+  quotes and list items, mirrored on the PHP side and whitelisted to a bare number so a
+  value cannot carry further CSS in behind a semicolon; picking the active spacing takes it
+  back off. `line_height` / `->lineHeights()` / `->lineHeight()`
+- `pin` toolbar marker: everything after it is pinned to the far end of the bar instead of
+  travelling with the aligned groups, so the overflow menu, source view, fullscreen switch
+  and help dialog keep a corner to themselves. A centred toolbar stays centred on the whole
+  bar; the pinned half moves to the start only when the bar itself is aligned to the end
 - The alignment dropdown's trigger follows the caret's current alignment
-- Configurable heading levels (h1–h6)
+- Configurable heading levels (h1–h6), with the paragraph listed alongside them
 - Sticky toolbar with a configurable offset and matching top corner radius
+- Fullscreen button that expands the editor over the window, Escape to leave
 - Toolbar alignment (`center` by default) via `->toolbarAlignment()` / `toolbar_alignment`
 - Task lists (checkbox lists) as an opt-out TipTap plugin, with the checkbox centred
   on the first line whatever font size the text carries
 - `image` toolbar tool with alt text support, and the stock `table` button next to it
-- Font size stepper (`fontSize` token) with an inline font size mark on both sides
+- Font picker (`fontFamily` token) offering the typefaces a project actually has: font files
+  are discovered in a configured directory and given `@font-face` rules, generic stacks come
+  free, and declared families are checked in the browser before they are shown; nothing is
+  loaded from a CDN. `fonts` / `->fonts()` / `->fontPicker()`
+- Font size menu (`fontSize` token) with the usual sizes, a field for anything else and a
+  way back to the theme's own size, on an inline font size mark on both sides
+- Text colour and text background swatch dropdowns (`textColor`, `textBackground` tokens),
+  with a twelve-colour default palette, a clear option and a free colour picker
 - Optional Spatie Media Library storage for image attachments
 - Resizable images on by default, configurable through `images.resizable`, with a live
   pixel readout while dragging, an aspect ratio lock in the image floating toolbar, and a
   placeholder for images that fail to load
+- Download and delete buttons in the image floating toolbar
+- Alt text and width/height panels, and quarter-turn rotation, in the image floating toolbar
+- The size panel applies on demand and carries the aspect ratio lock between its fields
+- Help dialog (`help` tool) listing the keyboard shortcuts the field answers to, built from
+  that field's own configuration, with an optional second tab for a project's own note;
+  `help` / `help_more` / `->help()` / `->helpMore()`
+- Source code view (`sourceCode` tool) opening the document as HTML in Filament's code
+  editor, laid out block by block for reading, and normalised through the field's own schema
+  in both directions so the markup shown is the markup stored; `source_code` /
+  `->sourceCode()`
+- Character count under the editor, measured the way Filament's own `maxLength` validation
+  measures it, counting towards `maxLength()` or a display-only `->characterCountLimit()`,
+  with words on request; `character_count` / `->characterCount()`
 - English and German translations
+- Every package icon configurable through one `icons` registry, spelled out key by key in
+  the published config file, with bundled Lucide icons
+  where Heroicons has no equivalent (rotations, blockquote, and the letter, highlighter and
+  palette the colour tools use)
 - Heading tools relabelled to "Heading 1" … "Heading 6" via `tools.heading_level`
 - Task list markup that survives Filament's HTML sanitiser (state carried by a class
   instead of `<input>` / `data-checked`)

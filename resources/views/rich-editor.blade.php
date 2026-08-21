@@ -16,6 +16,10 @@
       - .fi-fo-rich-editor-toolbar div: conditional 'fi-arte-sticky' class plus the
         --fi-arte-sticky-offset custom property that the sticky rule reads, and the
         'fi-arte-toolbar-align-*' class that positions the groups on the bar
+      - .fi-fo-rich-editor-toolbar div: the group loop is wrapped in two containers when
+        the toolbar carries a 'pin' marker, so the buttons behind it can keep an edge of
+        the bar while the rest stays aligned; without a marker the groups are emitted
+        exactly as upstream emits them
 
     Deliberately NOT changed: x-load-src still points at Filament's own compiled
     'rich-editor' Alpine component, because this package extends the upstream editor
@@ -35,7 +39,10 @@
     $mergeTags = $getMergeTags();
     $statePath = $getStatePath();
     $mentions = $getMentionsForJs();
-    $toolbarButtons = $getToolbarButtons();
+    $splitToolbarButtons = $getSplitToolbarButtons();
+    $flowToolbarButtons = $splitToolbarButtons['flow'];
+    $pinnedToolbarButtons = $splitToolbarButtons['pinned'];
+    $toolbarButtons = [...$flowToolbarButtons, ...$pinnedToolbarButtons];
     $tools = $getTools();
     $floatingToolbars = $getFloatingToolbars();
     $linkProtocols = $getLinkProtocols();
@@ -43,6 +50,7 @@
     $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
     $isStickyToolbar = $isStickyToolbar();
     $toolbarAlignment = $getToolbarAlignment();
+    $toolbarPinSide = $getToolbarPinSide();
     $stickyToolbarOffset = $getStickyToolbarOffset();
 @endphp
 
@@ -118,22 +126,54 @@
                         'fi-fo-rich-editor-toolbar',
                         'fi-arte-sticky' => $isStickyToolbar,
                         "fi-arte-toolbar-align-{$toolbarAlignment}",
+                        'fi-arte-toolbar-split' => filled($pinnedToolbarButtons),
+                        "fi-arte-toolbar-pin-{$toolbarPinSide}" => filled($pinnedToolbarButtons),
                     ])
                     @if ($isStickyToolbar)
                         style="--fi-arte-sticky-offset: {{ $stickyToolbarOffset }}"
                     @endif
                 >
-                    @foreach ($toolbarButtons as $button => $buttonGroup)
-                        <div class="fi-fo-rich-editor-toolbar-group">
-                            @foreach ($buttonGroup as $button)
-                                @if (is_string($button))
-                                    {{ $tools[$button] ?? throw new LogicException("Toolbar button [{$button}] cannot be found.") }}
-                                @else
-                                    {{ $button }}
-                                @endif
+                    @if (filled($pinnedToolbarButtons))
+                        <div class="fi-arte-toolbar-flow">
+                            @foreach ($flowToolbarButtons as $buttonGroup)
+                                <div class="fi-fo-rich-editor-toolbar-group">
+                                    @foreach ($buttonGroup as $button)
+                                        @if (is_string($button))
+                                            {{ $tools[$button] ?? throw new LogicException("Toolbar button [{$button}] cannot be found.") }}
+                                        @else
+                                            {{ $button }}
+                                        @endif
+                                    @endforeach
+                                </div>
                             @endforeach
                         </div>
-                    @endforeach
+
+                        <div class="fi-arte-toolbar-pinned">
+                            @foreach ($pinnedToolbarButtons as $buttonGroup)
+                                <div class="fi-fo-rich-editor-toolbar-group">
+                                    @foreach ($buttonGroup as $button)
+                                        @if (is_string($button))
+                                            {{ $tools[$button] ?? throw new LogicException("Toolbar button [{$button}] cannot be found.") }}
+                                        @else
+                                            {{ $button }}
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        @foreach ($toolbarButtons as $button => $buttonGroup)
+                            <div class="fi-fo-rich-editor-toolbar-group">
+                                @foreach ($buttonGroup as $button)
+                                    @if (is_string($button))
+                                        {{ $tools[$button] ?? throw new LogicException("Toolbar button [{$button}] cannot be found.") }}
+                                    @else
+                                        {{ $button }}
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endforeach
+                    @endif
                 </div>
             @endif
 

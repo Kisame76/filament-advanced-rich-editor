@@ -8,6 +8,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Support\Facades\FilamentAsset;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Tiptap\Core\Extension;
 use Tiptap\Nodes\TaskList;
@@ -59,7 +60,7 @@ class TaskListPlugin implements RichContentPlugin
             RichEditorTool::make('taskList')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.task_list'))
                 ->jsHandler('$getEditor()?.chain().focus().toggleTaskList().run()')
-                ->icon('arte-task-list'),
+                ->icon(Icons::get('task_list')),
         ];
     }
 

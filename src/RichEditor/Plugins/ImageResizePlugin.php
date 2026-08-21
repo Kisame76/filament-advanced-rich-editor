@@ -8,14 +8,16 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Support\Facades\FilamentAsset;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageRotate;
 use Tiptap\Core\Extension;
 
 /**
- * Adds the size readout and the aspect ratio switch to Filament's image resizing.
+ * Everything the editor adds around an image: the size readout and the aspect ratio switch
+ * during a drag, the rotation attribute, and the visibility rule that lets the image
+ * toolbar hold inputs.
  *
- * Nothing is registered on the PHP side: the assist only changes how a drag behaves and
- * what it displays, while the resized image is still written by Filament's own extension
- * as plain `width` and `height` attributes.
+ * The size itself still travels as Filament's own `width` and `height` attributes; only the
+ * rotation needs a counterpart on the PHP side, since nothing there knows about it.
  */
 class ImageResizePlugin implements RichContentPlugin
 {
@@ -29,7 +31,9 @@ class ImageResizePlugin implements RichContentPlugin
      */
     public function getTipTapPhpExtensions(): array
     {
-        return [];
+        return [
+            app(ImageRotate::class),
+        ];
     }
 
     /**
@@ -39,6 +43,7 @@ class ImageResizePlugin implements RichContentPlugin
     {
         return [
             FilamentAsset::getScriptSrc('advanced-rich-editor/image-resize', 'kisame76/filament-advanced-rich-editor'),
+            FilamentAsset::getScriptSrc('advanced-rich-editor/image-rotate', 'kisame76/filament-advanced-rich-editor'),
         ];
     }
 

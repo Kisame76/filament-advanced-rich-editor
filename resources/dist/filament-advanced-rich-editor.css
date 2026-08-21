@@ -289,163 +289,405 @@
  * `justify-content`. Only the horizontal axis is touched; spacing, wrapping and the
  * bottom border stay upstream's.
  */
-.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-start {
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-start,
+.fi-arte-toolbar-align-start > .fi-arte-toolbar-flow {
     justify-content: flex-start;
 }
 
-.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-center {
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-center,
+.fi-arte-toolbar-align-center > .fi-arte-toolbar-flow {
     justify-content: center;
 }
 
-.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-end {
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-end,
+.fi-arte-toolbar-align-end > .fi-arte-toolbar-flow {
     justify-content: flex-end;
 }
 
-.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-between {
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-between,
+.fi-arte-toolbar-align-between > .fi-arte-toolbar-flow {
     justify-content: space-between;
 }
 
 /* -------------------------------------------------------------------------- */
-/* Font size stepper                                                          */
+/* Pinned toolbar buttons                                                     */
 /* -------------------------------------------------------------------------- */
 
 /*
- * Sized to sit in the same 2rem button row as the tools, so a toolbar that mixes the
- * stepper with plain buttons keeps one baseline.
+ * A toolbar carrying a 'pin' marker is rendered as two containers rather than a row of
+ * groups: the ones that travel with the alignment, and the ones that keep an edge. Grid
+ * rather than flexbox, because an auto margin would eat the free space the alignment
+ * needs - the flow would stop being centred the moment anything was pinned.
+ *
+ * The columns are declared for the pinned side, and the halves are placed into them by
+ * number, so the DOM order stays the reading order whichever edge is asked for.
  */
-.fi-arte-font-size {
-    display: inline-flex;
+.fi-fo-rich-editor-toolbar.fi-arte-toolbar-split {
+    display: grid;
     align-items: center;
-    align-self: center;
-    height: 2rem;
-    padding-inline: 0.125rem;
-    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.1));
-    border-radius: 0.5rem;
-    font-size: 0.75rem;
-    line-height: 1;
+    grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.fi-arte-font-size:where(.dark, .dark *) {
-    border-color: var(--fi-arte-divider-color, rgba(255, 255, 255, 0.1));
+.fi-arte-toolbar-split.fi-arte-toolbar-pin-start {
+    grid-template-columns: auto minmax(0, 1fr);
 }
 
-.fi-arte-font-size-btn {
-    display: inline-flex;
+/*
+ * The pinned half is a corner of the bar, not a row that reflows: a handful of buttons
+ * that belong together and are looked for in one place. Keeping it on one line is also
+ * what gives its column a minimum to hold on to - a wrapping half would report the width
+ * of its widest button as its minimum and let the flow overrun it.
+ */
+.fi-arte-toolbar-pinned {
+    flex-wrap: nowrap;
+    /*
+     * A corner, so it stays in the corner: when the flow wraps onto a second and third
+     * row the pinned half keeps the first one instead of floating in the middle of the
+     * bar. On a toolbar that fits in one row this changes nothing.
+     */
+    align-self: start;
+}
+
+.fi-arte-toolbar-split.fi-arte-toolbar-pin-end > .fi-arte-toolbar-flow,
+.fi-arte-toolbar-split.fi-arte-toolbar-pin-start > .fi-arte-toolbar-pinned {
+    grid-column: 1;
+}
+
+.fi-arte-toolbar-split.fi-arte-toolbar-pin-end > .fi-arte-toolbar-pinned,
+.fi-arte-toolbar-split.fi-arte-toolbar-pin-start > .fi-arte-toolbar-flow {
+    grid-column: 2;
+}
+
+/*
+ * A centred bar gets a third column, empty and the same width as the one the pinned half
+ * sits in. Without it the flow would be centred on what is left of the bar rather than on
+ * the bar, and the whole toolbar would look nudged away from the pinned corner.
+ *
+ * The empty column can collapse to nothing and the flow column can wrap its own contents,
+ * so a narrow bar loses the symmetry before it loses any button.
+ */
+.fi-arte-toolbar-split.fi-arte-toolbar-align-center {
+    grid-template-columns: minmax(0, 1fr) auto 1fr;
+}
+
+.fi-arte-toolbar-split.fi-arte-toolbar-align-center.fi-arte-toolbar-pin-start {
+    grid-template-columns: 1fr auto minmax(0, 1fr);
+}
+
+.fi-arte-toolbar-split.fi-arte-toolbar-align-center > .fi-arte-toolbar-flow {
+    grid-column: 2;
+}
+
+.fi-arte-toolbar-split.fi-arte-toolbar-align-center.fi-arte-toolbar-pin-end
+    > .fi-arte-toolbar-pinned {
+    grid-column: 3;
+}
+
+.fi-arte-toolbar-split.fi-arte-toolbar-align-center.fi-arte-toolbar-pin-start
+    > .fi-arte-toolbar-pinned {
+    grid-column: 1;
+}
+
+.fi-arte-toolbar-split > .fi-arte-toolbar-pinned {
+    justify-self: end;
+}
+
+.fi-arte-toolbar-split.fi-arte-toolbar-pin-start > .fi-arte-toolbar-pinned {
+    justify-self: start;
+}
+
+/*
+ * Both halves repeat the bar's own row: Filament styles `.fi-fo-rich-editor-toolbar` as
+ * the flex container the groups sit in, and that container is now one level further out.
+ */
+.fi-arte-toolbar-flow,
+.fi-arte-toolbar-pinned {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    line-height: 1;
-    cursor: pointer;
-    color: var(--gray-500, #71717a);
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
 }
 
-.fi-arte-font-size-btn:hover:not([disabled]) {
-    background-color: rgba(9, 9, 11, 0.05);
-    color: var(--gray-700, #3f3f46);
+/* -------------------------------------------------------------------------- */
+/* Font size                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/* One control, two parts: a number to type in and a chevron to open the list with. */
+.fi-arte-font-size-control {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding-inline: 0.5rem;
+    cursor: text;
 }
 
-.fi-arte-font-size-btn:hover:not([disabled]):where(.dark, .dark *) {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--gray-200, #e4e4e7);
-}
-
-.fi-arte-font-size-btn[disabled] {
-    opacity: 0.4;
-    cursor: default;
-}
-
-/* A bare field: the group's own border already frames it. */
-.fi-arte-font-size-input {
-    width: 2.25rem;
-    padding: 0;
+.fi-arte-font-size-value {
+    inline-size: 2.5rem;
     border: 0;
     background-color: transparent;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+    font-variant-numeric: tabular-nums;
     text-align: center;
-    font-size: 0.75rem;
-    line-height: 1;
     color: inherit;
-    -moz-appearance: textfield;
 }
 
-.fi-arte-font-size-input:focus {
+.fi-arte-font-size-value:focus {
     outline: none;
 }
 
-.fi-arte-font-size-unit {
-    margin-inline-end: 0.25rem;
+/* Padded to a size a finger can find, without growing the control around it. */
+.fi-arte-font-size-toggle {
+    display: flex;
+    align-items: center;
+    align-self: stretch;
+    padding-inline-start: 0.25rem;
+    cursor: pointer;
+}
+
+.fi-arte-font-size-menu {
+    flex-direction: column;
+    min-inline-size: 6rem;
+    max-block-size: 18rem;
+    overflow-y: auto;
+}
+
+.fi-arte-font-size-menu .fi-fo-rich-editor-dropdown-tool-option {
+    font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Font picker                                                                */
+/* -------------------------------------------------------------------------- */
+
+.fi-arte-font-picker-trigger {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+}
+
+/* The name is set in the typeface it names, so the trigger is its own preview. */
+.fi-arte-font-picker-label {
+    max-inline-size: 7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+}
+
+.fi-arte-font-menu {
+    flex-direction: column;
+    min-inline-size: 11rem;
+    max-block-size: 18rem;
+    overflow-y: auto;
+}
+
+.fi-arte-font-search {
+    inline-size: 100%;
+    margin-block-end: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--gray-300, #d4d4d8);
+    background-color: transparent;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: inherit;
+}
+
+.fi-arte-font-search:where(.dark, .dark *) {
+    border-color: var(--gray-600, #52525b);
+}
+
+.fi-arte-font-search:focus {
+    outline: 2px solid var(--primary-600, #2563eb);
+    outline-offset: -1px;
+}
+
+.fi-arte-font-option {
+    inline-size: 100%;
+    font-size: 0.9375rem;
+}
+
+/* The typeface the theme sets, named beside the option that hands the text back to it. */
+.fi-arte-font-default {
+    font-family: inherit;
+    font-size: 0.75rem;
     color: var(--gray-400, #a1a1aa);
 }
 
 /* -------------------------------------------------------------------------- */
-/* Image resizing                                                             */
+/* Fullscreen                                                                 */
 /* -------------------------------------------------------------------------- */
 
 /*
- * The size readout that follows a drag. Appended to the resize wrapper by the assist
- * extension and removed again when the drag ends, so it only exists while it is useful.
+ * The overlay the fullscreen button switches on. It is a fixed box rather than the
+ * browser's own Fullscreen API - that promotes one element into the top layer, where
+ * Filament's modals, rendered at the end of the body, could no longer be seen.
+ *
+ * z-index 35 puts it over the panel's topbar and sidebar (30) and under Filament's
+ * modals and their overlay (40), which is the whole point of not using the real thing.
+ *
+ * The background has to be restated: Filament's input wrapper is plain white in light
+ * mode but a translucent white/5 in dark mode, and the page would show through a
+ * translucent overlay. The colour is the same flattened value the sticky toolbar uses.
  */
-.fi-arte-image-size {
-    position: absolute;
-    inset-block-end: 0.5rem;
-    inset-inline-end: 0.5rem;
-    z-index: 10;
-    padding: 0.125rem 0.375rem;
-    border-radius: 0.375rem;
-    background-color: rgba(9, 9, 11, 0.75);
-    color: #fff;
-    font-size: 0.6875rem;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.25rem;
-    white-space: nowrap;
-    /* Never in the way of the handle being dragged. */
-    pointer-events: none;
+.fi-fo-rich-editor.fi-arte-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    border-radius: 0;
+    background-color: var(--fi-arte-fullscreen-bg, var(--color-white, #fff));
 }
 
-/* The unlocked state is the notable one, so it is the one that gets the accent. */
-.fi-arte-image-lock.fi-active {
-    color: var(--primary-600, #2563eb);
-}
-
-.fi-arte-image-lock.fi-active:where(.dark, .dark *) {
-    color: var(--primary-400, #60a5fa);
+.fi-fo-rich-editor.fi-arte-fullscreen:where(.dark, .dark *) {
+    background-color: var(
+        --fi-arte-fullscreen-bg,
+        color-mix(in oklab, var(--color-white, #fff) 10%, var(--gray-900, #18181b))
+    );
 }
 
 /*
- * An image whose file did not load. Without this the node keeps its size and renders as
- * an empty hole, which reads like a bug in the editor rather than a missing file.
+ * The two containers between the wrapper and the editor: Filament's own content column
+ * and the plain `wire:ignore` div the Alpine component lives on. Both have to carry the
+ * height down, or the writing area would still be as tall as its text.
+ *
+ * `min-height: 0` on each of them is what makes the content scroll instead of pushing
+ * the bottom of the editor past the bottom of the window: a flex child's automatic
+ * minimum size is its content, and that overrides the height the parent hands it.
  */
-.fi-arte [data-resize-wrapper][data-arte-image='error'] {
-    border: 1px dashed rgba(9, 9, 11, 0.35);
-    border-radius: 0.5rem;
-    background-color: rgba(9, 9, 11, 0.06);
+.fi-arte-fullscreen > .fi-input-wrp-content-ctn,
+.fi-arte-fullscreen > .fi-input-wrp-content-ctn > * {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
-.fi-arte [data-resize-wrapper][data-arte-image='error']:where(.dark, .dark *) {
-    border-color: rgba(255, 255, 255, 0.35);
-    background-color: rgba(255, 255, 255, 0.06);
+/*
+ * The direction is deliberately left alone: Filament reverses this column so the panels
+ * sit above the text, and turns it into a row from `2xl` up. Only the height is ours.
+ */
+.fi-arte-fullscreen .fi-fo-rich-editor-main {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
-.fi-arte [data-resize-wrapper][data-arte-image='error']::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    /* A crossed-out picture frame, drawn rather than shipped as an asset. */
-    background-color: currentColor;
-    opacity: 0.55;
-    inline-size: 2rem;
-    block-size: 2rem;
-    -webkit-mask-image: var(--fi-arte-image-error-icon);
-    mask-image: var(--fi-arte-image-error-icon);
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
+.fi-arte-fullscreen .fi-fo-rich-editor-content {
+    min-height: 0;
+    overflow-y: auto;
 }
 
-.fi-arte {
-    --fi-arte-image-error-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z'/%3E%3Cpath stroke-linecap='round' d='M3 21L21 3'/%3E%3C/svg%3E");
+/*
+ * Nothing left to be sticky against, and nothing left to round: the toolbar is the top
+ * edge of the overlay, and the topbar its offset was measured from is behind it.
+ */
+.fi-arte-fullscreen .fi-fo-rich-editor-toolbar.fi-arte-sticky {
+    top: 0;
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+}
+
+/* The page behind the overlay must not scroll away under it. */
+body.fi-arte-fullscreen-lock {
+    overflow: hidden;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shortcut list                                                              */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Two columns wherever the dialog is wide enough for them. The list is around two dozen
+ * entries long, and in one column it is taller than most windows - which turns a
+ * reference you glance at into one you scroll through.
+ *
+ * Pairs flow across and then down, so the reading order is the order the rows were built
+ * in whichever number of columns they end up in.
+ */
+.fi-arte-shortcuts-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: 2.5rem;
+    margin: 0;
+}
+
+@media (min-width: 48rem) {
+    .fi-arte-shortcuts-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/*
+ * One entry: the name on the reading edge, the keys on the far one, and a hairline under
+ * both. The rule is what carries the eye across the gap between them - the pair is only
+ * legible as a pair while it is clear which keys belong to which name.
+ */
+.fi-arte-shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.4375rem;
+    border-block-end: 1px solid var(--gray-100, #f4f4f5);
+}
+
+.fi-arte-shortcut:where(.dark, .dark *) {
+    border-block-end-color: color-mix(in oklab, var(--color-white, #fff) 8%, transparent);
+}
+
+.fi-arte-shortcut-label {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+    color: var(--gray-700, #3f3f46);
+}
+
+.fi-arte-shortcut-label:where(.dark, .dark *) {
+    color: var(--gray-300, #d4d4d8);
+}
+
+.fi-arte-shortcut-keys {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+    flex: 0 0 auto;
+}
+
+/*
+ * Keycaps. The glyphs are written in by Alpine once it knows which machine is reading, so
+ * a cap has to hold both `⌘` and `Shift` without the row jumping: hence a minimum width
+ * rather than a fixed one, and tabular figures so the digits line up down the column.
+ */
+.fi-arte-shortcuts kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 1.5rem;
+    padding-block: 0.0625rem;
+    padding-inline: 0.375rem;
+    border: 1px solid var(--gray-200, #e4e4e7);
+    border-block-end-width: 2px;
+    border-radius: 0.375rem;
+    background-color: var(--gray-50, #fafafa);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--gray-600, #52525b);
+}
+
+.fi-arte-shortcuts kbd:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: color-mix(in oklab, var(--color-white, #fff) 7%, transparent);
+    color: var(--gray-200, #e4e4e7);
 }

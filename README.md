@@ -67,20 +67,42 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
 [
     ['undo', 'redo'],
     'divider',
-    ['headings', 'fontSize', 'blockquote', 'codeBlock'],
+    ['headings', 'fontFamily', 'fontSize'],
     'divider',
-    ['bold', 'italic', 'strike', 'underline', 'link'],
+    ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
     'divider',
-    ['superscript', 'subscript'],
+    ['alignment', 'lineHeight'],
     'divider',
-    ['alignment', 'lists'],
-    'divider',
-    ['image', 'table'],
+    ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+    'pin',
+    ['more', 'sourceCode', 'fullscreen', 'help'],
 ]
 ```
 
-Each nested array is one visually grouped cluster. Change the config to change every
-editor in the project at once.
+Each nested array is one visually grouped cluster, and the groups answer one question each:
+what came before, what the text *is* (its block type, its typeface, its size), how the
+characters look, how the block is laid out, what to put into the document, how to view it.
+Left to right that is also the order the decisions are made in — you pick a heading before
+you pick a font, and you emphasise a word before you decide how the paragraph sits.
+
+The two block dropdowns are apart on purpose. Alignment and line spacing shape a paragraph,
+so they share a group; a list is a thing you *make*, which is why it sits with the link, the
+image, the table, the quote and the code block rather than with the alignment. Those five
+all insert something, and that is what groups them rather than whether they happen to be a
+mark or a node.
+
+The last group sits behind `'pin'` — see [Pinned buttons](#pinned-buttons). Those four are
+about the *editor* rather than about the text, so they keep a corner of the bar to
+themselves instead of moving with everything else.
+
+The tools most documents never need do not get a button of their own: `superscript`,
+`subscript`, inline `code`, `clearFormatting`, `horizontalRule` and `details` sit in the
+`'more'` dropdown at the end, together with this package's own `emoji` picker and the two
+direction buttons. Every other Filament tool - `highlight`, `small`, `lead`, `attachFiles`,
+`mergeTags`, `customBlocks` and the table editing ones - is registered too, so naming it
+anywhere in the array, or in the `more` list, brings it into the bar.
+
+Change the config to change every editor in the project at once.
 
 ### Rearranging the toolbar
 
@@ -122,15 +144,23 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 
 ### Dropdowns
 
-Two tokens build a dropdown for you from the field's own configuration:
+Five tokens build a dropdown for you from the field's own configuration:
 
 - `'headings'` — one entry per configured heading level
 - `'lists'` — one entry per configured list type, including the task list when it is enabled
+- `'alignment'` — one entry per configured alignment, see [Alignment](#alignment)
+- `'lineHeight'` — one entry per configured spacing, see [Line spacing](#line-spacing)
+- `'more'` — one entry per tool in the `more` list, see [The more menu](#the-more-menu)
 
-Both render with a label next to the icon, and the trigger mirrors the icon of whatever is
-active in the current selection. The options reuse the editor's registered tools, so their
-labels are Filament's own (`h1` reads *Title*, `h2` *Heading 2*, …) — override those in your
-app's `lang/vendor/filament-forms` files, or build a dropdown with labels of your own.
+All five render with a label next to the icon. `'headings'`, `'lists'` and `'alignment'`
+mirror the icon of whatever is active in the current selection on their trigger; `'more'`
+keeps its three dots, because an overflow menu that hides its own handle is one you cannot
+find your way back to, and `'lineHeight'` keeps its own icon because its options are
+numbers and there is nothing to swap it for. Both still highlight while one of their tools
+is on. The options reuse the editor's
+registered tools, so their labels are Filament's own (`h1` reads *Title*, `h2` *Heading 2*,
+…) — override those in your app's `lang/vendor/filament-forms` files, or build a dropdown
+with labels of your own.
 
 Build your own with `ToolbarDropdown`, which extends Filament's `ToolbarButtonGroup`:
 
@@ -213,6 +243,34 @@ AdvancedRichEditor::make('content')
     ->alignments(['alignStart', 'alignCenter', 'alignEnd']);   // default: config('...alignments')
 ```
 
+### Line spacing
+
+The `'lineHeight'` dropdown sits next to the alignment and writes a unitless `line-height`
+into the block's inline style. Unitless is what makes it scale: a heading keeps its own
+proportions instead of inheriting a paragraph's leading, and the same document reads the
+same in the editor, in a saved page and in print.
+
+```php
+AdvancedRichEditor::make('content')
+    ->lineHeights([1, 1.15, 1.5, 2])   // default: config('...line_height.values')
+    // ->lineHeight(false);            // no dropdown, and no attribute in the schema
+```
+
+`1` and `2` are labelled *Single (1.0)* and *Double (2.0)*; every other value shows its
+number. Picking the spacing a block already has takes it back off, which is the way back to
+whatever your theme sets — there is no "default" entry to hunt for.
+
+Values are bare numbers between 0.5 and 5. Anything else — `150%`, `24px`, a pasted
+`inherit` — is dropped rather than carried through, on both sides: Filament's sanitiser
+allows `style` on every element but does not look inside CSS, so a value with a unit in it
+would be a way to smuggle a second declaration in behind a semicolon. `1.50` and `1.5` are
+also collapsed into one option, because the toolbar compares the stored value against the
+one its button carries.
+
+Paragraphs, headings, quotes and list items carry a spacing. Turning the dropdown off drops
+the extension with it, so a field that has none stops declaring the attribute — and content
+that already carries one loses it on the next save, the same way the text direction does.
+
 ### Toolbar alignment
 
 The groups are centred on the bar. Filament's own editor is left aligned; change it per
@@ -223,6 +281,204 @@ AdvancedRichEditor::make('content')
     ->toolbarAlignment('start');            // 'start' | 'center' | 'end' | 'between'
     // ->toolbarAlignment(Alignment::End);  // Filament's enum works too
 ```
+
+### Pinned buttons
+
+`'pin'` is not a thing on the bar but a place in it: everything after it is pushed to the
+far end of the toolbar instead of travelling with the aligned groups. The overflow menu,
+the source view, the fullscreen switch and the help dialog live there by default — they are
+controls for the editor, not for the text, and they should stay in the same corner whatever
+the rest of the bar does.
+
+```php
+->toolbarButtons([
+    ['bold', 'italic'],
+    'pin',
+    ['fullscreen', 'help'],   // hard against the far edge
+])
+```
+
+The centred groups stay centred **on the whole bar**, not on what is left of it, so pinning
+does not nudge the toolbar sideways. There is nothing to configure: the pinned buttons take
+the edge the aligned groups are not pushed against — the end normally, and the start when
+the toolbar itself is aligned to the end, because that bar has already taken the end for
+itself.
+
+The marker may sit anywhere, including inside a group, and it is dropped either way; a
+second one has nothing left to split and goes the same way. Each half collapses its own
+dividers, so a rule left leading or trailing by the split disappears rather than floating
+in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one row.
+
+### The more menu
+
+The `'more'` token renders the overflow dropdown at the end of the toolbar: the tools that
+earn a place in the editor but not a button of their own.
+
+```php
+AdvancedRichEditor::make('content')
+    ->moreTools([
+        'subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details',
+        'emoji',
+    ]);
+```
+
+That is also the default, and it lives in `config('filament-advanced-rich-editor.more')`.
+Any Filament tool name is valid; an unknown one is dropped while resolving, exactly as it is
+inside every other dropdown. An empty list removes the dropdown along with its trigger:
+
+```php
+AdvancedRichEditor::make('content')->moreTools([]);
+```
+
+Build another one anywhere with `ToolbarDropdown::more([...])`, or keep any dropdown's
+trigger from following the caret with `->staticIcon()`.
+
+The last entry is this package's own: the [emoji picker](#emoji), which has a switch of its
+own. The two [direction](#text-direction) buttons are registered but not listed - name them
+where you want them.
+
+### Emoji
+
+`'emoji'` opens a picker with the full Unicode emoji list - 1906 of them, searchable by
+their Unicode names.
+
+The tabs follow the grouping every phone keyboard uses rather than Unicode's own: what
+Unicode files under *Smileys & Emotion* and *People & Body* is one tab here, because
+someone looking for a face does not know which of the two it landed in. The first tab is
+the emoji picked most recently, kept in the browser's own storage - it belongs to the
+person, not to the record, and the same handful get reached for across every form in the
+panel. Its icons are drawn ones from the `icons` registry (`emoji_recent`, `emoji_smileys`,
+… ) rather than a representative emoji, so they read as chrome and can be swapped like
+every other icon.
+
+```php
+AdvancedRichEditor::make('content')->emoji(false);   // default: config('...emoji')
+```
+
+An emoji is inserted as a plain Unicode character, so nothing about it is markup: it needs
+no extension on the PHP side, survives the sanitiser and `RichContentRenderer` like any
+other letter, and switching the picker off later leaves every emoji already written where
+it is.
+
+The picker opens under the line being written, not over it, and stays open until it is
+dismissed: picking one emoji is rarely the whole job. Its header closes it and doubles as a
+drag handle, Escape closes it, and so does a click anywhere outside it - except inside the
+editor, where a click is how the caret gets moved to the next spot an emoji belongs in.
+
+The list is a second asset, imported by the picker the first time it opens - an editor
+nobody clicks that button in never loads 60 KB of emoji. The names come from Unicode's own
+`emoji-test.txt` (see `resources/js/emoji-data.js`), skin tone variants left out.
+
+### Text direction
+
+`'ltr'` and `'rtl'` write a `dir` attribute onto the block the caret sits in - the
+paragraph, heading, blockquote, list item or code block - which is the HTML that means this
+and one of the attributes Filament's sanitiser lets through untouched.
+
+**Neither is in the default toolbar.** `dir` is not the alignment dropdown in different
+clothes: alignment says where a line sits in its box, `dir` says which way the text runs,
+which is what orders mixed scripts, digits and punctuation and which side a list marker sits
+on. In a document written in one left-to-right language it changes nothing you can see, so
+it is registered and left out. Name the tools where you want them:
+
+```php
+AdvancedRichEditor::make('content')
+    ->moreTools(['subscript', 'superscript', 'emoji', 'ltr', 'rtl']);
+```
+
+Picking the direction a block already has takes it back off, the same way the headings
+dropdown returns a heading to a paragraph.
+
+```php
+AdvancedRichEditor::make('content')->textDirection(false);   // default: config('...text_direction')
+```
+
+That switch is a heavier thing than leaving the buttons out. Unlike the emoji this half is
+part of the schema, and content is re-parsed on every hydration - so an editor that stops
+declaring `dir` drops it on the next save, in documents that already carry one. Leaving the
+extension registered and the buttons unlisted costs one small script and keeps that content
+intact. The same applies to rendering saved content: pass the plugin, or the attribute is
+dropped.
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
+
+RichContentRenderer::make($html)->plugins([TextDirectionPlugin::make()])->toHtml();
+```
+
+### Source code
+
+`'sourceCode'` opens the document as HTML, in Filament's own code editor, next to the
+fullscreen button.
+
+```php
+AdvancedRichEditor::make('content')->sourceCode(false);   // default: config('...source_code')
+```
+
+Both directions go through the field's own TipTap schema rather than being passed along
+untouched, and that is the point of it:
+
+- **Opening** shows the markup as it is stored, not as the browser happened to serialise it.
+  Every plugin the field carries is in that schema, so a rotation, a background colour or a
+  direction is there to see.
+- **Applying** hands the markup to the same schema before it reaches the editor. Anything it
+  cannot represent is gone at that moment - the same thing that happens to pasted markup,
+  but visibly, and before the record is written rather than silently on the next save.
+
+Which also means the source view is not a way to store markup the editor does not support.
+Filament sanitises rich content on the way out anyway; this simply makes the boundary
+visible.
+
+The markup is laid out for reading on the way in - every block on its own line, indented by
+nesting - and compacted again on the way out. That costs nothing, because the parser drops
+whitespace between block tags; inline content is never broken, since the whitespace between
+inline elements is part of the sentence, and anything inside a `<pre>` is copied through
+exactly as written. A single long paragraph still arrives as a single long line, wrapped by
+the code editor: that one is the document's own doing, not the layout's.
+
+### Fullscreen
+
+The last button expands the editor over the window, and Escape leaves again.
+
+```php
+AdvancedRichEditor::make('content')->fullscreen(false);   // default: config('...fullscreen')
+```
+
+It is a fixed overlay, not the browser's Fullscreen API: that promotes one element into
+the top layer, and Filament renders its modals at the end of the body, so the file upload
+dialog would be invisible while the editor was expanded. The overlay deliberately sits
+below Filament's modal layer, so those dialogs still work. While expanded the editor body
+is the scroll container, and a sticky toolbar pins to it rather than to the page.
+
+### Help
+
+`'help'` sits at the end of the toolbar and opens a dialog listing the keyboard shortcuts
+the field answers to.
+
+```php
+AdvancedRichEditor::make('content')->help(false);   // default: config('...help')
+```
+
+The list is built from the field's own configuration, not from a fixed table: it names the
+heading levels that field offers, leaves the task list out where the task list is off, and
+mentions the table keys only where there is a table tool. Every shortcut in it was read out
+of the editor build Filament ships - a list that names keys nobody bound is worse than no
+list.
+
+Keys are drawn as caps and named by the machine reading them: ⌘⌥⇧ on a Mac, Ctrl/Alt/Shift
+everywhere else.
+
+Add a second tab with something to tell the people writing in the field:
+
+```php
+AdvancedRichEditor::make('content')
+    ->helpMore('Product names are never translated. Ask the editorial team before publishing.');
+```
+
+Without a note the dialog stays one plain list - a tab bar over a single tab is furniture.
+A plain string is escaped and keeps its line breaks; pass an `Htmlable` for markup, which is
+trusted, so build it in code rather than out of anything a user typed. The tab's own label
+is the second argument, and `help_more` in the config sets a note for every field at once.
 
 ### Sticky toolbar
 
@@ -239,6 +495,12 @@ AdvancedRichEditor::make('excerpt')
 ```
 
 ### Heading levels
+
+The dropdown lists the plain paragraph in front of the levels, so it reads as a choice of
+block rather than a row of toggles, and there is an obvious way back out of a heading.
+Picking the level a block already has also returns it to a paragraph, so a block is never
+left without a type. Drop the entry with `->headingParagraph(false)` or the
+`heading_paragraph` config key.
 
 The six heading tools are relabelled to "Heading 1" … "Heading 6" (Filament labels `h1`
 "Title", which reads wrong next to the other levels in a dropdown). Override the wording
@@ -287,17 +549,94 @@ attribute, which would take the tick state with them. The state is therefore als
 drawn in CSS. Inside the editor a real checkbox is rendered by the node view, so ticking an
 item works as usual.
 
+### Colours
+
+Two swatch dropdowns sit next to the other inline marks: `textColor` paints the letters,
+`textBackground` paints behind them. Both offer the palette, a way back to no colour, and
+a free colour picker.
+
+```php
+AdvancedRichEditor::make('content')
+    ->textColors(['brand' => TextColor::make('Brand', '#0ea5e9', darkColor: '#38bdf8')])
+    ->backgroundColors(['#fef08a' => 'Yellow', '#bbf7d0' => 'Green'])
+    ->customColors(false)          // drop the free colour picker
+    ->textBackground(false);       // drop the background dropdown entirely
+```
+
+The text palette is stored by name, and each entry carries a light and a dark value - that
+is what keeps a colour readable in both themes, since the document holds only the name.
+The package ships twelve: three neutrals and nine hues, in `colors.text_palette`:
+
+```php
+'text_palette' => [
+    'ink' => ['label' => 'Ink', 'color' => '#18181b', 'dark' => '#f4f4f5'],
+    // …
+],
+```
+
+Filament's own default is not used, because it lists all 26 Tailwind hues and nine of them
+are near-identical greys and browns - fine in the labelled select it was built for, poor as
+a grid of swatches. Configuring `->textColors([...])` on the field (or on the model's rich
+content attribute) still takes over completely.
+
+A colour chosen through the free picker is stored as given and therefore looks identical in
+dark mode - a property of hand-picked colours, not a bug.
+
+The background is this package's own mark. Filament registers TipTap's highlight without
+colour support, and its own colourless mark is added to the renderer unconditionally, so
+replacing it by name would nest another `<mark>` on every save. A separate mark name
+sidesteps that entirely, and Filament's plain `highlight` tool keeps working alongside it.
+Colours are run through Filament's CSS colour sanitiser before they reach the `style`
+attribute.
+
+### Fonts
+
+The `fontFamily` token is a dropdown of typefaces, and every entry in it is one the project
+can actually draw. Nothing is fetched from anywhere - no CDN, no Google Fonts, no network at
+all.
+
+Fonts are found rather than declared. Point the config at the directory where the project
+keeps its own font files and every file in it is offered:
+
+```php
+// config/filament-advanced-rich-editor.php
+'fonts' => [
+    'directory' => 'fonts',   // relative to public/
+],
+```
+
+`fonts/Inter/Inter-SemiBoldItalic.woff2` becomes Inter at weight 600, italic; a loose
+`fonts/Fraunces-Light.woff` becomes Fraunces at 300. The family comes from the folder name,
+or from the file name up to its first separator; the weight and style from the rest of it.
+An `@font-face` rule is written for every file found, once per page, so the picker never
+offers a typeface the page was not told how to load. Only the directory and one level
+inside it are read, which is what keeps a panel's own published fonts out of the list.
+
+Three generic stacks come free, since `system-ui`, `serif` and `monospace` resolve
+everywhere without a byte being downloaded. For typefaces the project loads somewhere else -
+a theme, a self-hosted kit - name them, and the browser is asked whether they arrived before
+they are shown:
+
+```php
+'fonts' => [
+    'families' => ['Brand Sans' => '"Brand Sans", system-ui, sans-serif'],
+    'generic' => false,       // drop the three stacks
+],
+```
+
+Per field, `->fonts(['Label' => 'CSS, stack'])` replaces the whole list - no directory is
+read and no face is written, the field saying it knows what is loaded - and
+`->fontPicker(false)` removes the dropdown along with the mark that stores the choice.
+
+The family is written into the `style` attribute, checked against a pattern on both sides
+of the round trip. That check is the only thing between the editor and a stylesheet smuggled
+in as a family name: Filament's sanitiser passes `style` through untouched.
+
 ### Font size
 
-The `fontSize` token renders a stepper - minus, an editable number, plus - that applies an
-inline size to the selection, and follows the caret as it moves through text of different
-sizes. The size is written into the `style` attribute, which is what Filament's HTML
-sanitiser keeps, so it survives all the way to the rendered page.
-
-Where the text carries no size of its own, the stepper reports the size the browser
-actually renders (the theme's, or a heading's while the caret is inside one) rather than a
-fixed starting value, so the first click never jumps the wrong way. `default` is only used
-when that measurement fails.
+The `fontSize` token shows the size in force and opens a menu of the sizes people actually
+pick, with `Default` to take a size back off. The number in the toolbar is the field: click
+it and type, for the size that is not on the list.
 
 ```php
 AdvancedRichEditor::make('content')
@@ -305,9 +644,52 @@ AdvancedRichEditor::make('content')
     ->fontSizeOptions(min: 10, max: 40, step: 2, default: 16);
 ```
 
-`->fontSize(false)` removes the stepper and the TipTap extensions with it, so nothing
-writes or parses a size. Anything left out of `fontSizeOptions()` keeps the configured
-default from the `font_size` section.
+The offered sizes live in `font_size.sizes`. Anything outside `min`/`max` is dropped from
+the menu rather than offered and then silently corrected, and a typed size is clamped to the
+same bounds.
+
+`Default` is marked while the text carries no size of its own, and a size is marked while it
+does - which is not the same question as which number is on screen. Text inheriting 14px and
+text set to 14px look alike and behave differently: only the first follows a restyled theme.
+
+Where the text carries no size of its own, the trigger reports the size the browser actually
+renders - the theme's, or a heading's while the caret is inside one - rather than a fixed
+starting value. `default` is only used when that measurement fails.
+
+`->fontSize(false)` removes the dropdown and the TipTap extensions with it, so nothing
+writes or parses a size. The size is written into the `style` attribute, which is what
+Filament's sanitiser keeps, so it survives to the rendered page.
+
+### Character count
+
+A quiet line under the editor saying how long the text is. It is on by default and needs no
+setup:
+
+```php
+AdvancedRichEditor::make('content')->characterCount(false);   // default: config('...character_count.enabled')
+```
+
+With a `maxLength()` on the field it counts towards it - `1,234 / 2,000 characters` - and
+turns amber at 90% and red past it. For a target with no rule behind it, set the limit
+directly:
+
+```php
+AdvancedRichEditor::make('content')
+    ->characterCountLimit(160)      // shown, never enforced
+    ->characterCountWords();        // adds "218 words ·" in front
+```
+
+**The number is the one Filament validates.** That is the whole point of it, and it is not
+free: `maxLength` on a rich editor is measured server side with
+`Str::length($tiptapEditor->getText())`, and that serialiser escapes the text - a single `&`
+counts as the five characters of `&amp;` - and separates every nesting level with a blank
+line, so a list item costs two of them. A counter reading the text off the screen would show
+a smaller number than the one a save is rejected over. This one mirrors those rules, in PHP
+for the first render and in the browser for every keystroke after it.
+
+The editor announces its counts as a DOM event and the line listens - nothing is polled, no
+view is replaced, and two editors on a page keep their numbers apart. Turning the counter
+off also drops the script that does the counting.
 
 ### Images
 
@@ -328,6 +710,51 @@ pointer while dragging. Clicking an image opens a floating toolbar carrying a lo
 the ratio unlocked, a drag changes width and height independently, so a square can be
 pulled into a rectangle. Holding shift during a drag always keeps the ratio, whichever way
 the lock is set.
+
+Clicking an image opens a floating toolbar: the aspect ratio lock, a size panel, rotate
+left and right, a divider, an alt text panel, a download and a delete.
+
+**Size** writes the same `width` and `height` attributes a drag commits, so both ways agree.
+The aspect ratio lock sits between the two fields, and it is the same switch as the one in
+the bar - one state, shown where each is useful: in the bar while dragging, between the
+fields while typing. With it closed, editing one field previews the other; nothing is
+written until **Apply**, because committing each field on its own would undo the other
+before both numbers had been entered. Reset clears both and hands the image back to its
+natural size.
+
+While a panel is open it stops following the editor, so a live update cannot overwrite what
+is being typed; it reads the current values again each time it opens.
+
+**Rotation** turns in quarter steps. A turned image can still be dragged to a new size; the
+handles work on the image's own box, so with the picture on its side a sideways drag changes
+what now reads as its height. The size panel is the exact way round that. There is no rotation attribute in TipTap or in
+Filament, so the package adds one as a *global attribute* on the image node - the mechanism
+`Tiptap\Extensions\TextAlign` uses - on both sides. The angle travels in the inline
+`style`, the only carrier Filament's sanitiser keeps, and is whitelisted to quarter turns
+before it is written, because nothing else in the stack validates CSS. A turned image also
+gets margin compensation: a transform leaves the layout box alone, so without it a quarter
+turned picture would overlap the lines around it. The resize handles are hidden while an
+image is turned - their axes are swapped at that point, and the size panel still works.
+
+**Alt text** is stored on the image like any other attribute. Clearing the field removes it
+rather than storing an empty string: both renderers drop falsy attributes, so an empty alt
+cannot survive a save and pretending otherwise would be a lie in the UI.
+
+The bar holds text inputs, which is only possible because the package widens its visibility
+rule. Filament shows a floating toolbar while the *editor* has focus, and typing in an input
+takes that focus away - the first write after that would hide the bar along with the field
+being typed into. The rule is replaced through the bubble menu's own options message, for
+the image toolbar only, with the same condition TipTap's own default uses. Delete removes the image from the content; with the media library provider
+the file itself is cleaned up on the next save, along with every other attachment the
+content no longer references. Download hands the browser the image's own URL - files on
+your own domain save directly, a remote one opens in a new tab, which is the browser's
+call rather than something a page can override.
+
+```php
+AdvancedRichEditor::make('content')->imageToolbar(false);   // default: config('...images.toolbar')
+```
+
+The lock only appears where resizing is allowed; the two actions are there either way.
 
 An image whose file does not load is drawn as a dashed placeholder rather than as an empty
 hole: the node keeps its width and height, so without it a broken source looks like a bug
@@ -382,6 +809,55 @@ AdvancedRichEditor::make('content')
 Every setter also accepts a closure, so anything can depend on the record or the current
 user. Project-wide defaults live in `config/filament-advanced-rich-editor.php`.
 
+### Icons
+
+Every icon the package draws goes through one registry, and each entry can be pointed at any
+registered Blade Icons set:
+
+```php
+// config/filament-advanced-rich-editor.php
+'icons' => [
+    'image_rotate_left' => 'lucide-rotate-ccw',
+    'image_delete' => 'lucide-trash-2',
+],
+```
+
+A **bare Heroicon name** (`trash`, `arrows-pointing-out`) is handed to Filament as its enum,
+which picks the variant matching the size it is drawn at - the filled 20px one in a toolbar.
+A **prefixed name** (`heroicon-o-trash`, `fi-o-heading`, `arte-rotate-cw`, `lucide-trash-2`)
+is used verbatim.
+
+The defaults spell out `heroicon-o-*`, i.e. outline throughout. Filament's editor already
+mixes the two - its heading buttons are outline `fi-o-*` drawings next to a filled `Bold` -
+and outline is what this package's own buttons and the bundled Lucide drawings agree on.
+Swap an entry for a bare name to get Filament's filled variant instead.
+
+Filament ships `heroicon-*` and its own `fi-o-*`; this package ships `arte-*`; installing
+`mallardduck/blade-lucide-icons` adds `lucide-*`, and any other Blade Icons package works
+the same way.
+
+Every key is spelled out in the `icons` block of the published config file with the default
+it currently draws, so swapping one is an edit in place rather than a name to look up. An
+entry left out (or set to `null`) falls back to that default.
+
+Six defaults are Lucide drawings bundled with the package (ISC, see
+`resources/svg/LICENSE.md`), redrawn at Heroicons' stroke width so they sit level with the
+rest. They are there where Heroicons has nothing that says the same thing: the two image
+rotations (`arte-rotate-ccw`, `arte-rotate-cw`), since Heroicons' curved arrows read as undo
+and redo, which the toolbar already uses for exactly that; the blockquote
+(`arte-message-square-quote`); and the three colour icons - `arte-letter-a` for the text
+colour, `arte-highlighter` for the background, `arte-palette` for the free colour inside
+both menus.
+
+Filament's own buttons - bold, italic, the headings - are not in that registry. They belong
+to Filament and are changed through its icon alias registry:
+
+```php
+FilamentIcon::register([
+    'forms::components.rich-editor.toolbar.bold' => 'lucide-bold',
+]);
+```
+
 ### Translations
 
 Tool labels are translatable. English (`en`) and German (`de`) ship with the package;
@@ -407,7 +883,14 @@ theme:
   --fi-arte-sticky-bg: #fff;
 }
 
+/* Opaque background painted behind the fullscreen overlay. */
+.fi-fo-rich-editor.fi-arte-fullscreen {
+  --fi-arte-fullscreen-bg: #fff;
+}
+
 .fi-arte-toolbar-divider { /* the vertical rule between clusters, --fi-arte-divider-color */ }
+.fi-arte-toolbar-flow { /* the aligned half of a toolbar carrying a 'pin' */ }
+.fi-arte-toolbar-pinned { /* the half pinned to an edge */ }
 .fi-arte-task-list { /* <ul data-type="taskList"> */ }
 .fi-arte-task-item { /* a single checkbox item */ }
 ```

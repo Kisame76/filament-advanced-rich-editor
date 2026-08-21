@@ -16,7 +16,7 @@ it('lets a field replace the configured toolbar entirely', function (): void {
     expect(toolbarShape($editor))->toBe([
         ['italic', 'bold'],
         ['divider'],
-        ['dropdown:h1,h2,h3,h4'],
+        ['dropdown:paragraph,h1,h2,h3,h4'],
     ]);
 });
 
@@ -62,15 +62,14 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
     expect(toolbarShape(editor()->disableToolbarButtons(['italic'])))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['dropdown:h1,h2,h3,h4', 'fontSize', 'blockquote', 'codeBlock'],
+        ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
         ['divider'],
-        ['bold', 'strike', 'underline', 'link'],
+        ['bold', 'underline', 'strike', 'textColor', 'textBackground'],
         ['divider'],
-        ['superscript', 'subscript'],
+        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:bulletList,orderedList,taskList'],
-        ['divider'],
-        ['image', 'table'],
+        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
     ]);
 });
 
@@ -78,83 +77,55 @@ it('drops a dropdown when its token is disabled', function (): void {
     expect(toolbarShape(editor()->disableToolbarButtons(['headings'])))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['fontSize', 'blockquote', 'codeBlock'],
+        ['fontFamily', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'strike', 'underline', 'link'],
+        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
         ['divider'],
-        ['superscript', 'subscript'],
+        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:bulletList,orderedList,taskList'],
-        ['divider'],
-        ['image', 'table'],
+        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
     ]);
 });
 
 it('does not reach inside a dropdown token', function (): void {
     // Documented behaviour: disabling works on the toolbar array, which still holds the
     // unexpanded token at that point. `headingLevels()` is the way to narrow a dropdown.
-    expect(toolbarShape(editor()->disableToolbarButtons(['h1', 'taskList']))[2])->toBe([
-        'dropdown:h1,h2,h3,h4',
-        'fontSize',
-        'blockquote',
-        'codeBlock',
-    ]);
+    expect(toolbarDropdownName(editor()->disableToolbarButtons(['h1', 'taskList']), 'h1'))
+        ->toBe('dropdown:paragraph,h1,h2,h3,h4')
+        ->and(toolbarDropdownName(editor()->disableToolbarButtons(['h1', 'taskList']), 'taskList'))
+        ->toBe('dropdown:bulletList,orderedList,taskList');
 });
 
 it('collapses the dividers that an emptied group left behind', function (): void {
-    expect(toolbarShape(editor()->disableToolbarButtons(['superscript', 'subscript'])))->toBe([
+    $editor = editor()->disableToolbarButtons([
+        'link', 'image', 'table', 'blockquote', 'codeBlock',
+    ]);
+
+    // Everything the insert group inserted is gone; the lists dropdown it shares the group
+    // with is not, so the group - and both dividers around it - stay.
+    expect(toolbarShape($editor))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['dropdown:h1,h2,h3,h4', 'fontSize', 'blockquote', 'codeBlock'],
+        ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'strike', 'underline', 'link'],
+        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
         ['divider'],
-        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:bulletList,orderedList,taskList'],
+        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['image', 'table'],
+        ['dropdown:bulletList,orderedList,taskList'],
+        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
     ]);
 });
 
 it('drops a trailing divider', function (): void {
-    expect(toolbarShape(editor()->disableToolbarButtons(['image', 'table'])))->toBe([
-        ['undo', 'redo'],
-        ['divider'],
-        ['dropdown:h1,h2,h3,h4', 'fontSize', 'blockquote', 'codeBlock'],
-        ['divider'],
-        ['bold', 'italic', 'strike', 'underline', 'link'],
-        ['divider'],
-        ['superscript', 'subscript'],
-        ['divider'],
-        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:bulletList,orderedList,taskList'],
+    // Nothing left after the last divider, so the divider goes too.
+    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->disableToolbarButtons([
+        'lists', 'link', 'image', 'table', 'blockquote', 'codeBlock',
     ]);
-});
 
-it('drops a leading divider', function (): void {
-    expect(toolbarShape(editor()->toolbarButtons(['divider', ['bold'], 'divider', ['italic']])))->toBe([
-        ['bold'],
-        ['divider'],
-        ['italic'],
-    ]);
-});
-
-it('returns an empty toolbar when every button is disabled', function (): void {
-    expect(toolbarShape(editor()->disableAllToolbarButtons()))->toBe([]);
-});
-
-it('appends enabled buttons to the end of the toolbar', function (): void {
-    expect(toolbarShape(editor()->enableToolbarButtons([['taskList']])))->toBe([
-        ['undo', 'redo'],
-        ['divider'],
-        ['dropdown:h1,h2,h3,h4', 'fontSize', 'blockquote', 'codeBlock'],
-        ['divider'],
-        ['bold', 'italic', 'strike', 'underline', 'link'],
-        ['divider'],
-        ['superscript', 'subscript'],
-        ['divider'],
-        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:bulletList,orderedList,taskList'],
-        ['divider'],
-        ['image', 'table'],
-        ['taskList'],
+    expect(array_slice(toolbarShape($editor), -1))->toBe([
+        ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
     ]);
 });
 

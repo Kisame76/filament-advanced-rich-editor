@@ -1,0 +1,98 @@
+<?php
+
+declare(strict_types=1);
+
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
+
+$render = fn (string $html): string => RichContentRenderer::make($html)
+    ->plugins([ImageResizePlugin::make()])
+    ->toHtml();
+
+it('keeps a rotation across the php round trip', function () use ($render): void {
+    $html = '<p><img src="/a.png" width="300" height="200" style="width: 300px; height: 200px; transform: rotate(90deg)"></p>';
+
+    expect($render($html))->toContain('rotate(90deg)');
+});
+
+it('loses the rotation without the plugin, which is why the extension exists', function (): void {
+    $html = '<p><img src="/a.png" style="transform: rotate(90deg)"></p>';
+
+    expect(RichContentRenderer::make($html)->toHtml())->not->toContain('rotate');
+});
+
+it('makes the layout box match the turned picture', function () use ($render): void {
+    $html = '<p><img src="/a.png" width="300" height="200" style="transform: rotate(90deg)"></p>';
+
+    // 300x200 turned on its side occupies 200x300, so the box gains 50px above and below
+    // and loses 50px either side. Without it the image would overlap its neighbours.
+    expect($render($html))->toContain('margin-block: 50px')
+        ->toContain('margin-inline: -50px');
+});
+
+it('leaves a half turn alone, since the box already fits', function () use ($render): void {
+    $html = '<p><img src="/a.png" width="300" height="200" style="transform: rotate(180deg)"></p>';
+
+    expect($render($html))->toContain('rotate(180deg)')
+        ->not->toContain('margin-block');
+});
+
+it('accepts quarter turns only', function () use ($render): void {
+    // Security: the angle lands in a style attribute that Filament's sanitiser passes
+    // through, so anything but a quarter turn is refused rather than trusted.
+    expect($render('<p><img src="/a.png" style="transform: rotate(46deg)"></p>'))->toContain('rotate(90deg)')
+        // Rounded to the nearest quarter turn, and a full turn is no turn at all.
+        ->and($render('<p><img src="/a.png" style="transform: rotate(37deg)"></p>'))->not->toContain('transform')
+        ->and($render('<p><img src="/a.png" style="transform: rotate(360deg)"></p>'))->not->toContain('transform')
+        ->and($render('<p><img src="/a.png" style="transform: rotate(-90deg)"></p>'))->toContain('rotate(270deg)');
+});
+
+it('offers a rotation in both directions', function (): void {
+    $tools = editor()->getTools();
+
+    // No `focus()`: it would collapse the node selection the command reads the angle from.
+    expect($tools['imageRotateLeft']->getJsHandler())->toBe('$getEditor()?.commands.rotateImage(-90)')
+        ->and($tools['imageRotateRight']->getJsHandler())->toBe('$getEditor()?.commands.rotateImage(90)');
+});
+
+it('writes the size the way a drag does', function (): void {
+    $html = ToolbarImagePanel::size()->toEmbeddedHtml();
+
+    expect($html)->toContain("updateAttributes('image', attributes)")
+        // The node selection is restored first, because focusing collapses it to a caret.
+        ->toContain('setNodeSelection(position)')
+        ->toContain('arteImageResize?.unlocked')
+        ->toContain('type="number"');
+});
+
+it('applies both sizes at once rather than on every keystroke', function (): void {
+    $html = ToolbarImagePanel::size()->toEmbeddedHtml();
+
+    // With the ratio locked, committing each field on its own would undo the other one
+    // before the second number had been typed.
+    expect($html)->toContain('fi-arte-image-panel-apply')
+        ->toContain('x-bind:disabled="! isDirty()"')
+        ->not->toContain('x-on:change="commit')
+        ->not->toContain('x-on:blur="commit');
+});
+
+it('carries the aspect ratio lock between the fields', function (): void {
+    $html = ToolbarImagePanel::size()->toEmbeddedHtml();
+
+    expect($html)->toContain('fi-arte-image-panel-lock')
+        ->toContain('toggleLock()')
+        // One state in two places: the toolbar switch and this one follow each other.
+        ->toContain('arte-image-lock')
+        ->and(ToolbarImageLock::make()->toEmbeddedHtml())
+        ->toContain('arte-image-lock');
+});
+
+it('removes an alt text rather than storing an empty one', function (): void {
+    $html = ToolbarImagePanel::alt()->toEmbeddedHtml();
+
+    // The renderer drops falsy attributes on both sides, so an empty alt cannot be stored.
+    expect($html)->toContain("this.alt.trim() === '' ? null : this.alt")
+        ->toContain('type="text"');
+});

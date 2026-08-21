@@ -54,6 +54,37 @@ export default () => {
             return { unlocked: false }
         },
 
+        onCreate() {
+            /*
+             * Widens the image toolbar's visibility rule.
+             *
+             * Filament shows a floating toolbar while `editor.isFocused && isActive(key)`,
+             * which is right for a bar of buttons and wrong for one holding inputs: typing
+             * in an input blurs the editor, and the first transaction after that hides the
+             * bar - along with the input being typed into. TipTap's own default rule
+             * already covers this case by also accepting focus inside the bar itself, so
+             * that is what is installed here.
+             *
+             * Done through the bubble menu plugin's own `updateOptions` message rather than
+             * by touching Filament's component, and only for the image toolbar.
+             */
+            const { editor } = this
+
+            const shouldShow = ({ editor: currentEditor, element }) =>
+                currentEditor.isActive('image') &&
+                (currentEditor.isFocused ||
+                    element?.contains(document.activeElement) === true)
+
+            editor.view.dispatch(
+                editor.state.tr
+                    .setMeta('addToHistory', false)
+                    .setMeta('floatingToolbar::image', {
+                        type: 'updateOptions',
+                        options: { shouldShow },
+                    }),
+            )
+        },
+
         addProseMirrorPlugins() {
             const storage = this.storage
 

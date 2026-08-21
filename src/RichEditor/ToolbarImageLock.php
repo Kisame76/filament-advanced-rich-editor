@@ -11,7 +11,6 @@ use Filament\Support\Concerns\HasExtraAttributes;
 
 use function Filament\Support\generate_icon_html;
 
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Js;
 
 /**
@@ -53,8 +52,8 @@ class ToolbarImageLock extends ViewComponent implements HasEmbeddedView
         $lockedLabel = __('filament-advanced-rich-editor::advanced-rich-editor.tools.image_lock.locked');
         $unlockedLabel = __('filament-advanced-rich-editor::advanced-rich-editor.tools.image_lock.unlocked');
 
-        $lockedIcon = generate_icon_html(Heroicon::LockClosed)->toHtml();
-        $unlockedIcon = generate_icon_html(Heroicon::LockOpen)->toHtml();
+        $lockedIcon = generate_icon_html(Icons::get('image_locked'))->toHtml();
+        $unlockedIcon = generate_icon_html(Icons::get('image_unlocked'))->toHtml();
 
         $xData = <<<'JS'
             {
@@ -74,6 +73,10 @@ class ToolbarImageLock extends ViewComponent implements HasEmbeddedView
 
                     storage.unlocked = ! storage.unlocked
                     this.unlocked = storage.unlocked
+
+                    window.dispatchEvent(new CustomEvent('arte-image-lock', {
+                        detail: { unlocked: storage.unlocked },
+                    }))
                 },
             }
             JS;
@@ -84,6 +87,8 @@ class ToolbarImageLock extends ViewComponent implements HasEmbeddedView
                 'tabindex' => -1,
                 'x-data' => $xData,
                 'x-on:click' => 'toggle()',
+                // The size panel carries the same switch, so each follows the other.
+                'x-on:arte-image-lock.window' => 'unlocked = $event.detail.unlocked',
                 'x-bind:aria-pressed' => 'unlocked ? \'false\' : \'true\'',
                 'x-bind:aria-label' => 'unlocked ? '.Js::from($unlockedLabel)->toHtml().' : '.Js::from($lockedLabel)->toHtml(),
                 'x-tooltip' => '{ content: unlocked ? '.Js::from($unlockedLabel)->toHtml().' : '.Js::from($lockedLabel)->toHtml().', theme: $store.theme }',

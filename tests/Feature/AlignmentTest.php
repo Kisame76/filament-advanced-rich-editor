@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 
-it('merges the alignments into one dropdown, with the lists behind it', function (): void {
-    expect(toolbarShape(editor())[8])->toBe([
+it('merges the alignments into one dropdown, next to the line spacing', function (): void {
+    // Both say how the block is laid out rather than what is in it, so they share a group
+    // of their own between the character controls and everything that inserts something.
+    expect(toolbarGroup(editor(), 'dropdown:alignStart,alignCenter,alignEnd,alignJustify'))->toBe([
         'dropdown:alignStart,alignCenter,alignEnd,alignJustify',
-        'dropdown:bulletList,orderedList,taskList',
+        'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2',
     ]);
 });
 
 it('leaves the trigger icon to the active option', function (): void {
-    $alignment = editor()->getToolbarButtons()[8][0];
+    $alignment = toolbarItem(editor(), 'dropdown:alignStart,alignCenter,alignEnd,alignJustify');
 
     // No icon of its own: `ToolbarButtonGroup` then renders the first option's icon and
     // swaps it for whichever option is active.
@@ -26,11 +28,11 @@ it('reads the alignments from the config file', function (): void {
     config()->set('filament-advanced-rich-editor.alignments', ['alignCenter', 'alignStart']);
 
     expect(editor()->getAlignments())->toBe(['alignCenter', 'alignStart'])
-        ->and(toolbarShape(editor())[8][0])->toBe('dropdown:alignCenter,alignStart');
+        ->and(toolbarDropdownName(editor(), 'alignCenter'))->toBe('dropdown:alignCenter,alignStart');
 });
 
 it('lets a field choose its own alignments', function (): void {
-    expect(toolbarShape(editor()->alignments(['alignStart', 'alignJustify']))[8][0])
+    expect(toolbarDropdownName(editor()->alignments(['alignStart', 'alignJustify']), 'alignStart'))
         ->toBe('dropdown:alignStart,alignJustify');
 });
 

@@ -76,9 +76,60 @@ class ToolbarLayout
     {
         return [
             'divider' => static fn (AdvancedRichEditor $editor): object => ToolbarDivider::make(),
-            'headings' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::headings($editor->getHeadingLevels()),
+            // Not a thing on the bar but a place in it: everything after the first one is
+            // pinned to an edge instead of being aligned with the rest.
+            'pin' => static fn (AdvancedRichEditor $editor): object => ToolbarPin::make(),
+            'headings' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::headings($editor->getHeadingLevels(), $editor->hasHeadingParagraph()),
             'lists' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::lists($editor->getListTypes()),
             'alignment' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::alignment($editor->getAlignments()),
+            // Nothing to pick from means no trigger, the same way the overflow menu and the
+            // colour pickers vanish when what they open onto is empty.
+            'lineHeight' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasLineHeight()) {
+                    return [];
+                }
+
+                $values = $editor->getLineHeights();
+
+                return $values === [] ? [] : ToolbarDropdown::lineHeight($values);
+            },
+            // Nothing to open onto means no trigger at all, the same way the colour
+            // pickers vanish when their feature is switched off.
+            'more' => static function (AdvancedRichEditor $editor): object|array {
+                $tools = $editor->getMoreTools();
+
+                return $tools === [] ? [] : ToolbarDropdown::more($tools);
+            },
+            'textColor' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextColor()
+                ? ToolbarColorPicker::text($editor->getTextColorsForPicker(), $editor->hasCustomColors())
+                : [],
+            'fullscreen' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasFullscreen()
+                ? ToolbarFullscreen::make()
+                : [],
+            // A plain button name, but a token all the same: an unregistered name in a
+            // toolbar group is an exception, so the switch has to reach the layout too.
+            'sourceCode' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasSourceCode()
+                ? 'sourceCode'
+                : [],
+            'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
+                ? 'help'
+                : [],
+            'textBackground' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextBackground()
+                ? ToolbarColorPicker::background($editor->getBackgroundColors(), $editor->hasCustomColors())
+                : [],
+            // Nothing to pick from means no picker: a project with no fonts of its own and
+            // the generic stacks switched off would otherwise get an empty menu.
+            'fontFamily' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasFontPicker()) {
+                    return [];
+                }
+
+                $fonts = Fonts::for($editor);
+
+                return $fonts === []
+                    ? []
+                    : ToolbarFontPicker::make()->fonts($fonts)->styleSheet(Fonts::styleSheet($editor));
+            },
             // Expands to nothing when the feature is off, so the same toolbar layout
             // works for fields with and without the stepper.
             'fontSize' => static function (AdvancedRichEditor $editor): object|array {
@@ -92,6 +143,7 @@ class ToolbarLayout
                     ->min($options['min'])
                     ->max($options['max'])
                     ->step($options['step'])
+                    ->sizes($options['sizes'])
                     ->defaultSize($options['default']);
             },
             ...(config('filament-advanced-rich-editor.tokens') ?? []),
