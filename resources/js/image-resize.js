@@ -344,18 +344,27 @@ export default () => {
                         }, 0)
 
                         const onResizeStart = (event) => {
-                            // Only the button that actually drags. A right click on a handle
-                            // opens a context menu and never starts a resize, and everything
-                            // below would be left standing over it - the floating bar among
-                            // it, held open by a drag that is not happening.
-                            if (event.button !== undefined && event.button !== 0) {
-                                return
-                            }
-
                             const handle =
                                 event.target?.closest?.('[data-resize-handle]')
 
                             if (!handle) {
+                                return
+                            }
+
+                            /*
+                             * Only the button that actually drags. The node view starts a
+                             * resize on any button, so a right click on a handle resizes the
+                             * picture behind its own context menu - and does it without the
+                             * corrections below, which are what make a turned one behave.
+                             *
+                             * This listener is on the editor and captures, so stopping the
+                             * event here keeps it from ever reaching the handle the node
+                             * view is listening on. The context menu is its own event and
+                             * still opens.
+                             */
+                            if (event.button !== undefined && event.button !== 0) {
+                                event.stopPropagation()
+
                                 return
                             }
 

@@ -148,7 +148,11 @@ it('ignores a mouse button that cannot drag', function (): void {
     // the drag would leave the floating bar held open over the menu.
     $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
 
-    expect($js)->toContain('if (event.button !== undefined && event.button !== 0)');
+    // Stopped, not merely skipped: the node view starts a resize on any button, so simply
+    // declining to correct the drag would leave it resizing the picture behind its own
+    // context menu - and doing it without the corrections that make a turned one behave.
+    expect($js)->toContain('if (event.button !== undefined && event.button !== 0)')
+        ->and($js)->toContain('event.stopPropagation()');
 });
 
 it('pins the size of a turned picture as soon as its file arrives', function (): void {
