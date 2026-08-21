@@ -26,6 +26,11 @@ export default () => {
 
     const { Extension } = tiptap
 
+    // The image has to stay selected after a turn, and re-selecting it needs the class the
+    // selection is made of. Missing only on a build that does not expose ProseMirror's own
+    // state module, where the turn still works and only the toolbar blinks out.
+    const NodeSelection = window.FilamentRichEditor?.tiptap?.pmState?.NodeSelection ?? null
+
     const normalise = (value) => {
         const angle = Number.parseFloat(value)
 
@@ -116,12 +121,24 @@ export default () => {
                         const current = Number.parseFloat(node.attrs.rotate) || 0
 
                         if (dispatch) {
-                            dispatch(
-                                tr.setNodeMarkup(position, undefined, {
-                                    ...node.attrs,
-                                    rotate: normalise(current + delta),
-                                }),
-                            )
+                            tr.setNodeMarkup(position, undefined, {
+                                ...node.attrs,
+                                rotate: normalise(current + delta),
+                            })
+
+                            /*
+                             * `setNodeMarkup` writes a new node over the old one, and the
+                             * selection that survives that is a caret beside it rather than
+                             * a selection OF it. The floating toolbar is shown while the
+                             * image is active, so without putting the node selection back
+                             * the bar vanishes on the first turn - taking the button that
+                             * was just pressed with it.
+                             */
+                            if (NodeSelection?.isSelectable(tr.doc.nodeAt(position))) {
+                                tr.setSelection(NodeSelection.create(tr.doc, position))
+                            }
+
+                            dispatch(tr)
                         }
 
                         return true

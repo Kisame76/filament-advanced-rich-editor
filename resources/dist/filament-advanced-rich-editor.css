@@ -1251,15 +1251,6 @@ body.fi-arte-fullscreen-lock {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-/*
- * A rotated image keeps its unrotated layout box, so the drag handles would sit at the
- * middle of the picture's edges and their axes would be swapped. Hiding them while the
- * image is turned is cheaper than teaching the node view about angles - the size panel
- * still sets width and height.
- */
-.fi-arte [data-resize-wrapper]:has(> img[style*='rotate(']) [data-resize-handle] {
-    display: none;
-}
 
 .fi-arte-image-panel-actions {
     display: flex;

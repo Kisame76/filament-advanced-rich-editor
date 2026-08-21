@@ -96,3 +96,25 @@ it('removes an alt text rather than storing an empty one', function (): void {
     expect($html)->toContain("this.alt.trim() === '' ? null : this.alt")
         ->toContain('type="text"');
 });
+
+it('leaves a turned image draggable', function (): void {
+    // The handles used to be hidden the moment an image was turned, on the assumption that
+    // they rotate with the picture. They do not: Filament positions them on the resize
+    // wrapper, which keeps its unrotated box, so `bottom-right` is the bottom right corner
+    // at every angle and the drag needs no correction at all.
+    $css = file_get_contents(dirname(__DIR__, 2).'/resources/dist/filament-advanced-rich-editor.css');
+
+    expect($css)->not->toContain('data-resize-handle');
+});
+
+it('keeps the picture selected through a turn', function (): void {
+    // `setNodeMarkup` writes a new node over the old one and the selection that survives it
+    // is a caret beside the image rather than a selection of it. The floating toolbar is
+    // shown while the image is active, so without putting the node selection back the bar
+    // vanishes on the first turn - taking the button that was just pressed with it.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-rotate.js');
+
+    expect($js)->toContain('tr.setSelection(NodeSelection.create(tr.doc, position))')
+        // Read off ProseMirror's own state module, which Filament exposes.
+        ->and($js)->toContain('window.FilamentRichEditor?.tiptap?.pmState?.NodeSelection');
+});
