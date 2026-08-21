@@ -147,7 +147,12 @@ class Embed extends Node
             [
                 'class' => 'fi-arte-embed',
                 'data-type' => 'embed',
-                'style' => 'aspect-ratio: '.($attributes['ratio'] ?? static::DEFAULT_RATIO).';',
+                // Inline rather than left to a class. This package's stylesheet is loaded
+                // into the admin panel, and the page the content ends up on is somebody
+                // else's - an embed arriving there with only a class on it is a 300x150
+                // box in the corner. `style` survives the sanitiser, so the shape travels
+                // with the markup. The class is still there to style further.
+                'style' => 'aspect-ratio: '.($attributes['ratio'] ?? static::DEFAULT_RATIO).'; width: 100%;',
             ],
             [
                 'iframe',
@@ -159,6 +164,8 @@ class Embed extends Node
                     'allowfullscreen' => 'true',
                     // The referrer is the page, not the reader's path through it.
                     'referrerpolicy' => 'strict-origin-when-cross-origin',
+                    // The frame fills the box the wrapper's aspect ratio drew.
+                    'style' => 'width: 100%; height: 100%; border: 0;',
                 ]),
                 null,
             ],

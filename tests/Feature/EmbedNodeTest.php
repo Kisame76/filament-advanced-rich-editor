@@ -101,3 +101,18 @@ it('is not an embed without something to frame', function (): void {
 
     expect(AdvancedRichContentRenderer::make($empty)->toHtml())->toContain('Left over');
 });
+
+it('renders a video that needs no stylesheet to have a shape', function (): void {
+    // This package's stylesheet is loaded into the admin panel, not into the page the
+    // content ends up on. An embed arriving there with only a class on it is a 300x150 box
+    // in the corner - the shape is carried inline, where it travels with the markup.
+    $stored = '<div data-type="embed"><iframe src="https://youtu.be/dQw4w9WgXcQ"></iframe></div>';
+
+    $rendered = embeds(AdvancedRichContentRenderer::make($stored)->toHtml());
+
+    expect($rendered['wrapper']['style'])->toContain('width: 100%')
+        ->and($rendered['wrapper']['style'])->toContain('aspect-ratio: 16 / 9')
+        ->and($rendered['iframe']['style'])->toContain('width: 100%')
+        ->and($rendered['iframe']['style'])->toContain('height: 100%')
+        ->and($rendered['iframe']['style'])->toContain('border: 0');
+});

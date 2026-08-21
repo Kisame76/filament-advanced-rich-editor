@@ -46,7 +46,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   does not load ten players in the panel. YouTube goes through `youtube-nocookie.com` by
   default. Filament's sanitiser drops `<iframe>`, so `embed.sanitizer` allows it back with
   `src` narrowed to a host allowlist - and the node refuses to build the element for a host
-  that is not on it, which makes the sanitiser the second line rather than the only one
+  that is not on it, which makes the sanitiser the second line rather than the only one.
+  The shape of the frame is written inline, so a rendered embed keeps it on a page this
+  package's stylesheet never reaches
 - A slash menu: typing `/` opens a searchable list of the commands the field offers, with
   arrow keys, Enter or Tab to pick. The list is derived from the tools the field registered
   and each entry runs that tool's own handler, so a command and its button cannot come

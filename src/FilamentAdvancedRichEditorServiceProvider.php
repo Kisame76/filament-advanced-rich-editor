@@ -113,9 +113,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
         $this->app->extend(
             HtmlSanitizerConfig::class,
             static fn (HtmlSanitizerConfig $config): HtmlSanitizerConfig => $config
+                // `allowElement()` replaces the attribute list for this element, so the
+                // application-wide `allowAttribute('style', '*')` no longer reaches it -
+                // and without `style` the frame loses the shape it carries.
                 ->allowElement('iframe', [
                     'src', 'title', 'loading', 'allow', 'allowfullscreen', 'referrerpolicy',
-                    'width', 'height',
+                    'style', 'width', 'height',
                 ])
                 ->withAttributeSanitizer(new EmbedHostSanitizer(
                     (array) config('filament-advanced-rich-editor.embed.allowed_hosts', []),

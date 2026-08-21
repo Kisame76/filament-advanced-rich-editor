@@ -233,7 +233,7 @@ export default () => {
                 {
                     class: 'fi-arte-embed',
                     'data-type': 'embed',
-                    style: `aspect-ratio: ${ratio ?? '16 / 9'};`,
+                    style: `aspect-ratio: ${ratio ?? '16 / 9'}; width: 100%;`,
                 },
                 [
                     'iframe',
@@ -244,6 +244,7 @@ export default () => {
                         allow: 'accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
                         allowfullscreen: 'true',
                         referrerpolicy: 'strict-origin-when-cross-origin',
+                        style: 'width: 100%; height: 100%; border: 0;',
                     }),
                 ],
             ]

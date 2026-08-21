@@ -506,8 +506,11 @@ video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in
 
 A title is optional and worth setting: a screen reader announces it instead of "video".
 
-Style the rendered output through `.fi-arte-embed`; this package's stylesheet is loaded
-into the admin panel, not into the page the content ends up on.
+**The rendered embed needs no stylesheet of yours.** The aspect ratio and the frame's size
+are written into the markup as inline styles, because this package's stylesheet is loaded
+into the admin panel and the page the content ends up on is somebody else's - an embed
+arriving there with only a class on it is a 300×150 box in the corner. `.fi-arte-embed` is
+still on the wrapper for styling beyond that.
 
 ### Slash menu
 
