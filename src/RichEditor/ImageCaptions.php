@@ -85,6 +85,12 @@ class ImageCaptions
 
         $figure = $document->createElement('figure');
         $figure->setAttribute('class', static::CLASS_NAME);
+        // Browsers indent `<figure>` by 40px on both sides, which pushes a captioned image
+        // out of line with every paragraph around it. That is a user agent default rather
+        // than anyone's design decision, and the page this lands on does not load this
+        // package's stylesheet - so it comes off here. Everything else about how a caption
+        // looks is left to `.fi-arte-figure`.
+        $figure->setAttribute('style', 'margin-inline: 0;');
 
         $figcaption = $document->createElement('figcaption');
         // `textContent` escapes; a caption is text somebody typed, not markup.

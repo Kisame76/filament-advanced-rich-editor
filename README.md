@@ -1174,8 +1174,27 @@ attribute. Nothing has to be added to your sanitiser config for it: what is stor
 sanitised, and by the time the sanitiser sees the content the attribute has become a
 `<figcaption>` — which, along with `<figure>`, is on Filament's safe list already.
 
-In the editor the caption is drawn under the picture. Style it on the page through
-`.fi-arte-figure`.
+In the editor the caption is drawn under the picture. On the page, the figure carries one
+inline style: `margin-inline: 0`, which takes off the 40px browsers indent every `<figure>`
+by — a user agent default rather than anyone's design decision, and one that would push a
+captioned image out of line with the paragraphs around it.
+
+Everything else is yours, through `.fi-arte-figure`. Two rules are worth having, and most
+projects have the second one in a reset already:
+
+```css
+.fi-arte-figure figcaption {
+    padding-top: 0.375rem;
+    font-size: 0.8125rem;
+    color: #71717a;
+    /* text-align: center; if that is your house style */
+}
+
+.fi-arte-figure img {
+    max-width: 100%;
+    height: auto;
+}
+```
 
 ### Spatie Media Library
 

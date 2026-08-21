@@ -11,14 +11,14 @@ it('renders a captioned image as a figure', function (): void {
     $stored = '<p><img src="/hafen.jpg" alt="Kräne im Nebel" data-caption="Hamburger Hafen, 1962"></p>';
 
     expect(AdvancedRichContentRenderer::make($stored)->toHtml())
-        ->toBe('<figure class="fi-arte-figure"><img src="/hafen.jpg" alt="Kräne im Nebel" /><figcaption>Hamburger Hafen, 1962</figcaption></figure>');
+        ->toBe('<figure class="fi-arte-figure" style="margin-inline: 0;"><img src="/hafen.jpg" alt="Kräne im Nebel" /><figcaption>Hamburger Hafen, 1962</figcaption></figure>');
 });
 
 it('wraps an image that stands on its own', function (): void {
     $stored = '<img src="/a.jpg" data-caption="Eine Bildunterschrift">';
 
     expect(AdvancedRichContentRenderer::make($stored)->toHtml())
-        ->toContain('<figure class="fi-arte-figure">')
+        ->toContain('<figure class="fi-arte-figure" style="margin-inline: 0;">')
         ->toContain('<figcaption>Eine Bildunterschrift</figcaption>');
 });
 
@@ -68,4 +68,15 @@ it('drops a caption that is only whitespace', function (): void {
     expect(AdvancedRichContentRenderer::make($stored)->toHtml())
         ->not->toContain('<figure')
         ->not->toContain('<figcaption');
+});
+
+it('does not indent the figure the way a browser would', function (): void {
+    // Browsers give `<figure>` a default `margin: 1em 40px`, which pushes a captioned image
+    // out of line with every paragraph and heading around it. That is a user agent default
+    // rather than a design decision, so it is taken off the markup this package writes -
+    // the page it lands on does not load this package's stylesheet.
+    $stored = '<p><img src="/a.jpg" data-caption="Bildunterschrift"></p>';
+
+    expect(AdvancedRichContentRenderer::make($stored)->toHtml())
+        ->toContain('style="margin-inline: 0;"');
 });
