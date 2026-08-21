@@ -44,7 +44,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   apart - a feature switched off leaves the menu with it. Two groups, split by the question
   each command answers: `style` changes what the block already there is, `insert` is what
   arrives. Blocks and things you insert only: the menu opens where nothing is selected, and
-  an inline format there would mark nothing
+  an inline format there would mark nothing. Groups, their contents and the character that
+  opens the menu are set project-wide and overruled per field with `->slashGroups()` and
+  `->slashChar()`, like every other list in this package
 - The link dialog asks for `rel`, `referrerpolicy`, `hreflang` and an anchor on top of the
   URL and the target, with `rel` as checkboxes and `referrerpolicy` as a select - both are
   closed vocabularies, and a typo in a free text field produces an attribute that is

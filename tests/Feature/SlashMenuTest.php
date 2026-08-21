@@ -150,3 +150,31 @@ it('offers the merge tags and custom blocks only once there are some', function 
         ->not->toContain('customBlocks')
         ->and(slashNames(editor()->mergeTags(['name'])))->toContain('mergeTags');
 });
+
+it('lets a field choose its own groups', function (): void {
+    // Every other list in this package can be set project-wide and then overruled on the
+    // field that needs something else. A short field may want three commands where the
+    // article body wants sixteen.
+    $editor = editor()->slashGroups(['insert' => ['image', 'table']]);
+
+    expect(slashNames($editor))->toBe(['image', 'table'])
+        ->and(array_column(SlashMenu::for($editor)['groups'], 'key'))->toBe(['insert']);
+});
+
+it('accepts a closure for the groups', function (): void {
+    expect(slashNames(editor()->slashGroups(fn (): array => ['style' => ['paragraph']])))
+        ->toBe(['paragraph']);
+});
+
+it('lets a field choose the character that opens the menu', function (): void {
+    config()->set('filament-advanced-rich-editor.slash.char', ';');
+
+    expect(editor()->getSlashChar())->toBe(';')
+        ->and(editor()->slashChar('/')->getSlashChar())->toBe('/')
+        ->and(SlashMenu::for(editor())['char'])->toBe(';');
+});
+
+it('still drops an unknown name a field asked for', function (): void {
+    expect(slashNames(editor()->slashGroups(['style' => ['paragraph', 'nonsense']])))
+        ->toBe(['paragraph']);
+});

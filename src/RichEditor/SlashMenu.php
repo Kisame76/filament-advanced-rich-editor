@@ -56,7 +56,7 @@ class SlashMenu
         $tools = $editor->getTools();
         $groups = [];
 
-        foreach (static::groups() as $key => $names) {
+        foreach ($editor->getSlashGroups() as $key => $names) {
             $items = [];
 
             foreach (static::expand($names, $editor) as $name) {
@@ -91,7 +91,7 @@ class SlashMenu
         }
 
         return [
-            'char' => (string) config('filament-advanced-rich-editor.slash.char', '/'),
+            'char' => $editor->getSlashChar(),
             'empty' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.slash.empty'),
             'groups' => $groups,
         ];
@@ -111,16 +111,6 @@ class SlashMenu
             'customBlocks' => filled($editor->getCustomBlocks()),
             default => true,
         };
-    }
-
-    /**
-     * @return array<string, array<int, string>>
-     */
-    protected static function groups(): array
-    {
-        $groups = config('filament-advanced-rich-editor.slash.groups');
-
-        return is_array($groups) && $groups !== [] ? $groups : static::GROUPS;
     }
 
     /**

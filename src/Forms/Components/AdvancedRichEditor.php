@@ -133,6 +133,13 @@ class AdvancedRichEditor extends RichEditor
 
     protected bool|Closure|null $hasSlashMenu = null;
 
+    /**
+     * @var array<string, array<int, string>> | Closure | null
+     */
+    protected array|Closure|null $slashGroups = null;
+
+    protected string|Closure|null $slashChar = null;
+
     protected bool|Closure|null $hasImageToolbar = null;
 
     /**
@@ -714,6 +721,51 @@ class AdvancedRichEditor extends RichEditor
     public function hasSlashMenu(): bool
     {
         return (bool) ($this->evaluate($this->hasSlashMenu) ?? config('filament-advanced-rich-editor.slash.enabled') ?? true);
+    }
+
+    /**
+     * What the slash menu offers, and in which groups.
+     *
+     * Keys are group names, which are also the translation keys their headings are read
+     * from; values are tool names, in the order they appear. `'headings'` expands to the
+     * levels this field offers. A name the field does not have is dropped, exactly as it is
+     * inside a toolbar dropdown.
+     *
+     * @param  array<string, array<int, string>> | Closure  $groups
+     */
+    public function slashGroups(array|Closure $groups): static
+    {
+        $this->slashGroups = $groups;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    public function getSlashGroups(): array
+    {
+        $groups = $this->evaluate($this->slashGroups)
+            ?? config('filament-advanced-rich-editor.slash.groups');
+
+        return is_array($groups) && $groups !== [] ? $groups : SlashMenu::GROUPS;
+    }
+
+    /**
+     * The character that opens the menu.
+     */
+    public function slashChar(string|Closure $char): static
+    {
+        $this->slashChar = $char;
+
+        return $this;
+    }
+
+    public function getSlashChar(): string
+    {
+        return (string) ($this->evaluate($this->slashChar)
+            ?? config('filament-advanced-rich-editor.slash.char')
+            ?? '/');
     }
 
     /**

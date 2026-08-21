@@ -424,8 +424,18 @@ could find are the ones a search is for.
 
 ```php
 AdvancedRichEditor::make('content')
-    ->slashMenu(false);   // default: config('filament-advanced-rich-editor.slash.enabled')
+    ->slashMenu(false)                   // default: config('...slash.enabled')
+    ->slashChar(';')                     // default: config('...slash.char')
+    ->slashGroups([                      // default: config('...slash.groups')
+        'style' => ['paragraph', 'headings'],
+        'insert' => ['image'],
+    ]);
 ```
+
+Everything below can be set project-wide in the config file and overruled on the field that
+wants something else — a short summary field may offer three commands where the article body
+offers sixteen. Every setter takes a closure too, so a menu can depend on the record or the
+current user.
 
 ↑ and ↓ move, Enter or Tab picks, Escape closes — for the word being typed rather than for
 good, so the next `/` opens it again.
@@ -459,8 +469,9 @@ selected, and `/bold` there would mark nothing at all — an entry that does not
 than a missing one. Inline formatting keeps to the toolbar, where there is a selection to
 apply it to.
 
-The groups and their contents are configurable, and `'headings'` expands to the levels the
-field offers:
+The group keys are also the translation keys their headings are read from, so a new group
+needs a `slash.groups.<key>` entry in your language files. `'headings'` expands to the levels
+the field offers:
 
 ```php
 // config/filament-advanced-rich-editor.php
@@ -1171,6 +1182,8 @@ AdvancedRichEditor::make('content')
     ->maxHeight('400px')                           // cap the field and scroll inside it
     ->linkAttributes(true)                         // rel, referrerpolicy, hreflang, anchor
     ->slashMenu(true)                              // type / for a searchable command list
+    ->slashGroups(['insert' => ['image']])         // what that menu offers, and in what groups
+    ->slashChar('/')                               // the character that opens it
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists
