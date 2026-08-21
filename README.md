@@ -25,6 +25,8 @@ tool with alt text and optional Spatie Media Library storage on top.
   list and an `id` on the page cannot drift apart
 - **Links with `rel`, `referrerpolicy` and `hreflang`** — and `noopener noreferrer` added
   automatically to anything opening in a new window
+- **Slash menu** — type `/` for a searchable list of the commands *this* field offers, with
+  their keyboard shortcuts next to them
 - **Markdown export** — task lists keep their checkboxes
 - **Configurable project-wide** — one config file sets the default toolbar for every field
 
@@ -413,6 +415,76 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 
 RichContentRenderer::make($html)->plugins([TextDirectionPlugin::make()])->toHtml();
 ```
+
+### Slash menu
+
+Typing `/` on an empty line, or after a space, opens a searchable list of the commands the
+field offers. It is the toolbar reached by typing instead of by aiming — which is worth
+having precisely because this package's toolbar has an overflow dropdown: the tools nobody
+could find are the ones a search is for.
+
+```php
+AdvancedRichEditor::make('content')
+    ->slashMenu(false);   // default: config('filament-advanced-rich-editor.slash.enabled')
+```
+
+↑ and ↓ move, Enter or Tab picks, Escape closes — for the word being typed rather than for
+good, so the next `/` opens it again. The keyboard shortcut sits next to every command that
+has one, which is how most people find out those exist at all.
+
+**The list is derived, not declared.** Every entry is a tool the field actually registered,
+carrying that tool's own label, icon and handler — picking one evaluates the same string
+the toolbar button runs. A command and its button therefore cannot come apart: there is
+only one of them, and the menu is a different way to press it. Switch the task list off and
+it leaves the menu with it; offer only `h2` and `h3` and those are the only headings listed;
+name a tool in the config that this field does not have and it is dropped, exactly as it is
+inside a toolbar dropdown.
+
+Merge tags and custom blocks are a special case: Filament registers both tools whether or
+not anything was configured for them, so the menu offers them only once the field has some.
+A picker over an empty list is not a command.
+
+**Only blocks and things you insert.** The menu opens where the caret sits with nothing
+selected, and `/bold` there would mark nothing at all — an entry that does nothing is worse
+than a missing one. Inline formatting keeps to the toolbar, where there is a selection to
+apply it to.
+
+The groups and their contents are configurable, and `'headings'` expands to the levels the
+field offers:
+
+```php
+// config/filament-advanced-rich-editor.php
+'slash' => [
+    'enabled' => true,
+    'char' => '/',
+    'groups' => [
+        'blocks' => ['paragraph', 'headings', 'bulletList', 'orderedList', 'taskList',
+                     'blockquote', 'codeBlock', 'horizontalRule', 'details'],
+        'insert' => ['image', 'table', 'attachFiles', 'emoji', 'customBlocks', 'mergeTags'],
+    ],
+],
+```
+
+A group left with nothing in it does not appear, and a menu left with no groups does not
+open — the data attribute carrying it is not even written.
+
+**Searching** matches the label, the tool name and a list of aliases, with a command whose
+name *starts* with what was typed ranked above one that merely contains it: `/co` means the
+code block far more often than it means "table of columns". The aliases are translated, so
+`/liste` finds the bullet list in a German panel and `/ul` finds it in any:
+
+```php
+// resources/lang/de/advanced-rich-editor.php
+'slash' => ['aliases' => ['bulletList' => 'ul, liste, aufzählung, punkte']],
+```
+
+A slash only opens the menu at the start of a block or after a space, so `and/or` stays a
+word somebody is writing. Code blocks are left alone entirely — a slash there is nearly
+always code.
+
+The panel is drawn on `document.body` rather than inside the editor, because a field with
+[`maxHeight()`](#maximum-height) scrolls and a menu clipped by that box would be unusable on
+the last line. Style it through `.fi-arte-slash` and the classes under it.
 
 ### Links
 
@@ -1087,6 +1159,7 @@ AdvancedRichEditor::make('content')
     ->stickyToolbarOffset('4rem')                  // distance from the top of the viewport
     ->maxHeight('400px')                           // cap the field and scroll inside it
     ->linkAttributes(true)                         // rel, referrerpolicy, hreflang, anchor
+    ->slashMenu(true)                              // type / for a searchable command list
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists

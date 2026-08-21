@@ -62,6 +62,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/anchor', __DIR__.'/../resources/dist/js/anchor.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/slash-menu', __DIR__.'/../resources/dist/js/slash-menu.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/line-height', __DIR__.'/../resources/dist/js/line-height.js')
                     ->loadedOnRequest(),
 

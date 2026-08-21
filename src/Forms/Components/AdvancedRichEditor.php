@@ -30,11 +30,13 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
@@ -128,6 +130,8 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasFullscreen = null;
 
     protected bool|Closure|null $hasLinkAttributes = null;
+
+    protected bool|Closure|null $hasSlashMenu = null;
 
     protected bool|Closure|null $hasImageToolbar = null;
 
@@ -305,6 +309,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTextDirection()
                 ? [TextDirectionPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasSlashMenu()
+                ? [SlashMenuPlugin::make()]
                 : [],
         );
 
@@ -689,6 +699,39 @@ class AdvancedRichEditor extends RichEditor
     public function getStickyToolbarOffset(): string
     {
         return (string) ($this->evaluate($this->stickyToolbarOffset) ?? config('filament-advanced-rich-editor.sticky.offset') ?? '4rem');
+    }
+
+    /**
+     * Whether typing the slash character opens a menu of the commands this field offers.
+     */
+    public function slashMenu(bool|Closure $condition = true): static
+    {
+        $this->hasSlashMenu = $condition;
+
+        return $this;
+    }
+
+    public function hasSlashMenu(): bool
+    {
+        return (bool) ($this->evaluate($this->hasSlashMenu) ?? config('filament-advanced-rich-editor.slash.enabled') ?? true);
+    }
+
+    /**
+     * What the slash menu offers, for the view to hand to the script. Null while the menu
+     * is switched off, and while it has nothing to offer - a panel that can only ever say
+     * "no matching command" is one that should not open.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getSlashMenuForJs(): ?array
+    {
+        if (! $this->hasSlashMenu()) {
+            return null;
+        }
+
+        $menu = SlashMenu::for($this);
+
+        return $menu['groups'] === [] ? null : $menu;
     }
 
     /**

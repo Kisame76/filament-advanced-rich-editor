@@ -131,6 +131,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Slash menu
+    |--------------------------------------------------------------------------
+    | Typing the slash character on an empty line, or after a space, opens a searchable
+    | menu of the commands the field offers. Every entry is a tool the field actually
+    | registered - a feature switched off disappears from the menu with it, and a name
+    | listed here that the field does not have is dropped.
+    |
+    | Only blocks and things you insert: the menu opens where the caret sits with nothing
+    | selected, and an inline format there would mark nothing. `'headings'` expands to the
+    | levels the field offers. Per field: `->slashMenu()`.
+    */
+    'slash' => [
+        'enabled' => true,
+        'char' => '/',
+        'groups' => [
+            'blocks' => [
+                'paragraph', 'headings',
+                'bulletList', 'orderedList', 'taskList',
+                'blockquote', 'codeBlock', 'horizontalRule', 'details',
+            ],
+            'insert' => [
+                'image', 'table', 'attachFiles', 'emoji', 'customBlocks', 'mergeTags',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Link attributes
     |--------------------------------------------------------------------------
     | Whether the link dialog offers `rel`, `referrerpolicy`, `hreflang` and an anchor on

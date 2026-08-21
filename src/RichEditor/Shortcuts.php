@@ -62,6 +62,25 @@ class Shortcuts
     ];
 
     /**
+     * The keys one tool answers to, or an empty list where it answers to none.
+     *
+     * Heading keys are built rather than listed: they follow the level, and which levels
+     * exist is the field's own business.
+     *
+     * @return array<int, string>
+     */
+    public static function keysFor(string $name, AdvancedRichEditor $editor): array
+    {
+        if (preg_match('/^h([1-6])$/', $name, $matches) === 1) {
+            return in_array((int) $matches[1], $editor->getHeadingLevels(), strict: true)
+                ? ['Mod', 'Alt', $matches[1]]
+                : [];
+        }
+
+        return static::KEYS[$name] ?? [];
+    }
+
+    /**
      * @return array<int, array{label: string, keys: array<int, string>}>
      */
     public static function for(AdvancedRichEditor $editor): array

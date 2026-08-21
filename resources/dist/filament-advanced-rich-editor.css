@@ -1374,3 +1374,123 @@ body.fi-arte-fullscreen-lock {
 .fi-arte-character-count-danger:where(.dark, .dark *) {
     color: var(--danger-400, #f87171);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Slash menu                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The panel typing `/` opens. It lives on `document.body` rather than inside the editor,
+ * because a field with `maxHeight()` scrolls and a menu clipped by that box would be
+ * unusable on the last line - so it is positioned in page coordinates and needs a z-index
+ * above the editor and below Filament's modals, the same band the emoji picker sits in.
+ */
+.fi-arte-slash {
+    position: fixed;
+    z-index: 40;
+    /* Narrower than the panel is possible on a phone; the menu shrinks rather than
+       hanging off the edge. */
+    width: min(20rem, calc(100vw - 1rem));
+    max-height: 20rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.375rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--fi-arte-slash-border, rgb(228 228 231));
+    background-color: var(--fi-arte-slash-bg, #fff);
+    box-shadow:
+        0 10px 15px -3px rgb(0 0 0 / 0.1),
+        0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fi-arte-slash:where(.dark, .dark *) {
+    --fi-arte-slash-border: rgb(63 63 70);
+    --fi-arte-slash-bg: rgb(24 24 27);
+}
+
+.fi-arte-slash-group + .fi-arte-slash-group {
+    margin-top: 0.375rem;
+}
+
+.fi-arte-slash-group-label {
+    padding: 0.375rem 0.5rem 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--fi-arte-slash-muted, rgb(113 113 122));
+}
+
+.fi-arte-slash-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.5rem;
+    text-align: start;
+    font-size: 0.875rem;
+    color: inherit;
+    cursor: pointer;
+}
+
+/*
+ * Hover is not styled separately: the pointer moves the same selection the arrow keys do,
+ * so there is one active row rather than two things competing to look chosen.
+ */
+.fi-arte-slash-item-active {
+    background-color: var(--fi-arte-slash-active, rgb(244 244 245));
+}
+
+.fi-arte-slash-item-active:where(.dark, .dark *) {
+    --fi-arte-slash-active: rgb(39 39 42);
+}
+
+.fi-arte-slash-item-icon {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--fi-arte-slash-muted, rgb(113 113 122));
+}
+
+.fi-arte-slash-item-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.fi-arte-slash-item-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-arte-slash-item-keys {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.125rem;
+}
+
+.fi-arte-slash-item-keys kbd {
+    min-width: 1.25rem;
+    padding: 0.0625rem 0.25rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--fi-arte-slash-border, rgb(228 228 231));
+    font-family: inherit;
+    font-size: 0.6875rem;
+    line-height: 1.25;
+    text-align: center;
+    color: var(--fi-arte-slash-muted, rgb(113 113 122));
+}
+
+.fi-arte-slash-empty {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--fi-arte-slash-muted, rgb(113 113 122));
+}
+
+.fi-arte-slash:where(.dark, .dark *) .fi-arte-slash-group-label,
+.fi-arte-slash:where(.dark, .dark *) .fi-arte-slash-item-icon,
+.fi-arte-slash:where(.dark, .dark *) .fi-arte-slash-item-keys kbd,
+.fi-arte-slash:where(.dark, .dark *) .fi-arte-slash-empty {
+    --fi-arte-slash-muted: rgb(161 161 170);
+}

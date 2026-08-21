@@ -3,6 +3,35 @@
 declare(strict_types=1);
 
 return [
+    'slash' => [
+        'groups' => [
+            'blocks' => 'Blöcke',
+            'insert' => 'Einfügen',
+        ],
+        'empty' => 'Kein passender Befehl',
+        'aliases' => [
+            'paragraph' => 'text, absatz, fließtext',
+            'h1' => 'titel, überschrift 1',
+            'h2' => 'überschrift 2, untertitel',
+            'h3' => 'überschrift 3',
+            'h4' => 'überschrift 4',
+            'h5' => 'überschrift 5',
+            'h6' => 'überschrift 6',
+            'bulletList' => 'ul, liste, aufzählung, punkte',
+            'orderedList' => 'ol, nummeriert, nummerierung',
+            'taskList' => 'todo, aufgaben, checkliste, haken',
+            'blockquote' => 'zitat',
+            'codeBlock' => 'code, quelltext',
+            'horizontalRule' => 'hr, trenner, linie',
+            'details' => 'akkordeon, aufklappen, ausklappen',
+            'image' => 'bild, foto, img',
+            'table' => 'tabelle, raster, spalten',
+            'attachFiles' => 'datei, anhang, hochladen',
+            'emoji' => 'smiley, symbol',
+            'customBlocks' => 'block, baustein',
+            'mergeTags' => 'platzhalter, variable',
+        ],
+    ],
     'tools' => [
         'image' => 'Bild',
         'link' => [

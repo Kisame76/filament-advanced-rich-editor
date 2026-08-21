@@ -53,6 +53,7 @@
     $toolbarPinSide = $getToolbarPinSide();
     $stickyToolbarOffset = $getStickyToolbarOffset();
     $maxHeight = $getMaxHeight();
+    $slashMenu = $getSlashMenuForJs();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -205,7 +206,16 @@
             <div
                 {{ $getExtraInputAttributeBag()->class(['fi-fo-rich-editor-main']) }}
             >
-                <div class="fi-fo-rich-editor-content fi-prose" x-ref="editor">
+                {{--
+                    The slash menu's own list, built from the tools this field registered.
+                    It rides on the element the editor is mounted on because a TipTap
+                    extension has no other channel to anything the field knows.
+                --}}
+                <div
+                    class="fi-fo-rich-editor-content fi-prose"
+                    x-ref="editor"
+                    @if ($slashMenu) data-arte-slash="{{ json_encode($slashMenu) }}" @endif
+                >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div
                             x-ref="floatingToolbar::{{ $nodeName }}"

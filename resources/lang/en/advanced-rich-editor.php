@@ -3,6 +3,35 @@
 declare(strict_types=1);
 
 return [
+    'slash' => [
+        'groups' => [
+            'blocks' => 'Blocks',
+            'insert' => 'Insert',
+        ],
+        'empty' => 'No matching command',
+        'aliases' => [
+            'paragraph' => 'text, body',
+            'h1' => 'title, heading 1',
+            'h2' => 'heading 2, subtitle',
+            'h3' => 'heading 3',
+            'h4' => 'heading 4',
+            'h5' => 'heading 5',
+            'h6' => 'heading 6',
+            'bulletList' => 'ul, bullets, unordered',
+            'orderedList' => 'ol, numbered',
+            'taskList' => 'todo, checkbox, checklist',
+            'blockquote' => 'quote, citation',
+            'codeBlock' => 'code, pre, snippet',
+            'horizontalRule' => 'hr, divider, separator, rule',
+            'details' => 'accordion, collapse, toggle',
+            'image' => 'img, picture, photo',
+            'table' => 'grid, rows, columns',
+            'attachFiles' => 'file, upload, attachment',
+            'emoji' => 'smiley, icon',
+            'customBlocks' => 'block, component',
+            'mergeTags' => 'tag, variable, placeholder',
+        ],
+    ],
     'tools' => [
         'image' => 'Image',
         'link' => [
