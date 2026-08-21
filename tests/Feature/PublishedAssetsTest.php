@@ -29,6 +29,12 @@ const STYLE_HOOKS = [
     'fi-arte-fullscreen-toggle',
     // A second class on an input that `fi-arte-image-panel-input` already styles.
     'fi-arte-image-panel-input-text',
+    // Written into rendered content rather than into the editor: the anchor marker on a
+    // heading and the table of contents both only exist on the page the content ends up
+    // on, which this stylesheet is not loaded into. Styling them is the project's own
+    // decision, and the class names are configurable for exactly that reason.
+    'fi-arte-anchor',
+    'fi-arte-toc',
 ];
 
 /**

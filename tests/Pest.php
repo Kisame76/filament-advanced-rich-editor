@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Filament\Schemas\Components\Html;
@@ -16,6 +17,8 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFullscreen;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
+use Tiptap\Core\Extension;
+use Tiptap\Editor;
 
 uses(TestCase::class)->in('Feature');
 
@@ -181,4 +184,30 @@ function toolbarDropdownName(AdvancedRichEditor $editor, string $button): string
 function toolbarDropdown(AdvancedRichEditor $editor, string $button): mixed
 {
     return toolbarItem($editor, toolbarDropdownName($editor, $button));
+}
+
+/**
+ * A TipTap editor holding a document, for the tests that work on parsed content rather
+ * than on a form field.
+ *
+ * The extension list is Filament's own, so a test sees the schema the rendered page sees:
+ * an attribute nothing declares is dropped on parsing, and a document built from a
+ * shorter list would keep attributes production silently throws away.
+ *
+ * @param  array<int, Extension>  $extensions
+ */
+function document(string $html, array $extensions = []): Editor
+{
+    $editor = app(Editor::class, [
+        'configuration' => [
+            'extensions' => [
+                ...$extensions,
+                ...RichContentRenderer::make()->getTipTapPhpExtensions(),
+            ],
+        ],
+    ]);
+
+    $editor->setContent($html);
+
+    return $editor;
 }

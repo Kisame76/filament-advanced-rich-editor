@@ -6,6 +6,8 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- Rendering a rich content column that is still null returns an empty string instead of
+  throwing. Filament's own renderer walks the document without checking that there is one
 - The `@font-face` rules are written once per request instead of once per process. Under a
   persistent worker (Octane, Swoole, RoadRunner) a static flag meant every request after the
   first rendered a font picker offering typefaces the page was never told how to load
@@ -36,6 +38,22 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- `AdvancedRichContentRenderer`, Filament's renderer with this package's additions. A
+  subclass rather than macros on Filament's own class, so installing this package does not
+  change what every other package's content renders as; `::bind()` takes it over
+  project-wide where that is wanted, including for model rich content attributes
+- `anchorHeadings()` gives headings an `id` to link to, optionally with a link drawn into
+  the heading (`before`, `after`, or wrapping the text). A repeated heading is numbered
+  rather than given the same anchor twice, an id already in the markup is kept, and the
+  transliteration language is configurable - `Über uns` is `uber-uns` or `ueber-uns`
+  depending on who reads it
+- `TableOfContents`, as a nested array or as nested ordered lists. Its links and the
+  anchors on the page come from the same pass, so they cannot drift apart, and a document
+  that skips a heading level nests one step rather than two
+- `toMarkdown()`, with `league/html-to-markdown` as an optional dependency. Task lists keep
+  their checkboxes as `- [x]` / `- [ ]` instead of losing the only state they carry
+- `maxHeight()` caps a field and lets it scroll inside itself. A capped field turns its own
+  sticky toolbar off, since the bar is not in the box that scrolls
 - `composer build-assets`, and a test that fails when `resources/dist` drifts from its
   sources or when a `fi-arte-` class is written into markup the stylesheet has no rule for
 - `CONTRIBUTING.md` and `SECURITY.md`

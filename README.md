@@ -21,6 +21,9 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Task lists** — checkbox lists as a proper TipTap plugin, with the JS loaded on request
 - **Image tool** — insert and re-edit images including their alt text
 - **Spatie Media Library** — opt in per field to store attachments in a media collection
+- **Anchored headings and a table of contents** — both from one slug pass, so a link in the
+  list and an `id` on the page cannot drift apart
+- **Markdown export** — task lists keep their checkboxes
 - **Configurable project-wide** — one config file sets the default toolbar for every field
 
 ## Requirements
@@ -497,6 +500,28 @@ AdvancedRichEditor::make('excerpt')
     ->stickyToolbar(false);            // short field, nothing to pin
 ```
 
+### Maximum height
+
+A long document pushes everything below it off the screen. `maxHeight()` caps the field and
+lets it scroll inside itself instead:
+
+```php
+AdvancedRichEditor::make('content')
+    ->maxHeight('400px');              // default: config('filament-advanced-rich-editor.max_height')
+
+AdvancedRichEditor::make('content')->maxHeight(400);    // a bare number is pixels
+AdvancedRichEditor::make('content')->maxHeight(null);   // grow freely, against a configured height
+```
+
+Any CSS length. A bare number is read as pixels, because `max-height: 400` is not a length
+any browser accepts and the field would keep growing with nothing to show for the call.
+
+Only the text box is capped, so **a capped field turns its own sticky toolbar off**: the bar
+sits above the box that scrolls and stays in view without being pinned to anything. Pinning
+it to the viewport as well would peel it off the field as the page scrolls past. Fullscreen
+wins over both — the overlay already fills the window, and a 400px box inside it would
+leave most of the screen empty.
+
 ### Heading levels
 
 The dropdown lists the plain paragraph in front of the levels, so it reads as a choice of
@@ -807,6 +832,183 @@ AdvancedRichEditor::make('content')->spatieMediaLibrary(),
 AdvancedRichEditor::make('summary')->spatieMediaLibrary(),   // same collection, separate images
 ```
 
+## Rendering
+
+Everything above is about the editor. This part is about the page the content ends up on.
+
+`AdvancedRichContentRenderer` is Filament's `RichContentRenderer` with what this package
+adds, used exactly the same way — every method you already know is still there:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+
+AdvancedRichContentRenderer::make($article->content)
+    ->anchorHeadings()
+    ->toHtml();
+```
+
+A subclass rather than macros on Filament's own class. A macro is registered once and
+applies to every renderer in the application, including the ones other packages build for
+their own content — installing this package would change what those render, without anyone
+asking for it. Where the additions *should* apply everywhere, including Filament's model
+rich content attributes, which build their renderer themselves and take no arguments, one
+line says so:
+
+```php
+// AppServiceProvider::register()
+AdvancedRichContentRenderer::bind();
+```
+
+It also renders an empty record as an empty string. Filament's own renderer walks the
+document without first checking that there is one, and a rich content column is null until
+somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this
+one returns `''`.
+
+### Anchors
+
+`anchorHeadings()` gives every heading an `id`, so a link can point at one.
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AnchorPosition;
+
+// ids only, nothing visible on the page
+AdvancedRichContentRenderer::make($article->content)->anchorHeadings()->toHtml();
+
+// …and a link to each heading's own anchor
+AdvancedRichContentRenderer::make($article->content)
+    ->anchorHeadings(position: AnchorPosition::After)
+    ->toHtml();
+```
+
+The id is a slug of the heading's own text. A heading that repeats is numbered rather than
+given the same anchor twice — two sections called *Installation* become `installation` and
+`installation-2`, because an anchor that appears twice sends every link to the first one.
+A heading that slugs to nothing, because it is an emoji or a piece of punctuation, still
+gets one: `section`, `section-2`.
+
+An id already in the stored markup — typed into the [source code view](#source-code), or
+carried in from an import — is kept as it is and counted as taken, so nothing generated
+afterwards collides with it. Something out there may link to it, and replacing it with a
+slug of the current wording would break that link without anyone touching the document.
+
+Four positions decide what is drawn into the heading:
+
+| `position` | What the heading gets |
+| --- | --- |
+| `None` | The `id`, and nothing else. The default. |
+| `Before` | A marker in front of the text. |
+| `After` | A marker after the text. |
+| `Wrap` | No marker; the heading text itself becomes the link. |
+
+`None` is the default because the usual reason to want anchors is a table of contents
+linking into the page, and a symbol appearing next to every heading is a change to a design
+nobody asked to change.
+
+**On the marker and screen readers.** `Before` and `After` draw a link whose text is a
+symbol, and a screen reader announces it as one — "number sign, link". Filament's sanitiser
+strips `aria-label` and `aria-hidden` from stored content, so that cannot be papered over
+from here. `Wrap` is the position to reach for where it matters: the link's text is the
+heading, so it is announced as the section it leads to.
+
+The four arguments, and their config defaults:
+
+```php
+->anchorHeadings(
+    levels: [2, 3],                    // default: config('...anchors.levels')
+    position: AnchorPosition::After,   // default: config('...anchors.position')
+    symbol: '#',                       // default: config('...anchors.symbol')
+    class: 'fi-arte-anchor',           // default: config('...anchors.class')
+)
+```
+
+The class is a hook, not a rule: the marker is drawn on your page, which this package's
+stylesheet is not loaded into. Style it in your own theme.
+
+Umlauts are a decision rather than a default. `Über uns` folds to `uber-uns` in plain
+ASCII, which is right where nobody spells it out, and to `ueber-uns` under German
+transliteration rules, which is what German readers expect to see in a URL. The anchor ends
+up in links, so it is set once for the project:
+
+```php
+// config/filament-advanced-rich-editor.php
+'anchors' => ['language' => 'de'],
+```
+
+The `id` attribute survives Filament's sanitiser untouched, so an anchored heading reaches
+the page as written. Anchors are read and written on both sides of the round trip, which is
+what keeps a hand-written one from being dropped the next time the record is saved.
+
+### Table of contents
+
+The headings of a document, as a list that links into it:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TableOfContents;
+
+TableOfContents::make($article->content)->asHtml();    // <nav> with nested <ol>s
+TableOfContents::make($article->content)->asArray();   // build your own markup
+```
+
+`asArray()` gives back the headings nested, each with the `level`, the `text`, the `id` and
+its `children`. `asHtml()` writes that as nested ordered lists inside a `<nav>`, with the
+heading text escaped.
+
+```php
+TableOfContents::make($article->content)
+    ->levels([2, 3])                  // default: config('...anchors.levels')
+    ->class('fi-arte-toc')
+    ->plugins([TaskListPlugin::make()])
+    ->asHtml();
+```
+
+The ids come from the same pass `anchorHeadings()` uses, so a link in the list and an `id`
+on the page cannot drift apart. That is the whole reason both go through one class: two
+slug algorithms agree until two headings share a name, and then every duplicate link points
+at the wrong section.
+
+A document that jumps from `h2` to `h4` — which is most documents nobody wrote to a style
+guide — nests one step, not two. The reader meant *this belongs under that*; a list that
+opened two levels for it would be describing the markup rather than the document.
+
+### Markdown
+
+```php
+AdvancedRichContentRenderer::make($article->content)->toMarkdown();
+```
+
+Conversion is done by [league/html-to-markdown](https://github.com/thephpleague/html-to-markdown),
+which is an **optional** dependency — a project that never calls this should not carry it.
+Without it the call throws with the command to install it rather than a fatal error:
+
+```bash
+composer require league/html-to-markdown
+```
+
+Two defaults are set on top of the library's own, and anything passed to `toMarkdown()`
+wins over them:
+
+- `header_style: 'atx'` — `## Heading` rather than an underlined one. Both are valid
+  Markdown; only one of them still looks deliberate in a diff.
+- `strip_tags: true` — markup the converter has no spelling for becomes its text instead of
+  raw HTML. Markdown that carries stray HTML is Markdown only in name.
+
+**Task lists keep their boxes.** A task item is rendered as a label, a box and a content
+div, so a converter that has never heard of `data-checked` writes plain bullets and throws
+away the state — which is the only thing a task list is about. This package teaches the
+converter the `- [x]` / `- [ ]` spelling that GitHub, GitLab and every editor that renders
+task lists agree on:
+
+```
+- [x] Anchors built
+- [ ] Slash menu open
+```
+
+```php
+AdvancedRichContentRenderer::make($article->content)
+    ->plugins([TaskListPlugin::make()])              // so task items parse at all
+    ->toMarkdown(['header_style' => 'setext']);      // overrules the default
+```
+
 ## Configuration
 
 ```php
@@ -814,6 +1016,7 @@ AdvancedRichEditor::make('content')
     ->toolbarButtons([...])                        // full toolbar layout
     ->stickyToolbar(true)                          // pin the toolbar while scrolling
     ->stickyToolbarOffset('4rem')                  // distance from the top of the viewport
+    ->maxHeight('400px')                           // cap the field and scroll inside it
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists
@@ -909,9 +1112,19 @@ theme:
 .fi-arte-task-item { /* a single checkbox item */ }
 ```
 
-`--fi-arte-sticky-offset` is the one exception: the field writes it as an inline style, so it
-cannot be overridden from a stylesheet. Use `->stickyToolbarOffset()` — or the `sticky.offset`
-config key — instead.
+Two classes are written into rendered content rather than into the editor, so this package's
+stylesheet — which is loaded into the admin panel — never reaches them. Style them in the
+theme of the page the content ends up on, or rename them with the `anchors.class` config key
+and `TableOfContents::class()`:
+
+```css
+.fi-arte-anchor { /* the link to a heading's own anchor, see Anchors */ }
+.fi-arte-toc    { /* the <nav> around a table of contents */ }
+```
+
+`--fi-arte-sticky-offset` and `--fi-arte-max-height` are the exceptions: the field writes both
+as inline styles, so they cannot be overridden from a stylesheet. Use `->stickyToolbarOffset()`
+and `->maxHeight()` — or the `sticky.offset` and `max_height` config keys — instead.
 
 The blade view is publishable too, if the toolbar markup itself needs changing:
 

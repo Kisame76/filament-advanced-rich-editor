@@ -48,6 +48,13 @@ class AdvancedRichEditor extends RichEditor
 
     protected string|Closure|null $stickyToolbarOffset = null;
 
+    protected string|int|Closure|null $maxHeight = null;
+
+    /**
+     * Whether the field answered the height question itself, however it answered it.
+     */
+    protected bool $hasMaxHeight = false;
+
     /**
      * @var array<int, int> | Closure | null
      */
@@ -630,6 +637,13 @@ class AdvancedRichEditor extends RichEditor
 
     public function isStickyToolbar(): bool
     {
+        // A capped field scrolls inside itself, and the toolbar is not in the box that
+        // moves - it stays above the text without being pinned to anything. Pinning it to
+        // the viewport as well would peel it off the field as the page scrolls past.
+        if (filled($this->getMaxHeight())) {
+            return false;
+        }
+
         return (bool) ($this->evaluate($this->isStickyToolbar) ?? config('filament-advanced-rich-editor.sticky.enabled') ?? true);
     }
 
@@ -643,6 +657,36 @@ class AdvancedRichEditor extends RichEditor
     public function getStickyToolbarOffset(): string
     {
         return (string) ($this->evaluate($this->stickyToolbarOffset) ?? config('filament-advanced-rich-editor.sticky.offset') ?? '4rem');
+    }
+
+    /**
+     * Caps the editor's height and lets it scroll inside the field.
+     *
+     * Any CSS length; a bare number is read as pixels, because `max-height: 400` is not
+     * one and would leave the field growing with nothing to show for the call.
+     *
+     * Passing null undoes a height set project-wide, which is why this is remembered
+     * separately from the value: null is an answer here, not the absence of one.
+     */
+    public function maxHeight(string|int|Closure|null $height): static
+    {
+        $this->maxHeight = $height;
+        $this->hasMaxHeight = true;
+
+        return $this;
+    }
+
+    public function getMaxHeight(): ?string
+    {
+        $height = $this->hasMaxHeight
+            ? $this->evaluate($this->maxHeight)
+            : config('filament-advanced-rich-editor.max_height');
+
+        if (blank($height)) {
+            return null;
+        }
+
+        return is_numeric($height) ? $height.'px' : (string) $height;
     }
 
     /**

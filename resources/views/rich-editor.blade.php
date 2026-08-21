@@ -52,6 +52,7 @@
     $toolbarAlignment = $getToolbarAlignment();
     $toolbarPinSide = $getToolbarPinSide();
     $stickyToolbarOffset = $getStickyToolbarOffset();
+    $maxHeight = $getMaxHeight();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -61,7 +62,8 @@
         x-cloak
         :attributes="
             \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
-                ->class(['fi-fo-rich-editor', 'fi-arte'])
+                ->class(['fi-fo-rich-editor', 'fi-arte', 'fi-arte-max-height' => filled($maxHeight)])
+                ->style(['--fi-arte-max-height: ' . $maxHeight => filled($maxHeight)])
         "
     >
         <div

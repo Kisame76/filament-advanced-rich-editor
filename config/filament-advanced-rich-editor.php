@@ -239,6 +239,20 @@ return [
     | Keeps the toolbar pinned while a long document is scrolled. `offset` is any CSS
     | length and should match whatever sits above the form — usually the topbar.
     */
+    /*
+    |--------------------------------------------------------------------------
+    | Maximum height
+    |--------------------------------------------------------------------------
+    | Caps every editor's height and lets it scroll inside the field instead of pushing
+    | the rest of the form down the page. Any CSS length; a bare number is read as pixels.
+    | Null lets the editor grow with its content, which is the default.
+    |
+    | A capped field turns its own sticky toolbar off: the bar sits above the box that
+    | scrolls, so it stays in view without being pinned to anything.
+    | Per field: `->maxHeight()`.
+    */
+    'max_height' => null,
+
     'sticky' => [
         'enabled' => true,
         'offset' => '4rem',
@@ -386,6 +400,35 @@ return [
         'image_delete' => 'heroicon-o-trash',
         'image_locked' => 'heroicon-o-lock-closed',
         'image_unlocked' => 'heroicon-o-lock-open',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Anchors
+    |--------------------------------------------------------------------------
+    | Headings that a link can point at, used by `AdvancedRichContentRenderer::
+    | anchorHeadings()` and by `TableOfContents`. Both take their ids from the same pass,
+    | so a link in the list and an `id` on the page cannot drift apart.
+    |
+    |   'levels'    which heading levels get an anchor, and appear in a table of contents
+    |   'position'  where the heading's link to itself is drawn: 'none' (nothing is added,
+    |               the default), 'before', 'after', or 'wrap' to turn the heading text
+    |               itself into the link
+    |   'symbol'    the marker drawn for 'before' and 'after'
+    |   'class'     the class on that link and, with `-toc`, on the table of contents
+    |   'language'  whose transliteration rules build the slug: null folds to plain ASCII
+    |               ("Uber uns"), 'de' spells the umlaut out ("ueber-uns"). The anchor ends
+    |               up in URLs, so this is a project-wide decision.
+    |
+    | An id already in the stored markup is kept as it is - something out there may link
+    | to it - and counted, so nothing generated afterwards collides with it.
+    */
+    'anchors' => [
+        'levels' => [2, 3],
+        'position' => 'none',
+        'symbol' => '#',
+        'class' => 'fi-arte-anchor',
+        'language' => null,
     ],
 
     /*

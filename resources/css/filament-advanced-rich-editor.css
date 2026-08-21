@@ -660,6 +660,29 @@
     min-height: 0;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Capped height                                                              */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A field with `maxHeight()` scrolls inside itself rather than pushing the rest of the
+ * form down the page. Only the content box is capped, so the toolbar stays above the text
+ * without being pinned to anything - which is why the field turns the sticky toolbar off
+ * for itself when a height is set.
+ */
+.fi-fo-rich-editor.fi-arte-max-height .fi-fo-rich-editor-content {
+    max-height: var(--fi-arte-max-height);
+    overflow-y: auto;
+}
+
+/*
+ * Fullscreen is a height of its own and wins: the overlay already fills the window, and a
+ * 400px box inside it would leave most of the screen empty.
+ */
+.fi-arte-fullscreen.fi-arte-max-height .fi-fo-rich-editor-content {
+    max-height: none;
+}
+
 /*
  * The direction is deliberately left alone: Filament reverses this column so the panels
  * sit above the text, and turns it into a row from `2xl` up. Only the height is ours.
