@@ -10,6 +10,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageCaption;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
 use Tiptap\Core\Extension;
@@ -171,6 +172,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // embed node is one that silently drops every video in a document the day
             // somebody forgets to tell it.
             app(Embed::class),
+            app(ImageCaption::class),
         ];
     }
 
@@ -208,6 +210,10 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         }
 
         $html = parent::toUnsafeHtml();
+
+        // Unconditional, like the attribute it reads: an image that carries a caption is one
+        // whose caption belongs on the page, and nothing has to ask for that.
+        $html = (new ImageCaptions)->apply($html);
 
         // Before the sanitiser rather than after it: what a highlighter produces is markup,
         // and markup this package generates goes through the same door as everything else.

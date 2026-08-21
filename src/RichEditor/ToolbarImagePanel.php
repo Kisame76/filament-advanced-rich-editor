@@ -180,15 +180,26 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
         <?php return ob_get_clean();
     }
 
+    /**
+     * The two pieces of text an image carries, in one panel.
+     *
+     * They are different things and they belong together: the alt text stands in for the
+     * picture where it cannot be seen, the caption is printed under it for everyone. Anyone
+     * writing one is thinking about the other, and two buttons on a bar this narrow would be
+     * two places to look for the same job.
+     */
     protected function renderAltPanel(): string
     {
         $label = $this->getLabel();
+        $altLabel = __('filament-advanced-rich-editor::advanced-rich-editor.tools.image_alt.alt');
         $hint = __('filament-advanced-rich-editor::advanced-rich-editor.tools.image_alt.hint');
+        $captionLabel = __('filament-advanced-rich-editor::advanced-rich-editor.tools.image_alt.caption');
+        $captionHint = __('filament-advanced-rich-editor::advanced-rich-editor.tools.image_alt.caption_hint');
 
         ob_start(); ?>
 
         <label class="fi-arte-image-panel-field">
-            <span class="fi-arte-image-panel-label"><?= e($label) ?></span>
+            <span class="fi-arte-image-panel-label"><?= e($altLabel) ?></span>
 
             <input
                 type="text"
@@ -203,6 +214,21 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
 
         <p class="fi-arte-image-panel-hint"><?= e($hint) ?></p>
 
+        <label class="fi-arte-image-panel-field">
+            <span class="fi-arte-image-panel-label"><?= e($captionLabel) ?></span>
+
+            <input
+                type="text"
+                x-model="caption"
+                x-on:change="commit()"
+                x-on:blur="commit()"
+                x-on:keydown.enter.prevent.stop="commit(); open = false"
+                class="fi-arte-image-panel-input fi-arte-image-panel-input-text"
+            />
+        </label>
+
+        <p class="fi-arte-image-panel-hint"><?= e($captionHint) ?></p>
+
         <?php $body = ob_get_clean();
 
         return $this->renderShell(
@@ -210,10 +236,11 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
             $label,
             [
                 'alt' => "''",
-                'read' => "function () { this.alt = this.image().alt ?? '' }",
-                // An empty alt cannot be stored - the renderer drops falsy attributes - so
-                // clearing the field removes it rather than pretending otherwise.
-                'commit' => "function () { this.update({ alt: this.alt.trim() === '' ? null : this.alt }) }",
+                'caption' => "''",
+                'read' => "function () { const image = this.image(); this.alt = image.alt ?? ''; this.caption = image.caption ?? '' }",
+                // Neither can be stored empty - the renderer drops falsy attributes - so
+                // clearing a field removes it rather than pretending otherwise.
+                'commit' => "function () { this.update({ alt: this.alt.trim() === '' ? null : this.alt, caption: this.caption.trim() === '' ? null : this.caption }) }",
             ],
             $body,
         );

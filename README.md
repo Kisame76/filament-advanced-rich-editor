@@ -19,7 +19,7 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Sticky toolbar** — stays reachable in long documents, with a configurable offset
 - **Heading levels 1 to 6** — not just the stock `h2` / `h3`
 - **Task lists** — checkbox lists as a proper TipTap plugin, with the JS loaded on request
-- **Image tool** — insert and re-edit images including their alt text
+- **Image tool** — insert and re-edit images including their alt text and caption
 - **Spatie Media Library** — opt in per field to store attachments in a media collection
 - **Anchored headings and a table of contents** — both from one slug pass, so a link in the
   list and an `id` on the page cannot drift apart
@@ -1139,6 +1139,43 @@ lives in `images.resizable`, and a field always wins:
 ```php
 AdvancedRichEditor::make('content')->resizableImages(false);
 ```
+
+#### Captions
+
+Click an image and the toolbar's text panel asks for two things: the **alt text**, which
+stands in for the picture where it cannot be seen, and the **caption**, which is printed
+under it for everyone. They are different jobs and they sit together, because anyone writing
+one is thinking about the other.
+
+A captioned image is rendered as the markup a caption means:
+
+```html
+<figure class="fi-arte-figure">
+    <img src="/hafen.jpg" alt="Kräne im Nebel">
+    <figcaption>Hamburger Hafen, 1962</figcaption>
+</figure>
+```
+
+The paragraph the image was alone in is replaced rather than kept around the figure — a
+`<figure>` inside a `<p>` is markup browsers close early and disagree about. **An image
+sitting between words is left where it is**, caption or not: a figure is a block that stands
+apart from the text, and lifting an inline image out of a sentence would rewrite the
+sentence. The caption is dropped from the output there rather than shown somewhere it does
+not belong.
+
+Clearing the field removes the caption instead of storing an empty one, the same way the alt
+text does.
+
+**What is stored is `data-caption` on the image, not the figure.** A `<figure>` is a
+structure, and a TipTap attribute can only add attributes — building one would mean
+replacing Filament's image node and taking on its resizing, its uploads and its node view
+for the sake of one line of text. The figure is built when the page is rendered, out of that
+attribute. Nothing has to be added to your sanitiser config for it: what is stored is never
+sanitised, and by the time the sanitiser sees the content the attribute has become a
+`<figcaption>` — which, along with `<figure>`, is on Filament's safe list already.
+
+In the editor the caption is drawn under the picture. Style it on the page through
+`.fi-arte-figure`.
 
 ### Spatie Media Library
 

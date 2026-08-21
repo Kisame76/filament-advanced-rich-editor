@@ -52,6 +52,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/image-rotate', __DIR__.'/../resources/dist/js/image-rotate.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/image-caption', __DIR__.'/../resources/dist/js/image-caption.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/text-background', __DIR__.'/../resources/dist/js/text-background.js')
                     ->loadedOnRequest(),
 

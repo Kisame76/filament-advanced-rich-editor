@@ -108,8 +108,11 @@ return [
         'image_rotate_left' => 'Rotate left',
         'image_rotate_right' => 'Rotate right',
         'image_alt' => [
-            'label' => 'Alt text',
-            'hint' => 'Leave empty to remove it.',
+            'label' => 'Text',
+            'alt' => 'Alt text',
+            'hint' => 'Stands in for the picture where it cannot be seen. Leave empty to remove it.',
+            'caption' => 'Caption',
+            'caption_hint' => 'Printed under the picture. Only for a picture on a line of its own.',
         ],
         'image_size' => [
             'label' => 'Size',

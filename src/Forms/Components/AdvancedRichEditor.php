@@ -29,6 +29,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
@@ -327,6 +328,11 @@ class AdvancedRichEditor extends RichEditor
                 ? [TextDirectionPlugin::make()]
                 : [],
         );
+
+        // Always: a caption is worth having where nothing may be dragged, and it lives in
+        // the schema - a field that stopped declaring it would drop every caption already
+        // written on the next save.
+        $this->plugins([ImageCaptionPlugin::make()]);
 
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasEmbeds()

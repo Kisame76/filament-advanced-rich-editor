@@ -108,8 +108,11 @@ return [
         'image_rotate_left' => 'Nach links drehen',
         'image_rotate_right' => 'Nach rechts drehen',
         'image_alt' => [
-            'label' => 'Alt-Text',
-            'hint' => 'Leer lassen, um ihn zu entfernen.',
+            'label' => 'Text',
+            'alt' => 'Alt-Text',
+            'hint' => 'Steht für das Bild, wo es nicht zu sehen ist. Leer lassen, um ihn zu entfernen.',
+            'caption' => 'Bildunterschrift',
+            'caption_hint' => 'Steht unter dem Bild. Nur für ein Bild, das allein in einer Zeile steht.',
         ],
         'image_size' => [
             'label' => 'Größe',

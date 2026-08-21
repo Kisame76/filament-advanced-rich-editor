@@ -38,6 +38,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- Image captions. The image toolbar's text panel now asks for a caption beside the alt text,
+  and a captioned image is rendered as `<figure>` with a `<figcaption>` - the paragraph it
+  was alone in replaced rather than kept around it, since a figure inside a paragraph is
+  markup browsers disagree about. An image sitting between words is left where it is. What
+  is stored is `data-caption` on the image: a figure is a structure, and building one in the
+  schema would mean replacing Filament's image node and taking on its resizing, its uploads
+  and its node view for one line of text
 - A language picker on the code block, drawn on the block rather than in the toolbar - the
   language is a property of that block, and a document may hold several in different ones.
   It writes the `language-…` class TipTap already stores, so nothing new goes into the
