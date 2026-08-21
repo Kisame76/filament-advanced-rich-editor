@@ -23,6 +23,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
@@ -133,6 +134,11 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasLinkAttributes = null;
 
     protected bool|Closure|null $hasEmbeds = null;
+
+    /**
+     * @var array<string, string> | Closure | null
+     */
+    protected array|Closure|null $codeBlockLanguages = null;
 
     protected bool|Closure|null $hasSlashMenu = null;
 
@@ -326,6 +332,12 @@ class AdvancedRichEditor extends RichEditor
             static fn (AdvancedRichEditor $component): array => $component->hasEmbeds()
                 ? [EmbedPlugin::make()]
                 : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->getCodeBlockLanguages() === []
+                ? []
+                : [CodeBlockPlugin::make()],
         );
 
         $this->plugins(
@@ -715,6 +727,54 @@ class AdvancedRichEditor extends RichEditor
     public function getStickyToolbarOffset(): string
     {
         return (string) ($this->evaluate($this->stickyToolbarOffset) ?? config('filament-advanced-rich-editor.sticky.offset') ?? '4rem');
+    }
+
+    /**
+     * The languages the code block's picker offers, as `value => label`.
+     *
+     * An empty list takes the picker away: a project that curated the languages down to
+     * nothing has said it does not want one. A language a block already carries is offered
+     * even when it is not listed - it is still what the block is written in.
+     *
+     * @param  array<string, string> | Closure  $languages
+     */
+    public function codeBlockLanguages(array|Closure $languages): static
+    {
+        $this->codeBlockLanguages = $languages;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getCodeBlockLanguages(): array
+    {
+        $languages = $this->evaluate($this->codeBlockLanguages)
+            ?? config('filament-advanced-rich-editor.code_block.languages')
+            ?? [];
+
+        return is_array($languages) ? $languages : [];
+    }
+
+    /**
+     * What the code block script needs from PHP: the languages and the wording for a block
+     * that declares none.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getCodeBlockSettingsForJs(): ?array
+    {
+        $languages = $this->getCodeBlockLanguages();
+
+        if ($languages === []) {
+            return null;
+        }
+
+        return [
+            'languages' => $languages,
+            'plain' => __('filament-advanced-rich-editor::advanced-rich-editor.tools.code_block.plain'),
+        ];
     }
 
     /**

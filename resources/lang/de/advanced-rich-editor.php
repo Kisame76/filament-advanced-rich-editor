@@ -51,6 +51,9 @@ return [
             'hreflang' => 'Sprache der Zielseite',
             'id' => 'Anker',
         ],
+        'code_block' => [
+            'plain' => 'Reiner Text',
+        ],
         'embed' => [
             'label' => 'Video',
             'heading' => 'Video einbetten',

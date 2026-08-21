@@ -51,6 +51,9 @@ return [
             'hreflang' => 'Language of the linked page',
             'id' => 'Anchor',
         ],
+        'code_block' => [
+            'plain' => 'Plain text',
+        ],
         'embed' => [
             'label' => 'Video',
             'heading' => 'Embed a video',

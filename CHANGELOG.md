@@ -38,6 +38,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- A language picker on the code block, drawn on the block rather than in the toolbar - the
+  language is a property of that block, and a document may hold several in different ones.
+  It writes the `language-…` class TipTap already stores, so nothing new goes into the
+  schema, and an empty list of languages takes the picker away
+- `highlightCode()` colours code blocks when rendering, through phiki/phiki as an optional
+  dependency. In PHP rather than in the browser: the only highlighter worth having there is
+  measured in megabytes and would colour text only its author sees. A block with no language
+  is left alone, the code itself is never touched, and a light/dark pair rides in one piece
+  of markup instead of rendering the page twice
 - Video embeds. A pasted YouTube or Vimeo link is taken apart and the embed URL is built
   from it, so every shape a share button produces works - watch, youtu.be, shorts, embed,
   the Vimeo equivalents - and the timestamp in a link shared "from 1:30" survives. Pasting

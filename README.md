@@ -28,6 +28,7 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Slash menu** — type `/` for a searchable list of the commands *this* field offers
 - **Video embeds** — paste a YouTube or Vimeo link and get a player, timestamp included,
   through the cookie-free host
+- **Code blocks** — a language picker on the block, and syntax colours rendered in PHP
 - **Markdown export** — task lists keep their checkboxes
 - **Configurable project-wide** — one config file sets the default toolbar for every field
 
@@ -416,6 +417,82 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 
 RichContentRenderer::make($html)->plugins([TextDirectionPlugin::make()])->toHtml();
 ```
+
+### Code blocks
+
+A code block carries the language it is written in, picked from a select in its own corner:
+
+```php
+AdvancedRichEditor::make('content')
+    ->codeBlockLanguages([                 // default: config('...code_block.languages')
+        'php' => 'PHP',
+        'blade' => 'Blade',
+    ]);
+```
+
+Twelve languages are offered out of the box. An empty list takes the picker away — one
+switch rather than two, since a project that curated the languages down to nothing has
+already said it does not want one. A language a block already carries is offered even when
+it is not on the list: it is still what that block is written in.
+
+The picker sits on the block rather than in the toolbar, because the language is a property
+of that block and a document may hold several in different ones. What it writes is the
+`language-…` class TipTap already stores, so nothing new goes into the schema.
+
+#### Colours
+
+Colouring happens in PHP, when the page is rendered:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+
+AdvancedRichContentRenderer::make($article->content)
+    ->highlightCode()                              // default: config('...code_block.theme')
+    ->toHtml();
+```
+
+**The editor shows plain monospace, and that is the intended state.** A highlighter worth
+having in a browser is measured in megabytes and needs a build step this package does not
+have — and it would colour text that only its author ever sees. The reader is where colour
+matters, and there the work happens once, on render.
+
+[Phiki](https://phiki.dev) does it and is an **optional** dependency: it carries every
+TextMate grammar and every theme, which is nine megabytes nobody who does not colour code
+should be made to carry. Without it the call throws with the command to install it:
+
+```bash
+composer require phiki/phiki
+```
+
+A block that declares no language is left alone — guessing the language is guessing — and
+so is a language nothing knows about. The code itself is never touched; only spans are
+added around it.
+
+#### Dark mode
+
+One theme by default, which needs no stylesheet of yours. Passing a pair writes both into
+the same markup — the light one as ordinary colours, the dark one as custom properties —
+so the page is not rendered twice:
+
+```php
+AdvancedRichContentRenderer::make($article->content)
+    ->highlightCode(themes: ['light' => 'github-light', 'dark' => 'github-dark'])
+    ->toHtml();
+```
+
+That needs three lines in your own stylesheet to swap them, because the switch is your
+project's idea of dark mode rather than this package's:
+
+```css
+.dark .phiki-themes,
+.dark .phiki-themes span {
+    color: var(--phiki-dark-color) !important;
+    background-color: var(--phiki-dark-background-color) !important;
+}
+```
+
+Any [Phiki theme name](https://phiki.dev) works, and the defaults live in
+`code_block.theme` and `code_block.themes`.
 
 ### Video embeds
 
@@ -1282,6 +1359,7 @@ AdvancedRichEditor::make('content')
     ->slashGroups(['insert' => ['image']])         // what that menu offers, and in what groups
     ->slashChar('/')                               // the character that opens it
     ->embeds(true)                                 // the video button, and the paste handler
+    ->codeBlockLanguages(['php' => 'PHP'])         // the language picker on a code block
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists

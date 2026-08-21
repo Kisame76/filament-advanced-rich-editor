@@ -70,6 +70,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/embed', __DIR__.'/../resources/dist/js/embed.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/code-block', __DIR__.'/../resources/dist/js/code-block.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/line-height', __DIR__.'/../resources/dist/js/line-height.js')
                     ->loadedOnRequest(),
 

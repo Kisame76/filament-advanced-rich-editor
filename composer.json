@@ -44,11 +44,13 @@
     "orchestra/testbench": "^9.0||^10.0||^11.0",
     "pestphp/pest": "^3.0||^4.0",
     "pestphp/pest-plugin-laravel": "^3.0||^4.0",
+    "phiki/phiki": "^2.2",
     "spatie/laravel-medialibrary": "^11.0||^12.0"
   },
   "suggest": {
     "spatie/laravel-medialibrary": "Required to store editor image attachments in a media library collection (^11.0||^12.0).",
-    "league/html-to-markdown": "Required to render stored rich content as Markdown with `AdvancedRichContentRenderer::toMarkdown()` (^5.1)."
+    "league/html-to-markdown": "Required to render stored rich content as Markdown with `AdvancedRichContentRenderer::toMarkdown()` (^5.1).",
+    "phiki/phiki": "Required to colour code blocks when rendering stored content with `AdvancedRichContentRenderer::highlightCode()` (^2.2)."
   },
   "autoload": {
     "psr-4": {

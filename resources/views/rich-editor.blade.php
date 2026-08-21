@@ -55,6 +55,7 @@
     $maxHeight = $getMaxHeight();
     $slashMenu = $getSlashMenuForJs();
     $embedSettings = $getEmbedSettingsForJs();
+    $codeBlockSettings = $getCodeBlockSettingsForJs();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -217,6 +218,7 @@
                     x-ref="editor"
                     @if ($slashMenu) data-arte-slash="{{ json_encode($slashMenu) }}" @endif
                     @if ($embedSettings) data-arte-embed="{{ json_encode($embedSettings) }}" @endif
+                    @if ($codeBlockSettings) data-arte-code-block="{{ json_encode($codeBlockSettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div

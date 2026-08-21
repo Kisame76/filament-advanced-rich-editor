@@ -131,6 +131,43 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Code blocks
+    |--------------------------------------------------------------------------
+    | The picker on a code block, and the colours on the rendered page.
+    |
+    |   'languages'  what the picker offers, as `value => label`. The value is written into
+    |                `class="language-…"`, which is where the highlighter reads it. An empty
+    |                list takes the picker away.
+    |   'theme'      the theme `->highlightCode()` uses. Any Phiki theme name.
+    |   'themes'     a light/dark pair instead, e.g. ['light' => 'github-light',
+    |                'dark' => 'github-dark']. Both are written into the same markup, and a
+    |                rule in your own stylesheet swaps them - see the README.
+    |
+    | Colouring happens in PHP when the page is rendered, and needs phiki/phiki. The editor
+    | shows plain monospace: a highlighter in the panel colours text only its author sees.
+    | Per field: `->codeBlockLanguages()`.
+    */
+    'code_block' => [
+        'languages' => [
+            'bash' => 'Bash',
+            'css' => 'CSS',
+            'diff' => 'Diff',
+            'html' => 'HTML',
+            'javascript' => 'JavaScript',
+            'json' => 'JSON',
+            'markdown' => 'Markdown',
+            'php' => 'PHP',
+            'python' => 'Python',
+            'sql' => 'SQL',
+            'typescript' => 'TypeScript',
+            'yaml' => 'YAML',
+        ],
+        'theme' => 'github-light',
+        'themes' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Embeds
     |--------------------------------------------------------------------------
     | Video embeds. A pasted link is taken apart and the embed URL is built from it, so

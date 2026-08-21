@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
+use BackedEnum;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
@@ -43,6 +44,8 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     protected string $anchorClass = 'fi-arte-anchor';
 
     protected bool $hasLinkAttributes = true;
+
+    protected ?CodeHighlighter $codeHighlighter = null;
 
     /**
      * What this package asks the converter for on top of its own defaults.
@@ -85,6 +88,25 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     public function linkAttributes(bool $condition = true): static
     {
         $this->hasLinkAttributes = $condition;
+
+        return $this;
+    }
+
+    /**
+     * Colours the code blocks.
+     *
+     * A single theme by default, because that needs no stylesheet of yours. Passing a pair
+     * writes both into the same markup - the light one as ordinary colours, the dark one as
+     * custom properties - and then a rule in your own theme swaps them; see the README.
+     *
+     * @param  array{light: string|BackedEnum, dark: string|BackedEnum}|null  $themes
+     */
+    public function highlightCode(string|BackedEnum|null $theme = null, ?array $themes = null): static
+    {
+        $this->codeHighlighter = new CodeHighlighter(
+            $theme ?? config('filament-advanced-rich-editor.code_block.theme', 'github-light'),
+            $themes ?? config('filament-advanced-rich-editor.code_block.themes'),
+        );
 
         return $this;
     }
@@ -185,7 +207,11 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             return '';
         }
 
-        return parent::toUnsafeHtml();
+        $html = parent::toUnsafeHtml();
+
+        // Before the sanitiser rather than after it: what a highlighter produces is markup,
+        // and markup this package generates goes through the same door as everything else.
+        return $this->codeHighlighter?->apply($html) ?? $html;
     }
 
     protected function processNodes(Editor $editor): void
