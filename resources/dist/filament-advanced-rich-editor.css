@@ -808,6 +808,17 @@ body.fi-arte-fullscreen-lock {
     pointer-events: none;
 }
 
+/*
+ * A quarter turned image is given compensating margins so its layout box matches what is
+ * drawn, which makes that box NARROWER than the image itself. `max-width: 100%` then reads
+ * the shrunken box as the limit and squashes the picture - a landscape image turned on its
+ * side would lose everything past its own height. The margins already account for the real
+ * footprint, so the limit is dropped for exactly these images.
+ */
+.fi-arte [data-resize-wrapper] > img[style*='rotate('] {
+    max-width: none;
+}
+
 /* The unlocked state is the notable one, so it is the one that gets the accent. */
 .fi-arte-image-lock.fi-active {
     color: var(--primary-600, #2563eb);

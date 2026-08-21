@@ -164,6 +164,45 @@ export default () => {
                             // node view ORs the two together - a welcome accident.
                             nodeView.preserveAspectRatio = !storage.unlocked
 
+                            /*
+                             * The rotation extension writes compensating margins, so the
+                             * wrapper - and every handle on it - already carries the
+                             * picture's on-screen box: `bottom-right` really is the corner
+                             * at the bottom right of the picture, at every angle.
+                             *
+                             * What the wrapper does not carry are the picture's axes. At a
+                             * quarter turn the element's width runs down the screen, while
+                             * the node view goes on reading the pointer in element space and
+                             * takes its signs from the handle's NAME - which now describes a
+                             * corner of the element, not the corner the pointer grabbed. So
+                             * the deltas are rewritten for the length of the drag.
+                             *
+                             * Swapping them is right for the two handles that lie on the
+                             * turn's own diagonal; for the other two the swap points both
+                             * axes the wrong way and has to be negated as well. A half turn
+                             * needs nothing at all - box and axes both come back the same
+                             * way round.
+                             *
+                             * Only visible while the ratio is unlocked: with it locked both
+                             * sides move together, and every mapping looks the same.
+                             */
+                            const quarterTurned =
+                                Math.abs(Math.round((Number.parseFloat(nodeView.node?.attrs?.rotate) || 0) / 90)) % 2 === 1
+
+                            const handleName = handle.getAttribute('data-resize-handle')
+
+                            const sign = { 'bottom-right': 1, 'top-left': 1, 'bottom-left': -1, 'top-right': -1 }[
+                                handleName
+                            ]
+
+                            const originalHandleResize =
+                                quarterTurned && sign ? nodeView.handleResize.bind(nodeView) : null
+
+                            if (originalHandleResize) {
+                                nodeView.handleResize = (deltaX, deltaY) =>
+                                    originalHandleResize(sign * deltaY, sign * deltaX)
+                            }
+
                             const wrapper = handle.closest('[data-resize-wrapper]')
                             const image = nodeView.element
 
@@ -193,6 +232,13 @@ export default () => {
 
                             const finish = () => {
                                 nodeView.onResize = previousOnResize
+
+                                // Back to the node view's own method, so an image that is
+                                // straightened again drags straight again.
+                                if (originalHandleResize) {
+                                    delete nodeView.handleResize
+                                }
+
                                 badge.remove()
 
                                 document.removeEventListener('mouseup', finish)

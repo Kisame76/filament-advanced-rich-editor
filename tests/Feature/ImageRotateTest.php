@@ -107,6 +107,29 @@ it('leaves a turned image draggable', function (): void {
     expect($css)->not->toContain('data-resize-handle');
 });
 
+it('lets a turned image use its full width', function (): void {
+    // The compensating margins make the layout box narrower than the image itself at a
+    // quarter turn, and `max-width: 100%` reads that shrunken box as the limit - a
+    // landscape picture turned on its side lost everything past its own height.
+    $css = file_get_contents(dirname(__DIR__, 2).'/resources/dist/filament-advanced-rich-editor.css');
+
+    expect($css)->toContain("[data-resize-wrapper] > img[style*='rotate(']")
+        ->and($css)->toContain('max-width: none');
+});
+
+it('drags a turned image along the axes the pointer is moving in', function (): void {
+    // The wrapper carries the picture's on-screen box, so `bottom-right` is the corner the
+    // pointer grabbed - but the node view reads the pointer in the element's own axes, which
+    // a quarter turn has swapped. Swapping the deltas back is right for the handles on the
+    // turn's diagonal; the other two need the signs as well, or dragging out shrinks.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain("'bottom-right': 1, 'top-left': 1, 'bottom-left': -1, 'top-right': -1")
+        ->and($js)->toContain('originalHandleResize(sign * deltaY, sign * deltaX)')
+        // A half turn leaves both the box and the axes the same way round.
+        ->and($js)->toContain('quarterTurned');
+});
+
 it('keeps the picture selected through a turn', function (): void {
     // `setNodeMarkup` writes a new node over the old one and the selection that survives it
     // is a caret beside the image rather than a selection of it. The floating toolbar is
