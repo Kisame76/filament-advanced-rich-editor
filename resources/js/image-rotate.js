@@ -44,6 +44,32 @@ export default () => {
         return wrapped === 0 ? null : wrapped
     }
 
+    /**
+     * The width and height an image is actually drawn at, for the moment it is turned and
+     * has none of its own. Returns nothing when the picture cannot be measured - a size
+     * guessed from an image that has not loaded would be worse than no size at all.
+     */
+    const measure = (view, position, attributes) => {
+        // Only when the node has none of its own: overwriting a stored size with the one
+        // that happens to be on screen would let a picture drift smaller every time it was
+        // turned in a container narrow enough to be holding it back.
+        if (
+            Number.isFinite(Number.parseFloat(attributes?.width)) &&
+            Number.isFinite(Number.parseFloat(attributes?.height))
+        ) {
+            return {}
+        }
+
+        const dom = view?.nodeDOM?.(position)
+        const image = dom?.querySelector?.('img') ?? (dom?.tagName === 'IMG' ? dom : null)
+
+        if (!image || !image.offsetWidth || !image.offsetHeight) {
+            return {}
+        }
+
+        return { width: image.offsetWidth, height: image.offsetHeight }
+    }
+
     return Extension.create({
         name: 'arteImageRotate',
 
@@ -110,7 +136,7 @@ export default () => {
                  */
                 rotateImage:
                     (delta) =>
-                    ({ state, tr, dispatch }) => {
+                    ({ state, tr, dispatch, view }) => {
                         const position = state.selection.from
                         const node = state.doc.nodeAt(position)
 
@@ -121,8 +147,24 @@ export default () => {
                         const current = Number.parseFloat(node.attrs.rotate) || 0
 
                         if (dispatch) {
+                            /*
+                             * The margins that make a turned image's layout box match what
+                             * is drawn can only be worked out from a width and a height, and
+                             * an image that has never been resized carries neither - it is
+                             * simply drawn at its natural size. Turning it would then leave
+                             * the box unturned: the picture would lie across the lines
+                             * around it, and the resize handles - which sit on that box -
+                             * would no longer be on its corners.
+                             *
+                             * So a turn pins the size it is turning, read off the picture as
+                             * it is on screen right now. It is also what someone doing it
+                             * would expect: the picture keeps the size it had.
+                             */
+                            const size = measure(view, position, node.attrs)
+
                             tr.setNodeMarkup(position, undefined, {
                                 ...node.attrs,
+                                ...size,
                                 rotate: normalise(current + delta),
                             })
 

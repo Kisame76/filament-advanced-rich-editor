@@ -124,10 +124,87 @@ it('drags a turned image along the axes the pointer is moving in', function (): 
     // turn's diagonal; the other two need the signs as well, or dragging out shrinks.
     $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
 
-    expect($js)->toContain("'bottom-right': 1, 'top-left': 1, 'bottom-left': -1, 'top-right': -1")
-        ->and($js)->toContain('originalHandleResize(sign * deltaY, sign * deltaX)')
-        // A half turn leaves both the box and the axes the same way round.
-        ->and($js)->toContain('quarterTurned');
+    // The pointer is rotated back out of the picture's frame, and the handle is renamed to
+    // the edge of the element the pointer is really pulling. The node view then does its own
+    // arithmetic unchanged and gets it right at every angle - corners and edges alike.
+    expect($js)->toContain('originalHandleResize(...rotateDelta(deltaX, deltaY))')
+        ->and($js)->toContain('nodeView.activeHandle = renamedHandle')
+        // Restored even when the node view throws, or the next drag inherits the wrong edge.
+        ->and($js)->toContain('nodeView.activeHandle = realHandle')
+        ->and($js)->toContain('90: { right:');
+});
+
+it('corrects the edge handles too, not only the corners', function (): void {
+    // Filament draws only corners today. If it ever draws the edges as well, they go through
+    // the same rename and the same rotation rather than falling out of the correction.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain('right: [1, 0]')
+        ->and($js)->toContain('bottom: [0, 1]');
+});
+
+it('ignores a mouse button that cannot drag', function (): void {
+    // A right click on a handle opens a context menu and never starts a resize, so arming
+    // the drag would leave the floating bar held open over the menu.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain('if (event.button !== undefined && event.button !== 0)');
+});
+
+it('pins the size of a turned picture as soon as its file arrives', function (): void {
+    // Turning normally pins the size from what is on screen, but an image that had not
+    // loaded could not be measured - and a turned picture with no size of its own keeps an
+    // unturned box, lying across the lines around it.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain('pinTurnedSize(image)')
+        ->and($js)->toContain('if (!attrs?.rotate)');
+});
+
+it('grows from any corner while the ratio is kept', function (): void {
+    // For a corner the node view reads the width and discards the other delta, so dragging
+    // straight down did nothing at all - and on a quarter turned picture it was dragging
+    // sideways that did nothing. The pointer is measured along the direction the corner
+    // points in instead, and that one distance drives the resize.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain('Math.abs(byX) >= Math.abs(byY) ? byX : byY')
+        ->and($js)->toContain('nodeView.preserveAspectRatio || nodeView.isShiftKeyPressed');
+});
+
+it('does not let a stuck shift key keep the ratio', function (): void {
+    // The node view listens for the shift key only while a drag runs, so a shift released
+    // after the mouse button left the flag standing - and every later drag kept the ratio
+    // however the lock was set.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain('nodeView.isShiftKeyPressed = event.shiftKey === true');
+});
+
+it('pins the size of a picture that is turned before it is resized', function (): void {
+    // The margins that make a turned image's box match what is drawn need a width and a
+    // height, and an image that has never been resized carries neither - so turning it left
+    // the box unturned, the picture lying across the lines around it and the handles off its
+    // corners.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-rotate.js');
+
+    expect($js)->toContain('measure(view, position, node.attrs)')
+        ->and($js)->toContain('return { width: image.offsetWidth, height: image.offsetHeight }');
+});
+
+it('keeps the toolbar open while the picture is being resized', function (): void {
+    // Grabbing a corner never selected the picture - the node view swallows that mousedown
+    // before ProseMirror sees it - and the transaction that commits a finished drag leaves a
+    // caret beside it. Both closed the bar under the pointer that was using it.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain('reselect(editorView, nodeView)')
+        ->and($js)->toContain('storage.resizing = true')
+        // A timeout rather than a frame: frames do not come while the tab is in the
+        // background, and the selection would stay dropped until it was looked at again.
+        ->and($js)->toContain('setTimeout(() => {')
+        // Nothing may outlive a drag whose mouseup was never heard.
+        ->and($js)->toContain("window.addEventListener('blur', finish)");
 });
 
 it('keeps the picture selected through a turn', function (): void {
