@@ -68,7 +68,7 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
         ['divider'],
         [moreShape()],
         ['sourceCode', 'fullscreen', 'help'],
@@ -85,7 +85,7 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
         ['divider'],
         [moreShape()],
         ['sourceCode', 'fullscreen', 'help'],
@@ -103,7 +103,7 @@ it('does not reach inside a dropdown token', function (): void {
 
 it('collapses the dividers that an emptied group left behind', function (): void {
     $editor = editor()->disableToolbarButtons([
-        'link', 'image', 'table', 'blockquote', 'codeBlock',
+        'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
     ]);
 
     // Everything the insert group inserted is gone; the lists dropdown it shares the group
@@ -127,7 +127,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
     $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->disableToolbarButtons([
-        'lists', 'link', 'image', 'table', 'blockquote', 'codeBlock',
+        'lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
     ]);
 
     expect(array_slice(toolbarShape($editor), -1))->toBe([

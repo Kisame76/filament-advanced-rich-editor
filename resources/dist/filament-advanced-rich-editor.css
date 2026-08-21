@@ -1475,3 +1475,92 @@ body.fi-arte-fullscreen-lock {
 .fi-arte-slash:where(.dark, .dark *) .fi-arte-slash-empty {
     --fi-arte-slash-muted: rgb(161 161 170);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Video embeds                                                               */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The frame on a rendered page. The wrapper carries the aspect ratio - written into its
+ * own `style`, which is what survives the sanitiser - and the frame fills it, so the video
+ * keeps its shape at any width without anyone computing a padding hack.
+ *
+ * These two rules are the only ones here that matter outside the panel. This stylesheet is
+ * loaded into the admin, not into the page the content ends up on, so a project styling
+ * its own front end restates them there.
+ */
+.fi-arte-embed {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 0.5rem;
+}
+
+.fi-arte-embed > iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/*
+ * What the editor draws in place of the video: a card naming what will be there.
+ *
+ * Deliberately not the player. Ten embeds in one document would be ten players loading
+ * from YouTube, each with its own requests and its own cookie, in a screen where nobody is
+ * watching anything - and an iframe swallows every click, so the block could not be
+ * selected, dragged or deleted like the rest.
+ */
+.fi-arte-embed-card {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin: 0.75rem 0;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--fi-arte-embed-border, rgb(228 228 231));
+    background-color: var(--fi-arte-embed-bg, rgb(250 250 250));
+    font-size: 0.875rem;
+    cursor: default;
+}
+
+.fi-arte-embed-card:where(.dark, .dark *) {
+    --fi-arte-embed-border: rgb(63 63 70);
+    --fi-arte-embed-bg: rgb(39 39 42);
+}
+
+/* The selected block reads as selected, the way an image does. */
+.fi-arte-embed-card.ProseMirror-selectednode {
+    outline: 2px solid var(--fi-arte-embed-selected, rgb(59 130 246));
+    outline-offset: 1px;
+}
+
+.fi-arte-embed-card-provider {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--fi-arte-embed-badge, rgb(228 228 231));
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.fi-arte-embed-card-provider:where(.dark, .dark *) {
+    --fi-arte-embed-badge: rgb(63 63 70);
+}
+
+.fi-arte-embed-card-title {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-arte-embed-card-start {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    color: var(--fi-arte-embed-muted, rgb(113 113 122));
+}
+
+.fi-arte-embed-card-start:where(.dark, .dark *) {
+    --fi-arte-embed-muted: rgb(161 161 170);
+}

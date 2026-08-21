@@ -31,7 +31,7 @@ return [
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+        ['lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
         'divider',
         ['more'],
         'pin',
@@ -131,6 +131,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Embeds
+    |--------------------------------------------------------------------------
+    | Video embeds. A pasted link is taken apart and the embed URL is built from it, so
+    | every shape a share button produces works - watch, youtu.be, shorts, embed, and the
+    | Vimeo equivalents - including the timestamp.
+    |
+    |   'sanitizer'         allows `<iframe>` back into rendered content, with `src`
+    |                       narrowed to 'allowed_hosts'. Filament's sanitiser drops iframes,
+    |                       so without this an embed is stored and never shown. It changes a
+    |                       configuration the whole application shares, which is why it is a
+    |                       switch rather than something the package just does.
+    |   'allowed_hosts'     hosts an embed may point at, subdomains included. Something else
+    |                       in the project embedding iframes has to be listed here too - see
+    |                       the README on why both cannot allowlist separately.
+    |   'youtube_nocookie'  embeds through youtube-nocookie.com, which is what keeps an
+    |                       embedded video from setting a tracking cookie on the reader.
+    |
+    | Per field: `->embeds()`.
+    */
+    'embed' => [
+        'enabled' => true,
+        'sanitizer' => true,
+        'youtube_nocookie' => true,
+        'allowed_hosts' => [
+            'youtube-nocookie.com',
+            'youtube.com',
+            'vimeo.com',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Slash menu
     |--------------------------------------------------------------------------
     | Typing the slash character on an empty line, or after a space, opens a searchable
@@ -153,7 +185,7 @@ return [
                 'blockquote', 'codeBlock',
             ],
             'insert' => [
-                'image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
+                'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji',
                 'customBlocks', 'mergeTags',
             ],
         ],
@@ -412,6 +444,7 @@ return [
         'task_list' => 'arte-task-list',
         'blockquote' => 'arte-message-square-quote',
         'image' => 'heroicon-o-photo',
+        'embed' => 'heroicon-o-film',
         'text_color' => 'arte-letter-a',
         'text_background' => 'arte-highlighter',
         'color_custom' => 'arte-palette',

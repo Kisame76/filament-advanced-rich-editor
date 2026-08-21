@@ -17,7 +17,7 @@ it('empties the pinned half when the button is turned off', function (): void {
     // Nothing is left to pin, so the bar goes back to the plain row of groups it was
     // before - and the insert group is the last of them again.
     expect(array_slice(toolbarShape(editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)), -1))->toBe([
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
     ]);
 });
 

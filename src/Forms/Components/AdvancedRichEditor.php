@@ -23,6 +23,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
@@ -130,6 +131,8 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasFullscreen = null;
 
     protected bool|Closure|null $hasLinkAttributes = null;
+
+    protected bool|Closure|null $hasEmbeds = null;
 
     protected bool|Closure|null $hasSlashMenu = null;
 
@@ -320,6 +323,12 @@ class AdvancedRichEditor extends RichEditor
         );
 
         $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasEmbeds()
+                ? [EmbedPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasSlashMenu()
                 ? [SlashMenuPlugin::make()]
                 : [],
@@ -402,7 +411,7 @@ class AdvancedRichEditor extends RichEditor
             'divider',
             ['alignment', 'lineHeight'],
             'divider',
-            ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+            ['lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
             'divider',
             ['more'],
             'pin',
@@ -706,6 +715,46 @@ class AdvancedRichEditor extends RichEditor
     public function getStickyToolbarOffset(): string
     {
         return (string) ($this->evaluate($this->stickyToolbarOffset) ?? config('filament-advanced-rich-editor.sticky.offset') ?? '4rem');
+    }
+
+    /**
+     * Whether the field can embed a video.
+     *
+     * Off means the button and the script are gone; stored embeds are still rendered,
+     * because a field that stops offering something has no business deleting what was
+     * written before it stopped.
+     */
+    public function embeds(bool|Closure $condition = true): static
+    {
+        $this->hasEmbeds = $condition;
+
+        return $this;
+    }
+
+    public function hasEmbeds(): bool
+    {
+        return (bool) ($this->evaluate($this->hasEmbeds) ?? config('filament-advanced-rich-editor.embed.enabled') ?? true);
+    }
+
+    /**
+     * What the embed script needs from PHP: the provider names, in the panel's language,
+     * and whether YouTube is embedded through its cookie-free host.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getEmbedSettingsForJs(): ?array
+    {
+        if (! $this->hasEmbeds()) {
+            return null;
+        }
+
+        return [
+            'nocookie' => (bool) config('filament-advanced-rich-editor.embed.youtube_nocookie', true),
+            'labels' => [
+                'youtube' => __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.youtube'),
+                'vimeo' => __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.vimeo'),
+            ],
+        ];
     }
 
     /**

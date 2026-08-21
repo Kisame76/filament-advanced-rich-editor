@@ -41,6 +41,7 @@ class Icons
             'task_list' => 'arte-task-list',
             'blockquote' => 'arte-message-square-quote',
             'image' => 'heroicon-o-photo',
+            'embed' => 'heroicon-o-film',
             // The colour tools carry the thing they paint, not the instrument: a bare `A`
             // for the letters - the trigger already draws the current colour as a bar
             // under it, so Lucide's baseline would only repeat that stroke - a highlighter

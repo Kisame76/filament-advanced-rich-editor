@@ -7,6 +7,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
@@ -144,6 +145,10 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // survive being rendered whether or not this render asked for new ones, and
             // an attribute nothing writes costs nothing.
             app(Anchor::class),
+            // The same reasoning, and one more: a renderer that has to be told about the
+            // embed node is one that silently drops every video in a document the day
+            // somebody forgets to tell it.
+            app(Embed::class),
         ];
     }
 

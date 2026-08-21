@@ -26,6 +26,8 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Links with `rel`, `referrerpolicy` and `hreflang`** — and `noopener noreferrer` added
   automatically to anything opening in a new window
 - **Slash menu** — type `/` for a searchable list of the commands *this* field offers
+- **Video embeds** — paste a YouTube or Vimeo link and get a player, timestamp included,
+  through the cookie-free host
 - **Markdown export** — task lists keep their checkboxes
 - **Configurable project-wide** — one config file sets the default toolbar for every field
 
@@ -414,6 +416,98 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 
 RichContentRenderer::make($html)->plugins([TextDirectionPlugin::make()])->toHtml();
 ```
+
+### Video embeds
+
+The `embed` tool takes a link and puts a video in the document. Paste the link from the
+address bar or the share button — every shape either of them produces is understood:
+
+```
+https://www.youtube.com/watch?v=ID          https://vimeo.com/ID
+https://youtu.be/ID?t=90                    https://player.vimeo.com/video/ID
+https://www.youtube.com/shorts/ID           https://www.youtube.com/embed/ID?start=45
+```
+
+The timestamp in a link shared "from 1:30" is kept, in all three spellings (`t=90`,
+`t=1m30s`, `start=45`). What is stored is what the video **is** — a provider, an id, a
+timestamp — and the embed URL is built from that on the way out. Storing the URL instead
+would mean trusting whatever the document held: a watch link, which no browser will frame,
+or a host this package has no business pointing an iframe at.
+
+**Pasting a video link on an empty line turns it into a video.** The same link pasted into
+the middle of a sentence stays a link, because there it is a link somebody is writing.
+
+```php
+AdvancedRichEditor::make('content')
+    ->embeds(false);   // default: config('filament-advanced-rich-editor.embed.enabled')
+```
+
+Turning it off removes the button and the script. Videos already in stored content are
+still rendered — a field that stops offering something has no business deleting what was
+written while it did.
+
+**The editor does not play the video.** It draws a card naming what will be there. Ten
+embeds in one document would otherwise be ten players loading from YouTube, each with its
+own requests and its own cookie, in a screen where nobody is watching anything — and an
+iframe swallows every click, so the block could not be selected, dragged or deleted like
+the rest of the document.
+
+#### The sanitiser
+
+Filament renders rich content through `Str::sanitizeHtml()`, and Symfony's safe element
+list has no `<iframe>` in it. That is the right default and it also removes every embed. So
+this package allows the element back — and only ever together with a restriction:
+
+```php
+// config/filament-advanced-rich-editor.php
+'embed' => [
+    'sanitizer' => true,                       // allow <iframe> back at all
+    'allowed_hosts' => [
+        'youtube-nocookie.com',
+        'youtube.com',
+        'vimeo.com',
+    ],
+],
+```
+
+An iframe whose host is not on the list loses its `src` on the way to the page. The node
+goes further and refuses to build the element at all, so what reaches the sanitiser is
+already an embed rather than an iframe — the sanitiser is the second line, for markup that
+arrived some other way. A database is not written only by this editor.
+
+Subdomains of a listed host count (`player.vimeo.com` for `vimeo.com`); a host that merely
+*ends* in one does not — `youtube.com.attacker.test` is a domain anybody can register.
+
+`'sanitizer' => false` leaves the application's sanitiser alone. Embeds are then still
+stored and edited, and stripped from every rendered page — which is a coherent choice only
+if something else in the project renders them.
+
+> **Living with another package.** Symfony chains every sanitiser registered for the same
+> element and attribute, and each one may only narrow what the last returned. Two packages
+> that both allowlist `iframe src` therefore end up with the intersection of their lists,
+> and each other's embeds vanish. If something else in your project embeds iframes, add its
+> hosts to `allowed_hosts` rather than expecting both to work side by side.
+
+#### Privacy
+
+YouTube is embedded through `youtube-nocookie.com` by default: embedding a video should not
+decide on its own to put a tracking cookie on the reader's machine. The frame is also given
+`referrerpolicy="strict-origin-when-cross-origin"` and `loading="lazy"`, and its `allow`
+list is short — fullscreen and picture-in-picture, no camera and no microphone.
+
+```php
+'embed' => ['youtube_nocookie' => false],   // for a project with a reason to
+```
+
+#### Shape and titles
+
+The wrapper carries the aspect ratio in its own `style`, and the frame fills it — so a
+video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in the dialog.
+
+A title is optional and worth setting: a screen reader announces it instead of "video".
+
+Style the rendered output through `.fi-arte-embed`; this package's stylesheet is loaded
+into the admin panel, not into the page the content ends up on.
 
 ### Slash menu
 
@@ -1184,6 +1278,7 @@ AdvancedRichEditor::make('content')
     ->slashMenu(true)                              // type / for a searchable command list
     ->slashGroups(['insert' => ['image']])         // what that menu offers, and in what groups
     ->slashChar('/')                               // the character that opens it
+    ->embeds(true)                                 // the video button, and the paste handler
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists

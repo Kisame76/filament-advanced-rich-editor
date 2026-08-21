@@ -38,6 +38,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- Video embeds. A pasted YouTube or Vimeo link is taken apart and the embed URL is built
+  from it, so every shape a share button produces works - watch, youtu.be, shorts, embed,
+  the Vimeo equivalents - and the timestamp in a link shared "from 1:30" survives. Pasting
+  such a link on an empty line turns it into a video; the same link mid-sentence stays a
+  link. The editor draws a card rather than a player, so a document with ten videos in it
+  does not load ten players in the panel. YouTube goes through `youtube-nocookie.com` by
+  default. Filament's sanitiser drops `<iframe>`, so `embed.sanitizer` allows it back with
+  `src` narrowed to a host allowlist - and the node refuses to build the element for a host
+  that is not on it, which makes the sanitiser the second line rather than the only one
 - A slash menu: typing `/` opens a searchable list of the commands the field offers, with
   arrow keys, Enter or Tab to pick. The list is derived from the tools the field registered
   and each entry runs that tool's own handler, so a command and its button cannot come

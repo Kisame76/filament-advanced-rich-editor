@@ -8,8 +8,10 @@ use BladeUI\Icons\Factory as BladeIconsFactory;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
 
 class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
 {
@@ -65,6 +67,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/slash-menu', __DIR__.'/../resources/dist/js/slash-menu.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/embed', __DIR__.'/../resources/dist/js/embed.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/line-height', __DIR__.'/../resources/dist/js/line-height.js')
                     ->loadedOnRequest(),
 
@@ -84,6 +89,38 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
         );
 
         $this->registerIconSet();
+        $this->allowEmbedIframes();
+    }
+
+    /**
+     * Widens Filament's sanitiser so a video embed survives being rendered.
+     *
+     * Symfony's safe element list has no `<iframe>` in it, which is the right default and
+     * also removes every embed this package can insert. The element is allowed back only
+     * where a project switched embeds on, and never on its own terms: `EmbedHostSanitizer`
+     * narrows `src` to the video hosts, so what is allowed back is an embed rather than an
+     * iframe.
+     *
+     * This changes a configuration the whole application shares, which is why it is a
+     * config key rather than something installing the package does.
+     */
+    protected function allowEmbedIframes(): void
+    {
+        if (! config('filament-advanced-rich-editor.embed.sanitizer', true)) {
+            return;
+        }
+
+        $this->app->extend(
+            HtmlSanitizerConfig::class,
+            static fn (HtmlSanitizerConfig $config): HtmlSanitizerConfig => $config
+                ->allowElement('iframe', [
+                    'src', 'title', 'loading', 'allow', 'allowfullscreen', 'referrerpolicy',
+                    'width', 'height',
+                ])
+                ->withAttributeSanitizer(new EmbedHostSanitizer(
+                    (array) config('filament-advanced-rich-editor.embed.allowed_hosts', []),
+                )),
+        );
     }
 
     /**

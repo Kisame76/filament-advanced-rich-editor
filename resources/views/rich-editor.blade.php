@@ -54,6 +54,7 @@
     $stickyToolbarOffset = $getStickyToolbarOffset();
     $maxHeight = $getMaxHeight();
     $slashMenu = $getSlashMenuForJs();
+    $embedSettings = $getEmbedSettingsForJs();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -215,6 +216,7 @@
                     class="fi-fo-rich-editor-content fi-prose"
                     x-ref="editor"
                     @if ($slashMenu) data-arte-slash="{{ json_encode($slashMenu) }}" @endif
+                    @if ($embedSettings) data-arte-embed="{{ json_encode($embedSettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div

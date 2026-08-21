@@ -45,7 +45,7 @@ it('separates what a block is from what gets added to the document', function ()
         'paragraph', 'h1', 'h2', 'h3', 'h4',
         'bulletList', 'orderedList', 'taskList',
         'blockquote', 'codeBlock',
-        'image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
+        'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji',
     ]);
 });
 
@@ -177,4 +177,11 @@ it('lets a field choose the character that opens the menu', function (): void {
 it('still drops an unknown name a field asked for', function (): void {
     expect(slashNames(editor()->slashGroups(['style' => ['paragraph', 'nonsense']])))
         ->toBe(['paragraph']);
+});
+
+it('drops the video from the menu with the button it belongs to', function (): void {
+    // The menu is derived from the tools the field registered, so a feature switched off
+    // leaves both places at once.
+    expect(slashNames(editor()))->toContain('embed')
+        ->and(slashNames(editor()->embeds(false)))->not->toContain('embed');
 });
