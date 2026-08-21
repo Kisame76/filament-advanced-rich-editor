@@ -76,6 +76,29 @@ export default () => {
         270: (deltaX, deltaY) => [-deltaY, deltaX],
     }
 
+    /**
+     * Keeps a turned picture's layout box on its live size while it is being dragged.
+     *
+     * The rotation extension works the compensating margins out from the node's width and
+     * height, and those only change when the drag commits - but the node view writes the new
+     * size straight onto the element on every step. Between the two the box belongs to the
+     * size the picture had before the drag: the frame and the handles sit somewhere the
+     * picture no longer is. Recomputed here on the same steps, with the same arithmetic, and
+     * overwritten by the extension's own render as soon as the drag lands.
+     */
+    const followTurnedSize = (image, angle, width, height) => {
+        if (!image) {
+            return
+        }
+
+        if (angle % 180 === 0 || !Number.isFinite(width) || !Number.isFinite(height)) {
+            return
+        }
+
+        image.style.marginBlock = `${(width - height) / 2}px`
+        image.style.marginInline = `${(height - width) / 2}px`
+    }
+
     /** The angle an image is drawn at, as one of the four quarter turns. */
     const angleOf = (nodeView) => {
         const rotate = Number.parseFloat(nodeView?.node?.attrs?.rotate) || 0
@@ -455,9 +478,12 @@ export default () => {
                             // callback, so the readout needs no polling.
                             const previousOnResize = nodeView.onResize
 
+                            const angleWhileDragging = angleOf(nodeView)
+
                             nodeView.onResize = (width, height) => {
                                 previousOnResize?.(width, height)
                                 write(width, height)
+                                followTurnedSize(image, angleWhileDragging, width, height)
                             }
 
                             const finish = () => {

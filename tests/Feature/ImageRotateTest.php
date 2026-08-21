@@ -192,6 +192,20 @@ it('pins the size of a picture that is turned before it is resized', function ()
         ->and($js)->toContain('return { width: image.offsetWidth, height: image.offsetHeight }');
 });
 
+it('keeps the frame on the picture while a turned one is dragged', function (): void {
+    // The compensating margins are worked out from the node's width and height, and those
+    // only change when the drag commits - while the node view writes the new size straight
+    // onto the element on every step. Between the two the frame and the handles belonged to
+    // the size the picture had before the drag started.
+    $js = file_get_contents(dirname(__DIR__, 2).'/resources/dist/js/image-resize.js');
+
+    expect($js)->toContain('followTurnedSize(image, angleWhileDragging, width, height)')
+        // The same arithmetic the rotation extension renders with, or the two would disagree
+        // the moment the drag lands.
+        ->and($js)->toContain('image.style.marginBlock = `${(width - height) / 2}px`')
+        ->and($js)->toContain('image.style.marginInline = `${(height - width) / 2}px`');
+});
+
 it('keeps the toolbar open while the picture is being resized', function (): void {
     // Grabbing a corner never selected the picture - the node view swallows that mousedown
     // before ProseMirror sees it - and the transaction that commits a finished drag leaves a
