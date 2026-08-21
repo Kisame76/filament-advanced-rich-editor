@@ -36,13 +36,21 @@ function slashItem(AdvancedRichEditor $editor, string $name): ?array
     return null;
 }
 
-it('offers the blocks and the things you insert', function (): void {
+it('separates what a block is from what gets added to the document', function (): void {
+    // The split follows the question each command answers. A heading or a list changes what
+    // the block already there *is*; a rule, a table or an image *arrives*. Grouping by node
+    // type instead would put the horizontal rule next to the blockquote, which is a fact
+    // about the schema and not about what anyone is doing.
     expect(slashNames(editor()))->toBe([
         'paragraph', 'h1', 'h2', 'h3', 'h4',
         'bulletList', 'orderedList', 'taskList',
-        'blockquote', 'codeBlock', 'horizontalRule', 'details',
-        'image', 'table', 'attachFiles', 'emoji',
+        'blockquote', 'codeBlock',
+        'image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
     ]);
+});
+
+it('names the two groups after the question they answer', function (): void {
+    expect(array_column(SlashMenu::for(editor())['groups'], 'key'))->toBe(['style', 'insert']);
 });
 
 it('offers no inline formatting', function (): void {
@@ -71,7 +79,7 @@ it('leaves out a task list that is switched off', function (): void {
 });
 
 it('drops a name that is not a registered tool', function (): void {
-    config()->set('filament-advanced-rich-editor.slash.groups.blocks', ['paragraph', 'nonsense']);
+    config()->set('filament-advanced-rich-editor.slash.groups.style', ['paragraph', 'nonsense']);
 
     expect(slashNames(editor()))->toContain('paragraph')
         ->not->toContain('nonsense');
@@ -80,7 +88,7 @@ it('drops a name that is not a registered tool', function (): void {
 it('leaves out a group that nothing is left in', function (): void {
     config()->set('filament-advanced-rich-editor.slash.groups.insert', ['nonsense']);
 
-    expect(array_column(SlashMenu::for(editor())['groups'], 'key'))->toBe(['blocks']);
+    expect(array_column(SlashMenu::for(editor())['groups'], 'key'))->toBe(['style']);
 });
 
 it('runs the button the toolbar runs', function (): void {
@@ -91,10 +99,11 @@ it('runs the button the toolbar runs', function (): void {
     expect(slashItem(editor(), 'blockquote')['handler'])->toBe($tool->getJsHandler());
 });
 
-it('shows the keys, where a command has some', function (): void {
-    expect(slashItem(editor(), 'blockquote')['keys'])->toBe(['Mod', 'Shift', 'B'])
-        ->and(slashItem(editor(), 'h2')['keys'])->toBe(['Mod', 'Alt', '2'])
-        ->and(slashItem(editor(), 'image')['keys'])->toBe([]);
+it('carries no keyboard shortcuts', function (): void {
+    // The help dialog is where the shortcuts are looked up. In the menu they were a third
+    // column on every row, which is what made the panel wide enough to cover the text being
+    // written - and nobody reading a command list is shopping for a key combination.
+    expect(slashItem(editor(), 'blockquote'))->not->toHaveKey('keys');
 });
 
 it('carries the label and the icon the toolbar draws', function (): void {
@@ -128,7 +137,7 @@ it('hands the view nothing while it is switched off', function (): void {
 it('hands the view nothing when there would be nothing to choose from', function (): void {
     // A panel that can only ever say "no matching command" is one that should not open,
     // and the data attribute carrying it has no business in the markup either.
-    config()->set('filament-advanced-rich-editor.slash.groups', ['blocks' => ['nonsense']]);
+    config()->set('filament-advanced-rich-editor.slash.groups', ['style' => ['nonsense']]);
 
     expect(editor()->getSlashMenuForJs())->toBeNull();
 });

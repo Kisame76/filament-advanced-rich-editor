@@ -25,8 +25,7 @@ tool with alt text and optional Spatie Media Library storage on top.
   list and an `id` on the page cannot drift apart
 - **Links with `rel`, `referrerpolicy` and `hreflang`** — and `noopener noreferrer` added
   automatically to anything opening in a new window
-- **Slash menu** — type `/` for a searchable list of the commands *this* field offers, with
-  their keyboard shortcuts next to them
+- **Slash menu** — type `/` for a searchable list of the commands *this* field offers
 - **Markdown export** — task lists keep their checkboxes
 - **Configurable project-wide** — one config file sets the default toolbar for every field
 
@@ -429,8 +428,12 @@ AdvancedRichEditor::make('content')
 ```
 
 ↑ and ↓ move, Enter or Tab picks, Escape closes — for the word being typed rather than for
-good, so the next `/` opens it again. The keyboard shortcut sits next to every command that
-has one, which is how most people find out those exist at all.
+good, so the next `/` opens it again.
+
+A row carries an icon and a name and nothing else. A keyboard shortcut in a third column
+makes every row as wide as its widest entry, and the panel then covers the text being
+written — which is the one thing a menu opened mid-sentence must not do. The shortcuts live
+in the [help dialog](#help), where they are looked up on purpose.
 
 **The list is derived, not declared.** Every entry is a tool the field actually registered,
 carrying that tool's own label, icon and handler — picking one evaluates the same string
@@ -443,6 +446,13 @@ inside a toolbar dropdown.
 Merge tags and custom blocks are a special case: Filament registers both tools whether or
 not anything was configured for them, so the menu offers them only once the field has some.
 A picker over an empty list is not a command.
+
+**Two groups, split by the question each command answers.** *Style* changes what the block
+already there **is** — a heading, a list, a quote. *Insert* is what **arrives** — an image,
+a table, a rule. Grouping by node type instead would put the horizontal rule next to the
+blockquote, which is a fact about the schema rather than about what anyone is doing.
+Uploading is not a group of its own, the way it is in some editors: one entry does not need
+a heading over it.
 
 **Only blocks and things you insert.** The menu opens where the caret sits with nothing
 selected, and `/bold` there would mark nothing at all — an entry that does nothing is worse
@@ -458,9 +468,10 @@ field offers:
     'enabled' => true,
     'char' => '/',
     'groups' => [
-        'blocks' => ['paragraph', 'headings', 'bulletList', 'orderedList', 'taskList',
-                     'blockquote', 'codeBlock', 'horizontalRule', 'details'],
-        'insert' => ['image', 'table', 'attachFiles', 'emoji', 'customBlocks', 'mergeTags'],
+        'style' => ['paragraph', 'headings', 'bulletList', 'orderedList', 'taskList',
+                    'blockquote', 'codeBlock'],
+        'insert' => ['image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
+                     'customBlocks', 'mergeTags'],
     ],
 ],
 ```

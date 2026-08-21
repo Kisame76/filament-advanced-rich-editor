@@ -5,7 +5,7 @@ declare(strict_types=1);
 return [
     'slash' => [
         'groups' => [
-            'blocks' => 'Blocks',
+            'style' => 'Style',
             'insert' => 'Insert',
         ],
         'empty' => 'No matching command',

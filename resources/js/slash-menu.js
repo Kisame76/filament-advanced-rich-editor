@@ -13,30 +13,20 @@
  * do for a click. A command and its button therefore cannot come apart: there is only one
  * of them, and this file is a different way to press it.
  *
+ * The rows carry an icon and a name and nothing else. A keyboard shortcut in a third
+ * column makes every row as wide as its widest entry, and the panel then covers the text
+ * being written - which is the one thing a menu opened mid-sentence must not do. The
+ * shortcuts are in the help dialog, where they are looked up on purpose.
+ *
  * The panel lives on `document.body` rather than inside the editor. It has to escape the
  * editor's own overflow - a field with `maxHeight()` scrolls, and a menu clipped by the
  * box it opens in would be unusable on the last line.
  */
 
-const WIDTH = 20 * 16
+const WIDTH = 16 * 16
 const MAX_HEIGHT = 320
 const MARGIN = 8
 const GAP = 6
-
-/**
- * Mirrors the glyphs the help dialog draws. Only the three that carry no emoji
- * presentation - `↩` and `⇥` turn up as coloured stickers between the keycaps on most
- * systems, so those keys keep their names everywhere.
- */
-const APPLE_GLYPHS = { Mod: '⌘', Alt: '⌥', Shift: '⇧' }
-const NAMES = { Mod: 'Ctrl', Alt: 'Alt', Shift: 'Shift', Enter: 'Enter', Tab: 'Tab' }
-
-const isApple = () =>
-    /mac|iphone|ipad|ipod/i.test(
-        navigator.userAgentData?.platform || navigator.platform || navigator.userAgent,
-    )
-
-const keyName = (token) => (isApple() ? APPLE_GLYPHS[token] : null) ?? NAMES[token] ?? token
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -246,19 +236,6 @@ class SlashMenu {
         label.textContent = item.label
 
         button.append(icon, label)
-
-        if (item.keys?.length) {
-            const keys = document.createElement('span')
-            keys.className = 'fi-arte-slash-item-keys'
-
-            for (const token of item.keys) {
-                const key = document.createElement('kbd')
-                key.textContent = keyName(token)
-                keys.append(key)
-            }
-
-            button.append(keys)
-        }
 
         // `mousedown` rather than `click`: a click would move focus out of the editor
         // first, and the command needs the selection it is standing on.

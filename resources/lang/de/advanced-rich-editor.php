@@ -5,7 +5,7 @@ declare(strict_types=1);
 return [
     'slash' => [
         'groups' => [
-            'blocks' => 'Blöcke',
+            'style' => 'Format',
             'insert' => 'Einfügen',
         ],
         'empty' => 'Kein passender Befehl',

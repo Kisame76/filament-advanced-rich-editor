@@ -146,13 +146,15 @@ return [
         'enabled' => true,
         'char' => '/',
         'groups' => [
-            'blocks' => [
+            // 'style' changes what the block already there is; 'insert' adds something new.
+            'style' => [
                 'paragraph', 'headings',
                 'bulletList', 'orderedList', 'taskList',
-                'blockquote', 'codeBlock', 'horizontalRule', 'details',
+                'blockquote', 'codeBlock',
             ],
             'insert' => [
-                'image', 'table', 'attachFiles', 'emoji', 'customBlocks', 'mergeTags',
+                'image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
+                'customBlocks', 'mergeTags',
             ],
         ],
     ],

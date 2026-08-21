@@ -33,13 +33,18 @@ class SlashMenu
      * @var array<string, array<int, string>>
      */
     public const GROUPS = [
-        'blocks' => [
+        // What the block the caret sits in *is*. Every one of these changes something that
+        // is already there.
+        'style' => [
             'paragraph', 'headings',
             'bulletList', 'orderedList', 'taskList',
-            'blockquote', 'codeBlock', 'horizontalRule', 'details',
+            'blockquote', 'codeBlock',
         ],
+        // What arrives. Uploading is not a group of its own, the way it is in some editors:
+        // one entry does not need a heading over it.
         'insert' => [
-            'image', 'table', 'attachFiles', 'emoji', 'customBlocks', 'mergeTags',
+            'image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
+            'customBlocks', 'mergeTags',
         ],
     ];
 
@@ -70,7 +75,7 @@ class SlashMenu
                     continue;
                 }
 
-                $items[] = static::item($name, $tool, $editor);
+                $items[] = static::item($name, $tool);
             }
 
             // A group with nothing in it is a heading with nothing under it.
@@ -147,7 +152,7 @@ class SlashMenu
     /**
      * @return array<string, mixed>
      */
-    protected static function item(string $name, RichEditorTool $tool, AdvancedRichEditor $editor): array
+    protected static function item(string $name, RichEditorTool $tool): array
     {
         return [
             'name' => $name,
@@ -155,7 +160,6 @@ class SlashMenu
             // The icon the toolbar draws, rendered here because the menu is built in
             // JavaScript and has no way to resolve a Blade Icons name.
             'icon' => generate_icon_html($tool->getIcon(), alias: $tool->getIconAlias())?->toHtml() ?? '',
-            'keys' => Shortcuts::keysFor($name, $editor),
             'aliases' => static::aliases($name),
             // The tool's own handler, evaluated in the editor's Alpine scope. Nothing is
             // reimplemented here, which is what keeps the menu and the button honest.

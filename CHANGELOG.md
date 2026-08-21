@@ -39,11 +39,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 ### Added
 
 - A slash menu: typing `/` opens a searchable list of the commands the field offers, with
-  arrow keys, Enter or Tab to pick and the keyboard shortcut drawn next to every command
-  that has one. The list is derived from the tools the field registered and each entry runs
-  that tool's own handler, so a command and its button cannot come apart - a feature
-  switched off leaves the menu with it. Blocks and things you insert only: the menu opens
-  where nothing is selected, and an inline format there would mark nothing
+  arrow keys, Enter or Tab to pick. The list is derived from the tools the field registered
+  and each entry runs that tool's own handler, so a command and its button cannot come
+  apart - a feature switched off leaves the menu with it. Two groups, split by the question
+  each command answers: `style` changes what the block already there is, `insert` is what
+  arrives. Blocks and things you insert only: the menu opens where nothing is selected, and
+  an inline format there would mark nothing
 - The link dialog asks for `rel`, `referrerpolicy`, `hreflang` and an anchor on top of the
   URL and the target, with `rel` as checkboxes and `referrerpolicy` as a select - both are
   closed vocabularies, and a typo in a free text field produces an attribute that is
