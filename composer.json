@@ -61,7 +61,11 @@
   "scripts": {
     "pint": "vendor/bin/pint",
     "test": "vendor/bin/pest",
-    "analyse": "vendor/bin/phpstan analyse"
+    "analyse": "vendor/bin/phpstan analyse --memory-limit=512M",
+    "build-assets": [
+      "cp resources/css/filament-advanced-rich-editor.css resources/dist/filament-advanced-rich-editor.css",
+      "cp resources/js/*.js resources/dist/js/"
+    ]
   },
   "config": {
     "sort-packages": true,

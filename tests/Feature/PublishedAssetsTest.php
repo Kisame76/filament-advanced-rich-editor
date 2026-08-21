@@ -94,13 +94,34 @@ it('styles every class it writes into the markup', function (): void {
     expect($missing)->toBe([], 'These classes are written into the markup but have no rule: '.implode(', ', $missing));
 });
 
-it('keeps the published stylesheet identical to the source one', function (): void {
-    // The browser is served the published copy, so a rule that only ever reached
-    // `resources/css` is a rule nobody sees.
+it('keeps the published assets identical to the source ones', function (): void {
+    // The browser is served the published copies, so a rule - or an extension - that only
+    // ever reached `resources/css` and `resources/js` is one nobody gets. There is no build
+    // step between the two, only `composer build-assets`, which is exactly why this is
+    // asserted rather than assumed.
     $root = dirname(__DIR__, 2);
 
     expect(file_get_contents($root.'/resources/dist/filament-advanced-rich-editor.css'))
         ->toBe(file_get_contents($root.'/resources/css/filament-advanced-rich-editor.css'));
+
+    $sources = glob($root.'/resources/js/*.js') ?: [];
+
+    expect($sources)->not->toBeEmpty();
+
+    foreach ($sources as $source) {
+        $published = $root.'/resources/dist/js/'.basename($source);
+
+        expect($published)->toBeReadableFile()
+            ->and(file_get_contents($published))->toBe(file_get_contents($source), basename($source).' differs from its published copy');
+    }
+
+    // And nothing published that no longer has a source.
+    $orphans = array_map('basename', array_diff(
+        glob($root.'/resources/dist/js/*.js') ?: [],
+        array_map(fn (string $file): string => $root.'/resources/dist/js/'.basename($file), $sources),
+    ));
+
+    expect(array_values($orphans))->toBe([]);
 });
 
 it('lists no hook that has since been given rules of its own', function (): void {

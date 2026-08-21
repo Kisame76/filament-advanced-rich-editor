@@ -30,9 +30,20 @@ use Throwable;
  */
 class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
 {
+    /**
+     * The custom property every attachment this package uploads is stamped with.
+     *
+     * A media collection belongs to the record, not to the field, so without a mark saying
+     * which field put a file there, cleaning up one editor's removed images would take the
+     * other editor's images with it - two rich editors on one model share a collection.
+     */
+    public const OWNER_PROPERTY = 'arte_field';
+
     protected ?RichContentAttribute $attribute = null;
 
     protected ?Closure $getRecordUsing = null;
+
+    protected ?Closure $getOwnerUsing = null;
 
     final public function __construct(
         protected ?string $collection = null,
@@ -71,6 +82,39 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
         $this->getRecordUsing = $callback;
 
         return $this;
+    }
+
+    /**
+     * The field injects `fn () => $component->getName()` here: the name of the attribute the
+     * editor writes to, which is what makes an attachment belong to one editor rather than to
+     * the record as a whole. It is the name and not the state path on purpose - the same
+     * content edited through a second form is still the same content.
+     */
+    public function ownerUsing(?Closure $callback): static
+    {
+        $this->getOwnerUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * Which field owns the attachments this provider uploads, or null where there is no field
+     * to ask - a `RichContentRenderer` handed the provider directly, for instance, which only
+     * ever reads.
+     */
+    public function getOwner(): ?string
+    {
+        if ($this->getOwnerUsing) {
+            $owner = ($this->getOwnerUsing)();
+
+            if (is_string($owner) && filled($owner)) {
+                return $owner;
+            }
+        }
+
+        $owner = $this->attribute?->getName();
+
+        return (is_string($owner) && filled($owner)) ? $owner : null;
     }
 
     public function getRecord(): ?Model
@@ -148,10 +192,26 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
 
         file_put_contents($temporaryPath, $file->get());
 
-        $media = FileAdderFactory::create($record, $temporaryPath)
-            ->usingFileName($fileName)
-            ->usingName(pathinfo($fileName, PATHINFO_FILENAME))
-            ->toMediaCollection($this->getCollection(), $this->getDisk() ?? '');
+        $owner = $this->getOwner();
+
+        try {
+            $adder = FileAdderFactory::create($record, $temporaryPath)
+                ->usingFileName($fileName)
+                ->usingName(pathinfo($fileName, PATHINFO_FILENAME));
+
+            if ($owner !== null) {
+                $adder = $adder->withCustomProperties([static::OWNER_PROPERTY => $owner]);
+            }
+
+            $media = $adder->toMediaCollection($this->getCollection(), $this->getDisk() ?? '');
+        } finally {
+            // The adder moves the file when it succeeds, so there is normally nothing left
+            // here. An upload that fails - a disk that is full, a rejected mime type - would
+            // otherwise leave the copy behind in the system temp directory for good.
+            if (is_file($temporaryPath)) {
+                @unlink($temporaryPath);
+            }
+        }
 
         // Filament asks for the URL of the media it has just saved, and the media relation may
         // already have been loaded while resolving the images that were there before, so drop it
@@ -173,6 +233,17 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     }
 
     /**
+     * Removes the attachments this field uploaded and no longer references.
+     *
+     * Scoped to this field's own uploads, and to nothing else in the collection. A media
+     * collection hangs off the record, so an unscoped sweep here would delete the images of
+     * every other editor on the same model - and anything else the project happens to keep in
+     * that collection - every time one editor was saved.
+     *
+     * Media without the mark is left alone rather than assumed to be ours: it was put there by
+     * something that is not this field, and the worst case for keeping a file is a file too
+     * many, while the worst case for deleting one is somebody's content.
+     *
      * @param  array<mixed>  $exceptIds
      */
     public function cleanUpFileAttachments(array $exceptIds): void
@@ -183,12 +254,22 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
             return;
         }
 
+        $owner = $this->getOwner();
+
+        if ($owner === null) {
+            return;
+        }
+
         $exceptIds = array_map(
             fn (mixed $id): string => (string) $id,
             array_filter($exceptIds, fn (mixed $id): bool => is_string($id) || is_numeric($id)),
         );
 
         foreach ($record->getMedia($this->getCollection()) as $media) {
+            if ($media->getCustomProperty(static::OWNER_PROPERTY) !== $owner) {
+                continue;
+            }
+
             if (in_array((string) $media->getAttributeValue('uuid'), $exceptIds, strict: true)) {
                 continue;
             }

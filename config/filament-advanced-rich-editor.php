@@ -7,35 +7,22 @@ return [
     |--------------------------------------------------------------------------
     | Toolbar
     |--------------------------------------------------------------------------
-    | The default toolbar layout for every AdvancedRichEditor field. A nested array
-    | is one visually grouped button cluster, exactly like Filament's own
-    | `toolbarButtons()`. On top of the stock button names you may use tokens —
-    | plain strings that are expanded into components when the field renders:
+    | The default layout for every field. A nested array is one visually grouped
+    | cluster, exactly like Filament's own `toolbarButtons()`. Alongside the stock
+    | button names these tokens expand when the field renders:
     |
-    |   'divider'  — a vertical rule between two clusters
-    |   'pin'      — the point the bar splits at: everything after it is pinned to the
-    |                far end of the bar instead of travelling with the aligned groups
-    |                (to the far start instead, when the bar itself is aligned to the end)
-    |   'headings' — a dropdown listing the configured `heading_levels`
-    |   'lists'    — a dropdown listing the configured `lists`
-    |   'more'     — an overflow dropdown listing the configured `more` tools
+    |   'divider'    a vertical rule between two clusters
+    |   'pin'        everything after it is pinned to the far end of the bar
+    |   'headings'   dropdown of `heading_levels`      'lists'  dropdown of `lists`
+    |   'alignment'  dropdown of `alignments`          'more'   overflow dropdown
+    |   'lineHeight' dropdown of `line_height.values`
     |
-    | Tokens may appear at any nesting depth, and objects (a ToolbarDropdown or a
-    | RichEditorTool instance) may be mixed in freely. Override this per field with
-    | `->toolbarButtons([...])`.
+    | Tokens work at any depth, and a ToolbarDropdown or RichEditorTool may be mixed
+    | in. Every other Filament tool is registered too and can be named anywhere:
+    | 'highlight', 'small', 'lead', 'attachFiles', 'mergeTags', 'customBlocks',
+    | 'ltr', 'rtl' and the table editing ones. Per field: `->toolbarButtons([...])`.
     */
     'toolbar' => [
-        // Grouped by what a button does: what came before, what the text is set in, how the
-        // characters look, how the block is laid out, what to put into the document, how to
-        // view it. Reading left to right that is the order the decisions are actually made
-        // in - the block type first, then its typeface and size, then the emphasis inside
-        // it, then the shape of the paragraph, and only then what gets inserted into it.
-        //
-        // The last group sits behind 'pin': the source view, the fullscreen switch and the
-        // help dialog are about the editor rather than about the text, so they keep a
-        // corner of the bar to themselves instead of moving with everything else. The
-        // overflow menu is not one of them - what it holds are tools for the text, so it
-        // stays with the aligned groups, at the end of them.
         ['undo', 'redo'],
         'divider',
         ['headings', 'fontFamily', 'fontSize'],
@@ -49,21 +36,15 @@ return [
         ['more'],
         'pin',
         ['sourceCode', 'fullscreen', 'help'],
-
-        // Every other Filament tool is registered too and can be named anywhere above, or
-        // added to the 'more' list below: 'highlight', 'small', 'lead', 'attachFiles',
-        // 'mergeTags', 'customBlocks' and the table editing ones among them.
     ],
 
     /*
     |--------------------------------------------------------------------------
     | Toolbar alignment
     |--------------------------------------------------------------------------
-    | Where the button groups sit on the bar: 'start', 'center', 'end' or
-    | 'between' (groups spread across the full width). Filament's own editor is
-    | left aligned; this package centres the toolbar because the default layout is
-    | built around a symmetrical set of groups. Override per field with
-    | `->toolbarAlignment()`.
+    | Where the groups sit on the bar: 'start', 'center', 'end' or 'between' (spread
+    | across the full width). The pinned half takes whichever edge is left over.
+    | Per field: `->toolbarAlignment()`.
     */
     'toolbar_alignment' => 'center',
 
@@ -71,19 +52,16 @@ return [
     |--------------------------------------------------------------------------
     | Custom toolbar tokens
     |--------------------------------------------------------------------------
-    | Extra tokens usable in the `toolbar` array above, merged over the built-in
-    | ones (so a key defined here wins and can replace 'headings' or 'lists').
-    | Each value is a closure receiving the AdvancedRichEditor instance and
-    | returning the component to render — a ToolbarDropdown, a RichEditorTool, a
-    | ToolbarDivider, or a plain button name string:
+    | Extra tokens for the `toolbar` array, merged over the built-in ones — a key
+    | defined here replaces 'headings' or 'lists'. Each value is a closure taking the
+    | field and returning what to render:
     |
     |   'inline' => fn (AdvancedRichEditor $editor) => ToolbarDropdown::make('Inline', [
     |       'bold', 'italic', 'strike',
     |   ])->icon(Heroicon::Sparkles)->textualButtons(),
     |
-    | Config files must stay serialisable for `config:cache`, so closures only work
-    | in an unpublished/uncached config. Register tokens from a service provider
-    | instead when you cache your config.
+    | Closures cannot be cached, so register tokens from a service provider if you run
+    | `config:cache`.
     */
     'tokens' => [],
 
@@ -91,9 +69,8 @@ return [
     |--------------------------------------------------------------------------
     | Heading levels
     |--------------------------------------------------------------------------
-    | Which heading levels the 'headings' dropdown offers, in the listed order.
-    | Only 1 to 6 are valid — anything else throws. Note that Filament's stock
-    | editor exposes h2 and h3 only; listing h1 here also enables the `h1` button.
+    | Which levels the 'headings' dropdown offers, in order. Only 1 to 6 are valid,
+    | and listing h1 also enables the `h1` button. Per field: `->headingLevels()`.
     */
     'heading_levels' => [1, 2, 3, 4],
 
@@ -101,10 +78,8 @@ return [
     |--------------------------------------------------------------------------
     | Paragraph in the headings dropdown
     |--------------------------------------------------------------------------
-    | Lists the plain paragraph in front of the heading levels, so the dropdown
-    | covers every block the caret can sit in and offers the way back out of a
-    | heading. Picking the active level again also returns to a paragraph, so a
-    | block is never left without a type.
+    | Lists the plain paragraph in front of the levels, so the dropdown covers every
+    | block the caret can sit in. Per field: `->headingParagraph()`.
     */
     'heading_paragraph' => true,
 
@@ -112,9 +87,8 @@ return [
     |--------------------------------------------------------------------------
     | Lists
     |--------------------------------------------------------------------------
-    | Which list types the 'lists' dropdown offers, in the listed order. Valid
-    | entries are 'bulletList', 'orderedList' and 'taskList'. The 'taskList' entry
-    | is silently dropped on fields where the task list is disabled.
+    | Which list types the 'lists' dropdown offers, in order: 'bulletList',
+    | 'orderedList', 'taskList'. Per field: `->listTypes()`.
     */
     'lists' => ['bulletList', 'orderedList', 'taskList'],
 
@@ -122,11 +96,9 @@ return [
     |--------------------------------------------------------------------------
     | More
     |--------------------------------------------------------------------------
-    | What the 'more' dropdown offers, in the listed order - the tools that earn a
-    | place in the editor but not a button of their own. Any Filament tool name is
-    | valid here, and an unknown one is silently dropped. An empty list removes the
-    | button along with the dropdown, since a trigger that opens onto nothing is
-    | worse than no trigger. Override per field with `->moreTools([...])`.
+    | What the overflow dropdown offers, in order. Any Filament tool name is valid, an
+    | unknown one is dropped, and an empty list removes the button altogether.
+    | Per field: `->moreTools([...])`.
     */
     'more' => [
         'subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details',
@@ -137,11 +109,9 @@ return [
     |--------------------------------------------------------------------------
     | Emoji
     |--------------------------------------------------------------------------
-    | The emoji picker behind the 'emoji' tool. Emojis are inserted as ordinary
-    | Unicode characters, so nothing about them is stored as markup and turning the
-    | picker off leaves the ones already written alone. The list itself is bundled
-    | and only fetched when the picker is first opened. Override per field with
-    | `->emoji(false)`.
+    | The emoji picker behind the 'emoji' tool. Emojis are inserted as ordinary Unicode
+    | characters, so turning the picker off leaves the ones already written alone.
+    | Per field: `->emoji()`.
     */
     'emoji' => true,
 
@@ -149,18 +119,13 @@ return [
     |--------------------------------------------------------------------------
     | Text direction
     |--------------------------------------------------------------------------
-    | The 'ltr' and 'rtl' tools, which write a `dir` attribute onto the block the
-    | caret sits in. Deliberately not in the 'more' list above: `dir` decides which
-    | way the text runs, which only shows in a document that mixes scripts - for a
-    | document written in one left-to-right language it does nothing that the
-    | alignment dropdown does not already do. Add 'ltr' and 'rtl' to a toolbar or to
-    | the 'more' list to get the buttons.
+    | The 'ltr' and 'rtl' tools, which write a `dir` attribute on the block the caret
+    | sits in. Registered but deliberately not in the default toolbar — name them in a
+    | toolbar or in `more` to get the buttons.
     |
-    | The extension stays registered so that content which already carries a `dir`
-    | keeps it: this half is part of the schema, and content is re-parsed on every
-    | hydration, so an editor that stops declaring the attribute drops it on the next
-    | save. Set this to false - or `->textDirection(false)` per field - only where
-    | that is wanted.
+    | The extension stays registered either way, so content that already carries a
+    | `dir` keeps it. Set this to false only where losing it on the next save is
+    | wanted. Per field: `->textDirection()`.
     */
     'text_direction' => true,
 
@@ -168,14 +133,10 @@ return [
     |--------------------------------------------------------------------------
     | Help
     |--------------------------------------------------------------------------
-    | The question mark at the end of the toolbar. It lists the keyboard shortcuts
-    | the field answers to - built from the field's own configuration, so it names
-    | the heading levels that field offers and nothing it cannot do.
-    |
-    | `help_more` adds a second tab with whatever the project wants to tell the
-    | people writing: a house rule, a reminder, a link to the style guide. Without
-    | one the dialog stays a single list. A plain string is escaped and keeps its
-    | line breaks; per field, `->helpMore()` takes an `Htmlable` for markup.
+    | The question mark at the end of the toolbar, listing the keyboard shortcuts that
+    | field answers to. `help_more` adds a second tab for whatever the project wants to
+    | tell the people writing; a plain string is escaped and keeps its line breaks.
+    | Per field: `->help()` and `->helpMore()`, which also takes an `Htmlable`.
     */
     'help' => true,
 
@@ -185,11 +146,9 @@ return [
     |--------------------------------------------------------------------------
     | Source code
     |--------------------------------------------------------------------------
-    | The button that opens the document as HTML, next to the fullscreen one. Both
-    | directions run through the field's own TipTap schema, so what the modal shows
-    | is the markup that gets stored and what it hands back has been read by the
-    | schema that has to hold it - the same treatment pasted markup gets. Override
-    | per field with `->sourceCode(false)`.
+    | The button that opens the document as HTML. Both directions run through the
+    | field's own TipTap schema, so what the modal shows is what gets stored.
+    | Per field: `->sourceCode()`.
     */
     'source_code' => true,
 
@@ -197,9 +156,8 @@ return [
     |--------------------------------------------------------------------------
     | Fullscreen
     |--------------------------------------------------------------------------
-    | The button that expands the editor over the window. It is a fixed overlay
-    | rather than the browser's Fullscreen API, so Filament's modals - the file
-    | upload among them - still appear above it.
+    | The button that expands the editor over the window. A fixed overlay rather than
+    | the browser's Fullscreen API, so Filament's modals still appear above it.
     */
     'fullscreen' => true,
 
@@ -208,21 +166,12 @@ return [
     | Colours
     |--------------------------------------------------------------------------
     | Two swatch dropdowns: 'textColor' paints the letters, 'textBackground' paints
-    | behind them.
+    | behind them, 'custom' adds a free colour picker to both.
     |
-    | The text palette is stored by NAME, and each entry carries a light and a dark
-    | value - that is what lets the same text stay readable in both themes, which a
-    | hand-picked colour cannot do. Filament's own default is deliberately not used
-    | here: it lists all 26 Tailwind hues, nine of which are near-identical greys and
-    | browns, which makes for a confusing grid. The set below is one row of neutrals
-    | and one of the colours people actually reach for. `->textColors([...])` still
-    | overrides it per field.
-    |
-    | The background palette is keyed by CSS colour with the label as the value, and
-    | is kept light on purpose: it sits behind text that has to stay readable.
-    |
-    | 'custom' adds a free colour picker to both dropdowns. A colour chosen there is
-    | stored as given and therefore looks the same in dark mode.
+    | The text palette is keyed by NAME and each entry carries a light and a dark
+    | value, which is what keeps the same text readable in both themes. The background
+    | palette is keyed by CSS colour and is kept light on purpose: it sits behind text.
+    | Per field: `->textColors([...])`, `->backgroundColors([...])`.
     */
     'colors' => [
         'text' => true,
@@ -264,10 +213,8 @@ return [
     |--------------------------------------------------------------------------
     | Alignments
     |--------------------------------------------------------------------------
-    | Which alignments the 'alignment' dropdown offers, in the listed order. Valid
-    | entries are 'alignStart', 'alignCenter', 'alignEnd' and 'alignJustify'. The
-    | dropdown's trigger shows the alignment the caret is currently in, falling back
-    | to the first entry.
+    | Which alignments the 'alignment' dropdown offers, in order: 'alignStart',
+    | 'alignCenter', 'alignEnd', 'alignJustify'. Per field: `->alignments()`.
     */
     'alignments' => ['alignStart', 'alignCenter', 'alignEnd', 'alignJustify'],
 
@@ -275,18 +222,10 @@ return [
     |--------------------------------------------------------------------------
     | Line spacing
     |--------------------------------------------------------------------------
-    | The 'lineHeight' dropdown: the spacings it offers, in the listed order. Each
-    | one is a unitless `line-height` written into the block's inline style, which
-    | is the spelling that scales with whatever font size the block ends up at - a
-    | heading keeps its own proportions instead of inheriting a paragraph's leading.
-    |
-    | Values are bare numbers between 0.5 and 5; anything else is dropped rather
-    | than silently corrected, because the sanitiser does not look inside CSS and a
-    | value with a unit could carry a second declaration in behind a semicolon.
-    | `1` and `2` are labelled "Single" and "Double"; every other value shows its
-    | number. Picking the spacing a block already has takes it back off, which is
-    | the way back to whatever the theme sets. Override per field with
-    | `->lineHeights([...])` or switch the dropdown off with `->lineHeight(false)`.
+    | Which spacings the 'lineHeight' dropdown offers, in order. Each is a unitless
+    | `line-height`, so a heading keeps its own proportions. Values are bare numbers
+    | between 0.5 and 5 and anything else is dropped; `1` and `2` are labelled "Single"
+    | and "Double". Per field: `->lineHeights([...])`, `->lineHeight(false)`.
     */
     'line_height' => [
         'enabled' => true,
@@ -297,9 +236,8 @@ return [
     |--------------------------------------------------------------------------
     | Sticky toolbar
     |--------------------------------------------------------------------------
-    | Keep the toolbar pinned to the top of the viewport while a long document is
-    | scrolled. `offset` is any CSS length and should match the height of whatever
-    | sits above the form — in a standard Filament panel that is the topbar.
+    | Keeps the toolbar pinned while a long document is scrolled. `offset` is any CSS
+    | length and should match whatever sits above the form — usually the topbar.
     */
     'sticky' => [
         'enabled' => true,
@@ -310,34 +248,31 @@ return [
     |--------------------------------------------------------------------------
     | Task list
     |--------------------------------------------------------------------------
-    | Enables the checkbox task list: the TipTap extensions, the 'taskList'
-    | toolbar button, and the rendering of `<ul data-type="task-list">` in saved
-    | content. Turn it off to keep the editor's JSON free of task list nodes.
+    | The checkbox task list: the TipTap extensions, the 'taskList' button and the
+    | rendering of `<ul data-type="task-list">` in saved content. Off keeps the
+    | editor's JSON free of task list nodes. Per field: `->taskList()`.
+    |
+    | A feature that is only on or off is a boolean here; one that carries options
+    | is an array with `enabled` in front of them.
     */
-    'task_list' => [
-        'enabled' => true,
-    ],
+    'task_list' => true,
 
     /*
     |--------------------------------------------------------------------------
     | Fonts
     |--------------------------------------------------------------------------
-    | The typeface dropdown in front of the size stepper. Nothing here is fetched
-    | from anywhere: no CDN, no Google Fonts, no network at all.
+    | The typeface dropdown. Nothing is fetched from anywhere: no CDN, no Google Fonts,
+    | no network at all.
     |
-    | `directory` is where the project keeps its own font files, relative to public/.
-    | Every file found is offered and gets an `@font-face` rule written for it, so a
-    | typeface is added by putting it there and nothing else. The family comes from
-    | the folder name, or from the file name up to its first separator, and the
-    | weight and style from the rest of it: `Inter/Inter-SemiBoldItalic.woff2` is
-    | Inter at 600, italic.
+    | `directory` is where the project keeps its font files, relative to public/. Every
+    | file found is offered and gets an `@font-face` rule. The family comes from the
+    | folder name, or from the file name up to its first separator, and the weight and
+    | style from the rest: `Inter/Inter-SemiBoldItalic.woff2` is Inter at 600, italic.
     |
-    | `families` is for typefaces the project already loads somewhere else - a theme,
-    | a self-hosted kit. Those are the only entries the browser is asked about before
-    | they are shown, since nothing on this side can prove they arrived.
-    |
-    | `generic` adds the three stacks that resolve everywhere without a file.
-    | Override per field with `->fontPicker(false)` or `->fonts([...])`.
+    | `families` is for typefaces the project loads elsewhere, and those are the only
+    | entries the browser is asked about before they are shown. `generic` adds the
+    | three stacks that resolve everywhere. Per field: `->fonts([...])`,
+    | `->fontPicker(false)`.
     */
     'fonts' => [
         'enabled' => true,
@@ -352,15 +287,11 @@ return [
     |--------------------------------------------------------------------------
     | Font size
     |--------------------------------------------------------------------------
-    | The 'fontSize' token's menu: the sizes worth offering, plus a field for the one
-    | that is not on the list. It applies an inline font size to the selection, in
-    | pixels. `min` and `max` bound what a typed size is clamped to, and any entry in
-    | `sizes` outside them is dropped rather than silently corrected.
-    |
-    | Text without an explicit size is measured off the page, so the stepper shows what
-    | is actually rendered - the theme's paragraph size, or a heading's while the caret
-    | sits in one - and the first step goes in the direction the user expects. `default`
-    | is only the last resort for when that measurement is not possible.
+    | The 'fontSize' menu: the sizes worth offering, plus a field for the one that is
+    | not on the list. Sizes are in pixels, `min` and `max` bound a typed size, and an
+    | entry in `sizes` outside them is dropped. Text without an explicit size is
+    | measured off the page, so `default` is only the last resort when that measurement
+    | is not possible. Per field: `->fontSize()`.
     */
     'font_size' => [
         'enabled' => true,
@@ -375,16 +306,14 @@ return [
     |--------------------------------------------------------------------------
     | Images
     |--------------------------------------------------------------------------
-    | `resizable` lets an image be dragged to a new size inside the editor, which
-    | writes a width onto the image node and is kept in the saved markup. Filament
-    | ships this switched off; this package turns it on because the image tool is
-    | part of the default toolbar. Override per field with `->resizableImages()`.
+    | `resizable` lets an image be dragged to a new size, which writes a width onto the
+    | node and is kept in the saved markup. `toolbar` is the strip over a selected
+    | image: aspect ratio lock, size and alt text panels, rotation, download, delete.
+    | Per field: `->resizableImages()`.
     */
     'images' => [
         'resizable' => true,
 
-        // The toolbar that appears over a selected image: the aspect ratio switch (only
-        // where resizing is allowed), a download and a delete button.
         'toolbar' => true,
     ],
 
@@ -393,10 +322,9 @@ return [
     | Character count
     |--------------------------------------------------------------------------
     | The line under the editor saying how long the text is. It counts the way
-    | Filament's own `maxLength` validation counts, so the number a writer watches is
-    | the number a save is rejected over, and it shows a limit as soon as the field
-    | has one - `maxLength()`, or `->characterCountLimit()` for a target without a
-    | rule behind it. Override per field with `->characterCount(false)`.
+    | Filament's own `maxLength` validation counts, and shows a limit as soon as the
+    | field has one — `maxLength()`, or `->characterCountLimit()` for a target without
+    | a rule behind it. Per field: `->characterCount()`.
     */
     'character_count' => [
         'enabled' => true,
@@ -408,14 +336,12 @@ return [
     | Icons
     |--------------------------------------------------------------------------
     | Every icon this package draws, in one place. A bare Heroicon name ('trash',
-    | 'photo') is handed to Filament as its enum, which picks the variant matching
-    | the size it is drawn at - the filled one in a toolbar. Anything with a set
-    | prefix is used verbatim: 'heroicon-o-*', Filament's own 'fi-o-*', this
-    | package's bundled 'arte-*', 'lucide-*' once that package is installed, and
-    | any other Blade Icons set the same way.
+    | 'photo') is handed to Filament as its enum, which picks the variant matching the
+    | size it is drawn at; anything with a set prefix is used verbatim ('heroicon-o-*',
+    | Filament's 'fi-o-*', this package's 'arte-*', 'lucide-*', any Blade Icons set).
     |
-    | Filament's own buttons - bold, italic, the headings - are not in this list.
-    | They belong to Filament and are swapped through `FilamentIcon::register()`.
+    | Filament's own buttons — bold, italic, the headings — are not in this list. They
+    | belong to Filament and are swapped through `FilamentIcon::register()`.
     */
     'icons' => [
         // Toolbar. Outline throughout, so a swapped-in icon should be too - a bare
@@ -466,11 +392,12 @@ return [
     |--------------------------------------------------------------------------
     | Spatie Media Library attachments
     |--------------------------------------------------------------------------
-    | Defaults used when a field opts into media library storage with
-    | `->spatieMediaLibrary()`. `conversion` is the conversion whose URL gets
-    | embedded in the content (null = the original file), `disk` falls back to the
-    | collection's own disk, and `visibility` is passed through to the filesystem.
-    | This is opt-in per field — nothing here has an effect on its own.
+    | Defaults for fields that opt in with `->spatieMediaLibrary()`. `conversion` is the
+    | conversion whose URL gets embedded (null = the original file), `disk` falls back
+    | to the collection's own disk, `visibility` is passed to the filesystem.
+    |
+    | Every upload is stamped with the field that made it, so two editors on one record
+    | can share a collection without cleaning up after each other.
     */
     'spatie' => [
         'collection' => 'rich-editor',

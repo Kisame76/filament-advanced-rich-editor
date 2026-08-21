@@ -59,6 +59,19 @@ class SpatieMediaLibraryPlugin implements HasFileAttachmentProvider, RichContent
         return $this;
     }
 
+    /**
+     * Forwarded to the provider. The field injects `fn () => $component->getName()` here, so
+     * that an attachment is remembered as belonging to the editor that uploaded it - a media
+     * collection hangs off the record, and two editors on one model would otherwise clean up
+     * each other's images.
+     */
+    public function ownerUsing(?Closure $callback): static
+    {
+        $this->provider->ownerUsing($callback);
+
+        return $this;
+    }
+
     public function getFileAttachmentProvider(): ?FileAttachmentProvider
     {
         return $this->provider;

@@ -47,7 +47,7 @@ it('unregisters the task list plugin when the task list is turned off', function
 });
 
 it('reads the task list default from the config file', function (): void {
-    config()->set('filament-advanced-rich-editor.task_list.enabled', false);
+    config()->set('filament-advanced-rich-editor.task_list', false);
 
     expect(editor()->hasTaskList())->toBeFalse()
         // An explicit call still wins over the configured default.

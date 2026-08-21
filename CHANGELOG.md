@@ -2,6 +2,44 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- The `@font-face` rules are written once per request instead of once per process. Under a
+  persistent worker (Octane, Swoole, RoadRunner) a static flag meant every request after the
+  first rendered a font picker offering typefaces the page was never told how to load
+- Font family names and paths that could end the `@font-face` rule, or the `<style>` element
+  around it, are skipped rather than written. Both halves come off the disk, and Filament's
+  sanitiser does not look inside CSS
+- The temporary copy a media library upload goes through is removed when the upload fails,
+  instead of being left in the system temp directory
+- Media library attachments are cleaned up per field instead of per collection. A media
+  collection hangs off the record, so two rich editors on one model deleted each other's
+  images on every save - as did anything else the project kept in that collection. Uploads
+  now carry the name of the field that made them, and a save only removes its own
+
+### Changed
+
+- The font directory is read once per process rather than once per toolbar resolution -
+  Filament resolves a toolbar several times while rendering one editor. `Fonts::forget()`
+  drops the memo
+- The CI matrix covers Laravel 13, which `composer.json` already allowed, and code style is
+  checked in CI rather than only locally
+- Static analysis runs at PHPStan level 6
+- The published config file is shorter. Every key still says what it controls, which values
+  are valid and how to override it per field; the reasoning behind each one lives in the
+  README, which is where it is read
+- `task_list` is a boolean rather than an array with a single `enabled` key, so the file
+  follows one rule: a feature that is only on or off is a boolean, one that carries options
+  is an array with `enabled` in front of them
+
+### Added
+
+- `composer build-assets`, and a test that fails when `resources/dist` drifts from its
+  sources or when a `fi-arte-` class is written into markup the stylesheet has no rule for
+- `CONTRIBUTING.md` and `SECURITY.md`
+
 ## 1.0.0 - 2026-08-18
 
 Initial release.

@@ -17,9 +17,11 @@ use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
 use Illuminate\Foundation\Application;
 use Kisame76\FilamentAdvancedRichEditor\FilamentAdvancedRichEditorServiceProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Fonts;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
+use Spatie\MediaLibrary\MediaLibraryServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
@@ -47,7 +49,22 @@ abstract class TestCase extends Orchestra
             TablesServiceProvider::class,
             WidgetsServiceProvider::class,
             FilamentAdvancedRichEditorServiceProvider::class,
+            // Registered only when it is installed. It is a dev dependency, so it is there in
+            // this repository - but the package itself works without it, and a suite that
+            // cannot start without it would stop being able to prove that.
+            ...(class_exists(MediaLibraryServiceProvider::class) ? [MediaLibraryServiceProvider::class] : []),
         ];
+    }
+
+    /**
+     * The font scan is memoised for the life of the process, which is right in a request and
+     * wrong in a suite that rewrites the same directory between tests.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Fonts::forget();
     }
 
     /**

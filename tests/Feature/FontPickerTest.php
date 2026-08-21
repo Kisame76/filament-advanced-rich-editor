@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Fonts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFontPicker;
 
@@ -104,4 +105,56 @@ it('refuses a family that is trying to be a stylesheet', function (): void {
         ->and(ToolbarFontPicker::sanitise('red; background: url(evil)'))->toBeNull()
         ->and(ToolbarFontPicker::sanitise('expression(alert(1))'))->toBeNull()
         ->and(ToolbarFontPicker::sanitise(str_repeat('a', 300)))->toBeNull();
+});
+
+it('refuses to write a face for a name that is not a name', function (): void {
+    // Both halves of an `@font-face` rule come off the disk and land inside a `<style>`
+    // element, so a file name is a place someone could write CSS - or markup - from.
+    @mkdir($this->fontDirectory.'/x"); } body { display: none } @font-face { a:"', recursive: true);
+    file_put_contents($this->fontDirectory.'/x"); } body { display: none } @font-face { a:"/Bold.woff2', 'x');
+
+    $css = Fonts::styleSheet(editor());
+
+    expect($css)->not->toContain('display: none')
+        ->and($css)->not->toContain('</style');
+});
+
+it('refuses a path that could end the rule around it', function (): void {
+    file_put_contents($this->fontDirectory.'/Quirk\'); } body { display: none } @font-face { a: \'.woff2', 'x');
+
+    expect(Fonts::styleSheet(editor()))->not->toContain('display: none');
+});
+
+it('reads the font directory once however often the toolbar is resolved', function (): void {
+    // Filament asks a field what buttons it has several times while rendering one editor,
+    // and each of those walks the token list again. Without the memo that is one directory
+    // scan per ask, times the number of editors on the page.
+    $first = Fonts::files();
+
+    file_put_contents($this->fontDirectory.'/Latecomer-Regular.woff2', 'x');
+
+    expect(array_keys(Fonts::files()))->toBe(array_keys($first))
+        ->and(array_keys($first))->not->toContain('Latecomer');
+
+    Fonts::forget();
+
+    expect(array_keys(Fonts::files()))->toContain('Latecomer');
+});
+
+it('writes the faces once per request rather than once per worker', function (): void {
+    $picker = fn (): string => ToolbarFontPicker::make()
+        ->fonts(Fonts::for(editor()))
+        ->styleSheet(Fonts::styleSheet(editor()))
+        ->toEmbeddedHtml();
+
+    // Three editors on one page do not need the same faces three times.
+    expect($picker())->toContain('@font-face')
+        ->and($picker())->not->toContain('@font-face');
+
+    // A static flag would stop there for the life of the process, and under a persistent
+    // worker - Octane, Swoole, RoadRunner - every request after the first would render a
+    // picker offering typefaces the page was never told how to load.
+    app()->instance('request', Request::create('/second'));
+
+    expect($picker())->toContain('@font-face');
 });

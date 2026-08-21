@@ -700,6 +700,11 @@ class AdvancedRichEditor extends RichEditor
             ?? config('filament-advanced-rich-editor.heading_paragraph', true));
     }
 
+    /**
+     * Which list types the 'lists' dropdown offers, in the listed order.
+     *
+     * @param  array<int, string> | Closure  $types
+     */
     public function listTypes(array|Closure $types): static
     {
         $this->listTypes = $types;
@@ -1026,7 +1031,7 @@ class AdvancedRichEditor extends RichEditor
 
     public function hasTaskList(): bool
     {
-        return (bool) ($this->evaluate($this->hasTaskList) ?? config('filament-advanced-rich-editor.task_list.enabled') ?? true);
+        return (bool) ($this->evaluate($this->hasTaskList) ?? config('filament-advanced-rich-editor.task_list') ?? true);
     }
 
     /**
@@ -1402,7 +1407,9 @@ class AdvancedRichEditor extends RichEditor
      */
     protected function getSpatieMediaLibraryPlugin(): ?SpatieMediaLibraryPlugin
     {
-        return $this->spatieMediaLibraryPlugin?->recordUsing(fn (): mixed => $this->getRecord());
+        return $this->spatieMediaLibraryPlugin
+            ?->recordUsing(fn (): mixed => $this->getRecord())
+            ->ownerUsing(fn (): string => $this->getName());
     }
 
     /**

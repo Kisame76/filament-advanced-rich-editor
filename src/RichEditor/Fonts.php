@@ -133,11 +133,28 @@ class Fonts
         $rules = [];
 
         foreach (static::files() as $family => $files) {
+            // Both halves come off the disk, and the result is written into a `<style>`
+            // element. A file named `x"); } body { display: none } @font-face { a:"` would
+            // otherwise be a stylesheet of somebody else's choosing, and one containing
+            // `</style>` would be markup - so a name that is not a name is skipped rather
+            // than escaped: there is no legitimate typeface behind it.
+            $name = ToolbarFontPicker::sanitise($family);
+
+            if ($name === null) {
+                continue;
+            }
+
             foreach ($files as $file) {
+                $url = static::url($file['path']);
+
+                if (! static::isSafeUrl($url)) {
+                    continue;
+                }
+
                 $rules[] = sprintf(
                     "@font-face { font-family: \"%s\"; src: url('%s') format('%s'); font-weight: %d; font-style: %s; font-display: swap; }",
-                    $family,
-                    static::url($file['path']),
+                    $name,
+                    $url,
                     $file['format'],
                     $file['weight'],
                     $file['style'],
@@ -149,11 +166,29 @@ class Fonts
     }
 
     /**
+     * What the last scan found, keyed by the directory it scanned.
+     *
+     * Resolving a toolbar is not a once-per-render affair: Filament asks the field what
+     * buttons it has several times while rendering one editor, and every one of those walks
+     * the token list again. Without this the picker would read the font directory off the
+     * disk a handful of times per field, and a page with three editors would do it a dozen.
+     *
+     * Keyed by directory rather than reset per request, because font files arrive with a
+     * deploy and a deploy restarts the worker.
+     *
+     * @var array<string, array<string, array<int, array{path: string, format: string, weight: int, style: string}>>>
+     */
+    protected static array $scanned = [];
+
+    /**
      * The font files in the configured directory, grouped by family.
      *
      * A file in a folder belongs to the folder's family, which is how a project that keeps
      * `fonts/Inter/Inter-Regular.woff2` means it. A loose file is read up to its first
      * separator, which is how `fonts/Fraunces-Light.woff` means the same thing.
+     *
+     * Only the directory itself and one level of folders below it are read: a family is a
+     * folder, and a folder inside a family is not a second family.
      *
      * @return array<string, array<int, array{path: string, format: string, weight: int, style: string}>>
      */
@@ -167,8 +202,12 @@ class Fonts
 
         $root = static::path($directory);
 
+        if (array_key_exists($root, static::$scanned)) {
+            return static::$scanned[$root];
+        }
+
         if (! is_dir($root)) {
-            return [];
+            return static::$scanned[$root] = [];
         }
 
         $families = [];
@@ -197,7 +236,27 @@ class Fonts
 
         ksort($families);
 
-        return $families;
+        return static::$scanned[$root] = $families;
+    }
+
+    /**
+     * Forgets what the last scan found. Only a test - or a project that writes font files at
+     * runtime - has any reason to call this.
+     */
+    public static function forget(): void
+    {
+        static::$scanned = [];
+    }
+
+    /**
+     * Whether a URL can be put inside `url('…')` without ending the declaration, the rule or
+     * the `<style>` element around it. A plain space is allowed - it is legal inside a quoted
+     * url, and a family called `My Font` has one in every path it owns - so what is left are
+     * the characters a file name would need in order to write CSS of its own.
+     */
+    protected static function isSafeUrl(string $url): bool
+    {
+        return preg_match("/[\"'()<>\\\\\r\n\t;{}]/", $url) !== 1;
     }
 
     /**

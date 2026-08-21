@@ -51,10 +51,16 @@ class ToolbarFontPicker extends ViewComponent implements HasEmbeddedView
     protected string $viewIdentifier = 'toolbarFontPicker';
 
     /**
+     * The request attribute that remembers whether the faces have already been written.
+     *
      * Emitted by the first picker on the page and by no other: the faces are the same for
-     * every field, and a page with three editors does not need them three times.
+     * every field, and a page with three editors does not need them three times. The flag
+     * lives on the request rather than in a static, because a static is never reset under a
+     * persistent worker - Octane, Swoole, RoadRunner - where the second request served by a
+     * worker would render no `@font-face` rules at all and every custom typeface would
+     * quietly stop resolving.
      */
-    protected static bool $hasWrittenStyleSheet = false;
+    protected const STYLE_SHEET_FLAG = 'filament-advanced-rich-editor.font-faces-written';
 
     final public function __construct(string $name = 'fontFamily')
     {
@@ -92,6 +98,23 @@ class ToolbarFontPicker extends ViewComponent implements HasEmbeddedView
         $this->styleSheet = $css;
 
         return $this;
+    }
+
+    /**
+     * Whether this request has already had the faces written into it - and claims them for
+     * this picker when it has not.
+     */
+    protected static function hasWrittenStyleSheet(): bool
+    {
+        $request = request();
+
+        if ($request->attributes->get(static::STYLE_SHEET_FLAG) === true) {
+            return true;
+        }
+
+        $request->attributes->set(static::STYLE_SHEET_FLAG, true);
+
+        return false;
     }
 
     /**
@@ -257,8 +280,7 @@ class ToolbarFontPicker extends ViewComponent implements HasEmbeddedView
 
         ob_start(); ?>
 
-        <?php if ($this->styleSheet !== '' && ! static::$hasWrittenStyleSheet) {
-            static::$hasWrittenStyleSheet = true; ?>
+        <?php if ($this->styleSheet !== '' && ! static::hasWrittenStyleSheet()) { ?>
 
             <style><?= $this->styleSheet ?></style>
         <?php } ?>

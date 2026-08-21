@@ -511,7 +511,7 @@ through the `tools.heading_level` translation key.
 
 ```php
 AdvancedRichEditor::make('content')
-    ->headingLevels([2, 3, 4]);
+    ->headingLevels([2, 3, 4]);   // default: config('...heading_levels')
 ```
 
 The levels drive both the `'headings'` dropdown and which of the `h1`–`h6` buttons are
@@ -523,7 +523,7 @@ rather than silently rendering a broken editor.
 ```php
 AdvancedRichEditor::make('content')
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
-    ->taskList();                      // default: config('filament-advanced-rich-editor.task_list.enabled')
+    ->taskList();                      // default: config('filament-advanced-rich-editor.task_list')
 ```
 
 The task list adds checkbox items that stay checkable in the editor and are saved as
@@ -563,7 +563,8 @@ AdvancedRichEditor::make('content')
     ->textColors(['brand' => TextColor::make('Brand', '#0ea5e9', darkColor: '#38bdf8')])
     ->backgroundColors(['#fef08a' => 'Yellow', '#bbf7d0' => 'Green'])
     ->customColors(false)          // drop the free colour picker
-    ->textBackground(false);       // drop the background dropdown entirely
+    ->textColor(false)             // drop the text colour dropdown entirely
+    ->textBackground(false);       // and the background one
 ```
 
 The text palette is stored by name, and each entry carries a light and a dark value - that
@@ -796,6 +797,16 @@ The record is resolved from the field at runtime, so this works on create pages 
 attachment is associated once the record exists. Defaults come from the `spatie` section of
 the config, and the whole feature is inert until you call the method.
 
+Every upload is stamped with the name of the field that made it, and removing an image from
+the text only ever deletes that field's own attachment. Two editors on one record can share
+a collection — the default one — without cleaning up after each other, and anything else the
+project keeps in that collection is never touched:
+
+```php
+AdvancedRichEditor::make('content')->spatieMediaLibrary(),
+AdvancedRichEditor::make('summary')->spatieMediaLibrary(),   // same collection, separate images
+```
+
 ## Configuration
 
 ```php
@@ -939,6 +950,11 @@ php artisan vendor:publish --tag="filament-advanced-rich-editor-views"
 - **Media library is opt-in.** Without `->spatieMediaLibrary()` no media library code is
   touched, and the package works fine when `spatie/laravel-medialibrary` is not installed
   at all.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports go to the address in
+[SECURITY.md](SECURITY.md) rather than to the issue tracker.
 
 ## License
 

@@ -1,4 +1,4 @@
-name: phpstan
+name: code-style
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     branches: [main]
 
 jobs:
-  phpstan:
+  pint:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
-    name: phpstan
+    name: pint
 
     steps:
       - name: Checkout code
@@ -21,11 +21,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, sqlite, pdo_sqlite, intl, gd, exif, iconv, fileinfo
           coverage: none
 
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --no-progress
 
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse --error-format=github --memory-limit=512M
+      - name: Check the code style
+        run: vendor/bin/pint --test
