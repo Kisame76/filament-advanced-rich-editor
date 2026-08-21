@@ -69,7 +69,9 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
         ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
-        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+        ['divider'],
+        [moreShape()],
+        ['sourceCode', 'fullscreen', 'help'],
     ]);
 });
 
@@ -84,7 +86,9 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
         ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
-        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+        ['divider'],
+        [moreShape()],
+        ['sourceCode', 'fullscreen', 'help'],
     ]);
 });
 
@@ -114,7 +118,9 @@ it('collapses the dividers that an emptied group left behind', function (): void
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
         ['dropdown:bulletList,orderedList,taskList'],
-        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+        ['divider'],
+        [moreShape()],
+        ['sourceCode', 'fullscreen', 'help'],
     ]);
 });
 

@@ -6,7 +6,7 @@ use Filament\Forms\Components\CodeEditor;
 use Filament\Forms\Components\CodeEditor\Enums\Language;
 
 it('puts the button left of the fullscreen one', function (): void {
-    expect(toolbarGroup(editor(), 'fullscreen'))->toBe([moreShape(), 'sourceCode', 'fullscreen', 'help']);
+    expect(toolbarGroup(editor(), 'fullscreen'))->toBe(['sourceCode', 'fullscreen', 'help']);
 });
 
 it('hands the editor its own html to open with', function (): void {
@@ -50,7 +50,7 @@ it('keeps what the editor can hold and drops the rest', function (): void {
 
 it('drops the button when a field or the config says so', function (): void {
     expect(editor()->sourceCode(false)->getTools())->not->toHaveKey('sourceCode')
-        ->and(toolbarGroup(editor()->sourceCode(false), 'fullscreen'))->toBe([moreShape(), 'fullscreen', 'help']);
+        ->and(toolbarGroup(editor()->sourceCode(false), 'fullscreen'))->toBe(['fullscreen', 'help']);
 
     config()->set('filament-advanced-rich-editor.source_code', false);
 

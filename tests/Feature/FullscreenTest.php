@@ -5,11 +5,11 @@ declare(strict_types=1);
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFullscreen;
 
 it('ends the toolbar with the pinned group the fullscreen button sits in', function (): void {
-    // No divider in front of it: the group is pinned to an edge, and the gap between it
+    // Three buttons and no divider: the group is pinned to an edge, and the gap between it
     // and the rest of the bar is the separation a rule would otherwise draw.
     expect(editor()->getPinnedToolbarButtons())->toHaveCount(1)
         ->and(array_slice(toolbarShape(editor()), -1))->toBe([
-            [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+            ['sourceCode', 'fullscreen', 'help'],
         ]);
 });
 

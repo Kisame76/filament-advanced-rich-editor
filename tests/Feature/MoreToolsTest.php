@@ -6,11 +6,10 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 
 it('parks the rarely used tools in a dropdown at the end of the toolbar', function (): void {
-    expect(toolbarGroup(editor(), 'fullscreen'))->toBe([
-        'dropdown:subscript,superscript,code,clearFormatting,horizontalRule,details,emoji',
-        'sourceCode',
-        'fullscreen',
-        'help',
+    // The end of the aligned groups, not of the whole bar: what the menu holds are tools
+    // for the text, so it travels with them rather than with the pinned corner.
+    expect(array_slice(toolbarGroupsShape(editor()->getFlowToolbarButtons()), -1))->toBe([
+        ['dropdown:subscript,superscript,code,clearFormatting,horizontalRule,details,emoji'],
     ]);
 });
 

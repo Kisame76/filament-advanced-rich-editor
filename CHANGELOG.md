@@ -26,9 +26,9 @@ Initial release.
   value cannot carry further CSS in behind a semicolon; picking the active spacing takes it
   back off. `line_height` / `->lineHeights()` / `->lineHeight()`
 - `pin` toolbar marker: everything after it is pinned to the far end of the bar instead of
-  travelling with the aligned groups, so the overflow menu, source view, fullscreen switch
-  and help dialog keep a corner to themselves. A centred toolbar stays centred on the whole
-  bar; the pinned half moves to the start only when the bar itself is aligned to the end
+  travelling with the aligned groups, so the source view, fullscreen switch and help dialog
+  keep a corner to themselves. A centred toolbar stays centred on the whole bar; the pinned
+  half moves to the start only when the bar itself is aligned to the end
 - The alignment dropdown's trigger follows the caret's current alignment
 - Configurable heading levels (h1–h6), with the paragraph listed alongside them
 - Sticky toolbar with a configurable offset and matching top corner radius

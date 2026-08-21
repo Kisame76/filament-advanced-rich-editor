@@ -74,8 +74,10 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
     ['alignment', 'lineHeight'],
     'divider',
     ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+    'divider',
+    ['more'],
     'pin',
-    ['more', 'sourceCode', 'fullscreen', 'help'],
+    ['sourceCode', 'fullscreen', 'help'],
 ]
 ```
 
@@ -91,9 +93,10 @@ image, the table, the quote and the code block rather than with the alignment. T
 all insert something, and that is what groups them rather than whether they happen to be a
 mark or a node.
 
-The last group sits behind `'pin'` — see [Pinned buttons](#pinned-buttons). Those four are
+The last group sits behind `'pin'` — see [Pinned buttons](#pinned-buttons). Those three are
 about the *editor* rather than about the text, so they keep a corner of the bar to
-themselves instead of moving with everything else.
+themselves instead of moving with everything else. The overflow menu is not one of them:
+what it holds are tools for the text, so it stays with the aligned groups and ends them.
 
 The tools most documents never need do not get a button of their own: `superscript`,
 `subscript`, inline `code`, `clearFormatting`, `horizontalRule` and `details` sit in the
@@ -285,10 +288,10 @@ AdvancedRichEditor::make('content')
 ### Pinned buttons
 
 `'pin'` is not a thing on the bar but a place in it: everything after it is pushed to the
-far end of the toolbar instead of travelling with the aligned groups. The overflow menu,
-the source view, the fullscreen switch and the help dialog live there by default — they are
-controls for the editor, not for the text, and they should stay in the same corner whatever
-the rest of the bar does.
+far end of the toolbar instead of travelling with the aligned groups. The source view, the
+fullscreen switch and the help dialog live there by default — they are controls for the
+editor, not for the text, and they should stay in the same corner whatever the rest of the
+bar does.
 
 ```php
 ->toolbarButtons([

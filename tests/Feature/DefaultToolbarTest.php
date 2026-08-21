@@ -16,7 +16,9 @@ it('resolves the shipped toolbar into groups, dropdowns and dividers', function 
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
         ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
-        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+        ['divider'],
+        [moreShape()],
+        ['sourceCode', 'fullscreen', 'help'],
     ]);
 });
 
@@ -46,7 +48,9 @@ it('falls back to the same toolbar when the config was never merged', function (
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
         ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
-        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+        ['divider'],
+        [moreShape()],
+        ['sourceCode', 'fullscreen', 'help'],
     ]);
 });
 
@@ -58,7 +62,7 @@ it('builds a separate divider instance for every occurrence', function (): void 
         fn (mixed $item): bool => $item instanceof ToolbarDivider,
     ));
 
-    expect($dividers)->toHaveCount(4)
+    expect($dividers)->toHaveCount(5)
         // Each occurrence is its own object: Filament clones toolbar items while
         // filtering, and the view renders every one of them.
         ->and($dividers[0])->not->toBe($dividers[1]);

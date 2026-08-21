@@ -347,8 +347,10 @@ class AdvancedRichEditor extends RichEditor
             ['alignment', 'lineHeight'],
             'divider',
             ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+            'divider',
+            ['more'],
             'pin',
-            ['more', 'sourceCode', 'fullscreen', 'help'],
+            ['sourceCode', 'fullscreen', 'help'],
         ];
     }
 

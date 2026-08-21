@@ -31,10 +31,11 @@ return [
         // in - the block type first, then its typeface and size, then the emphasis inside
         // it, then the shape of the paragraph, and only then what gets inserted into it.
         //
-        // The last group sits behind 'pin': those buttons are about the editor rather than
-        // about the text, so they keep a corner of the bar to themselves instead of moving
-        // with everything else. No divider is needed in front of them - the gap is the
-        // separation.
+        // The last group sits behind 'pin': the source view, the fullscreen switch and the
+        // help dialog are about the editor rather than about the text, so they keep a
+        // corner of the bar to themselves instead of moving with everything else. The
+        // overflow menu is not one of them - what it holds are tools for the text, so it
+        // stays with the aligned groups, at the end of them.
         ['undo', 'redo'],
         'divider',
         ['headings', 'fontFamily', 'fontSize'],
@@ -44,8 +45,10 @@ return [
         ['alignment', 'lineHeight'],
         'divider',
         ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+        'divider',
+        ['more'],
         'pin',
-        ['more', 'sourceCode', 'fullscreen', 'help'],
+        ['sourceCode', 'fullscreen', 'help'],
 
         // Every other Filament tool is registered too and can be named anywhere above, or
         // added to the 'more' list below: 'highlight', 'small', 'lead', 'attachFiles',

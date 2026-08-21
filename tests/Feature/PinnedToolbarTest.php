@@ -9,11 +9,12 @@ it('pins the group that is about the editor rather than about the text', functio
     $split = editor()->getSplitToolbarButtons();
 
     expect(toolbarGroupsShape($split['pinned']))->toBe([
-        [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+        ['sourceCode', 'fullscreen', 'help'],
     ])
-        // The flow keeps everything else, and no divider is left dangling at its end.
+        // The overflow menu is not one of them: what it holds are tools for the text, so
+        // it stays with the aligned groups and ends them.
         ->and(array_slice(toolbarGroupsShape($split['flow']), -1))->toBe([
-            ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+            [moreShape()],
         ]);
 });
 
@@ -82,7 +83,7 @@ it('puts everything back on the bar when the marker is disabled', function (): v
 
     expect($editor->getPinnedToolbarButtons())->toBe([])
         ->and(array_slice(toolbarGroupsShape($editor->getFlowToolbarButtons()), -1))->toBe([
-            [moreShape(), 'sourceCode', 'fullscreen', 'help'],
+            ['sourceCode', 'fullscreen', 'help'],
         ]);
 });
 
