@@ -1,6 +1,6 @@
 {
   "name": "kisame76/filament-advanced-rich-editor",
-  "description": "A drop-in Filament v5 RichEditor with a configurable toolbar — dropdowns, dividers, sticky header, task lists and Spatie Media Library attachments.",
+  "description": "A drop-in Filament v5 RichEditor with a configurable toolbar, a media browser, task lists, a slash menu, video embeds, rendered mentions and Spatie Media Library attachments.",
   "keywords": [
     "filament",
     "filamentphp",
@@ -9,7 +9,10 @@
     "tiptap",
     "wysiwyg",
     "editor",
-    "toolbar"
+    "toolbar",
+    "media-library",
+    "mentions",
+    "filament-plugin"
   ],
   "homepage": "https://github.com/Kisame76/filament-advanced-rich-editor",
   "license": "MIT",
