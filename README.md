@@ -5,6 +5,13 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/Kisame76/filament-advanced-rich-editor/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Kisame76/filament-advanced-rich-editor/actions/workflows/run-tests.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/kisame76/filament-advanced-rich-editor.svg?style=flat-square)](https://packagist.org/packages/kisame76/filament-advanced-rich-editor)
 
+# Filament Advanced Rich Editor
+
+[![Filament](https://img.shields.io/badge/Filament-5.x-FdAE4B?style=flat-square&logo=laravel&logoColor=white)](https://filamentphp.com)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/kisame76/filament-advanced-rich-editor.svg?style=flat-square)](https://packagist.org/packages/kisame76/filament-advanced-rich-editor)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Kisame76/filament-advanced-rich-editor/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Kisame76/filament-advanced-rich-editor/actions/workflows/run-tests.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/kisame76/filament-advanced-rich-editor.svg?style=flat-square)](https://packagist.org/packages/kisame76/filament-advanced-rich-editor)
+
 <!--
     The screenshot. Drop the file at art/editor.png and this renders; until then the line
     below shows nothing but breaks nothing, so the README is safe to publish either way.
