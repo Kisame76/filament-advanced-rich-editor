@@ -2,6 +2,31 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.1.1 - 2026-08-22
+
+The test matrix never actually ran: there was no phpunit configuration in the repository, so
+every leg died before reaching a test. With one added, it immediately found two bugs that a
+green local suite could not see.
+
+### Fixed
+
+- Filament is required as `^5.7` rather than `^5.0`. `RichEditorTool::toggle()`, which the
+  toolbar has always called, only exists from v5.7.0, so any install resolving an earlier 5.x
+  fataled with a `BadMethodCallException` on the first form render
+- The embed host sanitiser empties an `iframe src` it rejects instead of returning `null`.
+  `null` is what the attribute sanitiser contract asks for, but only `symfony/html-sanitizer`
+  v8 stops the chain there; on v7, which is what Laravel 11 and 12 ship, the `null` reached the
+  next sanitiser for the same attribute, whose signature will not take it, so rendering stored
+  content that carried a foreign iframe died with a `TypeError` rather than dropping one
+  source. Nothing loads from an empty source, so what a page shows is unchanged
+- The README header was duplicated, title and badges twice, with a dead image link between them
+
+### Changed
+
+- `phpunit.xml.dist` ships, and CI turns off Composer's advisory block for its own run so the
+  Laravel 11 legs can resolve at all: `PKSA-mdq4-51ck-6kdq` covers `>=11.0.0,<12.0.0` with no
+  fixed 11.x release, so the whole major is otherwise refused
+
 ## 1.1.0 - 2026-08-22
 
 ### Added
@@ -173,16 +198,6 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
-- The embed host sanitiser empties an `iframe src` it rejects instead of returning `null`.
-  `null` is what the attribute sanitiser contract asks for, but only `symfony/html-sanitizer`
-  v8 stops the chain there; on v7 it reached the next sanitiser for the same attribute, whose
-  signature will not take it, and rendering stored content that carried a foreign iframe died
-  with a TypeError rather than dropping one source. Requiring v8 was the other option and a
-  worse one, since Laravel 11 and 12 ship Symfony 7. Nothing loads from an empty source, so
-  what a page does is unchanged
-- Filament is required as `^5.7` rather than `^5.0`. `RichEditorTool::toggle()`, which the
-  toolbar has always called, only exists from v5.7.0, so every earlier 5.x resolved and then
-  fataled on the first form render. The constraint now says what the code has needed all along
 - The Livewire nesting note is one short step in Installation, and says to change one line
   rather than paste a `payload` block: a published `payload` replaces the vendor one outright,
   and its other keys differ between releases - `max_components` is `20` on Livewire 4.1 and
