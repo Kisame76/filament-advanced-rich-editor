@@ -1863,3 +1863,37 @@ php artisan vendor:publish --tag="filament-advanced-rich-editor-views"
 - **Livewire's nesting limit is too low for a rich editor.** Raising it is a step of installing
   this package, not an optional tweak — see
   [Raise Livewire's nesting limit](#raise-livewires-nesting-limit).
+
+## What's next
+
+The editor is finished in the sense that it does what it says. It is not finished in the
+sense that there is nothing left to build.
+
+- **AI tools in the editor.** Rewrite a paragraph, shorten it, fix the tone, draft alt text
+  for a picture you just dropped in. This is the next big one, and it is deliberately not
+  rushed: it has to work with whichever provider a project already pays for, and it has to
+  be switched off by default. Coming in a later release.
+- **A richer mention menu.** Filament's own mention rows are a label and nothing else. Avatars
+  and a second line of context are the obvious next step, and the rendering half of it is
+  already here.
+- **Tests for the media browser's front end.** Roughly seven hundred lines of Alpine with no
+  automated coverage. Everything else in the package is tested; this is the gap that bothers
+  me most.
+
+Nothing here is a promise with a date on it. If one of them is what you need, say so and it
+moves up.
+
+## Found a bug? Got an idea?
+
+Both are welcome, and neither needs an apology.
+
+- **Something broken?** [Open an issue](https://github.com/Kisame76/filament-advanced-rich-editor/issues). A short reproduction beats a long
+  description, but a long description beats staying quiet.
+- **Missing a feature, or the API feels wrong?** [Open an issue](https://github.com/Kisame76/filament-advanced-rich-editor/issues) too. A good number
+  of the things in this package exist because the shape somebody suggested was better than the
+  one that was there.
+- **Wrote a fix?** Pull requests are read and answered. `composer test`, `composer pint` and
+  `composer analyse` all have to pass, and the suite runs against SQLite, MySQL and PostgreSQL.
+
+Security reports go to the address in [SECURITY.md](https://github.com/Kisame76/filament-advanced-rich-editor/blob/main/SECURITY.md), never to
+the issue tracker.
