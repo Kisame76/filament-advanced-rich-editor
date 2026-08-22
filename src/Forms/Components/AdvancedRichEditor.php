@@ -12,16 +12,25 @@ use Filament\Forms\Components\RichEditor\Plugins\Contracts\HasFileAttachmentProv
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\TextColor;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
+use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\SourceCodeAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
@@ -46,7 +55,10 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
+use Livewire\Attributes\Renderless;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use LogicException;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tiptap\Editor;
 
 class AdvancedRichEditor extends RichEditor
@@ -161,6 +173,22 @@ class AdvancedRichEditor extends RichEditor
      * @var array<string, int|Closure|null>
      */
     protected array $fontSizeOptions = [];
+
+    protected bool|Closure|null $hasMediaLibrary = null;
+
+    protected ?Closure $mediaLibraryQuery = null;
+
+    protected string|Closure|null $mediaLibraryDirectory = null;
+
+    protected int|Closure|null $mediaLibraryPageSize = null;
+
+    protected string|Closure|null $mediaLibraryThumbnail = null;
+
+    protected bool|Closure|null $mediaLibraryListView = null;
+
+    protected string|Closure|null $mediaLibraryScope = null;
+
+    protected mixed $mediaLibraryUploadsTo = null;
 
     protected ?SpatieMediaLibraryPlugin $spatieMediaLibraryPlugin = null;
 
@@ -411,6 +439,27 @@ class AdvancedRichEditor extends RichEditor
                 ->words($component->hasCharacterCountWords() ? $counted['words'] : null)
                 ->limit($component->getCharacterCountLimit());
         });
+
+        // The disk half of the browser's one rule: what the grid lists is what a stored id may
+        // point at. On the media library side the provider enforces it, because every lookup
+        // goes through the provider. A plain disk field has no provider to enforce anything,
+        // so Filament's own tamper guard is switched on and answered from the same pool.
+        //
+        // Two things stay valid regardless, and both have to: a path that is already in the
+        // saved content - Filament checks that itself, so nothing anyone has published breaks -
+        // and a file uploaded a moment ago, which is a pending attachment rather than a path
+        // and would otherwise blank out while it was still being written.
+        //
+        // Set in `setUp()`, so a field that calls `preventFileAttachmentPathTampering()` itself
+        // overwrites this rather than fighting it.
+        $this->preventFileAttachmentPathTampering(
+            // Only where a disk pool is what answers. A media collection is authorised by the
+            // provider instead, and a field with no pool at all has nothing to answer with -
+            // switching the guard on there would refuse ids this package never issued.
+            condition: static fn (AdvancedRichEditor $component): bool => $component->getMediaSource() instanceof DiskMediaSource,
+            allowFilePathUsing: static fn (AdvancedRichEditor $component, string $file): bool => $component->getUploadedFileAttachment($file) !== null
+                || ($component->getMediaSource()?->has($file) ?? false),
+        );
     }
 
     /**
@@ -926,7 +975,25 @@ class AdvancedRichEditor extends RichEditor
      */
     public function getDefaultActions(): array
     {
-        if (! $this->hasLinkAttributes()) {
+        $replacements = [];
+
+        if ($this->hasLinkAttributes()) {
+            $replacements['link'] = LinkAction::make();
+        }
+
+        // Asked for the pool rather than for the setting: the browser is switched on by
+        // default, but a field may have nothing browsable behind it - a foreign attachment
+        // provider, or a disk with no directory to tell this field's pictures apart. An empty
+        // grid would be a worse answer than Filament's own dialog.
+        if ($this->getMediaSource() !== null) {
+            // The media browser IS the image dialog rather than a second one beside it, so it
+            // takes over Filament's action instead of adding to it. Everything that opens the
+            // dialog - the toolbar button, the slash menu, clicking an image that is already
+            // there - keeps working without being told.
+            $replacements['attachFiles'] = MediaLibraryAction::make();
+        }
+
+        if ($replacements === []) {
             return parent::getDefaultActions();
         }
 
@@ -935,9 +1002,9 @@ class AdvancedRichEditor extends RichEditor
         return [
             ...array_filter(
                 parent::getDefaultActions(),
-                static fn (Action $action): bool => $action->getName() !== 'link',
+                static fn (Action $action): bool => ! array_key_exists($action->getName(), $replacements),
             ),
-            LinkAction::make(),
+            ...array_values($replacements),
         ];
     }
 
@@ -1694,6 +1761,627 @@ class AdvancedRichEditor extends RichEditor
         ];
     }
 
+    /**
+     * Whether the image button opens the media browser instead of Filament's upload dialog.
+     *
+     * On by default, because a picture that is already on the server is the common case in a
+     * long document and re-uploading it is the one thing the stock dialog forces. Turning it
+     * off restores Filament's own dialog exactly.
+     */
+    public function mediaLibrary(bool|Closure $condition = true): static
+    {
+        $this->hasMediaLibrary = $condition;
+
+        return $this;
+    }
+
+    public function hasMediaLibrary(): bool
+    {
+        if (! $this->hasFileAttachments()) {
+            return false;
+        }
+
+        return (bool) ($this->evaluate($this->hasMediaLibrary)
+            ?? config('filament-advanced-rich-editor.media_library.enabled')
+            ?? true);
+    }
+
+    /**
+     * Opens the browser onto a library shared across records, rather than onto this record's
+     * own attachments.
+     *
+     * The closure receives the media query and returns the pool. It is the whole definition:
+     * whatever it returns is what the grid lists, and - because the file attachment provider
+     * authorises through the same object - what a saved `data-id` is allowed to resolve to.
+     * Widening the browser and widening the lookup is deliberately one act, so the two cannot
+     * drift into a gap.
+     *
+     * Media library fields only; a plain disk field takes `mediaLibraryDirectory()` instead.
+     *
+     * @param  Closure(Builder<Media>): mixed|null  $callback
+     */
+    public function mediaLibraryQuery(?Closure $callback): static
+    {
+        $this->mediaLibraryQuery = $callback;
+
+        return $this;
+    }
+
+    /**
+     * The directory the browser lists, for a field that stores attachments as plain files.
+     *
+     * Null keeps the pool at the field's own `fileAttachmentsDirectory()`, which is where its
+     * uploads already land. Naming a directory makes it a shared library: everything under it
+     * can be browsed, reused across records, and referenced from saved content.
+     */
+    public function mediaLibraryDirectory(string|Closure|null $directory): static
+    {
+        $this->mediaLibraryDirectory = $directory;
+
+        return $this;
+    }
+
+    public function getMediaLibraryDirectory(): ?string
+    {
+        $directory = $this->evaluate($this->mediaLibraryDirectory)
+            ?? config('filament-advanced-rich-editor.media_library.directory');
+
+        return filled($directory) ? trim((string) $directory, '/') : null;
+    }
+
+    /**
+     * The model new uploads belong to, instead of the record being edited.
+     *
+     * A media row belongs to a model and its file lives at a path built from the row's id, so a
+     * picture uploaded while editing an article is that article's - and deleting the article
+     * takes the file with it. Harmless while only that article shows it; not harmless once a
+     * second one reuses it.
+     *
+     * Give the pictures a model of their own and the coupling is gone: nothing an editor
+     * deletes owns them.
+     *
+     *     ->mediaLibraryUploadsTo(fn () => MediaLibrary::firstOrCreate(['key' => 'editor']))
+     *
+     * Naming one also points the browser at it, so uploading and browsing agree without a
+     * second call. `mediaLibraryQuery()` still overrides the pool outright.
+     */
+    public function mediaLibraryUploadsTo(mixed $target): static
+    {
+        $this->mediaLibraryUploadsTo = $target;
+
+        return $this;
+    }
+
+    public function getMediaLibraryUploadTarget(): ?Model
+    {
+        $target = $this->evaluate($this->mediaLibraryUploadsTo);
+
+        return ($target instanceof Model) ? $target : null;
+    }
+
+    /**
+     * How far the browser looks. Three settings, each narrower than the last:
+     *
+     *   'collection'  every picture in the collection this field uploads to, whichever record
+     *                 or model it belongs to. The default, because the collection *is* the
+     *                 library: a picture put in `rich-editor` is a picture for rich editors,
+     *                 and an article and a post that both upload there draw from one pool
+     *                 rather than each fetching the same picture again. Separate libraries are
+     *                 separate collections, which is what collections are for.
+     *   'model'       only the records of the model being edited.
+     *   'record'      only the record in front of you.
+     *
+     * Whichever it is, it is also what a stored `data-id` may resolve to - the browser and the
+     * lookup are one object. `mediaLibraryQuery()` overrides it entirely.
+     */
+    public function mediaLibraryScope(string|Closure|null $scope): static
+    {
+        $this->mediaLibraryScope = $scope;
+
+        return $this;
+    }
+
+    public function getMediaLibraryScope(): string
+    {
+        $scope = $this->evaluate($this->mediaLibraryScope)
+            ?? config('filament-advanced-rich-editor.media_library.scope')
+            ?? 'collection';
+
+        return in_array($scope, ['collection', 'model', 'record'], strict: true) ? $scope : 'collection';
+    }
+
+    /**
+     * The conversion the grid draws its tiles from.
+     *
+     * A grid of full-size photographs is a dialog that takes seconds to open, for pictures
+     * shown at about 120 pixels wide - so point this at a small conversion and the browser
+     * gets cheap. It is deliberately separate from the conversion used when a picture is
+     * *inserted*: the tile should be small and the image in the document should not.
+     *
+     * The conversion has to exist on the model, because that is the only place Spatie lets
+     * anyone declare one - a package cannot add a conversion to somebody else's model:
+     *
+     *     public function registerMediaConversions(?Media $media = null): void
+     *     {
+     *         $this->addMediaConversion('arte-thumb')->fit(Fit::Contain, 320, 320);
+     *     }
+     *
+     * Anything the model has not generated falls back to the original, so naming a conversion
+     * that does not exist yet costs nothing and starts working as soon as it does.
+     */
+    public function mediaLibraryThumbnail(string|Closure|null $conversion): static
+    {
+        $this->mediaLibraryThumbnail = $conversion;
+
+        return $this;
+    }
+
+    public function getMediaLibraryThumbnail(): ?string
+    {
+        $conversion = $this->evaluate($this->mediaLibraryThumbnail)
+            ?? config('filament-advanced-rich-editor.media_library.thumbnail');
+
+        return filled($conversion) ? (string) $conversion : null;
+    }
+
+    /**
+     * How many pictures one page of the grid holds. The grid loads the next page on demand, so
+     * this is a request size rather than a limit on the library.
+     */
+    public function mediaLibraryPageSize(int|Closure|null $size): static
+    {
+        $this->mediaLibraryPageSize = $size;
+
+        return $this;
+    }
+
+    public function getMediaLibraryPageSize(): int
+    {
+        $size = $this->evaluate($this->mediaLibraryPageSize)
+            ?? config('filament-advanced-rich-editor.media_library.page_size')
+            ?? 40;
+
+        return max(1, min(200, (int) $size));
+    }
+
+    /**
+     * Which of the two layouts the browser opens on.
+     *
+     * The grid is the default because picking a picture is done by looking at pictures. The
+     * list is what the grid cannot do: names, sizes and dates lined up in columns, which is how
+     * you find one file among four hundred rather than recognise one among twelve.
+     *
+     * Only the opening layout. Which one somebody browses in afterwards is a habit rather than
+     * a setting, so the dialog remembers their last choice and that wins over this.
+     */
+    public function mediaLibraryListView(bool|Closure $condition = true): static
+    {
+        $this->mediaLibraryListView = $condition;
+
+        return $this;
+    }
+
+    public function hasMediaLibraryListView(): bool
+    {
+        return (bool) ($this->evaluate($this->mediaLibraryListView)
+            ?? config('filament-advanced-rich-editor.media_library.list_view')
+            ?? false);
+    }
+
+    /**
+     * The pool the browser lists from, and the pool a stored id may resolve against.
+     *
+     * Built fresh rather than memoised: the closures inside it read the live component, and
+     * fields are cloned - by repeaters, by custom block modals - so a source cached on one
+     * instance would keep answering with the record of another.
+     */
+    public function getMediaSource(): ?MediaSource
+    {
+        if (! $this->hasMediaLibrary()) {
+            return null;
+        }
+
+        $provider = $this->getFileAttachmentProvider();
+
+        if ($provider instanceof SpatieMediaLibraryFileAttachmentProvider) {
+            // Already attached by `getFileAttachmentProvider()`, which is the one place that
+            // has to do it: everything Filament resolves goes through the provider, and a
+            // source built only here would leave those lookups unauthorised.
+            return $provider->getSource();
+        }
+
+        // Any other provider defines both where an attachment lives and what its id means, and
+        // neither is anything this package can enumerate. Treating it as a plain disk field
+        // would open a grid on the wrong pool and, because the pool is also the authoriser,
+        // refuse the very ids that provider issued. No browser is the honest answer; Filament's
+        // own dialog takes the button back.
+        if ($provider !== null) {
+            return null;
+        }
+
+        $library = $this->getMediaLibraryDirectory();
+        $directory = $library ?? $this->getFileAttachmentsDirectory();
+
+        // Filament leaves `fileAttachmentsDirectory()` null by default, and uploads then land at
+        // the root of the disk among everything else on it. A grid over that root is not a
+        // library of this field's pictures, it is the disk - other features' uploads, avatars,
+        // exports - and it would let a stored path resolve to any of them. A directory is what
+        // turns a disk into a pool, so without one there is nothing to browse.
+        if (blank($directory)) {
+            return null;
+        }
+
+        return DiskMediaSource::make(
+            disk: $this->getFileAttachmentsDiskName(),
+            directory: (string) $directory,
+            visibility: $this->getFileAttachmentsVisibility(),
+            acceptedMimeTypes: $this->getFileAttachmentsAcceptedFileTypes(),
+            isRecordScoped: blank($library),
+        );
+    }
+
+    /**
+     * The Spatie pool, for the provider to authorise through.
+     *
+     * Kept apart from `getMediaSource()` so the two cannot call each other: the provider is
+     * where a source is attached, and `getMediaSource()` reads it back off the provider.
+     */
+    protected function buildSpatieMediaSource(SpatieMediaLibraryFileAttachmentProvider $provider): SpatieMediaSource
+    {
+        // Where uploads are sent, the browser looks. Otherwise naming a library would mean
+        // pictures landing somewhere the grid cannot show and the lookup will not resolve -
+        // one call that quietly needs a second one to be of any use.
+        $owner = $this->getMediaLibraryUploadTarget();
+
+        return SpatieMediaSource::make(
+            collection: $provider->getCollection(),
+            conversion: $provider->getConversion(),
+            visibility: $provider->getDefaultFileAttachmentVisibility(),
+            poolQuery: $this->mediaLibraryQuery,
+            getRecordUsing: fn (): mixed => $owner ?? $this->getRecord(),
+            acceptedMimeTypes: $this->getFileAttachmentsAcceptedFileTypes(),
+            thumbnailConversion: $this->getMediaLibraryThumbnail(),
+            scope: $this->getMediaLibraryScope(),
+            // Stands in for the record on a create form, which has none yet - otherwise the
+            // library would be empty at exactly the moment somebody reaches for a picture they
+            // already have.
+            getModelUsing: fn (): mixed => $owner ?? $this->getModel(),
+        );
+    }
+
+    /**
+     * One page of the browser, fetched by the grid as it scrolls.
+     *
+     * Exposed to the front end, so it re-reads the pool from the field on every call rather
+     * than trusting anything the browser sends beyond a search term and a page number.
+     *
+     * @return array{items: array<int, array<string, mixed>>, folders: array<int, array{name: string, path: string}>, parent: string|null, hasMore: bool}
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function getMediaLibraryPageForJs(string $search = '', ?string $folder = null, int $page = 1, ?string $type = null, ?string $sort = null): array
+    {
+        $source = $this->getMediaSource();
+
+        if (! $source) {
+            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'perPage' => $this->getMediaLibraryPageSize()];
+        }
+
+        // Taken over here rather than as each file lands. Uploading is a request per file, and
+        // writing to the component in the middle of one forces a render between the first file
+        // and the second - which is enough for Filament to rebuild its schema cache and refuse
+        // the next upload, because the guard on `_startUpload` only accepts a path that a
+        // cached schema still knows about.
+        //
+        // Doing it when the browser asks for a page keeps every upload request untouched, and
+        // the browser asks as soon as an upload finishes.
+        $this->adoptMountedUploads();
+
+        $search = trim($search);
+        $page = max(1, $page);
+
+        $perPage = $this->getMediaLibraryPageSize();
+
+        $result = $source->page(
+            search: $search,
+            folder: $folder,
+            page: $page,
+            perPage: $perPage,
+            filters: ['type' => $type, 'sort' => $sort],
+        );
+
+        // Sent rather than left for the browser to infer. A grid that guesses the page size
+        // from how many tiles came back reads a short last page as a tiny page size, and then
+        // divides the whole library by it - which is how a two-page library grew a footer
+        // saying "2 / 41" with a Next button leading to nothing.
+        $result['perPage'] = $perPage;
+
+        // A picture uploaded a moment ago is not in the library yet - Filament holds it as a
+        // pending attachment and only writes it on save - so a browser that listed the library
+        // alone would answer "no such picture" about the file somebody just chose. It goes at
+        // the front of the first page, where the newest things already are.
+        //
+        // Only on the first page, and only at the top of the tree: a pending upload has no
+        // folder to sit in, and repeating it under every folder would be worse than not
+        // showing it at all.
+        if ($page === 1 && blank($folder)) {
+            $pending = $this->getPendingMediaItems($search);
+
+            if ($type !== null && filled($type)) {
+                $pending = array_values(array_filter(
+                    $pending,
+                    static fn (array $item): bool => $item['mime'] === $type,
+                ));
+            }
+
+            $result['items'] = [...$pending, ...$result['items']];
+            $result['total'] = ((int) $result['total']) + count($pending);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Everything the details panel shows about one picture.
+     *
+     * A second call rather than part of the page, because the expensive field is the size in
+     * pixels: a picture that was never stamped with it has to be opened to be measured, and
+     * doing that for a grid would be a file read per tile. The panel shows one at a time.
+     *
+     * @return array<string, mixed>|null
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function getMediaDetailsForJs(?string $id = null): ?array
+    {
+        if (blank($id) || ! $this->hasMediaLibrary()) {
+            return null;
+        }
+
+        // A pending upload is not in the pool, and it is already described in full by the
+        // listing - the file is local, so its size in pixels was read there rather than left
+        // for this call.
+        $pending = $this->pendingMediaItem($id, $this->getUploadedFileAttachment($id));
+
+        if ($pending !== null) {
+            return $pending;
+        }
+
+        return $this->getMediaSource()?->details($id);
+    }
+
+    /**
+     * Takes over the uploads the image dialog is holding.
+     *
+     * The dialog is a modal, and a modal's form is thrown away when it closes - so an upload
+     * that lived there disappeared the moment somebody pressed apply, taking every picture
+     * they had queued up but not used yet with it.
+     *
+     * Moved here instead, where Filament already keeps pending attachments: they belong to the
+     * field, outlive any number of trips through the dialog, and are turned into real files
+     * only when the form is saved - and then only the ones the content actually references.
+     * Everything else is simply never written, so nothing has to be cleaned up.
+     *
+     * @param  array<mixed>  $files
+     */
+    public function registerPendingUploads(array $files): void
+    {
+        // Held in a variable because `data_set()` takes its target by reference, which a method
+        // call cannot be.
+        $livewire = $this->getLivewire();
+        $statePath = $this->getStatePath();
+
+        foreach ($files as $file) {
+            if (! ($file instanceof TemporaryUploadedFile)) {
+                continue;
+            }
+
+            // Named after the file rather than after the key it arrived under. The dialog
+            // reports its whole set every time one more picture is added, and the keys of that
+            // set are Filament's business - a plain list one moment, keyed by id the next - so
+            // trusting them would queue the same upload twice under two different names.
+            //
+            // Hashed, because the temporary file name carries dots and `data_set()` reads a dot
+            // as a level of nesting: one attachment would quietly become a tree that nothing
+            // can find again.
+            $id = 'arte-'.md5($file->getFilename());
+
+            data_set($livewire, "componentFileAttachments.{$statePath}.{$id}", $file);
+        }
+    }
+
+    /**
+     * Takes over whatever the image dialog is currently holding.
+     *
+     * The dialog's own form belongs to a modal and is thrown away when the modal closes, so an
+     * upload left there disappears the moment somebody presses apply - taking every picture
+     * they had queued up but not used yet with it. Moved to the field instead, where Filament
+     * already keeps pending attachments.
+     *
+     * Read out of the mounted actions rather than pushed in by the dialog, so that nothing is
+     * written to the component while an upload request is in flight.
+     */
+    public function adoptMountedUploads(): void
+    {
+        $mounted = data_get($this->getLivewire(), 'mountedActions');
+
+        if (! is_array($mounted)) {
+            return;
+        }
+
+        foreach ($mounted as $action) {
+            $files = data_get($action, 'data.file');
+
+            if (is_array($files)) {
+                $this->registerPendingUploads($files);
+            }
+        }
+    }
+
+    /**
+     * Lets go of every upload this field was holding.
+     *
+     * Called once the form has been saved, which is the moment they have all been decided: the
+     * ones the content references have been written to disk and carry real ids now, and the
+     * rest are pictures somebody fetched and did not use.
+     *
+     * Both are finished with. Keeping the first would show the same picture twice in the
+     * browser - once as the file it became, once as the upload it used to be - and keeping the
+     * second would offer a temporary file that is about to be swept away as though it were a
+     * library item.
+     *
+     * The temporary files go too. Livewire prunes its own directory eventually, but "eventually"
+     * is a lot of abandoned uploads on a busy editor, and these are known to be finished with.
+     */
+    public function discardPendingUploads(): void
+    {
+        $livewire = $this->getLivewire();
+        $statePath = $this->getStatePath();
+
+        $attachments = data_get($livewire, "componentFileAttachments.{$statePath}");
+
+        if (! is_array($attachments) || $attachments === []) {
+            return;
+        }
+
+        foreach ($attachments as $file) {
+            if (! ($file instanceof TemporaryUploadedFile)) {
+                continue;
+            }
+
+            // A file Livewire has already swept, or one on a disk that will not have it
+            // deleted: not being able to tidy up is not a reason to fail a save.
+            rescue(static fn () => $file->delete(), report: false);
+        }
+
+        data_set($livewire, "componentFileAttachments.{$statePath}", []);
+    }
+
+    /**
+     * The uploads this field is holding that have not been saved yet.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getPendingMediaItems(string $search = ''): array
+    {
+        $attachments = data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}");
+
+        if (! is_array($attachments)) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach (array_reverse($attachments, preserve_keys: true) as $id => $attachment) {
+            if (! is_string($id)) {
+                continue;
+            }
+
+            $item = $this->pendingMediaItem($id, $attachment);
+
+            if ($item === null) {
+                continue;
+            }
+
+            if (filled($search) && ! str_contains(Str::lower($item['name']), Str::lower($search))) {
+                continue;
+            }
+
+            $items[] = $item;
+        }
+
+        return $items;
+    }
+
+    /**
+     * One pending upload as the grid draws an item, or null where it is not one this browser
+     * should offer - a file that failed Filament's own validation, or something that is not a
+     * picture and would insert a broken image.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function pendingMediaItem(string $id, mixed $attachment): ?array
+    {
+        if (! ($attachment instanceof TemporaryUploadedFile)) {
+            return null;
+        }
+
+        // Through the field rather than off the file: this is where Filament re-checks the
+        // size and the accepted types, and a rejected upload must not become a tile.
+        $file = $this->getUploadedFileAttachment($id);
+
+        if (! $file) {
+            return null;
+        }
+
+        $mime = (string) $file->getMimeType();
+
+        if (! str_starts_with($mime, 'image/')) {
+            return null;
+        }
+
+        $url = $this->getUploadedFileAttachmentTemporaryUrl($file);
+
+        if (blank($url)) {
+            return null;
+        }
+
+        $name = (string) $file->getClientOriginalName();
+
+        return [
+            'id' => $id,
+            'url' => $url,
+            'thumbnail' => $url,
+            'name' => $name,
+            'fileName' => $name,
+            'mime' => $mime,
+            'size' => (int) $file->getSize(),
+            'folder' => null,
+            'createdAt' => null,
+            'modifiedAt' => null,
+            // Measured here rather than left for the panel: a pending upload is a file Livewire
+            // is holding on local disk, so reading its header costs nothing, and there are a
+            // handful of them rather than a library's worth.
+            ...($this->measurePending($file) ?? ['width' => null, 'height' => null]),
+            // Drawn differently, and said out loud: this one is not in the library until the
+            // form is saved, and somebody who navigates away now will not find it again.
+            'pending' => true,
+        ];
+    }
+
+    /**
+     * @return array{width: int, height: int}|null
+     */
+    protected function measurePending(TemporaryUploadedFile $file): ?array
+    {
+        $path = $file->getRealPath();
+
+        if (is_file($path)) {
+            return MediaDimensions::fromPath($path);
+        }
+
+        // Livewire keeps temporary uploads on a remote disk in some setups, where there is no
+        // local file to point `getimagesize()` at.
+        return MediaDimensions::fromString((string) $file->get());
+    }
+
+    /**
+     * The item behind an id the dialog sent back, pending uploads included.
+     *
+     * Never trusts the id: a pending one has to be an upload this field is actually holding,
+     * and a stored one has to be something the pool would have listed.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findMediaItem(mixed $id): ?array
+    {
+        if (is_string($id) && ($pending = $this->pendingMediaItem($id, $this->getUploadedFileAttachment($id))) !== null) {
+            return $pending;
+        }
+
+        return $this->getMediaSource()?->find($id);
+    }
+
     public function spatieMediaLibrary(?string $collection = null, ?string $conversion = null, ?string $disk = null, ?string $visibility = null): static
     {
         $isFirstCall = $this->spatieMediaLibraryPlugin === null;
@@ -1727,7 +2415,7 @@ class AdvancedRichEditor extends RichEditor
         // Field level configuration wins over plugins, which in turn win over
         // the provider declared on the model's rich content attribute.
         if ($provider = $this->getSpatieMediaLibraryPlugin()?->getFileAttachmentProvider()) {
-            return $provider;
+            return $this->withMediaSource($provider);
         }
 
         foreach ($this->getPlugins() as $plugin) {
@@ -1736,11 +2424,31 @@ class AdvancedRichEditor extends RichEditor
             }
 
             if ($provider = $plugin->getFileAttachmentProvider()) {
-                return $provider;
+                return $this->withMediaSource($provider);
             }
         }
 
-        return parent::getFileAttachmentProvider();
+        return $this->withMediaSource(parent::getFileAttachmentProvider());
+    }
+
+    /**
+     * Hands the provider the pool the media browser lists from.
+     *
+     * Every lookup Filament performs - hydrating a document, saving one, rendering one back -
+     * goes through the provider, so this is the single place where "what the browser offers"
+     * becomes "what a stored id may resolve to". Attaching it anywhere else would leave some
+     * of those paths reading against the record scope alone, and a picture picked from the
+     * library would resolve in the editor and vanish on the page.
+     */
+    protected function withMediaSource(?FileAttachmentProvider $provider): ?FileAttachmentProvider
+    {
+        if ($provider instanceof SpatieMediaLibraryFileAttachmentProvider) {
+            $provider->source(
+                $this->hasMediaLibrary() ? $this->buildSpatieMediaSource($provider) : null,
+            );
+        }
+
+        return $provider;
     }
 
     /**
@@ -1752,7 +2460,22 @@ class AdvancedRichEditor extends RichEditor
     {
         return $this->spatieMediaLibraryPlugin
             ?->recordUsing(fn (): mixed => $this->getRecord())
-            ->ownerUsing(fn (): string => $this->getName());
+            ->ownerUsing(fn (): string => $this->getName())
+            ->uploadsToUsing(fn (): mixed => $this->getMediaLibraryUploadTarget());
+    }
+
+    public function saveFileAttachments(): void
+    {
+        parent::saveFileAttachments();
+
+        // Not on a create page, where the parent bails out and leaves the work to
+        // `saveFileAttachmentsToRecord()`: discarding here would throw the uploads away before
+        // a single one of them had been written.
+        if ($this->getFileAttachmentProvider()?->isExistingRecordRequiredToSaveNewFileAttachments() && (! $this->getRecord())) {
+            return;
+        }
+
+        $this->discardPendingUploads();
     }
 
     /**
@@ -1793,5 +2516,7 @@ class AdvancedRichEditor extends RichEditor
         $record->save();
 
         $fileAttachmentProvider->cleanUpFileAttachments(exceptIds: $fileAttachmentIds);
+
+        $this->discardPendingUploads();
     }
 }

@@ -8,13 +8,16 @@ use Closure;
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Illuminate\Database\Eloquent\Model;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaUrl;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use RuntimeException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Throwable;
 
 /**
  * Stores rich editor image attachments as `spatie/laravel-medialibrary` media instead of
@@ -44,6 +47,10 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     protected ?Closure $getRecordUsing = null;
 
     protected ?Closure $getOwnerUsing = null;
+
+    protected ?MediaSource $source = null;
+
+    protected ?Closure $getUploadTargetUsing = null;
 
     final public function __construct(
         protected ?string $collection = null,
@@ -95,6 +102,39 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
         $this->getOwnerUsing = $callback;
 
         return $this;
+    }
+
+    /**
+     * The model new uploads are attached to, when it is not the record being edited.
+     *
+     * A media row belongs to a model, and the file's path is derived from the row's id - so a
+     * picture uploaded while editing an article belongs to that article, and deleting the
+     * article takes the file with it. Fine while the picture is only used there; not fine once
+     * a second article reuses it.
+     *
+     * Pointing uploads at a model that exists for the purpose - a library nobody edits - breaks
+     * that coupling: no article owns the file, so no article can take it away.
+     *
+     * Reading and cleaning up are deliberately left alone. The sweep still looks only at the
+     * record's own collection, which is why library pictures are never swept: they are not the
+     * record's to delete.
+     */
+    public function uploadsToUsing(?Closure $callback): static
+    {
+        $this->getUploadTargetUsing = $callback;
+
+        return $this;
+    }
+
+    public function getUploadTarget(): ?Model
+    {
+        if (! ($this->getUploadTargetUsing instanceof Closure)) {
+            return null;
+        }
+
+        $target = ($this->getUploadTargetUsing)();
+
+        return ($target instanceof Model) ? $target : null;
     }
 
     /**
@@ -157,10 +197,13 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      * On a create form there is no record yet, so Filament skips the attachment save during
      * dehydration and replays it from `saveRelationshipsUsing()` once the record has been
      * inserted — media rows always need a persisted model to belong to.
+     *
+     * Unless uploads go somewhere else. A library model is already there before the form is
+     * opened, so there is nothing to wait for and the attachment can be written at once.
      */
     public function isExistingRecordRequiredToSaveNewFileAttachments(): bool
     {
-        return true;
+        return ! $this->getUploadTarget()?->exists;
     }
 
     public function getDefaultFileAttachmentVisibility(): ?string
@@ -175,7 +218,7 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      */
     public function saveUploadedFileAttachment(TemporaryUploadedFile $file): mixed
     {
-        $record = $this->getMediaRecord(required: true);
+        $record = $this->getUploadRecord();
 
         $fileName = $file->getClientOriginalName();
 
@@ -199,8 +242,19 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
                 ->usingFileName($fileName)
                 ->usingName(pathinfo($fileName, PATHINFO_FILENAME));
 
-            if ($owner !== null) {
-                $adder = $adder->withCustomProperties([static::OWNER_PROPERTY => $owner]);
+            $properties = ($owner !== null) ? [static::OWNER_PROPERTY => $owner] : [];
+
+            // Measured here because here is the one moment it is free: the file is a local
+            // copy that has already been read. The media browser shows the dimensions of a
+            // picture, and reading them back off a remote disk later is a request per image.
+            $dimensions = MediaDimensions::fromPath($temporaryPath);
+
+            if ($dimensions !== null) {
+                $properties += $dimensions;
+            }
+
+            if ($properties !== []) {
+                $adder = $adder->withCustomProperties($properties);
             }
 
             $media = $adder->toMediaCollection($this->getCollection(), $this->getDisk() ?? '');
@@ -244,10 +298,17 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      * something that is not this field, and the worst case for keeping a file is a file too
      * many, while the worst case for deleting one is somebody's content.
      *
+     * And nothing at all is deleted once the browser has offered these pictures to other
+     * records; see `sweepsSafely()`.
+     *
      * @param  array<mixed>  $exceptIds
      */
     public function cleanUpFileAttachments(array $exceptIds): void
     {
+        if (! $this->sweepsSafely()) {
+            return;
+        }
+
         $record = $this->getMediaRecord();
 
         if (! $record?->exists) {
@@ -279,9 +340,43 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     }
 
     /**
+     * Whether removing a picture from this record's content may delete the file behind it.
+     *
+     * Only when this record is the only place the picture could be. The sweep can read one
+     * record's content; it cannot read every other record's, and it has no way to learn which
+     * models and columns even hold rich content. So the moment the browser lists a pool wider
+     * than the record - the shipped default, because sharing one library across records is what
+     * the browser is for - the uuid being removed here may equally be sitting in a document this
+     * code will never see, and deleting the file would take that document's picture away with
+     * it, silently and for good.
+     *
+     * The two outcomes are not comparable. A file kept too long costs disk space, is visible in
+     * the library, and can be deleted deliberately at any time; a file deleted too early costs
+     * somebody else's content and cannot be undone. So a shared library is swept by hand, or by
+     * `spatie/laravel-medialibrary`'s own cleanup commands, which can see the whole picture.
+     *
+     * `->mediaLibraryScope('record')` narrows the pool back to this record and turns automatic
+     * sweeping on again, as does switching the browser off: with nothing wider than the record
+     * on offer, nothing else can be holding the uuid.
+     */
+    protected function sweepsSafely(): bool
+    {
+        // No source at all means nothing ever widened the pool - a renderer, or a field whose
+        // browser is off. That is the behaviour the sweep was written for.
+        return ! $this->source instanceof MediaSource
+            || $this->source->isRecordScoped();
+    }
+
+    /**
      * Resolves a media UUID (or an already hydrated media instance) against the record's own
-     * collection. Scoping the lookup is what stops a tampered `data-id` from another record
-     * being resolved into a URL here.
+     * collection, and against the browsable pool where the field has one. Scoping the lookup
+     * is what stops a tampered `data-id` from another record being resolved into a URL here.
+     *
+     * The two scopes are a union, and each is there for its own reason. The record's own
+     * collection is what this field uploaded and has always been able to resolve. The pool is
+     * whatever the media browser was configured to list - and because it is the same object
+     * the grid lists from, opening the browser wider and allowing a wider `data-id` are one
+     * act rather than two that can drift apart.
      */
     protected function resolveMedia(mixed $file): ?Media
     {
@@ -306,15 +401,27 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
                 }
             }
 
-            return null;
+            return $this->resolveFromSource($uuid);
         }
 
-        // Without a record — for instance a `RichContentRenderer` that was handed this provider
-        // directly — there is nothing to scope against. The content being rendered comes from the
-        // database rather than from the client, so an unscoped lookup is acceptable there.
         if ($file instanceof Media) {
             return $file;
         }
+
+        // A field with no record is a create page: the record has not been inserted yet, but the
+        // document is being typed right now, so its ids are as client-supplied as they ever get.
+        // The pool is the scope there, exactly as it is once the record exists - which is what
+        // keeps the browser working on a create page without opening the lookup to every media
+        // row in the application.
+        //
+        // The field is recognised by the owner resolver it injects; nothing else sets one.
+        if ($this->getOwnerUsing instanceof Closure) {
+            return $this->resolveFromSource($uuid);
+        }
+
+        // Genuinely no field — a `RichContentRenderer` handed this provider directly. There is
+        // nothing to scope against and nothing to scope for: the content being rendered came out
+        // of the database rather than off a keyboard.
 
         // `findByUuid()` is declared on a trait shared with other models and returns the
         // framework's base model type.
@@ -323,30 +430,69 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
         return ($media instanceof Media) ? $media : null;
     }
 
+    /**
+     * The pool the media browser lists from, when the field opened one.
+     *
+     * Set by the field rather than passed to the constructor, because the source needs the
+     * live component to resolve its record and the provider is built before there is one.
+     */
+    public function source(?MediaSource $source): static
+    {
+        $this->source = $source;
+
+        return $this;
+    }
+
+    public function getSource(): ?MediaSource
+    {
+        return $this->source;
+    }
+
+    /**
+     * The pool's answer for a UUID the record's own collection does not hold.
+     *
+     * Only a `SpatieMediaSource` can answer with media; a disk source belongs to a field that
+     * does not use this provider at all.
+     */
+    protected function resolveFromSource(string $uuid): ?Media
+    {
+        return ($this->source instanceof SpatieMediaSource)
+            ? $this->source->media($uuid)
+            : null;
+    }
+
     protected function getMediaUrl(Media $media): ?string
     {
-        $conversion = $this->getConversion() ?? '';
+        return MediaUrl::for(
+            $media,
+            $this->getConversion(),
+            $this->getDefaultFileAttachmentVisibility(),
+        );
+    }
 
-        // A private disk has no permanent public URL, so mirror Filament's own behaviour for
-        // private attachments and hand out a short-lived signed URL instead.
-        if ($this->getDefaultFileAttachmentVisibility() === 'private') {
-            try {
-                return $media->getTemporaryUrl(
-                    now()->addMinutes(config('filament.temporary_file_url_expiry_minutes', 30))->endOfHour(),
-                    $conversion,
-                );
-            } catch (Throwable $exception) {
-                // This driver does not support creating temporary URLs.
-            }
+    /**
+     * The model an upload is attached to: the library where one was named, the record otherwise.
+     *
+     * Only the write path asks. Reading and cleaning up keep asking `getMediaRecord()`, because
+     * what a field may resolve and what it may delete are questions about the record.
+     */
+    protected function getUploadRecord(): HasMedia&Model
+    {
+        $target = $this->getUploadTarget();
+
+        if ($target instanceof HasMedia && $target->exists) {
+            return $target;
         }
 
-        try {
-            return $media->getUrl($conversion);
-        } catch (Throwable $exception) {
-            // The media, its file or the requested conversion is gone; a missing image is far
-            // better than a 500 while rendering somebody's content.
-            return null;
+        if ($target !== null) {
+            throw new RuntimeException(sprintf(
+                'The model [%s] that rich editor uploads are directed to must exist and implement [%s].',
+                $target::class,
+                HasMedia::class,
+            ));
         }
+
+        return $this->getMediaRecord(required: true);
     }
 
     /**

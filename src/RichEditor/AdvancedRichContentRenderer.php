@@ -6,11 +6,13 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
 use BackedEnum;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageCaption;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
 use Tiptap\Core\Extension;
@@ -147,20 +149,32 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      */
     public function getTipTapPhpExtensions(): array
     {
-        if (! $this->hasLinkAttributes) {
-            return [...parent::getTipTapPhpExtensions(), app(Anchor::class)];
-        }
-
+        // Before anything else, and on every path: what the mention node renders is the
+        // only place a page learns which trigger a mention was written with, because the
+        // sanitiser removes the attribute that says so.
         $extensions = array_map(
-            // Filament's link mark is replaced rather than joined by a second one. Two
-            // extensions of the same name are both applied, which renders a link nested
-            // inside a link; and the options carry the protocol allow list the field or
-            // the renderer configured, so they are carried across rather than rebuilt.
-            static fn (Extension $extension): Extension => $extension instanceof BaseLink && ! ($extension instanceof Link)
-                ? new Link($extension->options)
+            static fn (Extension $extension): Extension => $extension instanceof MentionExtension && ! ($extension instanceof Mention)
+                ? new Mention($extension->options)
                 : $extension,
             parent::getTipTapPhpExtensions(),
         );
+
+        // Only the link mark hangs off the switch, and nothing else may join it here: this
+        // used to return early for a field with the attributes turned off, past the point
+        // where the nodes below are declared - so asking for Filament's plain links threw
+        // away every video and every caption in the document along with them.
+        if ($this->hasLinkAttributes) {
+            $extensions = array_map(
+                // Filament's link mark is replaced rather than joined by a second one. Two
+                // extensions of the same name are both applied, which renders a link nested
+                // inside a link; and the options carry the protocol allow list the field or
+                // the renderer configured, so they are carried across rather than rebuilt.
+                static fn (Extension $extension): Extension => $extension instanceof BaseLink && ! ($extension instanceof Link)
+                    ? new Link($extension->options)
+                    : $extension,
+                $extensions,
+            );
+        }
 
         return [
             ...$extensions,
@@ -218,6 +232,116 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         // Before the sanitiser rather than after it: what a highlighter produces is markup,
         // and markup this package generates goes through the same door as everything else.
         return $this->codeHighlighter?->apply($html) ?? $html;
+    }
+
+    /**
+     * The document as plain text, mentions included.
+     *
+     * TipTap's text serialiser walks `content` and `text` and calls `renderText()` on
+     * nothing at all, so an atom node contributes an empty string - and the block separator
+     * left around it turns into a hole in the middle of a sentence. Filament already works
+     * around this for merge tags by rewriting them into text before serialising; mentions
+     * need the same treatment, and this is where a search index, an excerpt or the body of
+     * a notification gets its copy of the document.
+     */
+    public function toText(): string
+    {
+        // The same reasoning as `toUnsafeHtml()`: the serialiser reads the document before
+        // it checks that there is one.
+        if (blank($this->content)) {
+            return '';
+        }
+
+        $editor = $this->getEditor();
+
+        // In the order Filament's own `toText()` uses them, with the mention passes added:
+        // resolving first, so that the text is written from what the providers say now
+        // rather than from the copy the document was saved with.
+        $this->processMergeTags($editor);
+        $this->flattenMergeTagsForText($editor);
+        $this->processMentions($editor);
+        $this->flattenMentionsForText($editor);
+
+        return $editor->getText();
+    }
+
+    /**
+     * Rewrites every mention into the text it reads as.
+     *
+     * Adjacent text is joined rather than left as neighbouring nodes, because the serialiser
+     * puts its block separator between any two children - so "Ping @Ada and #Backend" would
+     * come out as four lines with the mention missing from two of them.
+     */
+    protected function flattenMentionsForText(Editor $editor): void
+    {
+        $editor->descendants(function (object &$node): void {
+            if (! isset($node->content) || ! is_array($node->content)) {
+                return;
+            }
+
+            $hasMentions = false;
+
+            foreach ($node->content as $child) {
+                if (($child->type ?? null) === 'mention') {
+                    $hasMentions = true;
+
+                    break;
+                }
+            }
+
+            if (! $hasMentions) {
+                return;
+            }
+
+            $merged = [];
+
+            foreach ($node->content as $child) {
+                $resolved = ($child->type ?? null) === 'mention'
+                    ? static::mentionAsText($child)
+                    : $child;
+
+                // A mention with neither a label nor an id names nobody. Dropping it leaves
+                // the sentence around it intact, which is the best available answer.
+                if ($resolved === null) {
+                    continue;
+                }
+
+                $last = end($merged);
+
+                if ($last && ($last->type ?? null) === 'text' && $resolved->type === 'text') {
+                    $last->text .= $resolved->text;
+
+                    continue;
+                }
+
+                $merged[] = $resolved;
+            }
+
+            $node->content = $merged;
+        });
+    }
+
+    /**
+     * One mention as the text node that reads the way it was typed.
+     */
+    protected static function mentionAsText(object $node): ?object
+    {
+        $label = $node->attrs->label ?? null;
+
+        // The id rather than nothing: a visible identifier beats a hole where a name should
+        // be, and it is what the document has left once the label is gone.
+        if (blank($label)) {
+            $label = $node->attrs->id ?? null;
+        }
+
+        if (blank($label)) {
+            return null;
+        }
+
+        return (object) [
+            'type' => 'text',
+            'text' => ($node->attrs->char ?? '@').$label,
+        ];
     }
 
     protected function processNodes(Editor $editor): void

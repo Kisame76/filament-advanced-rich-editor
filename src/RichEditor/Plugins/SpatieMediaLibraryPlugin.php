@@ -72,6 +72,18 @@ class SpatieMediaLibraryPlugin implements HasFileAttachmentProvider, RichContent
         return $this;
     }
 
+    /**
+     * Forwarded to the provider. The field injects the model new uploads should belong to, so a
+     * shared library can own its own pictures instead of them hanging off whichever record
+     * happened to be open when they were fetched.
+     */
+    public function uploadsToUsing(?Closure $callback): static
+    {
+        $this->provider->uploadsToUsing($callback);
+
+        return $this;
+    }
+
     public function getFileAttachmentProvider(): ?FileAttachmentProvider
     {
         return $this->provider;

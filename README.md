@@ -20,6 +20,8 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Heading levels 1 to 6** — not just the stock `h2` / `h3`
 - **Task lists** — checkbox lists as a proper TipTap plugin, with the JS loaded on request
 - **Image tool** — insert and re-edit images including their alt text and caption
+- **Media browser** — the image button opens the pictures already on the server, so one file
+  can be reused across articles instead of uploaded again
 - **Spatie Media Library** — opt in per field to store attachments in a media collection
 - **Anchored headings and a table of contents** — both from one slug pass, so a link in the
   list and an `id` on the page cannot drift apart
@@ -1196,6 +1198,225 @@ projects have the second one in a reset already:
 }
 ```
 
+### Media browser
+
+The image button opens the pictures that are already on the server, with uploading as the
+second tab — because uploading is what you do when the picture is *not* there yet. Filament's
+own dialog only ever asks for a file, so the same image lands on the disk once per article
+that shows it.
+
+Picking an existing picture stores exactly what an upload would have stored: the media UUID
+for a field with a media collection, the storage path for one without. **Nothing is copied.**
+One file on the disk backs any number of references, and content saved before this dialog
+existed is the same content as content saved through it — no migration, no new attribute.
+
+Resizing and rotating stay where they were: they are attributes of the image *node*, never of
+the file. The same picture can appear at three sizes in three articles without any of them
+disturbing the others.
+
+```php
+AdvancedRichEditor::make('content')->mediaLibrary(false);   // default: config('...media_library.enabled')
+```
+
+Switching it off restores Filament's own upload dialog exactly. Everything that opens the
+dialog — the toolbar button, the slash menu entry, clicking an image that is already in the
+text — keeps working either way, because the browser replaces that one action rather than
+adding a second one beside it.
+
+#### What it shows
+
+Out of the box the pool is **the collection the field uploads to** — every picture in it,
+whichever record or model owns it. The collection *is* the library: a picture put in
+`rich-editor` is a picture for rich editors, so an article and a post that both upload there
+draw from one pool instead of each fetching the same file again. Separate libraries are
+separate collections, which is what collections are for.
+
+Nothing is duplicated: both documents reference the same media row and the same file.
+
+Two narrower settings, for content whose pictures have no business being seen from elsewhere:
+
+```php
+->mediaLibraryScope('model')    // only records of the model being edited
+->mediaLibraryScope('record')   // only the record in front of you
+```
+
+To define the pool outright:
+
+```php
+// A media collection: the closure is the pool.
+AdvancedRichEditor::make('content')
+    ->spatieMediaLibrary('rich-editor')
+    ->mediaLibraryQuery(fn (Builder $query) => $query->where('collection_name', 'library'));
+
+// Plain files on a disk: the directory is the pool, and it is browsable with real folders.
+AdvancedRichEditor::make('content')
+    ->fileAttachmentsDisk('public')
+    ->mediaLibraryDirectory('library');
+```
+
+`->mediaLibraryPageSize(60)` changes how many pictures one request fetches; the footer counts
+the library and the arrows beside it turn the pages.
+
+#### Thumbnails
+
+A tile is about 120 pixels wide, so a grid drawing full-size photographs is a dialog that
+takes seconds to open for no visible gain. Point it at a small conversion:
+
+```php
+AdvancedRichEditor::make('content')
+    ->spatieMediaLibrary('rich-editor')
+    ->mediaLibraryThumbnail('arte-thumb');   // default: config('...media_library.thumbnail')
+```
+
+The conversion has to be declared on the model — that is the only place the media library
+accepts one, so a package cannot add it to your model for you:
+
+```php
+public function registerMediaConversions(?Media $media = null): void
+{
+    $this->addMediaConversion('arte-thumb')->fit(Fit::Contain, 320, 320);
+}
+```
+
+It is deliberately **separate from the conversion an inserted picture uses**: the tile should
+be small, and the image that lands in the document should not be.
+
+Anything not generated yet falls back to the original file — a model that never declared the
+conversion, or a fresh upload with a queued job still behind it. Naming a conversion before it
+exists costs nothing and starts working the moment it does, and a library of broken thumbnails
+is never the answer.
+
+#### Tiles or list
+
+The browser opens on tiles, because picking a picture is done by looking at pictures. The
+list is what tiles cannot do — names, sizes and dimensions lined up in columns, which is how
+you find one file among four hundred rather than recognise one among twelve. The switch is in
+the dialog, and **which one was last used is remembered in the browser**, because that is a
+habit rather than a setting. `->mediaLibraryListView()` and `media_library.list_view`
+decide what a reader who has no habit yet gets.
+
+Everything the dialog draws is built from Filament's own components — its input, its select,
+its dropdown, its buttons — so a panel with its own theme, its own dark mode or its own input
+styling gets a dialog that belongs to it.
+
+A search box, a filter for the kinds of picture the pool actually holds, and a sort — newest,
+oldest, name, largest, smallest. The filter is **derived from the pool**, so it never offers
+WebP to a library that has none.
+
+Selecting a picture fills a details panel beside the grid: preview, name, size, dimensions,
+type, modified, and a button that copies its URL.
+
+**Dimensions are read off the picture**, because for a field storing plain files there is
+nowhere else they could come from — no row to stamp, no custom properties. The same path is
+used with a media collection, so both behave alike:
+
+- everything this package uploads is measured at upload time, where the file is a local copy
+  that has already been read and measuring costs nothing;
+- everything else is measured from the file — the local path where the disk has one, so only
+  the few hundred bytes of header get read, and a ranged read otherwise.
+
+A measurement is **remembered per file**, keyed by its size and modification time, so a
+listing pays for a picture once rather than once per listing — and a file replaced under the
+same name is measured again. `media_library.cache_store` chooses where. With a media
+collection the numbers are also written onto the row once its details have been opened, so
+they survive a cache flush.
+
+#### Uploads appear straight away
+
+**The library is the dropzone.** Drag a picture anywhere onto the grid or the list and it
+uploads; the **Upload** button in the header opens the same file dialog. There is no separate
+upload field to find — a second target would sit exactly where the pictures being compared
+want to be.
+
+Both ways in go through Filament's own file upload, which is kept in the dialog but off
+screen: it is the whole upload path, with Livewire's protocol, the size and type validation,
+the progress events and the pending attachment behind it. Nothing here re-implements any of
+that.
+
+An upload is not in the library until the form is saved — Filament holds it as a pending
+attachment and only writes it on save. The browser shows it anyway, at the front of the first
+page, drawn with a dashed border and labelled as not yet saved. A fresh upload selects itself,
+because it is what somebody just went and fetched.
+
+**The dialog can hold two candidates at once**, and what decides which one is inserted is what
+is *selected* — not which of the two happens to exist. Choosing a picture from the library
+leaves an upload sitting where it is, unselected: it was fetched on purpose, and having it
+vanish because something else was clicked would be a surprise.
+
+Nothing is lost by keeping it. Only pictures that end up in the content are turned into
+attachments, so an upload nobody inserted stays a temporary file and expires on its own —
+there is nothing to delete and nothing to tidy up. Attachments that *were* inserted and are
+later taken out of the text are removed on the next save, by the same sweep that has always
+done it — unless the browser shares its pool across records, which switches the sweep off for
+a reason worth reading: see [Sharing a library safely](#sharing-a-library-safely).
+
+This also works on create pages, where there is no record for a media row to belong to yet.
+
+#### One rule
+
+**What the browser lists is what a stored `data-id` is allowed to resolve to.** The grid and
+the lookup are the same object, so they cannot drift into a gap: opening the browser wider and
+widening what saved content may point at are one act rather than two.
+
+On a media collection the file attachment provider enforces it — every lookup Filament makes
+goes through the provider, and it resolves a UUID against the record's own collection *and*
+the pool, and nothing else. On a plain disk there is no provider to enforce anything, so the
+browser switches on Filament's own `preventFileAttachmentPathTampering()` and answers it from
+the same pool. Two things stay valid regardless, and both have to: a path that is already in
+the saved content, so nothing anyone has published breaks, and a file uploaded a moment ago,
+which is a pending attachment rather than a path.
+
+A field that calls `preventFileAttachmentPathTampering()` itself overrides this.
+
+#### Sharing a library safely
+
+Reuse is a reference, not a copy, and that has one consequence worth stating before anything
+else: **a shared library is not swept automatically.**
+
+The sweep can read the document in front of it. It cannot read every other document in the
+application, and it has no way to learn which models and columns even hold rich content. So
+the moment the pool is wider than the record — which is the shipped default, because sharing
+is what the browser is for — the picture being removed here may equally be sitting in another
+record's content, and deleting the file would take that record's picture away too, silently
+and permanently. The editor therefore stops deleting: with a shared pool, taking a picture out
+of a document leaves the file where it is.
+
+The two mistakes are not comparable. A file kept too long costs disk space, is visible in the
+library, and can be removed whenever you decide; a file deleted too early costs somebody else's
+content and cannot be undone. Tidy a shared library deliberately — `spatie/laravel-medialibrary`
+ships cleanup commands that can see the whole picture, which this sweep cannot.
+
+Automatic clean-up comes back the moment nothing else can be holding the id:
+
+```php
+->mediaLibraryScope('record')   // the browser shows only this record; the sweep resumes
+->mediaLibrary(false)           // no browser at all; likewise
+```
+
+Beyond that, **a picture is deleted by whoever owns it.** The sweep only ever considers
+attachments *this field* uploaded to *this record* — media it did not put there is never
+touched, so an image picked from a shared pool is not a candidate in the first place. But if
+the pool points at another record's collection, deleting that record still takes its files.
+
+That matters because of how the media library stores things. A media row belongs to a model,
+and the default path generator builds the file's path out of the **row's id** — so two rows can
+never share one file, and `$media->copy()` copies the bytes. A picture uploaded while editing
+an article is that article's, and deleting the article takes the file with it.
+
+Give the pictures a model of their own and the coupling is gone:
+
+```php
+->mediaLibraryUploadsTo(fn () => MediaLibrary::firstOrCreate(['key' => 'editor']))
+```
+
+New uploads then belong to that model rather than to whichever record happened to be open.
+Nothing an editor deletes owns them, and the per-field sweep never touches them — it only ever
+looks at the record's own collection. Reading and browsing are unchanged: the pool is still the
+collection, so the library and the articles drawing from it see each other.
+
+It also removes the wait on create pages. A library exists before the form is opened, so there
+is no record to be inserted first and the attachment is written straight away.
+
 ### Spatie Media Library
 
 Optional. Install `spatie/laravel-medialibrary`, make the model implement `HasMedia`, and
@@ -1255,7 +1476,7 @@ AdvancedRichContentRenderer::bind();
 It also renders an empty record as an empty string. Filament's own renderer walks the
 document without first checking that there is one, and a rich content column is null until
 somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this
-one returns `''`.
+one returns `''`. The same goes for `toText()`.
 
 ### Anchors
 
@@ -1362,6 +1583,89 @@ at the wrong section.
 A document that jumps from `h2` to `h4` — which is most documents nobody wrote to a style
 guide — nests one step, not two. The reader meant *this belongs under that*; a list that
 opened two levels for it would be describing the markup rather than the document.
+
+### Mentions
+
+Mentions are Filament's own feature — `RichEditor::mentions()`, the `@` menu, more than one
+trigger — and this package changes nothing about the editor half. Configure the field the
+way Filament documents it:
+
+```php
+use Filament\Forms\Components\RichEditor\MentionProvider;
+
+AdvancedRichEditor::make('content')
+    ->mentions([
+        MentionProvider::make('@')
+            ->getSearchResultsUsing(fn (string $search): array => User::query()
+                ->where('name', 'like', "%{$search}%")
+                ->limit(10)
+                ->pluck('name', 'id')
+                ->all())
+            ->getLabelsUsing(fn (array $ids): array => User::query()
+                ->whereKey($ids)
+                ->pluck('name', 'id')
+                ->all())
+            ->url(fn (string $id): string => "/users/{$id}"),
+    ]);
+```
+
+**Hand the renderer the same providers.** A stored mention is an id and a copy of the name
+as it stood when it was typed; the provider is the only thing that knows the name *now*, and
+`url()` is never called anywhere else — the editor writes no `href`. A renderer that was not
+given the providers renders a stale name nobody can click:
+
+```php
+AdvancedRichContentRenderer::make($article->content)
+    ->mentions($providers)     // the same array the field was given
+    ->toHtml();
+```
+
+What this package adds on top:
+
+**A class to style.** Filament renders a mention as `data-type` and `data-id` and nothing
+else, which on a page is indistinguishable from any other span. It cannot render more:
+Filament's sanitiser allows `class`, `data-id`, `data-type` and `style`, so the `data-char`
+saying which trigger was used is stripped before the markup reaches anyone. The trigger
+therefore goes into the class instead:
+
+```html
+<a data-type="mention" data-id="2" href="/users/2"
+   class="fi-arte-mention fi-arte-mention-at">@Ada Lovelace</a>
+```
+
+`at`, `hash`, `plus`, `tilde`, `dollar`, `percent`, `amp`, `bang`, `slash` and `question`
+are named; any other trigger gets `fi-arte-mention` alone. Nothing is styled for you — the
+stylesheet this package ships is the editor's, and the page your content ends up on is
+yours.
+
+**Mentions survive `toText()`.** TipTap's PHP text serialiser walks `content` and `text` and
+calls `renderText()` on nothing at all, so a mention — an atom node with neither — used to
+come out as a hole with a blank line on each side. It reads the way it was typed now, which
+is what a search index, an excerpt or the body of a notification is copying:
+
+```
+Ping @Ada Lovelace and #Backend.
+```
+
+**`Mentions` answers who was mentioned.** The question that follows every mention feature,
+and the one neither the editor nor the renderer answers: the observer that has to send the
+mail has a column of markup and nothing else.
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Mentions;
+
+$mentions = Mentions::in($article->content);
+
+$mentions->ids('@');    // ['2', '7'] — each id once, in the order they were written
+$mentions->ids();       // every id, whichever trigger wrote it
+$mentions->grouped();   // ['@' => ['2', '7'], '#' => ['4']]
+$mentions->all();       // ['char' => '@', 'id' => '2', 'label' => 'Ada Lovelace'], repeats included
+```
+
+It takes no providers on purpose. Resolving a mention needs configuration, and a `saved()`
+hook that had to be handed the same providers as the field would be one more place for the
+two to drift apart. This reads what the document itself carries; whoever wants the record
+now has the id to look it up with.
 
 ### Markdown
 
@@ -1562,6 +1866,35 @@ php artisan vendor:publish --tag="filament-advanced-rich-editor-views"
 - **Media library is opt-in.** Without `->spatieMediaLibrary()` no media library code is
   touched, and the package works fine when `spatie/laravel-medialibrary` is not installed
   at all.
+- **Livewire's nesting limit is too low for a rich editor.** Livewire caps the depth of
+  a property path at `10` (`livewire.payload.max_nesting_depth`, seen on v4.4) and answers a
+  deeper one with a 500. The editor entangles a TipTap
+  document, and Livewire sends the changed leaf as a dot path — text inside a list item is
+  already eleven segments:
+
+  ```
+  data.content.content.3.content.0.content.0.content.0.text
+  ```
+
+  So typing in any list, saving afterwards, or opening the mention menu with the caret in
+  one throws `MaxNestingDepthExceededException`. A table cell holding a list reaches about
+  seventeen. This is not something this package causes or can fix — a stock Filament
+  `RichEditor` with a plain bullet list does the same — but this package ships the task
+  lists, tables and details that make a document deep, so you will meet it here first. Raise
+  the limit in `config/livewire.php`:
+
+  ```php
+  'payload' => [
+      'max_size' => 1024 * 1024,
+      'max_nesting_depth' => 32,   // 10 is Livewire's default and is not enough
+      'max_calls' => 50,
+      'max_components' => 200,
+  ],
+  ```
+
+  Publish the file first with `php artisan livewire:publish --config` if you have not
+  already; keep the other three keys, because a published `payload` array replaces the
+  vendor one whole rather than merging into it.
 
 ## Contributing
 

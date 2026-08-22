@@ -237,3 +237,33 @@ function links(string $html): array
 
     return ['count' => $anchors->count(), 'attributes' => $attributes];
 }
+
+/**
+ * Every mention in a fragment, as the attributes a page can actually see.
+ *
+ * Read back out of the markup rather than asserted as a string, for the same reason
+ * `links()` does it: attribute order is the schema's business and carries no meaning, and
+ * a test spelling the tag out would fail on a reordering that changed nothing.
+ *
+ * @return array<int, array{tag: string, class: string, href: ?string, id: ?string, char: ?string, text: string}>
+ */
+function mentionElements(string $html): array
+{
+    $document = new DOMDocument;
+    $document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR);
+
+    $mentions = [];
+
+    foreach ((new DOMXPath($document))->query('//*[@data-type="mention"]') ?: [] as $element) {
+        $mentions[] = [
+            'tag' => $element->tagName,
+            'class' => $element->getAttribute('class'),
+            'href' => $element->hasAttribute('href') ? $element->getAttribute('href') : null,
+            'id' => $element->hasAttribute('data-id') ? $element->getAttribute('data-id') : null,
+            'char' => $element->hasAttribute('data-char') ? $element->getAttribute('data-char') : null,
+            'text' => $element->textContent,
+        ];
+    }
+
+    return $mentions;
+}

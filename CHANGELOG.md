@@ -4,8 +4,152 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- `->mediaLibraryListView()` chooses which layout the browser opens on, per field. The README
+  documented it as a field method from the start; it only ever existed on the internal picker,
+  so the documented call threw
+- The slash menu answers to `/youtube`, `/vimeo`, `/iframe` and `/einbetten` for video embeds.
+  `embed` was the one command in the shipped list with no aliases at all
+- **Mentions carry through to the rendered page.** The editor half is Filament's own and is
+  untouched, but a rendered mention used to be a `data-type` and a `data-id` and nothing else -
+  indistinguishable from any other span, and impossible to style, because Filament's sanitiser
+  strips every other attribute a mention carries. It now renders `fi-arte-mention` plus a class
+  naming the trigger it was written with (`fi-arte-mention-at`, `-hash`, and eight more), which
+  is the only place that survives the sanitiser. Hand the renderer the same providers the field
+  was given and `url()` links it and the label is the one the provider knows now, rather than
+  the copy stored when it was typed
+- `Mentions::in($content)` answers who a document mentioned: `->ids('@')` for the ids one
+  trigger named, each of them once, `->grouped()` for all of them by trigger, `->all()` for
+  every occurrence with the label as stored. It takes no providers, so a `saved()` hook that
+  notifies the people named needs no configuration and cannot drift out of step with the field
+- **A media browser behind the image button.** It opens the pictures that are already on the
+  server, with uploading as the second tab, so the same image is not uploaded once per article
+  that shows it. Picking one stores what an upload would have stored - the media UUID, or the
+  storage path on a field without a media collection - so nothing is copied, one file backs
+  any number of references, and content saved before the dialog existed is the same content as
+  content saved through it. Size and rotation stay on the image node, never on the file.
+  Works both for `->spatieMediaLibrary()` fields and for plain `fileAttachmentsDisk()` ones,
+  where it browses real folders. `->mediaLibrary(false)` restores Filament's own dialog, and
+  the browser replaces that one action rather than adding a second button, so the toolbar, the
+  slash menu and re-opening an existing image all keep working untouched
+- The pool is the collection the field uploads to, not the record in front of you - which is
+  what the browser exists for: a picture uploaded for one article is the picture the next one
+  wants, and uploading it again costs a second copy on disk for nothing. An article and a post
+  sharing a collection share a library; separate collections stay separate. The pool is also
+  what decides what a stored `data-id` may resolve to. `->mediaLibraryScope('model'|'record')`
+  narrows it
+- `->mediaLibraryUploadsTo()` gives new uploads a model of their own instead of hanging them off
+  whichever record was open. A media row belongs to a model and its file path is built from the
+  row's id, so an article that owns a picture takes it with it when deleted - which is fine
+  until a second article reuses it. Uploads directed at a library model are owned by nothing an
+  editor deletes, are never touched by the per-field sweep, and need no saved record, so create
+  pages stop deferring them
+- `->mediaLibraryQuery()` and `->mediaLibraryDirectory()` define the pool outright. Whatever the pool lists
+  is also what a stored `data-id` may resolve to: the grid and the lookup are one object, so
+  widening the browser and widening the lookup cannot drift apart. On a media collection the
+  file attachment provider enforces that; on a plain disk the field switches on Filament's own
+  `preventFileAttachmentPathTampering()` and answers it from the same pool, while a path
+  already in the saved content and a file uploaded a moment ago stay valid either way
+- Uploads show up in the browser straight away. Filament holds an upload as a pending
+  attachment and only writes it to the collection when the form is saved, so a browser that
+  listed only what was stored answered "no such picture" about the file somebody had just
+  chosen. Pending uploads now sit at the front of the first page, drawn as not yet saved, and
+  work on create pages too - where there is no record for a media row to belong to yet
+- The whole library is the dropzone: a picture dragged onto the grid or the list uploads, and
+  the Upload button in the header opens the same file dialog. Both go through Filament's own
+  file upload, kept in the dialog but off screen, so Livewire's protocol, the validation, the
+  progress events and the pending attachment are untouched rather than re-implemented
+- Which layout was last browsed in is remembered in the browser
+- The image dialog inserts what is selected rather than whichever candidate exists. With a file
+  uploaded and a library picture then chosen, the file used to win - so choosing did nothing,
+  and the passed-over upload reappeared the next time the dialog was opened. Picking from the
+  library also no longer throws the upload away: it stays in the browser, unselected, and an
+  upload that is never inserted never becomes an attachment at all
+- The browser is a two-column dialog rather than a bare grid: a search box, a filter over the
+  kinds of picture the pool actually holds, a sort, a switch between tiles and a list, a count
+  and page numbers, all built from Filament's own input, select, dropdown and button
+  components - and a details panel beside it showing the selected picture's name, size,
+  dimensions, type and modification date, with a button that copies its URL. `->mediaLibraryListView()`
+  chooses which layout it opens on
+- Dimensions are read off the picture itself, which is the only place they can come from for a
+  field that stores plain files rather than media - no row to stamp, no custom properties. The
+  local path is used where the disk has one, so only the header is read. A measurement is
+  remembered per file, keyed by its size and modification time, so a listing pays for a picture
+  once and a file replaced under the same name is measured again
+- - `->mediaLibraryThumbnail()` draws the grid from a small conversion instead of from full-size
+  files, and falls back to the original for anything the model has not generated - a conversion
+  that was never declared, or one whose queue job has not run. Separate from the conversion an
+  inserted picture uses, because a tile is 120 pixels wide and the image in the document is not
+- `->mediaLibraryPageSize()` and a `media_library` section in the config file
+
 ### Fixed
 
+- The media browser no longer opens over a whole filesystem disk. Filament leaves
+  `fileAttachmentsDirectory()` null by default, and the pool fell back to the disk root - so the
+  grid listed every image on it, other features' uploads included, and a stored path could
+  resolve to any of them. A directory is what turns a disk into a pool; without one the field
+  has nothing browsable and Filament's own image dialog takes the button back
+- A file attachment provider other than this package's own is no longer mistaken for a plain
+  disk field. It was given a disk pool it has nothing to do with, and Filament's path-tamper
+  guard was switched on with that pool as the authoriser - so ids the provider itself issued
+  were refused and its images stopped resolving. Such a field now gets no browser at all, which
+  is the only honest answer: where an attachment lives and what its id means are the provider's
+  to define
+- Media library search finds file names containing `_` or `%` again. The term was escaped for
+  `LIKE` without the `ESCAPE` clause that escaping needs, and that clause cannot be written
+  portably - so on SQLite a search for `IMG_2043` matched nothing at all. The term is used as a
+  pattern now, which is what Filament's own table search does; it over-matches at worst
+- `fileAttachmentsAcceptedFileTypes(['image/*'])` no longer empties the browser. The wildcard is
+  a value Filament accepts and Laravel validates against, but the pool matched the list exactly,
+  so a correctly configured field got a permanently empty library and nothing to pick
+- `mediaLibraryQuery()` now throws when its closure returns something other than the query it was
+  handed, instead of falling back to an unfiltered pool. The pool is also what a stored `data-id`
+  may resolve to, so a forgotten `return` quietly widened the browser to every image in the media
+  table
+- The media browser's pager no longer invents pages. It guessed the page size from how many tiles
+  came back, so a short last page - almost every library has one - was read as a tiny page size
+  and the whole library divided by it: a two-page library showed "2 / 41" and a Next button
+  leading to an empty grid. The server sends the page size it actually used
+- An upload made while a folder is open, or while a search or type filter is active, appears
+  again. A picture that is not saved yet can only be shown on the first page of the root, so the
+  grid answered without it: no tile, no selection, and - the upload field being deliberately
+  invisible - no sign that anything had happened. Uploading now returns the grid to where the
+  new picture can be seen. If a selection is still somehow missing, Apply falls back to the
+  upload that just arrived rather than inserting the previously selected picture
+- The browser's pager arrows have an accessible name. They passed `label` as an Alpine binding,
+  which is not the Blade prop, so no `aria-label` or `title` was rendered and a screen reader
+  announced them as "button"
+- A JPEG carrying a large colour profile or EXIF block is measured rather than reported as
+  unmeasurable. Only the first 64 KB were read, which some cameras and photo editors push the
+  frame header past - and the failure was then cached for a day
+- A create page no longer resolves any media uuid in the application. A field without a record
+  fell through to an unscoped lookup, which is right for a renderer reading a saved document and
+  wrong on a create form, where the content is being typed at that moment - pasting a foreign
+  uuid into a new article resolved it to a URL. A field with no record is now scoped to the pool
+  the browser offers, exactly as it is once the record exists; only a renderer handed the
+  provider directly stays unscoped
+- **A shared media library no longer eats other records' pictures.** The browser's pool is the
+  collection by default, so a picture uploaded for one article is offered to - and referenced by
+  - the next; the per-field sweep, however, still deleted anything this field had uploaded to
+  this record and no longer referenced. Removing a picture from one article therefore deleted
+  the file out from under every other article using it, silently and permanently. The sweep now
+  runs only when nothing else can be holding the id - `->mediaLibraryScope('record')`, or no
+  browser at all. With a shared pool the file stays and is tidied deliberately, because a file
+  kept too long costs disk space while a file deleted too early costs somebody's content
+- `->linkAttributes(false)` no longer throws away every video embed and every image caption
+  in the document. The renderer returned early for that switch, past the point where the
+  embed and caption nodes are declared, so asking for Filament's plain links silently
+  dropped content that has nothing to do with links - at render time, with the stored
+  markup untouched and nothing to say it had happened. Only the link mark hangs off the
+  switch now
+- Mentions no longer vanish from `toText()`. TipTap's PHP text serialiser walks `content` and
+  `text` and calls `renderText()` on nothing, so a mention - an atom node with neither - came
+  out as an empty string with a block separator on each side: a hole in the middle of the
+  sentence, in exactly the copy a search index, an excerpt or a notification body is made from.
+  They are rewritten into the text they read as before serialising, the way Filament already
+  does it for merge tags. `toText()` also returns `''` for an empty record rather than throwing,
+  which `toHtml()` already did
 - Rendering a rich content column that is still null returns an empty string instead of
   throwing. Filament's own renderer walks the document without checking that there is one
 - The `@font-face` rules are written once per request instead of once per process. Under a
@@ -23,6 +167,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- The `media_library` config comment said the browser was record-scoped out of the box; the
+  shipped default is and remains the whole collection. The comment now describes what ships,
+  and says what sharing costs before you ship it
 - The font directory is read once per process rather than once per toolbar resolution -
   Filament resolves a toolbar several times while rendering one editor. `Fonts::forget()`
   drops the memo

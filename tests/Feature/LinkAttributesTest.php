@@ -83,3 +83,19 @@ it('reads the default for the attributes from the config file', function (): voi
     expect(editor()->hasLinkAttributes())->toBeFalse()
         ->and(editor()->linkAttributes()->hasLinkAttributes())->toBeTrue();
 });
+
+it('keeps everything that has nothing to do with links when the attributes are off', function (): void {
+    // The switch is about the link mark. It used to be about far more than that: the
+    // renderer returned early for it, past the point where the embed node, the image
+    // caption and the widened mention are declared - so turning off `hreflang` also threw
+    // away every video and every caption in the document, silently, at render time.
+    $stored = '<div data-type="embed"><iframe src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></iframe></div>'
+        .'<p><img src="/hafen.jpg" data-caption="Hamburger Hafen"></p>'
+        .'<p><span data-type="mention" data-id="2" data-label="Ada Lovelace" data-char="@"></span></p>';
+
+    $html = AdvancedRichContentRenderer::make($stored)->linkAttributes(false)->toHtml();
+
+    expect($html)->toContain('<iframe')
+        ->toContain('<figcaption>Hamburger Hafen</figcaption>')
+        ->and(mentionElements($html)[0]['class'])->toBe('fi-arte-mention fi-arte-mention-at');
+});

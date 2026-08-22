@@ -448,6 +448,96 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Media library
+    |--------------------------------------------------------------------------
+    | The image button opens a browser of the pictures that are already on the
+    | server, with uploading as its second tab. Picking one stores what an upload
+    | would have stored — a media UUID, or a storage path on a field without a media
+    | collection — so one file can back any number of references and nothing is
+    | copied. Size and rotation stay on the image node, never on the file.
+    |
+    | Out of the box the browser is a shared library: it shows every picture in the
+    | collection the field uploads to, whichever record or model owns it. That is what
+    | the browser is for — a picture uploaded for one article is the picture the next
+    | one wants — and it is the 'scope' setting below. Narrow it with
+    | `'scope' => 'record'` where each record should only see its own.
+    |
+    | Sharing has one consequence worth knowing before you ship it: removing a picture
+    | from a document no longer deletes the file. It cannot — the uuid may equally be
+    | sitting in another record's content, which nothing here can see, so deleting it
+    | would take that record's picture away too. A shared library is therefore tidied
+    | deliberately, with `spatie/laravel-medialibrary`'s own cleanup commands or by
+    | hand. `'scope' => 'record'` restores automatic clean-up, because then nothing
+    | else can be holding the uuid.
+    |
+    | Name the pool outright per field where the scopes do not fit:
+    |
+    |   ->mediaLibraryQuery(fn (Builder $query) => $query->where('collection_name', 'library'))
+    |   ->mediaLibraryDirectory('library')   // fields storing plain files on a disk
+    |
+    | Whatever the pool lists is also what a stored `data-id` is allowed to resolve
+    | to — the browser and the lookup are the same object, so they cannot drift apart.
+    |
+    | 'directory' is the project-wide default for the disk pool; null keeps every
+    | field on its own `fileAttachmentsDirectory()`. Per field: `->mediaLibrary()`.
+    */
+    'media_library' => [
+        'enabled' => true,
+
+        /*
+         * How far the browser looks with a media collection. Three settings, each narrower than
+         * the last:
+         *
+         *   'collection'  every picture in the collection the field uploads to, whichever
+         *                 record or model owns it — the default, because the collection *is*
+         *                 the library. An article and a post uploading to 'rich-editor' draw
+         *                 from one pool instead of each fetching the same picture again;
+         *                 separate libraries are separate collections.
+         *   'model'       only the records of the model being edited.
+         *   'record'      only the record in front of you.
+         *
+         * Whatever it lists is also what a stored `data-id` may resolve to, so the two can
+         * never drift apart. Per field: `->mediaLibraryScope()`, or `->mediaLibraryQuery()`.
+         */
+        'scope' => 'collection',
+
+        'page_size' => 40,
+
+        'directory' => null,
+
+        /*
+         * The conversion the grid draws its tiles from - separate from the one an inserted
+         * picture uses, because a tile is 120 pixels wide and the picture in the document is
+         * not. Declare it on the model, which is the only place Spatie accepts one:
+         *
+         *   public function registerMediaConversions(?Media $media = null): void
+         *   {
+         *       $this->addMediaConversion('arte-thumb')->fit(Fit::Contain, 320, 320);
+         *   }
+         *
+         * Anything not generated yet falls back to the original file, so naming a conversion
+         * before it exists costs nothing. Per field: `->mediaLibraryThumbnail()`.
+         */
+        'thumbnail' => null,
+
+        /*
+         * Which of the two layouts the browser opens in. Tiles by default, because picking a
+         * picture is done by looking at pictures; the list is what tiles cannot do - names,
+         * sizes and dates lined up in columns. The switch is in the dialog either way.
+         */
+        'list_view' => false,
+
+        /*
+         * Where a measurement is remembered. Reading how big a picture is means opening it,
+         * and a listing does that for every row - so the answer is cached against the file's
+         * size and modification time, and a file replaced under the same name is measured
+         * again. Null uses the application's default store.
+         */
+        'cache_store' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Character count
     |--------------------------------------------------------------------------
     | The line under the editor saying how long the text is. It counts the way

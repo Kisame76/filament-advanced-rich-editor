@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaPost;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -91,4 +94,56 @@ it('does nothing at all when there is no field to scope by', function (): void {
         ->cleanUpFileAttachments([]);
 
     expect(Media::find($media->getKey()))->not->toBeNull();
+});
+
+it('never deletes a picture the browser offered to other records', function (): void {
+    // The whole point of the browser is that a picture uploaded for one article is the picture
+    // the next article wants - so with the shipped pool, the uuid in this record's content may
+    // also be sitting in another record's content, where nothing here can see it. A sweep that
+    // deletes it takes that other record's image away, silently and for good.
+    $shared = ($this->attach)('content');
+
+    $editor = AdvancedRichEditor::make('content')
+        ->spatieMediaLibrary('rich-editor')
+        ->container(Schema::make(new TestSchemaComponent)->operation('edit')->record($this->post));
+
+    ($this->provider)('content')
+        ->source($editor->getMediaSource())
+        ->cleanUpFileAttachments([]);
+
+    expect(Media::find($shared->getKey()))->not->toBeNull();
+});
+
+it('still sweeps when the browser only ever showed this record', function (): void {
+    // Narrowed back to the record, nobody else could have been offered the picture, so the
+    // sweep is safe again and the disk does not grow forever.
+    $removed = ($this->attach)('content');
+
+    $editor = AdvancedRichEditor::make('content')
+        ->spatieMediaLibrary('rich-editor')
+        ->mediaLibraryScope('record')
+        ->container(Schema::make(new TestSchemaComponent)->operation('edit')->record($this->post));
+
+    ($this->provider)('content')
+        ->source($editor->getMediaSource())
+        ->cleanUpFileAttachments([]);
+
+    expect(Media::find($removed->getKey()))->toBeNull();
+});
+
+it('still sweeps a field whose browser is switched off', function (): void {
+    // No browser means no pool wider than the record, so nothing else can hold the uuid and
+    // the sweep keeps working exactly as it did before the browser existed.
+    $removed = ($this->attach)('content');
+
+    $editor = AdvancedRichEditor::make('content')
+        ->spatieMediaLibrary('rich-editor')
+        ->mediaLibrary(false)
+        ->container(Schema::make(new TestSchemaComponent)->operation('edit')->record($this->post));
+
+    ($this->provider)('content')
+        ->source($editor->getMediaSource())
+        ->cleanUpFileAttachments([]);
+
+    expect(Media::find($removed->getKey()))->toBeNull();
 });

@@ -35,6 +35,11 @@ const STYLE_HOOKS = [
     // decision, and the class names are configurable for exactly that reason.
     'fi-arte-anchor',
     'fi-arte-toc',
+    // The same: a mention inside the editor is drawn by Filament's own
+    // `fi-fo-rich-editor-mention`, and this class only ever appears on the rendered page.
+    // It exists because nothing else on that page identifies a mention - the sanitiser
+    // removes every attribute a mention carries except `data-id` and `data-type`.
+    'fi-arte-mention',
 ];
 
 /**
