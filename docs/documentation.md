@@ -1,8 +1,56 @@
 # Filament Advanced Rich Editor — documentation
 
-Everything the package does, in one file. The short version lives in the
-[README](../README.md), which is also where installation is described, including the one
-Livewire setting this package cannot work without.
+Everything the package does, in one file, installation included. The short version lives in
+the [README](../README.md).
+
+## Requirements
+
+- PHP 8.2+
+- Filament v5
+
+## Installation
+
+```bash
+composer require kisame76/filament-advanced-rich-editor
+```
+
+The CSS and the task list scripts auto-register with Filament. After install (and on
+deploy) run:
+
+```bash
+php artisan filament:assets
+```
+
+Optionally publish the config:
+
+```bash
+php artisan vendor:publish --tag="filament-advanced-rich-editor-config"
+```
+
+### Raise Livewire's nesting limit
+
+One line, and not optional. Livewire caps the depth of a property path at `10` and answers
+anything deeper with a 500. The editor entangles a TipTap document, and text inside a list item
+is already eleven levels deep — so typing in any list, or saving afterwards, throws
+`MaxNestingDepthExceededException`.
+
+Publish Livewire's config if you have not already, then raise the limit inside `payload`:
+
+```bash
+php artisan livewire:publish --config
+```
+
+```php
+'max_nesting_depth' => 32,   // 10 is Livewire's default and is not enough
+```
+
+Change that one line rather than pasting a whole `payload` block — a published `payload`
+replaces the vendor one outright, and its other keys differ between Livewire releases.
+
+Upgrading does not help: every release from 4.1 to 4.4.1 ships the same default. Nor is this
+package the cause — a stock Filament `RichEditor` with a plain bullet list does the same. It
+just ships the task lists, tables and details that make documents deep, so you meet it here
+first.
 
 ## Usage
 
@@ -1814,4 +1862,4 @@ php artisan vendor:publish --tag="filament-advanced-rich-editor-views"
   at all.
 - **Livewire's nesting limit is too low for a rich editor.** Raising it is a step of installing
   this package, not an optional tweak — see
-  [Raise Livewire's nesting limit](https://github.com/Kisame76/filament-advanced-rich-editor/blob/main/README.md#raise-livewires-nesting-limit).
+  [Raise Livewire's nesting limit](#raise-livewires-nesting-limit).

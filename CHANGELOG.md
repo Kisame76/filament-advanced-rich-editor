@@ -12,7 +12,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   Livewire step it cannot work without, and a short example. Split into one file rather than
   many on purpose - the Filament plugin directory renders a single Markdown file and builds
   its own navigation from the headings in it, so a README of links would leave that listing
-  empty and send every reader away from it
+  empty and send every reader away from it. `docs/documentation.md` repeats the requirements
+  and the installation steps rather than linking back to them, so that a reader arriving
+  from the plugin directory is not left without the Livewire setting the package needs
 
 ## 1.1.1 - 2026-08-22
 
