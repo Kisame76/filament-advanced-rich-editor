@@ -2,7 +2,7 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
-## Unreleased
+## 1.1.0 - 2026-08-22
 
 ### Added
 
@@ -85,6 +85,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- Media browser search is case-insensitive on PostgreSQL. Its `LIKE` is case-sensitive, unlike
+  MySQL's default collation and unlike SQLite, so searching a library for "hafen" answered that
+  there is no "Hamburger Hafen". The query uses `ilike` there
+- A malformed image id no longer takes the page down on PostgreSQL. Media ids are UUIDs and the
+  column is a real `uuid` type there, so looking one up with a stray value raised a query
+  exception instead of answering "not in the pool" - and the value comes out of stored content
 - The media browser no longer opens over a whole filesystem disk. Filament leaves
   `fileAttachmentsDirectory()` null by default, and the pool fell back to the disk root - so the
   grid listed every image on it, other features' uploads included, and a stored path could
@@ -167,6 +173,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- The suite runs against any driver. `DB_CONNECTION` and friends point it at MySQL or
+  PostgreSQL; SQLite in memory stays the default. Both PostgreSQL bugs above were found the
+  first time it ran anywhere else
+- `spatie/laravel-medialibrary` is declared as `^11.0`. `^12.0` was also advertised, but there
+  is no stable v12 - only `v12.x-dev` - so the claim could never resolve and was never tested
 - The `media_library` config comment said the browser was record-scoped out of the box; the
   shipped default is and remains the whole collection. The comment now describes what ships,
   and says what sharing costs before you ship it

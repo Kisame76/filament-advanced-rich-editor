@@ -107,9 +107,16 @@ class SpatieMediaSource implements MediaSource
         // than the exotic one. A pattern over-matches at worst; escaping under-matched, and a
         // picture you cannot find is worse than one neighbour too many in the grid.
         if (filled($search)) {
-            $query->where(static function (Builder $query) use ($search): void {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('file_name', 'like', "%{$search}%");
+            // `ilike` on Postgres, whose `LIKE` is case-sensitive - unlike MySQL's default
+            // collation and unlike SQLite, where the suite runs. Searching a library for
+            // "hafen" and being told there is no "Hamburger Hafen" is not a search.
+            // Through the model rather than `$query->getConnection()`, which is typed as the
+            // interface and does not declare the driver.
+            $operator = $query->getModel()->getConnection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+            $query->where(static function (Builder $query) use ($search, $operator): void {
+                $query->where('name', $operator, "%{$search}%")
+                    ->orWhere('file_name', $operator, "%{$search}%");
             });
         }
 
@@ -205,6 +212,14 @@ class SpatieMediaSource implements MediaSource
         return $types;
     }
 
+    /**
+     * Whether this reads as a media UUID at all.
+     */
+    protected static function isUuid(string $id): bool
+    {
+        return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) === 1;
+    }
+
     public function has(mixed $id): bool
     {
         return $this->media($id) !== null;
@@ -287,6 +302,14 @@ class SpatieMediaSource implements MediaSource
     public function media(mixed $id): ?Media
     {
         if (! is_string($id) || blank($id)) {
+            return null;
+        }
+
+        // Media ids are UUIDs, and on Postgres the column is a real `uuid` - so handing it
+        // anything else raises a query exception rather than returning no rows. The id comes
+        // out of stored content, where a stray value is exactly what has to answer "not in the
+        // pool" instead of taking the page down with it.
+        if (! static::isUuid($id)) {
             return null;
         }
 
