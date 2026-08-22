@@ -13,6 +13,7 @@
 /phpstan.neon.dist  export-ignore
 /phpunit.xml.dist   export-ignore
 /pint.json          export-ignore
+/art                export-ignore
 
 # Always use LF for source files so hashes stay stable across platforms.
 *.php   text eol=lf

@@ -1,3 +1,7 @@
+<a href="https://github.com/Kisame76/filament-advanced-rich-editor" class="filament-hidden">
+    <img src="https://raw.githubusercontent.com/Kisame76/filament-advanced-rich-editor/main/art/social-preview.jpg" alt="Filament Advanced Rich Editor" style="width: 100%; max-width: 100%;" class="filament-hidden">
+</a>
+
 # Filament Advanced Rich Editor
 
 [![Filament](https://img.shields.io/badge/Filament-5.x-FdAE4B?style=flat-square&logo=laravel&logoColor=white)](https://filamentphp.com)
