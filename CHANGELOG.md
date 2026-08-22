@@ -173,6 +173,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- The Livewire nesting note tells you to change one line rather than paste a `payload` block.
+  A published `payload` replaces the vendor one whole, and its other keys differ between
+  releases - `max_components` is `20` on Livewire 4.1 and `200` on 4.4 - so a copied block
+  quietly applies another version's limits
 - The suite runs against any driver. `DB_CONNECTION` and friends point it at MySQL or
   PostgreSQL; SQLite in memory stays the default. Both PostgreSQL bugs above were found the
   first time it ran anywhere else

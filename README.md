@@ -61,7 +61,8 @@ php artisan vendor:publish --tag="filament-advanced-rich-editor-config"
 ### Raise Livewire's nesting limit
 
 Not optional, and not something this package can do for you. Livewire caps the depth of a
-property path at `10` and answers anything deeper with a 500. A rich editor entangles a TipTap
+property path at `10` — every release Filament v5 can install carries that default — and
+answers anything deeper with a 500. A rich editor entangles a TipTap
 document, and text inside a **list item is already eleven levels deep** — so typing in any
 list, or saving afterwards, throws `MaxNestingDepthExceededException`:
 
@@ -69,25 +70,24 @@ list, or saving afterwards, throws `MaxNestingDepthExceededException`:
 data.content.content.3.content.0.content.0.content.0.text
 ```
 
-Publish Livewire's config if you have not already, and raise the limit:
+Publish Livewire's config if you have not already:
 
 ```bash
 php artisan livewire:publish --config
 ```
 
+Then change one line in `config/livewire.php`, inside the `payload` block:
+
 ```php
-// config/livewire.php
-'payload' => [
-    'max_size' => 1024 * 1024,
-    'max_nesting_depth' => 32,   // 10 is Livewire's default and is not enough
-    'max_calls' => 50,
-    'max_components' => 200,
-],
+'max_nesting_depth' => 32,   // 10 is Livewire's default and is not enough
 ```
 
-Keep the other three keys — a published `payload` array replaces the vendor one whole rather
-than merging into it. A table cell holding a nested list reaches about seventeen levels, so 32
-leaves room.
+**Change that line rather than pasting a `payload` block from anywhere** — including from this
+README. The other keys in it differ between Livewire releases (`max_components` is `20` on
+Livewire 4.1 and `200` on 4.4), and a published `payload` array replaces the vendor one whole
+rather than merging into it, so a copied block silently applies another version's limits.
+
+A table cell holding a nested list reaches about seventeen levels, so 32 leaves room.
 
 This is not caused by this package and it is not ours to fix: a stock Filament `RichEditor`
 with a plain bullet list does exactly the same. But this package ships the task lists, tables
