@@ -5,6 +5,17 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/Kisame76/filament-advanced-rich-editor/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Kisame76/filament-advanced-rich-editor/actions/workflows/run-tests.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/kisame76/filament-advanced-rich-editor.svg?style=flat-square)](https://packagist.org/packages/kisame76/filament-advanced-rich-editor)
 
+<!--
+    The screenshot. Drop the file at art/editor.png and this renders; until then the line
+    below shows nothing but breaks nothing, so the README is safe to publish either way.
+
+    What it should show, in one frame: the toolbar with a dropdown open and a divider
+    visible, a heading, a task list with one box ticked, and an image with a caption. That
+    is the package in a single glance, and it is what the plugin directory will use as the
+    thumbnail. Light theme reads better at small sizes.
+-->
+[![The editor, with its toolbar and a task list](art/editor.png)](https://github.com/Kisame76/filament-advanced-rich-editor)
+
 A drop-in replacement for Filament's `RichEditor` with a toolbar you actually control.
 Group buttons, collapse them into dropdowns, separate clusters with dividers, pin the
 whole thing to the top while a long document is scrolled — and get task lists, an image
