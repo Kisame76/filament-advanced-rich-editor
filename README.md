@@ -60,39 +60,28 @@ php artisan vendor:publish --tag="filament-advanced-rich-editor-config"
 
 ### Raise Livewire's nesting limit
 
-Not optional, and not something this package can do for you. Livewire caps the depth of a
-property path at `10` — every release Filament v5 can install carries that default — and
-answers anything deeper with a 500. A rich editor entangles a TipTap
-document, and text inside a **list item is already eleven levels deep** — so typing in any
-list, or saving afterwards, throws `MaxNestingDepthExceededException`:
+One line, and not optional. Livewire caps the depth of a property path at `10` and answers
+anything deeper with a 500. The editor entangles a TipTap document, and text inside a list item
+is already eleven levels deep — so typing in any list, or saving afterwards, throws
+`MaxNestingDepthExceededException`.
 
-```
-data.content.content.3.content.0.content.0.content.0.text
-```
-
-Publish Livewire's config if you have not already:
+Publish Livewire's config if you have not already, then raise the limit inside `payload`:
 
 ```bash
 php artisan livewire:publish --config
 ```
 
-Then change one line in `config/livewire.php`, inside the `payload` block:
-
 ```php
 'max_nesting_depth' => 32,   // 10 is Livewire's default and is not enough
 ```
 
-**Change that line rather than pasting a `payload` block from anywhere** — including from this
-README. The other keys in it differ between Livewire releases (`max_components` is `20` on
-Livewire 4.1 and `200` on 4.4), and a published `payload` array replaces the vendor one whole
-rather than merging into it, so a copied block silently applies another version's limits.
+Change that one line rather than pasting a whole `payload` block — a published `payload`
+replaces the vendor one outright, and its other keys differ between Livewire releases.
 
-A table cell holding a nested list reaches about seventeen levels, so 32 leaves room.
-
-This is not caused by this package and it is not ours to fix: a stock Filament `RichEditor`
-with a plain bullet list does exactly the same. But this package ships the task lists, tables
-and details that make documents deep, so you will meet it here first. See
-[How it works / caveats](#how-it-works--caveats).
+Upgrading does not help: every release from 4.1 to 4.4.1 ships the same default. Nor is this
+package the cause — a stock Filament `RichEditor` with a plain bullet list does the same. It
+just ships the task lists, tables and details that make documents deep, so you meet it here
+first.
 
 ## Usage
 
@@ -1902,13 +1891,9 @@ php artisan vendor:publish --tag="filament-advanced-rich-editor-views"
 - **Media library is opt-in.** Without `->spatieMediaLibrary()` no media library code is
   touched, and the package works fine when `spatie/laravel-medialibrary` is not installed
   at all.
-- **Livewire's nesting limit is too low for a rich editor.** Livewire caps a property path at
-  `10` levels and answers anything deeper with a 500; text inside a list item is eleven, so
-  typing in any list throws `MaxNestingDepthExceededException`. Raising it is part of
-  installing this package — see
-  [Raise Livewire's nesting limit](#raise-livewires-nesting-limit). Nothing here causes it: a
-  stock Filament `RichEditor` with a plain bullet list does the same. This package just ships
-  the task lists, tables and details that make documents deep.
+- **Livewire's nesting limit is too low for a rich editor.** Raising it is a step of installing
+  this package, not an optional tweak — see
+  [Raise Livewire's nesting limit](#raise-livewires-nesting-limit).
 
 ## Contributing
 
