@@ -6,6 +6,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- Workflow actions are pinned to a commit SHA rather than a moving tag, and Dependabot keeps
+  those pins and the Composer dependencies current on a weekly schedule with a seven day
+  cooldown. A tag can be repointed at any commit by whoever owns the action; a SHA cannot
 - The README is a README again. At 1909 lines it was a manual, nearly ten times the length of
   the other plugins in this account, so the whole of it now lives in `docs/documentation.md`
   and what is left is what a reader wants first: what the package is, how to install it, the
