@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+    <!--
+        No database environment is declared here on purpose. `Tests\TestCase` defaults to
+        SQLite in memory and reads DB_CONNECTION and friends only when they are set, which
+        is what lets the suite be pointed at MySQL or PostgreSQL from the command line:
+
+            DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_PORT=5432 vendor/bin/pest
+
+        Pinning DB_CONNECTION to a value here would take that away and, worse, would name a
+        driver that does not exist.
+    -->
+</phpunit>

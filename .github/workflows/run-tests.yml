@@ -45,6 +45,14 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Composer refuses to install a version carrying a security advisory. Laravel 11
+          # currently has one that covers the whole major (PKSA-mdq4-51ck-6kdq, no fixed
+          # 11.x release), so with the block in place the L11 matrix legs cannot resolve at
+          # all and the suite goes untested there. Testing a supported major against a
+          # disclosed framework advisory is the lesser evil in a CI matrix; it is not a
+          # judgement that this package is unaffected, and it applies to nobody's install
+          # but this runner's.
+          composer config --no-plugins policy.advisories.block false
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction --no-progress
 
