@@ -173,11 +173,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
-- `symfony/html-sanitizer` is required as `^8.0`. The embed host sanitiser returns `null` to
-  drop an `iframe src` pointing somewhere it should not, which is what the attribute sanitiser
-  contract asks for, but only v8 stops chaining at that point. On v7 the `null` was handed to
-  the next sanitiser in the chain, whose signature does not accept it, and the render died with
-  a TypeError instead of dropping the attribute
+- The embed host sanitiser empties an `iframe src` it rejects instead of returning `null`.
+  `null` is what the attribute sanitiser contract asks for, but only `symfony/html-sanitizer`
+  v8 stops the chain there; on v7 it reached the next sanitiser for the same attribute, whose
+  signature will not take it, and rendering stored content that carried a foreign iframe died
+  with a TypeError rather than dropping one source. Requiring v8 was the other option and a
+  worse one, since Laravel 11 and 12 ship Symfony 7. Nothing loads from an empty source, so
+  what a page does is unchanged
 - Filament is required as `^5.7` rather than `^5.0`. `RichEditorTool::toggle()`, which the
   toolbar has always called, only exists from v5.7.0, so every earlier 5.x resolved and then
   fataled on the first form render. The constraint now says what the code has needed all along

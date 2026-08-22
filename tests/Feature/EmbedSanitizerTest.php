@@ -56,10 +56,22 @@ it('allows a subdomain of a host on the list', function (): void {
         ->and(EmbedHostSanitizer::allows('vimeo.com.attacker.test', ['vimeo.com']))->toBeFalse();
 });
 
-it('drops a source that is not a url with a host at all', function (): void {
+it('empties a source that is not a url with a host at all', function (): void {
+    // Emptied rather than returned as `null`, which is what the interface documents for
+    // dropping an attribute. Only `symfony/html-sanitizer` v8 stops the chain on `null`;
+    // before that the `null` reaches the next sanitiser for the same attribute, whose
+    // signature will not take it, and the whole render dies instead of one source being
+    // dropped. Requiring v8 is not open to us either - Laravel 11 and 12 ship Symfony 7.
+    //
+    // Nothing loads from an empty source, so what a page does is the same; what changes is
+    // that it survives both versions.
     $sanitizer = new EmbedHostSanitizer(['youtube.com']);
     $config = new HtmlSanitizerConfig;
 
-    expect($sanitizer->sanitizeAttribute('iframe', 'src', 'javascript:alert(1)', $config))->toBeNull()
-        ->and($sanitizer->sanitizeAttribute('iframe', 'src', '/relative/path', $config))->toBeNull();
+    expect($sanitizer->sanitizeAttribute('iframe', 'src', 'javascript:alert(1)', $config))->toBe('')
+        ->and($sanitizer->sanitizeAttribute('iframe', 'src', '/relative/path', $config))->toBe('')
+        ->and($sanitizer->sanitizeAttribute('iframe', 'src', 'https://attacker.test/x', $config))->toBe('')
+        // ...and a host on the list still comes back untouched.
+        ->and($sanitizer->sanitizeAttribute('iframe', 'src', 'https://youtube.com/embed/x', $config))
+        ->toBe('https://youtube.com/embed/x');
 });

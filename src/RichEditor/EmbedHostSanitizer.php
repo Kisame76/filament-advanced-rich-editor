@@ -49,6 +49,21 @@ class EmbedHostSanitizer implements AttributeSanitizerInterface
         return ['src'];
     }
 
+    /**
+     * An empty string rather than `null` for a source that may not stay.
+     *
+     * `null` is what the interface documents for "drop this attribute", and from
+     * `symfony/html-sanitizer` v8 it does exactly that: `DomVisitor` stops the chain there.
+     * Before v8 there is no such guard, so the `null` is handed to the next sanitiser
+     * registered for the same attribute - Symfony's own `UrlAttributeSanitizer`, whose
+     * signature is a non-nullable string - and rendering stored content that carries a
+     * foreign iframe dies with a TypeError instead of dropping its source.
+     *
+     * An empty string travels through both. Nothing loads from it, every later sanitiser in
+     * the chain gets the string it expects, and the host that was rejected is gone either
+     * way. Requiring v8 outright was the other option and a worse one: it is unresolvable on
+     * Laravel 11 and 12, whose Symfony components are 7.x.
+     */
     public function sanitizeAttribute(string $element, string $attribute, string $value, HtmlSanitizerConfig $config): ?string
     {
         $host = parse_url($value, PHP_URL_HOST);
@@ -56,10 +71,10 @@ class EmbedHostSanitizer implements AttributeSanitizerInterface
         // No host means a relative path, a `javascript:` URL or something unparseable.
         // None of those is a video, and all of them are worth dropping.
         if (! is_string($host)) {
-            return null;
+            return '';
         }
 
-        return static::allows($host, $this->hosts) ? $value : null;
+        return static::allows($host, $this->hosts) ? $value : '';
     }
 
     /**
