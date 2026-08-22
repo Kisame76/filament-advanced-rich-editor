@@ -2,6 +2,18 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- The README is a README again. At 1909 lines it was a manual, nearly ten times the length of
+  the other plugins in this account, so the whole of it now lives in `docs/documentation.md`
+  and what is left is what a reader wants first: what the package is, how to install it, the
+  Livewire step it cannot work without, and a short example. Split into one file rather than
+  many on purpose - the Filament plugin directory renders a single Markdown file and builds
+  its own navigation from the headings in it, so a README of links would leave that listing
+  empty and send every reader away from it
+
 ## 1.1.1 - 2026-08-22
 
 The test matrix never actually ran: there was no phpunit configuration in the repository, so
