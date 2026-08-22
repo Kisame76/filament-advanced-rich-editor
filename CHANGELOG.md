@@ -173,6 +173,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- Filament is required as `^5.7` rather than `^5.0`. `RichEditorTool::toggle()`, which the
+  toolbar has always called, only exists from v5.7.0, so every earlier 5.x resolved and then
+  fataled on the first form render. The constraint now says what the code has needed all along
 - The Livewire nesting note is one short step in Installation, and says to change one line
   rather than paste a `payload` block: a published `payload` replaces the vendor one outright,
   and its other keys differ between releases - `max_components` is `20` on Livewire 4.1 and
