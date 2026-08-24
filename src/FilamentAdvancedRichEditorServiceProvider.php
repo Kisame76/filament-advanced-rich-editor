@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor;
 
 use BladeUI\Icons\Factory as BladeIconsFactory;
+use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
@@ -31,6 +32,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
         FilamentAsset::register(
             [
                 Css::make('filament-advanced-rich-editor', __DIR__.'/../resources/dist/filament-advanced-rich-editor.css'),
+
+                // The media browser, as an Alpine component rather than a script: it is one
+                // `x-data` object and it is loaded the way Filament loads its own fields,
+                // by `x-load-src` on the element that uses it. Keeping it out of the Blade
+                // file is what lets it be tested at all.
+                AlpineComponent::make('media-picker', __DIR__.'/../resources/dist/js/media-picker.js'),
 
                 // The TipTap extensions are only pulled in once an editor actually renders a
                 // task list, so they stay out of the panel bundle for every other page.

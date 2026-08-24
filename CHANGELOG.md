@@ -4,7 +4,22 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- The media browser's behaviour is tested. Fifty tests over paging, folders, filtering, the
+  details panel, uploads, drag and drop and the numbers under a picture, run by Vitest in
+  jsdom and wired into CI beside the PHP suite. This was the largest untested thing in the
+  package: roughly six hundred lines that decide which page is asked for and what is
+  selected after an upload
+
 ### Changed
+
+- The media browser is an Alpine component in `resources/js/media-picker.js` rather than an
+  `x-data` attribute in the Blade view, and is loaded the way Filament loads its own fields.
+  Nothing it does has changed - the move is what makes it testable at all, because an
+  attribute cannot be imported. The view still owns what only PHP knows: the labels, the two
+  settings, the entangled selection and the two calls that reach the editor. A published copy
+  of the view keeps working, since the version somebody published carries its own behaviour
 
 - The README and the manual both end with what is planned and an invitation to report bugs
   and suggest changes. Both files carry it rather than one linking to the other, because the

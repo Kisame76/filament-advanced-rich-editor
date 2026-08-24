@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\HasFileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
@@ -293,4 +295,21 @@ it('opens no browser over a file attachment provider it does not know', function
     expect($editor->getFileAttachmentProvider())->not->toBeNull()
         ->and($editor->getMediaSource())->toBeNull()
         ->and(imageAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading());
+});
+
+it('marks the upload field the browser drops onto', function (): void {
+    // The grid finds Filament's upload widget by this class and hands it every dropped file.
+    // Rename it and both ways in - the Upload button and the dropzone - stop doing anything
+    // at all, silently: `whenPond()` waits a minute for a field that will never be found.
+    $editor = editor()->fileAttachmentsDirectory('article-attachments');
+
+    // Bound to the field the way the schema binds it, because the dialog is built out of the
+    // editor it was opened from.
+    $schema = imageAction($editor)?->schemaComponent($editor)->getSchema(testSchema());
+
+    $upload = collect($schema?->getComponents() ?? [])
+        ->first(fn (Component $component): bool => $component instanceof FileUpload);
+
+    expect($upload)->not->toBeNull()
+        ->and($upload?->getExtraAttributes())->toHaveKey('class', 'fi-arte-media-uploader');
 });

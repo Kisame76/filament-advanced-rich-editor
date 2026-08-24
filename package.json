@@ -1,0 +1,14 @@
+{
+  "name": "filament-advanced-rich-editor",
+  "private": true,
+  "type": "module",
+  "description": "Development tooling for the JavaScript this package ships. Nothing here is published or bundled: the editor's scripts are hand-written ES modules that Filament loads verbatim.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.9"
+  }
+}

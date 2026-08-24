@@ -15,6 +15,16 @@ updates:
       default-days: 7
     open-pull-requests-limit: 5
 
+  # The JavaScript here is test tooling only - nothing in `resources/js` is bundled or
+  # published - so this keeps the runner current rather than anything a project installs.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
