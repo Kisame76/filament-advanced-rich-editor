@@ -54,6 +54,7 @@
     $stickyToolbarOffset = $getStickyToolbarOffset();
     $maxHeight = $getMaxHeight();
     $slashMenu = $getSlashMenuForJs();
+    $mentionMenu = $getMentionMenuForJs();
     $embedSettings = $getEmbedSettingsForJs();
     $codeBlockSettings = $getCodeBlockSettingsForJs();
 @endphp
@@ -217,6 +218,7 @@
                     class="fi-fo-rich-editor-content fi-prose"
                     x-ref="editor"
                     @if ($slashMenu) data-arte-slash="{{ json_encode($slashMenu) }}" @endif
+                    @if ($mentionMenu) data-arte-mentions="{{ json_encode($mentionMenu) }}" @endif
                     @if ($embedSettings) data-arte-embed="{{ json_encode($embedSettings) }}" @endif
                     @if ($codeBlockSettings) data-arte-code-block="{{ json_encode($codeBlockSettings) }}" @endif
                 >

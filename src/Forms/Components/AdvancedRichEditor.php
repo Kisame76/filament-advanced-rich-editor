@@ -31,6 +31,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
@@ -42,6 +43,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
@@ -161,6 +163,8 @@ class AdvancedRichEditor extends RichEditor
     protected array|Closure|null $slashGroups = null;
 
     protected string|Closure|null $slashChar = null;
+
+    protected bool|Closure|null $hasMentionMenu = null;
 
     protected bool|Closure|null $hasImageToolbar = null;
 
@@ -378,6 +382,15 @@ class AdvancedRichEditor extends RichEditor
             static fn (AdvancedRichEditor $component): array => $component->hasSlashMenu()
                 ? [SlashMenuPlugin::make()]
                 : [],
+        );
+
+        // Only where the field mentions something. The extension carries Filament's own
+        // name and therefore takes its place, and taking the place of a node on a field
+        // that was never given a provider would be a swap nobody asked for.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->getMentionMenuForJs() === null
+                ? []
+                : [MentionMenuPlugin::make()],
         );
 
         // The editor half of the widened link and of the heading anchor. Both are
@@ -885,6 +898,70 @@ class AdvancedRichEditor extends RichEditor
     public function hasSlashMenu(): bool
     {
         return (bool) ($this->evaluate($this->hasSlashMenu) ?? config('filament-advanced-rich-editor.slash.enabled') ?? true);
+    }
+
+    /**
+     * Whether the mention menu is this package's own.
+     *
+     * Filament draws a mention as a label and nothing else. This one has room for a picture
+     * and a line of context beneath the name, which is what tells two people with the same
+     * name apart. Switched off, the field falls back to Filament's menu - the node, and
+     * everything stored, is the same either way.
+     */
+    public function mentionMenu(bool|Closure $condition = true): static
+    {
+        $this->hasMentionMenu = $condition;
+
+        return $this;
+    }
+
+    public function hasMentionMenu(): bool
+    {
+        return (bool) ($this->evaluate($this->hasMentionMenu) ?? config('filament-advanced-rich-editor.mentions.menu') ?? true);
+    }
+
+    /**
+     * What the mention menu offers, for the view to hand to the script.
+     *
+     * Null where the menu is switched off and where the field mentions nothing: an
+     * extension that replaces Filament's own has no business loading for a field that never
+     * asked for mentions.
+     *
+     * The triggers are Filament's own description of them - the same array its extension is
+     * configured with - so a provider written against Filament works here untouched. The key
+     * is what lets the script call back for a search, the same way the media browser does.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getMentionMenuForJs(): ?array
+    {
+        if (! $this->hasMentionMenu()) {
+            return null;
+        }
+
+        $triggers = $this->getMentionsForJs();
+
+        if ($triggers === []) {
+            return null;
+        }
+
+        // The rows go in front of the labels where a provider has them. Both are read from
+        // the same list in the same order, which is how a trigger is matched to the provider
+        // it was built from - Filament's own description carries no way back to it.
+        $providers = array_values($this->getMentionProviders());
+
+        foreach ($triggers as $index => $trigger) {
+            $provider = $providers[$index] ?? null;
+
+            if ($provider instanceof MentionProvider && $provider->hasRows()) {
+                $triggers[$index]['items'] = $provider->getRows();
+            }
+        }
+
+        return [
+            'key' => $this->getKey(),
+            'triggers' => $triggers,
+        ];
     }
 
     /**

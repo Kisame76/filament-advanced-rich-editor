@@ -6,6 +6,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- The mention menu is this package's own, and its rows have room for a picture and a line of
+  context under the name. Filament draws a suggestion as one line of text, which makes five
+  people called the same thing five identical rows; `MentionRow` carries an avatar and a
+  hint, `MentionProvider` extends Filament's and hands the rows over with `rows()` or from
+  `getSearchResultsUsing()`, and a row without a picture is drawn with the initials of the
+  name rather than a gap. On by default, `->mentionMenu(false)` or the `mentions.menu` config
+  key gives Filament's own menu back, and nothing about what is stored differs either way -
+  the same node, the same `data-id`, the same markup on the page
 - The media browser's behaviour is tested. Fifty tests over paging, folders, filtering, the
   details panel, uploads, drag and drop and the numbers under a picture, run by Vitest in
   jsdom and wired into CI beside the PHP suite. This was the largest untested thing in the
@@ -20,6 +28,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   attribute cannot be imported. The view still owns what only PHP knows: the labels, the two
   settings, the entangled selection and the two calls that reach the editor. A published copy
   of the view keeps working, since the version somebody published carries its own behaviour
+
+  **Upgrading:** run `php artisan filament:assets`. The browser is a registered asset now, and
+  an asset that was never published is a 404 the field cannot report - the dialog opens empty
+  and silent rather than showing an error. This is the step the installation instructions
+  already ask for after every install and deploy; it is repeated here because this release is
+  the first where skipping it is visible
 
 - The README and the manual both end with what is planned and an invitation to report bugs
   and suggest changes. Both files carry it rather than one linking to the other, because the

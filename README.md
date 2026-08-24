@@ -31,6 +31,8 @@ tool with alt text and optional Spatie Media Library storage on top.
   list and an `id` on the page cannot drift apart
 - **Links with `rel`, `referrerpolicy` and `hreflang`** — and `noopener noreferrer` added
   automatically to anything opening in a new window
+- **Mention menu with faces** — a picture and a line of context under each name, so five
+  people called the same thing are five different rows
 - **Slash menu** — type `/` for a searchable list of the commands *this* field offers
 - **Video embeds** — paste a YouTube or Vimeo link and get a player, timestamp included,
   through the cookie-free host
@@ -132,15 +134,18 @@ sense that there is nothing left to build.
   for a picture you just dropped in. This is the next big one, and it is deliberately not
   rushed: it has to work with whichever provider a project already pays for, and it has to
   be switched off by default. Coming in a later release.
-- **A richer mention menu.** Filament's own mention rows are a label and nothing else. Avatars
-  and a second line of context are the obvious next step, and the rendering half of it is
-  already here.
-- **Tests for the media browser's front end.** Roughly seven hundred lines of Alpine with no
-  automated coverage. Everything else in the package is tested; this is the gap that bothers
-  me most.
 
 Nothing here is a promise with a date on it. If one of them is what you need, say so and it
 moves up.
+
+Done since this list was written:
+
+- ~~**A richer mention menu.**~~ Rows carry a picture and a line of context now, and a row
+  without a picture is drawn with the initials of the name. See
+  [Mentions](docs/documentation.md#mentions).
+- ~~**Tests for the media browser's front end.**~~ The browser moved out of the Blade
+  attribute it was written in and into `resources/js/media-picker.js`, where fifty tests
+  cover paging, folders, filtering, the details panel, uploads and drag and drop.
 
 ## Found a bug? Got an idea?
 

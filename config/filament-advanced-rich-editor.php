@@ -211,6 +211,25 @@ return [
     | selected, and an inline format there would mark nothing. `'headings'` expands to the
     | levels the field offers. Per field: `->slashMenu()`.
     */
+    /*
+    |--------------------------------------------------------------------------
+    | Mentions
+    |--------------------------------------------------------------------------
+    |
+    | Whose menu opens when a trigger is typed. This package's own has room for a picture
+    | and a line of context under the name, which is what tells two people called the same
+    | thing apart; Filament's draws the name and nothing else.
+    |
+    | The mention itself is unchanged either way - the same node, the same `data-id`, the
+    | same markup on the page - so this can be switched at any time without touching
+    | anything already written. Per field: `->mentionMenu()`.
+    |
+    */
+
+    'mentions' => [
+        'menu' => true,
+    ],
+
     'slash' => [
         'enabled' => true,
         'char' => '/',

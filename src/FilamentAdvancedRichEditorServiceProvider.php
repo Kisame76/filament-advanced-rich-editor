@@ -77,6 +77,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/slash-menu', __DIR__.'/../resources/dist/js/slash-menu.js')
                     ->loadedOnRequest(),
 
+                // Replaces Filament's own mention extension rather than joining it - the two
+                // carry the same name, and Filament keeps the last one it is handed.
+                Js::make('advanced-rich-editor/mention', __DIR__.'/../resources/dist/js/mention.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/embed', __DIR__.'/../resources/dist/js/embed.js')
                     ->loadedOnRequest(),
 

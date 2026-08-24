@@ -1477,6 +1477,123 @@ body.fi-arte-fullscreen-lock {
 }
 
 /* -------------------------------------------------------------------------- */
+/* The mention menu                                                           */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Deliberately the slash menu's panel again rather than a second look for the same idea:
+ * both are a list of things opened by typing a character, and two panels that differ only
+ * in their shadow read as two features nobody joined up.
+ *
+ * The row is what differs, and it is the whole reason this menu exists: a picture, a name,
+ * and a line under it. The name alone is what Filament draws, and a list of five people
+ * called the same thing is exactly where a mention menu is worth having.
+ */
+.fi-arte-mention-menu {
+    position: fixed;
+    z-index: 40;
+    /* Narrower than the panel is possible on a phone; the menu shrinks rather than hanging
+       off the edge. */
+    width: min(17rem, calc(100vw - 1rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.375rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--fi-arte-mention-border, rgb(228 228 231));
+    background-color: var(--fi-arte-mention-bg, #fff);
+    box-shadow:
+        0 10px 15px -3px rgb(0 0 0 / 0.1),
+        0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fi-arte-mention-menu:where(.dark, .dark *) {
+    --fi-arte-mention-border: rgb(63 63 70);
+    --fi-arte-mention-bg: rgb(24 24 27);
+}
+
+.fi-arte-mention-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.5rem;
+    text-align: start;
+    font-size: 0.875rem;
+    color: inherit;
+    cursor: pointer;
+}
+
+/*
+ * Hover is not styled separately: the pointer moves the same selection the arrow keys do,
+ * so a second highlight would say there are two selections.
+ */
+.fi-arte-mention-item-active {
+    background-color: var(--fi-arte-mention-active, rgb(244 244 245));
+}
+
+.fi-arte-mention-item-active:where(.dark, .dark *) {
+    --fi-arte-mention-active: rgb(39 39 42);
+}
+
+/*
+ * One square whether it holds a picture or two letters, because a column that changes width
+ * per row is what makes a list of people unreadable.
+ */
+.fi-arte-mention-avatar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    object-fit: cover;
+    background-color: var(--fi-arte-mention-avatar-bg, rgb(244 244 245));
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--fi-arte-mention-muted, rgb(113 113 122));
+}
+
+.fi-arte-mention-avatar:where(.dark, .dark *) {
+    --fi-arte-mention-avatar-bg: rgb(39 39 42);
+}
+
+.fi-arte-mention-text {
+    display: flex;
+    flex-direction: column;
+    /* `min-width: 0` and nothing else is what lets the two lines below be cut off rather
+       than pushing the row wider than the panel. */
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.fi-arte-mention-label,
+.fi-arte-mention-hint {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-arte-mention-hint {
+    font-size: 0.75rem;
+    color: var(--fi-arte-mention-muted, rgb(113 113 122));
+}
+
+.fi-arte-mention-note {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--fi-arte-mention-muted, rgb(113 113 122));
+}
+
+.fi-arte-mention-menu:where(.dark, .dark *) .fi-arte-mention-avatar,
+.fi-arte-mention-menu:where(.dark, .dark *) .fi-arte-mention-hint,
+.fi-arte-mention-menu:where(.dark, .dark *) .fi-arte-mention-note {
+    --fi-arte-mention-muted: rgb(161 161 170);
+}
+
+/* -------------------------------------------------------------------------- */
 /* Video embeds                                                               */
 /* -------------------------------------------------------------------------- */
 

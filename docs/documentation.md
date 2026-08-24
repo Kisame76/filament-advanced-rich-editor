@@ -1581,8 +1581,7 @@ opened two levels for it would be describing the markup rather than the document
 ### Mentions
 
 Mentions are Filament's own feature — `RichEditor::mentions()`, the `@` menu, more than one
-trigger — and this package changes nothing about the editor half. Configure the field the
-way Filament documents it:
+trigger — and a field configured the way Filament documents it works here unchanged:
 
 ```php
 use Filament\Forms\Components\RichEditor\MentionProvider;
@@ -1615,6 +1614,61 @@ AdvancedRichContentRenderer::make($article->content)
 ```
 
 What this package adds on top:
+
+**A menu with a row worth reading.** Filament draws a suggestion as one line of text: the
+name, and nothing else. Five people called Müller are five identical rows. This package's
+menu has room for the picture somebody is recognised by and a line under the name — a role,
+a team, an email address — which is what tells them apart:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionRow;
+
+AdvancedRichEditor::make('content')
+    ->mentions([
+        MentionProvider::make('@')
+            ->getSearchResultsUsing(fn (string $search): array => User::query()
+                ->where('name', 'like', "%{$search}%")
+                ->limit(10)
+                ->get()
+                ->map(fn (User $user): MentionRow => MentionRow::make($user->id, $user->name)
+                    ->avatar($user->avatar_url)
+                    ->hint($user->job_title))
+                ->all()),
+    ]);
+```
+
+`MentionProvider` here is this package's own, extending Filament's: `getLabelsUsing()`,
+`url()`, `extraAttributes()` and the messages are its methods, called by its code. A row
+without an avatar is drawn with the initials of the name rather than a gap, and a row
+without a hint is drawn as one line.
+
+A trigger whose whole list is known up front is handed over with `rows()` instead, and the
+browser filters it without a request per keystroke — the name and the second line both:
+
+```php
+MentionProvider::make('#')
+    ->rows(fn (): array => Team::query()
+        ->get()
+        ->map(fn (Team $team): MentionRow => MentionRow::make($team->id, $team->name)
+            ->avatar($team->logo_url)
+            ->hint($team->department))
+        ->all())
+```
+
+A row may also be a plain array — `['id' => 7, 'label' => 'Ada', 'hint' => 'Mathematician']` —
+so a query that already selects the right columns needs no mapping.
+
+The menu is on by default and can be switched off per field with `->mentionMenu(false)` or
+for the whole project with the `mentions.menu` config key, in which case Filament's own menu
+opens instead. Nothing about what is stored changes either way: the same node, the same
+`data-id`, the same markup on the page.
+
+Two things are worth knowing about how this is done. The extension carries Filament's own
+name and therefore *replaces* it — that is the only seam Filament offers, because its
+suggestion is built into ProseMirror plugins while the editor is constructed. And it is only
+loaded on a field that was actually given providers, so a field without mentions keeps
+Filament's node untouched.
 
 **A class to style.** Filament renders a mention as `data-type` and `data-id` and nothing
 else, which on a page is indistinguishable from any other span. It cannot render more:
@@ -1873,15 +1927,18 @@ sense that there is nothing left to build.
   for a picture you just dropped in. This is the next big one, and it is deliberately not
   rushed: it has to work with whichever provider a project already pays for, and it has to
   be switched off by default. Coming in a later release.
-- **A richer mention menu.** Filament's own mention rows are a label and nothing else. Avatars
-  and a second line of context are the obvious next step, and the rendering half of it is
-  already here.
-- **Tests for the media browser's front end.** Roughly seven hundred lines of Alpine with no
-  automated coverage. Everything else in the package is tested; this is the gap that bothers
-  me most.
 
 Nothing here is a promise with a date on it. If one of them is what you need, say so and it
 moves up.
+
+Done since this list was written:
+
+- ~~**A richer mention menu.**~~ Rows carry a picture and a line of context now, and a row
+  without a picture is drawn with the initials of the name. See
+  [Mentions](#mentions).
+- ~~**Tests for the media browser's front end.**~~ The browser moved out of the Blade
+  attribute it was written in and into `resources/js/media-picker.js`, where fifty tests
+  cover paging, folders, filtering, the details panel, uploads and drag and drop.
 
 ## Found a bug? Got an idea?
 
