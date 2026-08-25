@@ -42,6 +42,21 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- Every dropdown in the package turns upwards when there is no room for it below - the
+  colour pickers, the font and size pickers, the image panel and the styles picker. They all
+  hang off their trigger with `position: absolute`, which is right in the middle of a page
+  and wrong at the foot of one, and the bar over a selection turned that from an edge case
+  into the normal one: it hangs below the text it belongs to, so its menus start lower than
+  any menu on the toolbar ever does
+
+  Two edges cut a menu off and only one of them is the window. `.fi-fo-rich-editor-content`
+  scrolls its own overflow, so a menu opening low in the editor is clipped by the editor -
+  and raising `z-index` does nothing about either, because a menu reaching past the bottom of
+  a scrolling ancestor is cut off by geometry and paint order has no say in it. The room is
+  measured against whichever edge comes first, and measured once the menu exists rather than
+  guessed from a maximum height, since these lists are as long as a project's configuration
+  makes them. `OpensAwayFromTheEdge` holds it once for all five
+
 - `->nullWhenEmpty()` stores an empty document as nothing rather than as the `<p></p>` TipTap
   always keeps, so a field that shows nothing on the page is also nothing in the record -
   which is what `@if($post->content)` and a `whereNull` both already assume. Off by default,

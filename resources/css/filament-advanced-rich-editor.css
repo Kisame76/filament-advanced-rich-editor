@@ -596,6 +596,28 @@
 }
 
 /*
+ * A menu turned upwards, because there was no room for it below.
+ *
+ * Every dropdown in this package hangs off its trigger with `position: absolute`, which is
+ * right in the middle of a page and wrong at the foot of one. Two edges cut a menu off and
+ * only one of them is the window: `.fi-fo-rich-editor-content` scrolls its own overflow, so
+ * a menu opening low in the editor is clipped by the editor. The bar over a selection makes
+ * that the normal case, since it hangs below the text it belongs to.
+ *
+ * Raising `z-index` would not help with either of them. A menu reaching past the bottom of a
+ * scrolling ancestor is cut off by geometry, and paint order has no say in it.
+ *
+ * Both classes on the selector, so this wins wherever the two stylesheets land in the
+ * cascade. See `OpensAwayFromTheEdge` for the measuring.
+ */
+.fi-fo-rich-editor-dropdown-tool-menu.fi-arte-menu-up {
+    inset-block-start: auto;
+    inset-block-end: 100%;
+    margin-block-start: 0;
+    margin-block-end: 0.25rem;
+}
+
+/*
  * The one button in the image toolbar that takes the image away. It is the only
  * destructive thing in there, so it is the only thing that is not grey.
  */
