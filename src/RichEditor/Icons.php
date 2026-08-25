@@ -53,6 +53,18 @@ class Icons
             // of it", so the trigger says what it is without a label.
             'more' => 'heroicon-o-ellipsis-horizontal',
             'source_code' => 'heroicon-o-code-bracket',
+            // Searching. The magnifier is the button, and the three inside the bar are the
+            // chrome around it: two chevrons for the way through the hits and a cross for
+            // the way out. The arrow curving back is the replacement, which is one thing
+            // becoming another rather than a direction.
+            'find' => 'heroicon-o-magnifying-glass',
+            'find_previous' => 'heroicon-o-chevron-up',
+            'find_next' => 'heroicon-o-chevron-down',
+            'find_close' => 'heroicon-o-x-mark',
+            // Lucide's own, like the rotations: Heroicons has nothing for replacing, and
+            // its circular arrow reads as reload. The grip says the window can be moved.
+            'find_replace' => 'arte-replace',
+            'find_grip' => 'arte-grip-vertical',
             'help' => 'heroicon-o-question-mark-circle',
             'emoji' => 'heroicon-o-face-smile',
             // The emoji picker's tabs. Drawn icons, not emoji: nine coloured faces in a row

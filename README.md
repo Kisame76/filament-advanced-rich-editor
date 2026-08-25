@@ -34,6 +34,8 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Mention menu with faces** — a picture and a line of context under each name, so five
   people called the same thing are five different rows
 - **Slash menu** — type `/` for a searchable list of the commands *this* field offers
+- **Find and replace** — `Ctrl+F` inside the field, every hit marked, whole words and case
+  optional, and replacing all of them is one undo
 - **Video embeds** — paste a YouTube or Vimeo link and get a player, timestamp included,
   through the cookie-free host
 - **Code blocks** — a language picker on the block, and syntax colours rendered in PHP

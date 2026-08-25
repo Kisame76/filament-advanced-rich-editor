@@ -42,6 +42,40 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- Finding and replacing inside a field. `'find'` sits at the end of the toolbar and `Ctrl+F`
+  opens the same small window while the caret is in the editor, which was the most conspicuous thing
+  every commercial editor could do and this one could not. Every hit is marked in the text
+  and the one being looked at is marked differently, because a search that highlighted all
+  twelve the same way answers "is it in here" but never "where am I". Two keys open it and each stands
+  for one of its two states rather than for a change to whichever it is in: `Ctrl+F` with
+  the replacing row put away, `Ctrl+Alt+F` with it out - and `Ctrl+H` alongside that second
+  one for the muscle memory Word and Google Docs built, which never arrives on a Mac because
+  `Cmd+H` hides the application before the page sees it, the same pair and the same reason
+  as VS Code. Pressed again they repeat themselves rather than toggling: the usual reason for
+  pressing `Ctrl+F` a second time is that something else is selected now, and the second
+  press picks it up the way the first one did. Only the button in the bar shows and hides
+  the replacing row. The search runs on the document's text laid end to end rather than on
+  its tree: `he<strong>ll</strong>o` is three text nodes and one word, and a search walking
+  the tree would find neither. Between two blocks, and either side of an image or a line
+  break, sits a character nobody can type, which is what keeps a hit from running from the
+  end of one paragraph into the start of the next without a special case anywhere. Whole
+  words are counted in letters rather than in ASCII, so `Mü` does not match inside `Müller`,
+  and the query is text rather than a pattern. Replacing every hit is one transaction and
+  therefore one step in the undo chain, worked back to front so that replacing one does not
+  move the ones still to come, and picking up after the replacement rather than at it - so
+  replacing `cat` with `cats` moves on instead of replacing forever. The caret is never
+  moved while the bar is open: a hit is scrolled to, not selected, so the bar keeps what is
+  being typed into it. The bar is a window hanging off the body, one row tall and draggable
+  by the grip on its left, rather than a row inside the field - Filament lays the editor's
+  body out as a two-column row from `2xl` up, so a bar living in there is a column and takes
+  half the editor on a wide screen. Staying on the screen, being dragged, closing on Escape
+  and closing on a click that is not in the editor are in `floating-panel.js`, on its own
+  because the emoji picker wants the same four things and the half that drifts silently
+  between two copies is the geometry - a window placed past the edge cannot be dragged back,
+  and nothing says so until somebody opens it on a narrow screen. The picker has not moved
+  onto it yet. Nothing is stored, so `->find(false)` takes the button and the keys away and
+  leaves every document written with it alone
+
 - `->stylePreview()` marks the text a style sits on, for the projects that have not written
   their own rules yet. Off by default, and that is the same reasoning the empty styles list
   follows rather than an oversight: a style is a set of the project's classes, none of which

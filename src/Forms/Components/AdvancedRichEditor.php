@@ -39,6 +39,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
@@ -116,6 +117,8 @@ class AdvancedRichEditor extends RichEditor
     protected array|Closure|null $moreTools = null;
 
     protected bool|Closure|null $hasEmoji = null;
+
+    protected bool|Closure|null $hasFind = null;
 
     protected bool|Closure|null $hasTextDirection = null;
 
@@ -380,6 +383,15 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTextDirection()
                 ? [TextDirectionPlugin::make()]
+                : [],
+        );
+
+        // Off means the extension is not loaded at all, which is what takes the keyboard
+        // shortcut away with the button: a bar reachable by `Ctrl+F` on a field that hides
+        // the tool is a feature, and one on a field that switched searching off is a bug.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasFind()
+                ? [FindReplacePlugin::make()]
                 : [],
         );
 
@@ -1346,6 +1358,35 @@ class AdvancedRichEditor extends RichEditor
     public function hasEmoji(): bool
     {
         return (bool) ($this->evaluate($this->hasEmoji) ?? config('filament-advanced-rich-editor.emoji') ?? true);
+    }
+
+    /**
+     * Finding and replacing inside this field. Nothing about it is stored - a search marks
+     * no document and a replacement is ordinary text - so switching it off later changes
+     * nothing that was ever written with it.
+     */
+    public function find(bool|Closure $condition = true): static
+    {
+        $this->hasFind = $condition;
+
+        return $this;
+    }
+
+    public function hasFind(): bool
+    {
+        return (bool) ($this->evaluate($this->hasFind) ?? config('filament-advanced-rich-editor.find') ?? true);
+    }
+
+    /**
+     * The strings and icons the bar draws, for the view to hand to the script. Null while
+     * searching is switched off, which is also when the extension that would read them was
+     * never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getFindSettingsForJs(): ?array
+    {
+        return $this->hasFind() ? FindReplacePlugin::getLabels() : null;
     }
 
     /**

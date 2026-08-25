@@ -2331,3 +2331,203 @@ body.fi-arte-fullscreen-lock {
     overflow-wrap: anywhere;
     font-weight: 500;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Find and replace                                                           */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A small window hanging off the body, the same kind the emoji picker is and one row tall
+ * instead of twenty. Not a box inside the field, and that is not a matter of taste:
+ * Filament lays `.fi-fo-rich-editor-main` out as a two-column row from `2xl` up, so a bar
+ * living in there becomes a column and takes half the editor on a wide screen.
+ *
+ * Its width is set in the script, because the same number decides where the corner is.
+ */
+.fi-arte-find {
+    position: fixed;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.3125rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--gray-300, #d4d4d8);
+    background-color: var(--color-white, #fff);
+    box-shadow: 0 10px 25px rgba(9, 9, 11, 0.15);
+}
+
+.fi-arte-find:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: var(--gray-900, #18181b);
+}
+
+.fi-arte-find-row {
+    display: flex;
+    align-items: center;
+    gap: 0.1875rem;
+}
+
+/* The replacing half is shown by clearing `hidden`, so the row has to beat `display: none`
+   only when it is on - which is what the attribute selector says instead of a class. */
+.fi-arte-find-row[hidden] {
+    display: none;
+}
+
+/*
+ * The one part of the bar with nothing to click, which is what makes it the part that can
+ * be grabbed - a window holding a text field cannot be dragged by its whole surface.
+ */
+.fi-arte-find-grip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.875rem;
+    height: 1.5rem;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-find-grip:active {
+    cursor: grabbing;
+}
+
+.fi-arte-find-grip svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.fi-arte-find-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.125rem 0.375rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.3125rem;
+    background-color: var(--color-white, #fff);
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: inherit;
+}
+
+.fi-arte-find-input:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: color-mix(in oklab, var(--color-white, #fff) 5%, transparent);
+}
+
+.fi-arte-find-input:focus {
+    outline: 2px solid var(--primary-500, #3b82f6);
+    outline-offset: -1px;
+}
+
+/*
+ * The counter keeps its width off the flex sizing so that stepping from "9 of 12" to
+ * "10 of 12" does not shift every button beside it.
+ */
+.fi-arte-find-count {
+    flex: 0 0 auto;
+    min-width: 3.25rem;
+    text-align: center;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--gray-500, #71717a);
+}
+
+.fi-arte-find-count:where(.dark, .dark *) {
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-find-step,
+.fi-arte-find-toggle,
+.fi-arte-find-action {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.3125rem;
+    color: var(--gray-500, #71717a);
+    cursor: pointer;
+}
+
+.fi-arte-find-step:hover,
+.fi-arte-find-toggle:hover,
+.fi-arte-find-action:hover {
+    background-color: color-mix(in oklab, currentColor 10%, transparent);
+}
+
+.fi-arte-find-step {
+    width: 1.375rem;
+    height: 1.375rem;
+}
+
+.fi-arte-find-step svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+/*
+ * `Aa` and `ab` rather than drawings: both are the established labels for these two
+ * switches, they need no icon registry entry, and they say what they do in every language
+ * because they are not words in any of them.
+ */
+.fi-arte-find-toggle {
+    width: 1.375rem;
+    height: 1.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.fi-arte-find-whole-word {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.fi-arte-find-toggle-on {
+    background-color: color-mix(in oklab, var(--primary-500, #3b82f6) 15%, transparent);
+    color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-find-toggle-on:where(.dark, .dark *) {
+    color: var(--primary-400, #60a5fa);
+}
+
+.fi-arte-find-action {
+    padding: 0 0.5rem;
+    height: 1.5rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    font-size: 0.6875rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.fi-arte-find-action:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+}
+
+/*
+ * Every hit is marked, and the one being looked at is marked differently: a search that
+ * highlighted all twelve the same way answers "is it in here" but never "where am I".
+ * A background rather than a border, so that nothing in the text moves as hits appear.
+ */
+.fi-arte-find-hit {
+    border-radius: 0.125rem;
+    background-color: var(--fi-arte-find-hit, rgba(250, 204, 21, 0.45));
+}
+
+.fi-arte-find-hit:where(.dark, .dark *) {
+    background-color: var(--fi-arte-find-hit, rgba(250, 204, 21, 0.3));
+}
+
+.fi-arte-find-hit-current {
+    background-color: var(--fi-arte-find-hit-current, rgba(249, 115, 22, 0.65));
+}
+
+.fi-arte-find-hit-current:where(.dark, .dark *) {
+    background-color: var(--fi-arte-find-hit-current, rgba(249, 115, 22, 0.55));
+}

@@ -57,6 +57,7 @@
     $mentionMenu = $getMentionMenuForJs();
     $embedSettings = $getEmbedSettingsForJs();
     $codeBlockSettings = $getCodeBlockSettingsForJs();
+    $findSettings = $getFindSettingsForJs();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -221,6 +222,7 @@
                     @if ($mentionMenu) data-arte-mentions="{{ json_encode($mentionMenu) }}" @endif
                     @if ($embedSettings) data-arte-embed="{{ json_encode($embedSettings) }}" @endif
                     @if ($codeBlockSettings) data-arte-code-block="{{ json_encode($codeBlockSettings) }}" @endif
+                    @if ($findSettings) data-arte-find="{{ json_encode($findSettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div

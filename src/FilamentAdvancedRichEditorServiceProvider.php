@@ -101,6 +101,15 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/character-count', __DIR__.'/../resources/dist/js/character-count.js')
                     ->loadedOnRequest(),
 
+                // The bar imports the panel itself, warmed as soon as the extension loads.
+                // Registered so it is published and served next to the extension - the
+                // import resolves against the extension's own URL, which is what keeps the
+                // two together wherever the assets ended up.
+                Js::make('advanced-rich-editor/find-replace', __DIR__.'/../resources/dist/js/find-replace.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/floating-panel', __DIR__.'/../resources/dist/js/floating-panel.js')
+                    ->loadedOnRequest(),
+
                 // The picker imports the list itself, the first time it opens. The file is
                 // registered so it is published and served next to the extension - the
                 // import resolves against the extension's own URL, which is what keeps the

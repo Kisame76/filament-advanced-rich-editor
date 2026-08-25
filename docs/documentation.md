@@ -775,6 +775,65 @@ inline elements is part of the sentence, and anything inside a `<pre>` is copied
 exactly as written. A single long paragraph still arrives as a single long line, wrapped by
 the code editor: that one is the document's own doing, not the layout's.
 
+### Find and replace
+
+`'find'` opens a bar inside the field, and so does `Ctrl+F` while the caret is in the
+editor. Every hit is marked in the text, the one being looked at is marked differently, and
+the counter says which of how many.
+
+```php
+AdvancedRichEditor::make('content')->find(false);   // default: config('...find')
+```
+
+The bar is a small window, one row tall, opening in the top right corner of the field and
+draggable by the grip on its left - the same kind of window the emoji picker is. It hangs
+off the body rather than sitting inside the field, which is not a matter of taste: Filament
+lays the editor's body out as a two-column row from `2xl` up, so a bar living in there
+becomes a column and takes half the editor on a wide screen.
+
+It carries the query, a counter, two switches, the way through the hits and the way out.
+
+Two keys open it, and each stands for one of its two states rather than for a change to
+whichever it is in:
+
+| Key | What it opens |
+|---|---|
+| `Ctrl+F` | the window with the replacing row put away |
+| `Ctrl+Alt+F`, or `Ctrl+H` on Windows and Linux | the same window with the replacing row out |
+
+Pressed again they repeat themselves, and that is deliberate: the usual reason for pressing
+`Ctrl+F` a second time is that something else is selected now, so the second press picks
+that up the way the first one did. Only the button in the bar shows and hides the replacing
+row, because that is the one place it is a thing to be toggled.
+
+`Ctrl+H` is bound alongside `Ctrl+Alt+F` for the muscle memory Word and Google Docs built,
+and it never arrives on a Mac - `Cmd+H` hides the application before the page sees it, which
+is the same reason VS Code settled on `Cmd+Alt+F`. The shortcut list in the help dialog
+names `Ctrl+Alt+F`, since that is the one of the two that is true on every platform.
+
+Enter steps to the next hit and Shift+Enter to the previous one, Escape closes the window
+and puts the cursor back in the text. A click anywhere outside closes it too - except in the
+editor, where clicking is how the next place to search from gets chosen.
+
+Two switches narrow the search: `Aa` minds upper and lower case, and `ab` matches whole
+words only - and whole words are counted in letters rather than in ASCII, so `Mü` does not
+match inside `Müller`. What is typed is text and never a pattern: searching for `a.b` finds
+those three characters.
+
+A hit may run through formatting. `he<strong>ll</strong>o` is three text nodes in the
+document and one word on the page, so the search runs on the text laid end to end rather
+than on the tree - and a hit never runs across a block boundary, an image or a line break,
+because a paragraph ending in `hello` followed by one starting with `world` is not the
+phrase `hello world`.
+
+Replacing every hit is one step in the undo chain rather than one per hit, and the cursor is
+never moved while the bar is open: the hit is scrolled to, not selected, so what is being
+typed in the bar keeps the focus.
+
+Nothing about any of this is stored. A search marks no document and a replacement is
+ordinary text by the time it is saved, so turning the feature off later leaves everything
+written with it exactly as it is - it only takes the button and the keys away.
+
 ### Fullscreen
 
 The last button expands the editor over the window, and Escape leaves again.
@@ -2149,6 +2208,9 @@ moves up.
 
 Done since this list was written:
 
+- ~~**Finding and replacing.**~~ A bar inside the field, opened by the button or by
+  `Ctrl+F`, marking every hit and stepping through them. See
+  [Find and replace](#find-and-replace).
 - ~~**A richer mention menu.**~~ Rows carry a picture and a line of context now, and a row
   without a picture is drawn with the initials of the name. See
   [Mentions](#mentions).

@@ -164,6 +164,22 @@ return [
         'headings' => 'Headings',
         'lists' => 'Lists',
         'more' => 'More',
+        'find' => [
+            'label' => 'Find and replace',
+            'find' => 'Find',
+            'replace' => 'Replace with',
+            'previous' => 'Previous match',
+            'next' => 'Next match',
+            'replace_one' => 'Replace',
+            'replace_all' => 'Replace all',
+            'close' => 'Close',
+            'match_case' => 'Match case',
+            'whole_word' => 'Whole words only',
+            'no_results' => 'No matches',
+            // Both numbers sit in one sentence, because where they sit in it is a question
+            // about the language and not one the browser should be answering.
+            'count' => ':current of :total',
+        ],
         'source_code' => [
             'label' => 'Source code',
             'heading' => 'Source code',
@@ -205,6 +221,8 @@ return [
             'indent_list' => 'Indent list item',
             'outdent_list' => 'Outdent list item',
             'next_cell' => 'Next table cell',
+            'find' => 'Find',
+            'find_replace' => 'Find and replace',
         ],
     ],
 

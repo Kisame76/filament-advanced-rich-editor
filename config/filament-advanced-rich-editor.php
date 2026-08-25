@@ -118,6 +118,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Find and replace
+    |--------------------------------------------------------------------------
+    | The 'find' tool and the bar behind it, opened by the button or by Ctrl+F while
+    | the caret is in the editor. Nothing about it is stored: a search marks no
+    | document and a replacement is ordinary text, so turning it off later changes
+    | nothing that was written with it. Off also takes the keyboard shortcut away,
+    | because the extension carrying it is then not loaded at all.
+    | Per field: `->find()`.
+    */
+    'find' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Text direction
     |--------------------------------------------------------------------------
     | The 'ltr' and 'rtl' tools, which write a `dir` attribute on the block the caret
@@ -702,6 +715,12 @@ return [
         'color_custom' => 'arte-palette',
         'more' => 'heroicon-o-ellipsis-horizontal',
         'source_code' => 'heroicon-o-code-bracket',
+        'find' => 'heroicon-o-magnifying-glass',
+        'find_previous' => 'heroicon-o-chevron-up',
+        'find_next' => 'heroicon-o-chevron-down',
+        'find_close' => 'heroicon-o-x-mark',
+        'find_replace' => 'arte-replace',
+        'find_grip' => 'arte-grip-vertical',
         'help' => 'heroicon-o-question-mark-circle',
         'emoji' => 'heroicon-o-face-smile',
 

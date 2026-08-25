@@ -99,8 +99,9 @@ class Shortcuts
     }
 
     /**
-     * The keys that belong to no button: they are part of how the editor behaves rather
-     * than of what it can be told to do.
+     * The keys that no single button accounts for: either they belong to no button at all
+     * and are part of how the editor behaves, or one button answers to more than one of
+     * them and neither row is called what the button is called.
      *
      * @return array<int, array{label: string, keys: array<int, string>}>
      */
@@ -122,6 +123,15 @@ class Shortcuts
 
         if (array_key_exists('table', $tools)) {
             $rows[] = $line('next_cell', ['Tab']);
+        }
+
+        // One window, two ways in: the first opens it to search, the second opens it with
+        // the replacing row already out. Mod+Alt+F rather than the Ctrl+H that is bound
+        // alongside it, because this is the pair that works on both platforms - Cmd+H is
+        // taken by macOS, and a list naming a key that does nothing is worse than none.
+        if (array_key_exists('find', $tools)) {
+            $rows[] = $line('find', ['Mod', 'F']);
+            $rows[] = $line('find_replace', ['Mod', 'Alt', 'F']);
         }
 
         return $rows;
