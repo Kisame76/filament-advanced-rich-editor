@@ -26,17 +26,17 @@ return [
     'toolbar' => [
         ['undo', 'redo'],
         'divider',
-        ['headings', 'fontFamily', 'fontSize'],
+        ['headings', 'styles', 'fontFamily', 'fontSize'],
         'divider',
-        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+        ['lists', 'image', 'embed', 'table', 'blockquote'],
         'divider',
         ['more'],
         'pin',
-        ['sourceCode', 'fullscreen', 'help'],
+        ['find', 'sourceCode', 'fullscreen', 'help'],
     ],
 
     /*
@@ -102,7 +102,8 @@ return [
     | Per field: `->moreTools([...])`.
     */
     'more' => [
-        'subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details',
+        'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
+        'details',
         'emoji',
     ],
 
@@ -296,9 +297,15 @@ return [
     |--------------------------------------------------------------------------
     | The button that opens the document as HTML. Both directions run through the
     | field's own TipTap schema, so what the modal shows is what gets stored.
-    | Per field: `->sourceCode()`.
+    |
+    | Off, because it hands an editor a way past every control the toolbar stands for:
+    | whoever types into that box writes whatever the schema will accept, and the toolbar
+    | stops being the answer to what a document may contain. Worth having where the people
+    | using it know HTML, not worth giving to everybody who installs the package. The token
+    | stays in the shipped toolbar and resolves to nothing, so turning this on is all it
+    | takes. Per field: `->sourceCode()`.
     */
-    'source_code' => true,
+    'source_code' => false,
 
     /*
     |--------------------------------------------------------------------------

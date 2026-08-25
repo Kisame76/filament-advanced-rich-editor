@@ -11,14 +11,14 @@ it('resolves the shipped toolbar into groups, dropdowns and dividers', function 
         ['divider'],
         ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        ['find', 'fullscreen', 'help'],
     ]);
 });
 
@@ -43,14 +43,14 @@ it('falls back to the same toolbar when the config was never merged', function (
         ['divider'],
         ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        ['find', 'fullscreen', 'help'],
     ]);
 });
 
@@ -123,4 +123,16 @@ it('never answers a button lookup with a divider', function (): void {
             ['divider'],
             ['italic'],
         ]);
+});
+
+it('makes room for the styles picker beside the heading levels', function (): void {
+    // The token is in the shipped layout and removes itself where a project named no
+    // styles, the same way the font picker does. Without it in the default nobody who has
+    // not read the manual would ever see the feature at all.
+    expect(toolbarGroup(editor(), 'fontFamily'))->not->toContain('styles');
+
+    withStyles(['lead' => ['label' => 'Lead', 'class' => 'text-lg']]);
+
+    expect(toolbarGroup(editor(), 'fontFamily'))
+        ->toBe(['dropdown:paragraph,h1,h2,h3,h4', 'styles', 'fontFamily', 'fontSize']);
 });

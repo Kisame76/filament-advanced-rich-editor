@@ -530,17 +530,17 @@ class AdvancedRichEditor extends RichEditor
         return config('filament-advanced-rich-editor.toolbar') ?? [
             ['undo', 'redo'],
             'divider',
-            ['headings', 'fontFamily', 'fontSize'],
+            ['headings', 'styles', 'fontFamily', 'fontSize'],
             'divider',
-            ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+            ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
             'divider',
             ['alignment', 'lineHeight'],
             'divider',
-            ['lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+            ['lists', 'image', 'embed', 'table', 'blockquote'],
             'divider',
             ['more'],
             'pin',
-            ['sourceCode', 'fullscreen', 'help'],
+            ['find', 'sourceCode', 'fullscreen', 'help'],
         ];
     }
 
@@ -1341,7 +1341,8 @@ class AdvancedRichEditor extends RichEditor
     {
         return array_values($this->evaluate($this->moreTools)
             ?? config('filament-advanced-rich-editor.more')
-            ?? ['subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details', 'emoji']);
+            ?? ['subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
+                'details', 'emoji']);
     }
 
     /**
@@ -1504,7 +1505,7 @@ class AdvancedRichEditor extends RichEditor
 
     public function hasSourceCode(): bool
     {
-        return (bool) ($this->evaluate($this->hasSourceCode) ?? config('filament-advanced-rich-editor.source_code') ?? true);
+        return (bool) ($this->evaluate($this->hasSourceCode) ?? config('filament-advanced-rich-editor.source_code', false));
     }
 
     /**

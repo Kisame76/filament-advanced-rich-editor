@@ -9,7 +9,7 @@ it('pins the group that is about the editor rather than about the text', functio
     $split = editor()->getSplitToolbarButtons();
 
     expect(toolbarGroupsShape($split['pinned']))->toBe([
-        ['sourceCode', 'fullscreen', 'help'],
+        ['find', 'fullscreen', 'help'],
     ])
         // The overflow menu is not one of them: what it holds are tools for the text, so
         // it stays with the aligned groups and ends them.
@@ -21,7 +21,7 @@ it('pins the group that is about the editor rather than about the text', functio
 it('still answers a button lookup for a pinned button', function (): void {
     // The two halves are one toolbar; a button that is pinned is still on the bar, and
     // Filament's own checks must not stop finding it.
-    expect(editor()->hasToolbarButton('sourceCode'))->toBeTrue()
+    expect(editor()->sourceCode()->hasToolbarButton('sourceCode'))->toBeTrue()
         ->and(editor()->hasToolbarButton('help'))->toBeTrue()
         // The marker itself carries no button name at all.
         ->and(editor()->hasToolbarButton('pin'))->toBeFalse();
@@ -83,7 +83,7 @@ it('puts everything back on the bar when the marker is disabled', function (): v
 
     expect($editor->getPinnedToolbarButtons())->toBe([])
         ->and(array_slice(toolbarGroupsShape($editor->getFlowToolbarButtons()), -1))->toBe([
-            ['sourceCode', 'fullscreen', 'help'],
+            ['find', 'fullscreen', 'help'],
         ]);
 });
 

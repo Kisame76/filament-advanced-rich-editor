@@ -64,14 +64,14 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['divider'],
         ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
         ['divider'],
-        ['bold', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        ['find', 'fullscreen', 'help'],
     ]);
 });
 
@@ -81,14 +81,14 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['divider'],
         ['fontFamily', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        ['find', 'fullscreen', 'help'],
     ]);
 });
 
@@ -107,7 +107,8 @@ it('collapses the dividers that an emptied group left behind', function (): void
     ]);
 
     // Everything the insert group inserted is gone; the lists dropdown it shares the group
-    // with is not, so the group - and both dividers around it - stay.
+    // with is not, so the group - and both dividers around it - stay. The link goes from the
+    // marks group as well, because that is where it lives now.
     expect(toolbarShape($editor))->toBe([
         ['undo', 'redo'],
         ['divider'],
@@ -120,13 +121,13 @@ it('collapses the dividers that an emptied group left behind', function (): void
         ['dropdown:bulletList,orderedList,taskList'],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        ['find', 'fullscreen', 'help'],
     ]);
 });
 
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
-    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->disableToolbarButtons([
+    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->disableToolbarButtons([
         'lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
     ]);
 

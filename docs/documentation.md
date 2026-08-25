@@ -72,13 +72,13 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
 [
     ['undo', 'redo'],
     'divider',
-    ['headings', 'fontFamily', 'fontSize'],
+    ['headings', 'styles', 'fontFamily', 'fontSize'],
     'divider',
-    ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+    ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
     'divider',
     ['alignment', 'lineHeight'],
     'divider',
-    ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+    ['lists', 'image', 'embed', 'table', 'blockquote'],
     'divider',
     ['more'],
     'pin',
@@ -325,7 +325,7 @@ earn a place in the editor but not a button of their own.
 ```php
 AdvancedRichEditor::make('content')
     ->moreTools([
-        'subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details',
+        'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule', 'details',
         'emoji',
     ]);
 ```
@@ -748,11 +748,17 @@ configuration in the editor; see [Anchors](#anchors).
 ### Source code
 
 `'sourceCode'` opens the document as HTML, in Filament's own code editor, next to the
-fullscreen button.
+fullscreen button. **Off by default:**
 
 ```php
-AdvancedRichEditor::make('content')->sourceCode(false);   // default: config('...source_code')
+AdvancedRichEditor::make('content')->sourceCode();        // default: config('...source_code')
 ```
+
+It hands an editor a way past every control the toolbar stands for — whoever types into that
+box writes whatever the schema will accept, and the toolbar stops being the answer to what a
+document may contain. Worth having where the people using it know HTML, not worth giving to
+everybody who installs the package. The token stays in the shipped toolbar and resolves to
+nothing while this is off, so turning it on needs no toolbar surgery.
 
 Both directions go through the field's own TipTap schema rather than being passed along
 untouched, and that is the point of it:

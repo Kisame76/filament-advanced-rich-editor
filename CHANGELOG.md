@@ -160,9 +160,38 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- The source dialog is off by default. It hands an editor a way past every control the
+  toolbar stands for - whoever types into that box writes whatever the schema will accept,
+  and the toolbar stops being the answer to what a document may contain. Worth having where
+  the people using it know HTML, not worth giving to everybody who installs the package. The
+  `sourceCode` token stays in the shipped toolbar and resolves to nothing, so `->sourceCode()`
+  or `source_code => true` is all it takes to get the button back
+
+  **Upgrading:** a project that wants the button as before sets `source_code => true` in its
+  config. Nothing about stored content changes either way
+
+- The code block moved into the overflow menu, next to the inline code button it belongs
+  with. The bar had grown to seven groups; this is the tool in the insert group that the
+  fewest documents ever use
+
+- The link moved out of the insert group and in with the marks, so the shipped toolbar now
+  reads `bold, italic, underline, strike, link, textColor, textBackground` and the insert
+  group is `lists, image, embed, table, blockquote, codeBlock`. A link is an annotation on
+  selected text, the same as bold, and it sat between the image and the table only by
+  habit - which meant the bar over a selection and the bar at the top offered the same
+  buttons in a different order, two things to learn where there should be one
+
+  **Upgrading:** nothing breaks, and nothing moves for anyone who configured their own
+  `toolbar`. A project that took the shipped layout and wants the link back where it was
+  puts `'link'` back into the insert group in its published config
+
 - The bar over a selection carries the highlighter as well. It was the one thing the top bar
   offered on selected text and this one did not
 
+- The shipped toolbar has a `styles` slot beside the heading levels. It removes itself while
+  a project has named no styles, exactly as the font picker does when there are no fonts, so
+  nothing changes for anyone until they configure one - and nobody who has not read the
+  manual is left unable to find the feature
 
 - The media browser is an Alpine component in `resources/js/media-picker.js` rather than an
   `x-data` attribute in the Blade view, and is loaded the way Filament loads its own fields.
