@@ -71,7 +71,7 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        [toolsShape(), 'fullscreen'],
     ]);
 });
 
@@ -88,7 +88,7 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        [toolsShape(), 'fullscreen'],
     ]);
 });
 
@@ -121,7 +121,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
         ['dropdown:bulletList,orderedList,taskList'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        [toolsShape(), 'fullscreen'],
     ]);
 });
 

@@ -100,12 +100,20 @@ class ToolbarLayout
 
                 return $tools === [] ? [] : ToolbarDropdown::more($tools);
             },
-            // Empty is nothing rather than an empty menu, the same way `more` behaves: a
-            // trigger opening onto a list of nothing is worse than no trigger.
+            // Nothing rather than an empty menu, and "nothing" counts a list whose every
+            // entry belongs to a feature this field switched off: searching, the check, the
+            // source view and the shortcut list are each removable, so all four can be gone
+            // while the list naming them is still as long as it ever was. A trigger opening
+            // onto nothing is worse than no trigger.
             'tools' => static function (AdvancedRichEditor $editor): object|array {
                 $tools = $editor->getToolsMenu();
 
-                return $tools === [] ? [] : ToolbarDropdown::tools($tools);
+                $available = array_filter(
+                    $tools,
+                    static fn (string $name): bool => array_key_exists($name, $editor->getTools()),
+                );
+
+                return $available === [] ? [] : ToolbarDropdown::tools($tools);
             },
             'textColor' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextColor()
                 ? ToolbarColorPicker::text($editor->getTextColorsForPicker(), $editor->hasCustomColors())

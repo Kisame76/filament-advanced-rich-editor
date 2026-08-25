@@ -8,9 +8,11 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Shortcuts;
 
 it('sits with the tools that are about the editor rather than about the text', function (): void {
-    // Searching belongs next to fullscreen and help: none of the three changes a document,
-    // they change how one is being worked on.
-    expect(toolbarGroup(editor(), 'find'))->toContain('find');
+    // Searching belongs with fullscreen and help: none of the three changes a document, they
+    // change how one is being worked on. They are a menu rather than three buttons, so the
+    // corner keeps its shape as the rest of that family arrives.
+    expect(editor()->getToolsMenu())->toContain('find')
+        ->and(toolbarGroup(editor(), toolsShape()))->toBe([toolsShape(), 'fullscreen']);
 });
 
 it('opens the bar from the button', function (): void {

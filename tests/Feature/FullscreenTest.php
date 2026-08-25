@@ -9,7 +9,7 @@ it('ends the toolbar with the pinned group the fullscreen button sits in', funct
     // and the rest of the bar is the separation a rule would otherwise draw.
     expect(editor()->getPinnedToolbarButtons())->toHaveCount(1)
         ->and(array_slice(toolbarShape(editor()), -1))->toBe([
-            ['find', 'fullscreen', 'help'],
+            [toolsShape(), 'fullscreen'],
         ]);
 });
 

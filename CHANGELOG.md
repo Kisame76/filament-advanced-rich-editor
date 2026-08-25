@@ -62,9 +62,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   corner that has grown past a few buttons can be `['tools', 'fullscreen']` instead. Named
   rather than a second set of three dots, because two menus both called "More" on one bar
   are two doors with the same sign and different rooms behind them. Not in the shipped
-  toolbar: with the check and the source view both off it would hold two entries, and a
-  dropdown wrapping two of anything is worse than the two buttons it replaced. `'tools_menu'`
-  in the config, or `->toolsMenu()` per field
+  toolbar as `['tools', 'fullscreen']`, so the corner keeps its shape: the check and the
+  source view drop out of the menu while they are off and land in it when they are switched
+  on, rather than becoming a third and fourth icon beside it. The cost is that finding is one
+  click deeper on a field that switched nothing on - `Ctrl+F` is unaffected. A project that
+  would rather have the buttons names them individually. `'tools_menu'` in the config, or
+  `->toolsMenu()` per field
 
 - An accessibility check, shipped off and switched on with `->accessibility()` or in the
   config, which then puts it on the toolbar between finding and the source view. It asks six

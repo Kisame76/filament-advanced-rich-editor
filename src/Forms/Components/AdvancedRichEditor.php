@@ -605,7 +605,7 @@ class AdvancedRichEditor extends RichEditor
             'divider',
             ['more'],
             'pin',
-            ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help'],
+            ['tools', 'fullscreen'],
         ];
     }
 
@@ -1403,10 +1403,10 @@ class AdvancedRichEditor extends RichEditor
      * What the `'tools'` menu offers: the things a field does rather than the things it
      * writes - searching, checking, the source view, the shortcut list.
      *
-     * Not in the shipped toolbar, and deliberately: with the check and the source view both
-     * off, the menu would hold two entries, and a dropdown wrapping two of anything is worse
-     * than the two buttons it replaced. It is here for the bar that has grown past that -
-     * name `'tools'` in a toolbar group and take the individual names out.
+     * In the shipped toolbar as `['tools', 'fullscreen']`, so the corner never changes
+     * shape: switching the check or the source view on puts them in the menu rather than
+     * beside it, and the preview, statistics and export tools still to come go the same way.
+     * A project that would rather have the buttons names them individually.
      *
      * @param  array<int, string> | Closure  $tools
      */

@@ -127,6 +127,16 @@ function moreShape(?AdvancedRichEditor $editor = null): string
 }
 
 /**
+ * What `toolbarShape()` calls the tools menu, the same way `moreShape()` names the overflow:
+ * by what it was configured with rather than by what survived resolving, since a tool that
+ * is switched off is dropped when the dropdown renders and not when it is named.
+ */
+function toolsShape(?AdvancedRichEditor $editor = null): string
+{
+    return 'dropdown:'.implode(',', ($editor ?? editor())->getToolsMenu());
+}
+
+/**
  * Whatever the field hung below the editor, which is where Filament renders `belowContent()`
  * and where this package puts the character counter. Null when nothing was hung there.
  */

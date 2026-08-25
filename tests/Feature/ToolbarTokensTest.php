@@ -93,11 +93,21 @@ it('offers a second overflow that is named rather than a second set of dots', fu
         ->and(toolbarItem($editor, 'dropdown:find,accessibility,sourceCode,help')->getName())->toBe('Tools');
 });
 
-it('leaves the shipped toolbar alone, because two entries are worse in a menu', function (): void {
-    // With the check and the source view both off the menu would hold find and help, and a
-    // dropdown wrapping two of anything is worse than the two buttons it replaced.
-    expect(array_merge(...toolbarShape(editor())))->not->toContain('dropdown:find,help')
-        ->and(toolbarGroup(editor(), 'find'))->toBe(['find', 'fullscreen', 'help']);
+it('is the shipped corner, so it keeps its shape as that family grows', function (): void {
+    // Switching the check or the source view on puts them in the menu rather than beside it,
+    // and the preview, statistics and export tools still to come go the same way.
+    expect(array_slice(toolbarShape(editor()), -1))->toBe([[toolsShape(), 'fullscreen']])
+        ->and(resolvedButtonNames(toolbarItem(editor(), toolsShape())))->toBe(['find', 'help'])
+        ->and(resolvedButtonNames(toolbarItem(editor()->accessibility()->sourceCode(), toolsShape())))
+        ->toBe(['find', 'accessibility', 'sourceCode', 'help']);
+});
+
+it('goes away when every tool in it is switched off', function (): void {
+    // The list naming them is as long as it ever was, so emptiness has to be counted in
+    // what survived rather than in what was asked for.
+    $editor = editor()->find(false)->help(false);
+
+    expect(array_merge(...toolbarShape($editor)))->not->toContain(toolsShape());
 });
 
 it('drops the menu rather than opening one onto nothing', function (): void {

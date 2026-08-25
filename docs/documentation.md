@@ -82,7 +82,7 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
     'divider',
     ['more'],
     'pin',
-    ['sourceCode', 'fullscreen', 'help'],
+    ['tools', 'fullscreen'],
 ]
 ```
 
@@ -334,14 +334,16 @@ in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one 
 than what it writes - searching, the accessibility check, the source view, the shortcut
 list.
 
+It is the shipped corner: `['tools', 'fullscreen']`, with the menu holding
+`['find', 'accessibility', 'sourceCode', 'help']`.
+
 ```php
-// The corner, as a menu and one button rather than as five buttons.
+// A project that would rather have the buttons names them individually.
 ->toolbarButtons([
     // ...
     'pin',
-    ['tools', 'fullscreen'],
-])
-->toolsMenu(['find', 'accessibility', 'sourceCode', 'help']);
+    ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help'],
+]);
 ```
 
 It is named rather than being a second set of three dots, and that is the whole reason it
@@ -349,11 +351,17 @@ can exist. Two menus both called "More" on one bar are two doors with the same s
 different rooms behind them; a menu called Tools is a different kind of thing, and a reader
 has to be told which once rather than guess every time.
 
-**It is not in the shipped toolbar.** With the accessibility check and the source view both
-off, it would hold two entries - and a dropdown wrapping two of anything is worse than the
-two buttons it replaced. It is here for the bar that has grown past that: name `'tools'` in
-a group and take the individual names out of it. An empty menu is dropped rather than drawn,
-the same way `'more'` is.
+Shipped that way the corner never changes shape. The accessibility check and the source
+view are both off by default and drop out of the menu while they are; switching either on
+puts it *in* the menu rather than adding a third and fourth icon beside it, and the preview,
+statistics, focus mode and export tools still to come go the same way.
+
+The cost is that finding is one click deeper on a field that has switched nothing on -
+`Ctrl+F` is unaffected, and the help dialog lists it.
+
+An empty menu is dropped rather than drawn, and emptiness counts what survived rather than
+what was asked for: every tool in the list belongs to a feature that can be switched off, so
+all four can be gone while the list naming them is as long as it ever was.
 
 ### The more menu
 

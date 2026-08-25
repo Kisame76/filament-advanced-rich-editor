@@ -16,9 +16,12 @@ it('is shipped off, and puts nothing on a toolbar until it is asked for', functi
 });
 
 it('sits with the tools that are about the document rather than about the text', function (): void {
-    // The shipped toolbar keeps a place for it between searching and the source view, so
-    // switching the check on is the whole of what a project has to do.
-    expect(toolbarGroup(editor()->accessibility(), 'accessibility'))->toContain('find', 'accessibility', 'help');
+    // The shipped tools menu keeps a place for it between searching and the source view, so
+    // switching the check on is the whole of what a project has to do - and it lands in the
+    // menu rather than as another icon in the corner.
+    expect(editor()->getToolsMenu())->toBe(['find', 'accessibility', 'sourceCode', 'help'])
+        ->and(resolvedButtonNames(toolbarItem(editor()->accessibility(), toolsShape())))
+        ->toBe(['find', 'accessibility', 'help']);
 });
 
 it('opens the report from the button', function (): void {
@@ -135,8 +138,8 @@ it('turns the check on from the config file', function (): void {
     config()->set('filament-advanced-rich-editor.accessibility.enabled', true);
 
     expect(editor()->hasAccessibility())->toBeTrue()
-        // And the place the shipped toolbar reserved for it fills itself in.
-        ->and(array_merge(...toolbarShape(editor())))->toContain('accessibility');
+        // And the place the shipped tools menu reserved for it fills itself in.
+        ->and(resolvedButtonNames(toolbarItem(editor(), toolsShape())))->toContain('accessibility');
 });
 
 it('lets a field ask for it where a project did not', function (): void {

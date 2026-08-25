@@ -35,7 +35,7 @@ it('lets a field and the config file say what goes in there', function (): void 
 
 it('leaves the button out entirely when there is nothing to put in it', function (): void {
     // An empty dropdown would be a trigger that opens onto nothing.
-    expect(toolbarGroup(editor()->moreTools([]), 'fullscreen'))->toBe(['find', 'fullscreen', 'help']);
+    expect(toolbarGroup(editor()->moreTools([]), 'fullscreen'))->toBe([toolsShape(), 'fullscreen']);
 });
 
 it('keeps the three dots on the trigger whatever the caret sits in', function (): void {

@@ -36,7 +36,7 @@ return [
         'divider',
         ['more'],
         'pin',
-        ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help'],
+        ['tools', 'fullscreen'],
     ],
 
     /*
@@ -116,15 +116,18 @@ return [
     | called "More" on one bar are two doors with the same sign and different rooms
     | behind them.
     |
-    | Not in the shipped toolbar. With the check and the source view both off it would
-    | hold two entries, and a dropdown wrapping two of anything is worse than the two
-    | buttons it replaced. It is here for the bar that has grown past that: name 'tools'
-    | in a toolbar group and take the individual names out of it.
+    | It is in the shipped toolbar, as ['tools', 'fullscreen']. Shipped that way the
+    | corner never changes shape: switching the accessibility check or the source view on
+    | puts them in the menu rather than adding a fourth and fifth icon beside it, and the
+    | preview, statistics and export tools still to come go the same way.
     |
-    |   ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help']  becomes
-    |   ['tools', 'fullscreen']
+    | The cost is that finding is one click deeper than it was on a field that switched
+    | nothing on - Ctrl+F is unaffected, and the help dialog lists it. A project that
+    | would rather have the buttons names them individually instead:
     |
-    | Per field: `->toolsMenu()`.
+    |   ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help']
+    |
+    | An empty menu is dropped rather than drawn. Per field: `->toolsMenu()`.
     */
     'tools_menu' => ['find', 'accessibility', 'sourceCode', 'help'],
 
