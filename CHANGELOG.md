@@ -20,6 +20,17 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   rather than throwing away a document that had something in it. The same question is on the
   field as `hasContent()`
 
+- A column somebody dragged wider stays wider on the page. Filament configures TipTap's
+  table with `resizable: true`, so dragging worked and the width was kept in the document -
+  it just never reached the reader. `ueberdosis/tiptap-php` writes it as `data-colwidth` on
+  the cell, which is neither on the sanitiser's allow list nor anything a browser does
+  something with, because CSS cannot read an attribute value as a width. The editor looked
+  right, the page did not, and nothing said so. `TableColumnWidths` turns the widths into the
+  `<colgroup>` ProseMirror itself draws while resizing, read off the first row the way
+  ProseMirror reads them, with `table-layout: fixed` alongside so that a width is not a
+  suggestion the browser drops as soon as the text is wider. A table nobody resized is left
+  exactly as it was. Nothing about what is stored changes
+
 - A record whose column holds an empty string opens instead of throwing. `text NOT NULL
   DEFAULT ''` is an ordinary column and a record nobody has edited yet holds exactly that,
   but Filament's state cast only guards against null: the empty string went to TipTap's DOM

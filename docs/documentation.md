@@ -1530,6 +1530,37 @@ document without first checking that there is one, and a rich content column is 
 somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this
 one returns `''`. The same goes for `toText()`.
 
+### Table column widths
+
+A column somebody dragged wider stays wider on the page. Filament configures TipTap's table
+with `resizable: true`, so dragging already worked and the width was already kept in the
+document — it just never reached the reader. `ueberdosis/tiptap-php` writes it as
+`data-colwidth` on the cell, which is neither on the sanitiser's allow list nor anything a
+browser does something with: CSS cannot read an attribute value as a width. The editor
+looked right, the page did not, and nothing said so.
+
+The renderer now turns those widths into the `<colgroup>` ProseMirror itself draws while
+resizing, and `colgroup`, `col` and `style` all survive the sanitiser:
+
+```html
+<table style="table-layout: fixed;">
+    <colgroup><col style="width: 220px;" /><col /></colgroup>
+    ...
+```
+
+Three things are worth knowing:
+
+- **The widths are read off the first row**, which is where ProseMirror reads them too. A
+  width sitting only on a later row is not one the editor is showing either.
+- **`table-layout: fixed` comes with the widths and only with them.** Without it a column
+  width is a suggestion the browser drops as soon as the text is wider. A table nobody
+  resized is left exactly as it was — forcing a fixed layout on it would make every column
+  equally wide, which is a change to content that was fine.
+- **The styles are inline**, like the ones a caption gets, because the page this lands on
+  has never loaded this package's stylesheet.
+
+Nothing about what is stored changes, and the editor's own round trip is untouched.
+
 ### Anchors
 
 `anchorHeadings()` gives every heading an `id`, so a link can point at one.

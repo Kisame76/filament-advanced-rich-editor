@@ -229,6 +229,10 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         // whose caption belongs on the page, and nothing has to ask for that.
         $html = (new ImageCaptions)->apply($html);
 
+        // Same reasoning: a width somebody dragged a column to is a width that belongs on
+        // the page, and the attribute it is stored in means nothing to a browser.
+        $html = (new TableColumnWidths)->apply($html);
+
         // Before the sanitiser rather than after it: what a highlighter produces is markup,
         // and markup this package generates goes through the same door as everything else.
         return $this->codeHighlighter?->apply($html) ?? $html;
