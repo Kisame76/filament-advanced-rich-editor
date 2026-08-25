@@ -67,6 +67,19 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   guessed from a maximum height, since these lists are as long as a project's configuration
   makes them. `OpensAwayFromTheEdge` holds it once for all five
 
+- A toolbar over selected text: the project's styles, bold, italic, underline, strike, link
+  and colour, right at the selection. Filament ships one of these bars for a selected image
+  and one for a table cell, and this is the third - the one people reach for most, and the
+  reason the styles picker is worth having at the selection rather than only at the top of
+  the field. It takes the same tokens the main toolbar does, so a feature switched off on the
+  field takes its button out of the bar too. `->textToolbar(false)`,
+  `->textToolbarButtons([...])`, and the `text_toolbar` config keys
+
+  Keyed `'paragraph'` rather than `'text'`, which is not a naming choice: Filament's
+  JavaScript treats that one key as a special case and shows its toolbar on a non-empty
+  selection inside a paragraph, where every other key waits for a node to be active. A key
+  called anything else would be drawn and never shown
+
 - Named styles from the project's own design system, as a dropdown behind the `styles`
   token. This is the thing a Filament editor can do that a generic one cannot: an editor
   reaches the front end's classes without ever opening the source dialog. An entry is a
@@ -112,6 +125,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   selected after an upload
 
 ### Changed
+
+- The bar over a selection carries the highlighter as well. It was the one thing the top bar
+  offered on selected text and this one did not
+
 
 - The media browser is an Alpine component in `resources/js/media-picker.js` rather than an
   `x-data` attribute in the Blade view, and is loaded the way Filament loads its own fields.

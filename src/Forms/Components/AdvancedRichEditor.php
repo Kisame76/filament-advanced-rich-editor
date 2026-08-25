@@ -149,7 +149,14 @@ class AdvancedRichEditor extends RichEditor
      */
     protected array|Closure|null $styles = null;
 
+    protected bool|Closure|null $hasTextToolbar = null;
+
     protected bool|Closure|null $hasStylePreview = null;
+
+    /**
+     * @var array<int, mixed>|Closure|null
+     */
+    protected array|Closure|null $textToolbarButtons = null;
 
     protected bool|Closure|null $hasFontSize = null;
 
@@ -1683,6 +1690,10 @@ class AdvancedRichEditor extends RichEditor
     {
         $toolbars = parent::getDefaultFloatingToolbars();
 
+        if ($this->hasTextToolbar() && ($text = $this->getTextToolbarButtons()) !== []) {
+            $toolbars['paragraph'] = $text;
+        }
+
         if (! $this->hasImageToolbar()) {
             return $toolbars;
         }
@@ -1753,6 +1764,55 @@ class AdvancedRichEditor extends RichEditor
         $attributes['class'] = trim(($attributes['class'] ?? '').' fi-arte-style-preview');
 
         return $attributes;
+    }
+
+    /**
+     * The bar that appears over selected text.
+     *
+     * Keyed `'paragraph'` rather than `'text'`, and that is not a naming choice: Filament's
+     * JavaScript treats this one key as a special case and shows its toolbar on a non-empty
+     * selection inside a paragraph, where every other key waits for `isActive()` on a node.
+     * A key called anything else would be drawn and never shown.
+     */
+    public function textToolbar(bool|Closure $condition = true): static
+    {
+        $this->hasTextToolbar = $condition;
+
+        return $this;
+    }
+
+    public function hasTextToolbar(): bool
+    {
+        return (bool) ($this->evaluate($this->hasTextToolbar)
+            ?? config('filament-advanced-rich-editor.text_toolbar', true));
+    }
+
+    /**
+     * What the bar over a selection holds. An empty list takes the bar away, the same way
+     * an empty `moreTools()` takes the overflow button away.
+     *
+     * @param  array<int, mixed>|Closure|null  $buttons
+     */
+    public function textToolbarButtons(array|Closure|null $buttons): static
+    {
+        $this->textToolbarButtons = $buttons;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    public function getTextToolbarButtons(): array
+    {
+        $buttons = $this->evaluate($this->textToolbarButtons)
+            ?? config('filament-advanced-rich-editor.text_toolbar_buttons')
+            ?? ['styles', 'bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'];
+
+        // Resolved through the same tokens the bar itself uses, so `'styles'` and
+        // `'textColor'` mean here what they mean up there - and a switched-off feature
+        // takes its button out of the bubble too rather than leaving a dead one behind.
+        return ToolbarLayout::resolve(array_values($buttons), $this);
     }
 
     /**

@@ -415,6 +415,27 @@ return [
     */
     'style_preview' => false,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Toolbar over a selection
+    |--------------------------------------------------------------------------
+    | The little bar that appears over selected text. Filament ships one for a selected
+    | image and one for a table cell; this is the third, and the one people reach for
+    | most - at a selection they expect bold, a link and the project's own styles right
+    | there rather than at the top of the field.
+    |
+    | 'text_toolbar_buttons' takes the same tokens the main toolbar does, so 'styles' and
+    | 'textColor' mean the same thing in both, and a feature switched off on the field
+    | takes its button out of here too. An empty list takes the bar away, and so does
+    | setting 'text_toolbar' to false.
+    |
+    | Per field: `->textToolbar(false)`, `->textToolbarButtons([...])`.
+    */
+    'text_toolbar' => true,
+
+    'text_toolbar_buttons' => [
+        'styles', 'bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground',
+    ],
 
     /*
     |--------------------------------------------------------------------------

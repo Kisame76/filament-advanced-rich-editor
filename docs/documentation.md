@@ -1207,6 +1207,37 @@ never built and threw `DOMParser::getDocumentBody(): Return value must be of typ
 DOMElement, null returned` out of a form that was only being rendered. This package treats a
 blank string as no content, so such a record opens on an empty editor like any other.
 
+### Toolbar over a selection
+
+Select text and a small bar appears over it: the project's own styles, bold, italic,
+underline, strike, link, colour and the highlighter. Filament ships one of these for a
+selected image and one for a table cell; this is the third, and the one people reach for
+most.
+
+It offers the same buttons in the same order as the group at the top of the field, which is
+why the link sits with the marks in both places rather than between the image and the table.
+A link is an annotation on selected text, the same as bold; two bars that offer the same
+things in a different order are two things to learn instead of one.
+
+```php
+AdvancedRichEditor::make('comment')->textToolbar(false);              // no bar
+AdvancedRichEditor::make('content')->textToolbarButtons(['bold', 'link']);
+```
+
+It takes the same tokens the main toolbar does, so `'styles'` and `'textColor'` mean the
+same thing in both, and a feature switched off on the field takes its button out of here too
+rather than leaving a dead one behind. An empty list takes the bar away, and so does
+`text_toolbar => false` in the config.
+
+Any dropdown in the bar — the styles picker, the two colour pickers — opens upwards when
+there is no room below it. The bar hangs under the text it belongs to, so near the foot of a
+document a menu would otherwise be cut off by the editor's own scrolling content box.
+
+The bar is keyed `'paragraph'` rather than `'text'`, which is not a naming choice: Filament's
+JavaScript treats that one key as a special case and shows its toolbar on a non-empty
+selection inside a paragraph, where every other key waits for a node to be active. A key
+called anything else would be drawn and never shown.
+
 ### Images
 
 The `image` tool inserts an image and, when the cursor sits on one, re-opens the same
