@@ -42,6 +42,23 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- A grip in the margin of the block under the mouse, and a plus beside it. Dragging the grip
+  moves the block; clicking it selects the block, which is what puts the floating toolbar on
+  it. Almost none of the moving is this package's: ProseMirror already knows where a slice
+  may land, draws the line saying so and makes the move one step in the undo chain, so what
+  is added here is the part that had no home anywhere else, which is something to take hold
+  of. The plus starts a new block under the one being hovered and opens the slash menu on
+  top of it, so what it offers is everything that could go there rather than a paragraph -
+  done by typing the slash character into the new block, which is the same event as somebody
+  pressing the key, down to backspacing out of it closing the menu again. Only the top level
+  of the document gets a handle, so the grip on a list takes the list rather than the item
+  under the mouse: a list item may only live inside a list, and the honest version of that
+  feature is a drag that refuses more often than it works. A field that has a handle is
+  given a wider left margin to keep it in, because Filament leaves twenty pixels there and
+  two controls need fifty - fields without the handle are laid out exactly as Filament lays
+  them out. Nothing about it is stored, so `->dragHandle(false)` changes nothing already
+  written
+
 - The help dialog lists `Ctrl+Shift+V`, which takes the text on the clipboard and none of
   its markup. Nothing in this package binds it and nothing needs to - a browser reads it as
   paste-and-match-style and hands over the plain half on its own, and where one keeps that

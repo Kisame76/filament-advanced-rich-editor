@@ -225,6 +225,11 @@ return [
         ],
     ],
 
+    'drag_handle' => [
+        'drag' => 'Ziehen verschiebt diesen Block, Klicken wählt ihn aus',
+        'insert' => 'Block darunter einfügen',
+    ],
+
     'styles' => [
         'block' => 'Absatz',
         'inline' => 'Text',

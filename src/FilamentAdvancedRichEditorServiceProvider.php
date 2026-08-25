@@ -84,6 +84,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/slash-menu', __DIR__.'/../resources/dist/js/slash-menu.js')
                     ->loadedOnRequest(),
 
+                // The grip reads the slash menu's own settings to find the character that
+                // opens it, so the two are related at runtime and registered apart: a field
+                // may well have one and not the other.
+                Js::make('advanced-rich-editor/drag-handle', __DIR__.'/../resources/dist/js/drag-handle.js')
+                    ->loadedOnRequest(),
+
                 // Replaces Filament's own mention extension rather than joining it - the two
                 // carry the same name, and Filament keeps the last one it is handed.
                 Js::make('advanced-rich-editor/mention', __DIR__.'/../resources/dist/js/mention.js')

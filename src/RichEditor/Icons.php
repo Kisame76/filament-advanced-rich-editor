@@ -65,6 +65,12 @@ class Icons
             // its circular arrow reads as reload. The grip says the window can be moved.
             'find_replace' => 'arte-replace',
             'find_grip' => 'arte-grip-vertical',
+
+            // The grip in the margin, and the plus that starts a block under it. The same
+            // drawing as the find window's grip on purpose: both of them say the same thing
+            // about the thing they sit on, which is that it can be taken hold of.
+            'drag_handle' => 'arte-grip-vertical',
+            'drag_handle_insert' => 'heroicon-o-plus',
             'help' => 'heroicon-o-question-mark-circle',
             'emoji' => 'heroicon-o-face-smile',
             // The emoji picker's tabs. Drawn icons, not emoji: nine coloured faces in a row

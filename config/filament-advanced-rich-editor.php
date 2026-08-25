@@ -132,6 +132,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Drag handle
+    |--------------------------------------------------------------------------
+    | The grip that appears in the margin of the block under the mouse, and the plus
+    | beside it. Dragging the grip moves the block; the plus starts a new one under it
+    | and opens the slash menu on top, so what it offers is everything that could go
+    | there rather than a paragraph.
+    |
+    | Only the top level of the document gets one, so the grip on a list takes the
+    | list rather than the item under the mouse: a list item may only live inside a
+    | list, and a drag of one refuses more often than it works.
+    |
+    | Nothing about it is stored - rearranging a document changes the order of what is
+    | in it and leaves no trace of how - so turning it off changes nothing already
+    | written. Per field: `->dragHandle()`, `->dragHandleInsert()`.
+    */
+    'drag_handle' => [
+        'enabled' => true,
+        'insert' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Pasting
     |--------------------------------------------------------------------------
     | What arrives from the clipboard, made into a document again. Word sends a
@@ -755,6 +777,10 @@ return [
         'find_close' => 'heroicon-o-x-mark',
         'find_replace' => 'arte-replace',
         'find_grip' => 'arte-grip-vertical',
+
+        // The grip in the margin, and the plus that starts a block under it.
+        'drag_handle' => 'arte-grip-vertical',
+        'drag_handle_insert' => 'heroicon-o-plus',
         'help' => 'heroicon-o-question-mark-circle',
         'emoji' => 'heroicon-o-face-smile',
 

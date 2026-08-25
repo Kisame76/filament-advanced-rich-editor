@@ -2531,3 +2531,110 @@ body.fi-arte-fullscreen-lock {
 .fi-arte-find-hit-current:where(.dark, .dark *) {
     background-color: var(--fi-arte-find-hit-current, rgba(249, 115, 22, 0.55));
 }
+
+/* -------------------------------------------------------------------------- */
+/* Drag handle                                                                */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The grip in the margin of the block under the mouse, and the plus beside it.
+ *
+ * Fixed rather than absolute, and that is the whole of why it needs no room in the
+ * layout: the gutter it sits in is the editor's own padding, so nothing about the field
+ * changes shape for a control that is only there while something is being hovered. A
+ * field with `maxHeight()` is its own scrolling window, which an absolutely positioned
+ * child of the box around it would not follow.
+ *
+ * It is drawn out of the flow and out of the way: no pointer events until it is shown,
+ * so a click that lands in the margin of a field nobody is hovering goes to the text.
+ */
+/*
+ * Room for it. Filament leaves twenty pixels to the left of the text and two controls need
+ * fifty, so a field that has a grip is given a wider gutter to keep it in - the attribute
+ * is written by the view only where the feature is on, which is what keeps every other
+ * editor on the page exactly as Filament drew it.
+ */
+.fi-fo-rich-editor-content[data-arte-drag-handle] {
+    padding-left: 3.25rem;
+}
+
+.fi-arte-drag-handle {
+    position: fixed;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    /* Its own size, stated: it is a sibling of the document inside `.fi-prose`, which has
+       an opinion about the height of everything that is not told otherwise. */
+    height: 1.5rem;
+    margin: 0;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 75ms ease-out;
+}
+
+.fi-arte-drag-handle-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/*
+ * Both controls are the same shape and neither is a button anybody should notice until
+ * they are looking for it - the block is the thing on the page, and this is a handle on
+ * it.
+ */
+.fi-arte-drag-handle-grip,
+.fi-arte-drag-handle-insert {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    color: var(--gray-400, #a1a1aa);
+    background-color: transparent;
+    transition: background-color 75ms ease-out, color 75ms ease-out;
+}
+
+.fi-arte-drag-handle-grip:hover,
+.fi-arte-drag-handle-insert:hover {
+    color: var(--gray-700, #3f3f46);
+    background-color: var(--gray-100, #f4f4f5);
+}
+
+.fi-arte-drag-handle-grip:where(.dark, .dark *):hover,
+.fi-arte-drag-handle-insert:where(.dark, .dark *):hover {
+    color: var(--color-white, #fff);
+    background-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
+}
+
+.fi-arte-drag-handle-grip svg,
+.fi-arte-drag-handle-insert svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Grab, then grabbing: the one cursor pair every list of this kind has taught. */
+.fi-arte-drag-handle-grip {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.fi-arte-drag-handle-grip:active {
+    cursor: grabbing;
+}
+
+/*
+ * While a block is in the air. The text cursor over the document would say the drop is
+ * about to happen where the mouse is, and it is not - ProseMirror draws the line that
+ * says where.
+ */
+.fi-arte-dragging {
+    cursor: grabbing;
+}
+
+.fi-arte-dragging * {
+    cursor: grabbing !important;
+}

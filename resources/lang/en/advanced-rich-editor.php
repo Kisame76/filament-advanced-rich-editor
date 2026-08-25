@@ -227,6 +227,11 @@ return [
         ],
     ],
 
+    'drag_handle' => [
+        'drag' => 'Drag to move this block, click to select it',
+        'insert' => 'Add a block below',
+    ],
+
     'styles' => [
         'block' => 'Block',
         'inline' => 'Text',

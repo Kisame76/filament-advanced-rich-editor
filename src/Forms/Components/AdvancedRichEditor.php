@@ -37,6 +37,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
@@ -120,6 +121,10 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasEmoji = null;
 
     protected bool|Closure|null $hasFind = null;
+
+    protected bool|Closure|null $hasDragHandle = null;
+
+    protected bool|Closure|null $hasDragHandleInsert = null;
 
     protected bool|Closure|null $hasPasteCleanup = null;
 
@@ -400,6 +405,14 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasFind()
                 ? [FindReplacePlugin::make()]
+                : [],
+        );
+
+        // Nothing is stored either way, so a field that switches the grip off keeps every
+        // document that was ever rearranged with it.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasDragHandle()
+                ? [DragHandlePlugin::make()]
                 : [],
         );
 
@@ -1405,6 +1418,61 @@ class AdvancedRichEditor extends RichEditor
     public function getFindSettingsForJs(): ?array
     {
         return $this->hasFind() ? FindReplacePlugin::getLabels() : null;
+    }
+
+    /**
+     * The grip in the margin that a block can be dragged by, and the plus beside it.
+     *
+     * Only the top level of the document gets one, and the grip on a list therefore takes
+     * the list rather than the item under the mouse: a list item is a node that may only
+     * live inside a list, so a drag of one is a drag that refuses more often than it works.
+     *
+     * Nothing about it is stored - rearranging a document changes the order of what is in it
+     * and leaves no trace of how - so switching it off later changes nothing that was
+     * written with it.
+     */
+    public function dragHandle(bool|Closure $condition = true): static
+    {
+        $this->hasDragHandle = $condition;
+
+        return $this;
+    }
+
+    public function hasDragHandle(): bool
+    {
+        return (bool) ($this->evaluate($this->hasDragHandle) ?? config('filament-advanced-rich-editor.drag_handle.enabled') ?? true);
+    }
+
+    /**
+     * The plus that starts a new block under the one being hovered.
+     *
+     * What it inserts is not a paragraph: the caret lands in an empty block and the slash
+     * menu opens on top of it, so the button offers everything that could go there. Where
+     * the slash menu is switched off it makes the empty block and stops, which is the whole
+     * of what it can honestly do without a list to offer.
+     */
+    public function dragHandleInsert(bool|Closure $condition = true): static
+    {
+        $this->hasDragHandleInsert = $condition;
+
+        return $this;
+    }
+
+    public function hasDragHandleInsert(): bool
+    {
+        return (bool) ($this->evaluate($this->hasDragHandleInsert) ?? config('filament-advanced-rich-editor.drag_handle.insert') ?? true);
+    }
+
+    /**
+     * The icons and labels the handle draws, for the view to hand to the script. Null while
+     * the grip is switched off, which is also when the extension that would read them was
+     * never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getDragHandleSettingsForJs(): ?array
+    {
+        return $this->hasDragHandle() ? DragHandlePlugin::getSettings($this->hasDragHandleInsert()) : null;
     }
 
     /**

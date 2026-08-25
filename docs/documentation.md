@@ -840,6 +840,47 @@ Nothing about any of this is stored. A search marks no document and a replacemen
 ordinary text by the time it is saved, so turning the feature off later leaves everything
 written with it exactly as it is - it only takes the button and the keys away.
 
+### Drag handle
+
+Hovering a block puts two controls in the margin to its left: a grip to move the block, and
+a plus to start a new one under it.
+
+```php
+AdvancedRichEditor::make('content')
+    ->dragHandle(false)          // default: config('...drag_handle.enabled')
+    ->dragHandleInsert(false);   // the plus only: config('...drag_handle.insert')
+```
+
+Dragging the grip moves the block. Where it may land is ProseMirror's answer rather than
+this package's - it draws the line saying where, it refuses a place a node may not go, and
+the move is one step in the undo chain. Clicking the grip selects the block instead, which
+is what puts the floating toolbar on it.
+
+The plus starts a new block under the one being hovered and opens the slash menu on top of
+it, so what the button offers is everything that could go there rather than a paragraph. It
+does that by typing the slash character into the new block, which is the same event as
+somebody pressing the key - down to the query it starts with and to backspacing out of it
+closing the menu again. On a block that is already an empty paragraph it uses that one
+rather than making a second. Where the slash menu is switched off it makes the empty block
+and stops, which is the whole of what it can honestly do without a list to offer.
+
+Only the top level of the document gets a handle, so the grip on a list takes the list
+rather than the item under the mouse. Grabbing a single item out of a list is the thing
+people ask for next and it is deliberately not here: a list item is a node that may only
+live inside a list, so dropping one into a paragraph is a question ProseMirror answers with
+"nowhere" - the honest version of that feature is a drag that refuses more often than it
+works.
+
+**A field with a handle has a wider left margin.** The controls sit in the editor's own
+padding, and Filament leaves twenty pixels there where two of them need fifty, so the
+stylesheet widens it for fields carrying the handle and for no others. That is the price of
+the feature and it is worth knowing before switching it on: an editor without the grip is
+laid out exactly as Filament lays it out.
+
+Nothing about any of this is stored. Rearranging a document changes the order of what is in
+it and leaves no trace of how, so turning the handle off later changes nothing that was ever
+written with it.
+
 ### Pasting from Word and Google Docs
 
 A paste is cleaned on the way in. Nothing is stored about it, there is no button for it and
@@ -2155,6 +2196,7 @@ AdvancedRichEditor::make('content')
     ->slashChar('/')                               // the character that opens it
     ->embeds(true)                                 // the video button, and the paste handler
     ->pasteCleanup(true)                           // clean a paste from Word and Google Docs
+    ->dragHandle(true)                             // the grip and the plus in the margin
     ->codeBlockLanguages(['php' => 'PHP'])         // the language picker on a code block
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
