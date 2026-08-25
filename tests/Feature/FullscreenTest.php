@@ -9,14 +9,14 @@ it('ends the toolbar with the pinned group the fullscreen button sits in', funct
     // and the rest of the bar is the separation a rule would otherwise draw.
     expect(editor()->getPinnedToolbarButtons())->toHaveCount(1)
         ->and(array_slice(toolbarShape(editor()), -1))->toBe([
-            ['find', 'accessibility', 'fullscreen', 'help'],
+            ['find', 'fullscreen', 'help'],
         ]);
 });
 
 it('empties the pinned half when the button is turned off', function (): void {
     // Nothing is left to pin, so the bar goes back to the plain row of groups it was
     // before - and the insert group is the last of them again.
-    expect(array_slice(toolbarShape(editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->accessibility(false)), -1))->toBe([
+    expect(array_slice(toolbarShape(editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)), -1))->toBe([
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
     ]);
 });

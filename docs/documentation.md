@@ -842,14 +842,24 @@ written with it exactly as it is - it only takes the button and the keys away.
 
 ### Accessibility check
 
-`'accessibility'` opens a panel listing what is wrong with the document, and every row in it
-selects the thing it is about.
+**Shipped off.** Switch it on and `'accessibility'` opens a panel listing what is wrong with
+the document, with every row selecting the thing it is about.
 
 ```php
 AdvancedRichEditor::make('content')
-    ->accessibility(false)                            // default: config('...accessibility.enabled')
+    ->accessibility()                                 // default: config('...accessibility.enabled'), false
     ->accessibilityRules(['missing_alt', 'empty_link']);
 ```
+
+Off is the default for two reasons, and the second is the real one. It is a review tool
+rather than a way of writing, so it belongs on the bar of the fields a project decided it
+belongs on. And the contrast rule is measured against a page this package has to be told the
+colour of: shipped on, every project whose pages are not white would be handed findings that
+are wrong - which is the surest way to teach somebody to stop reading a panel.
+
+The shipped toolbar already keeps a place for it between `'find'` and `'sourceCode'`, and
+that place fills itself in as soon as the check is switched on. A project that has published
+the config file adds the token to its own `toolbar` array.
 
 Six questions, and they are six because they are the ones a person writing an article can
 answer and nobody downstream can. A stylesheet cannot invent alt text and a renderer cannot
@@ -891,11 +901,6 @@ The panel rechecks itself as the document changes, so a finding disappears when 
 rather than when the panel is opened again. Nothing about any of it is stored: a check marks
 no document, and a picture that was given alt text is an ordinary picture by the time it is
 saved.
-
-> **If you have published the config file**, add `'accessibility'` to its `toolbar` array -
-> the shipped default has it between `'find'` and `'sourceCode'`, and a published file is
-> the one that answers. The check itself is registered either way; without the token there
-> is no button to open it with.
 
 ### Drafts in the browser
 
@@ -2308,7 +2313,7 @@ AdvancedRichEditor::make('content')
     ->pasteCleanup(true)                           // clean a paste from Word and Google Docs
     ->dragHandle(true)                             // the grip and the plus in the margin
     ->autosave(true)                               // keep a draft in the browser's storage
-    ->accessibility(true)                          // the check, and the panel it reports in
+    ->accessibility()                              // the check, and the panel it reports in (off by default)
     ->codeBlockLanguages(['php' => 'PHP'])         // the language picker on a code block
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])

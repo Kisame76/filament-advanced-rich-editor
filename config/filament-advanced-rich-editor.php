@@ -157,11 +157,17 @@ return [
     | style keeps producing. A link's whole text has to be the phrase: "click here for
     | the report" says what it is and is left alone.
     |
-    | Nothing about any of it is stored. Per field: `->accessibility()`,
-    | `->accessibilityRules()`.
+    | Shipped off. It is a review tool rather than a way of writing, and the contrast
+    | rule is measured against a page this package has to be told the colour of - on by
+    | default, every project whose pages are not white would be handed findings that are
+    | wrong. Switch it on here or per field with `->accessibility()`, and the button
+    | appears where the shipped toolbar already reserves a place for it, between 'find'
+    | and 'sourceCode'. Nothing about any of it is stored.
+    |
+    | Per field: `->accessibility()`, `->accessibilityRules()`.
     */
     'accessibility' => [
-        'enabled' => true,
+        'enabled' => false,
         'rules' => [
             'missing_alt',
             'empty_link',

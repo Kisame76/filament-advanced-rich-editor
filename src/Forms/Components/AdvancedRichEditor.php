@@ -1458,8 +1458,15 @@ class AdvancedRichEditor extends RichEditor
      * level jumped over, a table with no header row, a link with nothing in it, and a colour
      * that cannot be read on the page it is going to.
      *
-     * Nothing about it is stored - a check marks no document - so switching it off later
-     * changes nothing that was written with it, and takes the button away with the panel.
+     * Shipped off, and switched on per field or in the config. Two reasons, and the second
+     * is the real one: it is a review tool rather than a way of writing, so it belongs on
+     * the bar of the fields a project decided it belongs on - and the contrast rule is
+     * measured against a page this package has to be told the colour of. Shipped on, every
+     * project whose pages are not white would be handed findings that are wrong, which is
+     * the surest way to teach somebody to stop reading a panel.
+     *
+     * Nothing about it is stored - a check marks no document - so switching it on and off
+     * changes nothing that was written either way.
      */
     public function accessibility(bool|Closure $condition = true): static
     {
@@ -1470,7 +1477,7 @@ class AdvancedRichEditor extends RichEditor
 
     public function hasAccessibility(): bool
     {
-        return (bool) ($this->evaluate($this->hasAccessibility) ?? config('filament-advanced-rich-editor.accessibility.enabled') ?? true);
+        return (bool) ($this->evaluate($this->hasAccessibility) ?? config('filament-advanced-rich-editor.accessibility.enabled') ?? false);
     }
 
     /**

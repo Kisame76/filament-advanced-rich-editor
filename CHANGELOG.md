@@ -7,9 +7,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 ### Changed
 
 - The shipped toolbar has an `'accessibility'` token in it, between `'find'` and
-  `'sourceCode'`. A project that published the config file keeps the toolbar it published
-  and adds the token itself; the check is registered either way, and without the token there
-  is simply no button to open it with
+  `'sourceCode'`. It resolves to nothing while the check is off, which is how it ships, so
+  no toolbar changes for anybody until the check is switched on - and switching it on is
+  then the whole of what a project has to do. A project that published the config file adds
+  the token to its own `toolbar` array
 
 ### Fixed
 
@@ -49,7 +50,8 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
-- An accessibility check, on the toolbar between finding and the source view. It asks six
+- An accessibility check, shipped off and switched on with `->accessibility()` or in the
+  config, which then puts it on the toolbar between finding and the source view. It asks six
   questions - an image with no alt text, a link with nothing in it, a link whose whole text
   is "click here", a heading level jumped over, a table whose first row is ordinary cells,
   and a set text colour that cannot be read on the page it is going to - and every row in
@@ -63,7 +65,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   `accessibility.background`, white unless a project says otherwise, or against the
   background set on the same words, and headings and text of 24px and up are held to WCAG's
   easier level for large text. The finding says the ratio it got and the ratio it needed.
-  Nothing about any of it is stored
+  That last rule is why it is off by default rather than on: it is measured against a page
+  this package has to be told the colour of, so shipped on, every project whose pages are
+  not white would be handed findings that are wrong. Nothing about any of it is stored
 
 - A draft of what is being written, kept in the browser's own storage, so a reply that comes
   back as an expired session or as a 500 is not an afternoon's work. It is not a save:

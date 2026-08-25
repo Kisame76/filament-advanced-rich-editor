@@ -6,14 +6,23 @@ use Illuminate\Support\Facades\Blade;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
 
+it('is shipped off, and puts nothing on a toolbar until it is asked for', function (): void {
+    // A review tool rather than a way of writing, and a contrast rule measured against a
+    // page this package has to be told the colour of: on by default, every project whose
+    // pages are not white would be handed findings that are wrong.
+    expect(editor()->hasAccessibility())->toBeFalse()
+        ->and(editor()->getTools())->not->toHaveKey('accessibility')
+        ->and(array_merge(...toolbarShape(editor())))->not->toContain('accessibility');
+});
+
 it('sits with the tools that are about the document rather than about the text', function (): void {
-    // Next to searching, fullscreen and help: none of the four changes a document, they
-    // change how one is being worked on.
-    expect(toolbarGroup(editor(), 'accessibility'))->toContain('find', 'accessibility', 'help');
+    // The shipped toolbar keeps a place for it between searching and the source view, so
+    // switching the check on is the whole of what a project has to do.
+    expect(toolbarGroup(editor()->accessibility(), 'accessibility'))->toContain('find', 'accessibility', 'help');
 });
 
 it('opens the report from the button', function (): void {
-    expect(editor()->getTools()['accessibility']->getJsHandler())->toContain('openAccessibilityReport()');
+    expect(editor()->accessibility()->getTools()['accessibility']->getJsHandler())->toContain('openAccessibilityReport()');
 });
 
 it('stores nothing and parses nothing back', function (): void {
@@ -28,7 +37,7 @@ it('stores nothing and parses nothing back', function (): void {
 });
 
 it('hands over everything the browser cannot decide for itself', function (): void {
-    $settings = editor()->getAccessibilitySettingsForJs();
+    $settings = editor()->accessibility()->getAccessibilitySettingsForJs();
 
     expect($settings)->toHaveKeys(['rules', 'weakPhrases', 'threshold', 'largeThreshold', 'background', 'text', 'palette', 'labels', 'icons'])
         ->and($settings['threshold'])->toBe(4.5)
@@ -99,6 +108,7 @@ it('reads the numbers and the rules out of the config file', function (): void {
     config()->set('filament-advanced-rich-editor.accessibility.threshold', 7);
     config()->set('filament-advanced-rich-editor.accessibility.background', '#18181b');
     config()->set('filament-advanced-rich-editor.accessibility.rules', ['weak_contrast']);
+    config()->set('filament-advanced-rich-editor.accessibility.enabled', true);
 
     $settings = editor()->getAccessibilitySettingsForJs();
 
@@ -108,7 +118,7 @@ it('reads the numbers and the rules out of the config file', function (): void {
 });
 
 it('drops the tool and the panel when a field turns the check off', function (): void {
-    $editor = editor()->accessibility(false);
+    $editor = editor()->accessibility()->accessibility(false);
 
     expect($editor->getTools())->not->toHaveKey('accessibility')
         ->and($editor->getAccessibilitySettingsForJs())->toBeNull()
@@ -118,13 +128,19 @@ it('drops the tool and the panel when a field turns the check off', function ():
 it('takes its name off the bar as well, not only out of the tool list', function (): void {
     // An unregistered name left standing in a toolbar group is not a missing button, it is
     // a `LogicException` out of the view - so the switch has to reach the layout too.
-    expect(array_merge(...toolbarShape(editor()->accessibility(false))))->not->toContain('accessibility');
+    expect(array_merge(...toolbarShape(editor()->accessibility()->accessibility(false))))->not->toContain('accessibility');
 });
 
-it('turns the check off from the config file', function (): void {
-    config()->set('filament-advanced-rich-editor.accessibility.enabled', false);
+it('turns the check on from the config file', function (): void {
+    config()->set('filament-advanced-rich-editor.accessibility.enabled', true);
 
-    expect(editor()->hasAccessibility())->toBeFalse();
+    expect(editor()->hasAccessibility())->toBeTrue()
+        // And the place the shipped toolbar reserved for it fills itself in.
+        ->and(array_merge(...toolbarShape(editor())))->toContain('accessibility');
+});
+
+it('lets a field ask for it where a project did not', function (): void {
+    expect(editor()->accessibility()->hasAccessibility())->toBeTrue();
 });
 
 it('draws its icons through the registry, so a project can swap them', function (): void {
