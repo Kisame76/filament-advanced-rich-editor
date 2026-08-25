@@ -36,6 +36,8 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Slash menu** — type `/` for a searchable list of the commands *this* field offers
 - **Find and replace** — `Ctrl+F` inside the field, every hit marked, whole words and case
   optional, and replacing all of them is one undo
+- **Paste from Word and Google Docs** — the list Word writes as twelve paragraphs is a list
+  again, and the fonts, sizes and colours of somebody else's document stay behind
 - **Video embeds** — paste a YouTube or Vimeo link and get a player, timestamp included,
   through the cookie-free host
 - **Code blocks** — a language picker on the block, and syntax colours rendered in PHP

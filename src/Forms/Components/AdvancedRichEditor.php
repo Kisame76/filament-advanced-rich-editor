@@ -48,6 +48,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
@@ -119,6 +120,13 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasEmoji = null;
 
     protected bool|Closure|null $hasFind = null;
+
+    protected bool|Closure|null $hasPasteCleanup = null;
+
+    /**
+     * @var array<int, string> | Closure | null
+     */
+    protected array|Closure|null $pasteKeepStyles = null;
 
     protected bool|Closure|null $hasTextDirection = null;
 
@@ -392,6 +400,15 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasFind()
                 ? [FindReplacePlugin::make()]
+                : [],
+        );
+
+        // Off means the extension is not loaded, and a paste then arrives the way Filament
+        // takes it: this cleans the markup on its way in and stores nothing of its own, so
+        // switching it off changes the next paste and no document already written.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasPasteCleanup()
+                ? [PasteCleanupPlugin::make()]
                 : [],
         );
 
@@ -1388,6 +1405,92 @@ class AdvancedRichEditor extends RichEditor
     public function getFindSettingsForJs(): ?array
     {
         return $this->hasFind() ? FindReplacePlugin::getLabels() : null;
+    }
+
+    /**
+     * Cleaning what arrives from the clipboard.
+     *
+     * Word puts a stylesheet, a handful of tags no browser has heard of and a list that is
+     * not a list onto the clipboard alongside the paragraph; Google Docs puts every run of
+     * text in a span carrying eleven declarations, one of which is the only place its bold
+     * lives. Both are turned back into a document on the way in - structure kept, typography
+     * dropped - and a copy from another editor is left exactly as it is.
+     *
+     * Nothing about it is stored, so switching it off changes the next paste and no document
+     * that was ever written with it.
+     */
+    public function pasteCleanup(bool|Closure $condition = true): static
+    {
+        $this->hasPasteCleanup = $condition;
+
+        return $this;
+    }
+
+    public function hasPasteCleanup(): bool
+    {
+        return (bool) ($this->evaluate($this->hasPasteCleanup) ?? config('filament-advanced-rich-editor.paste.cleanup') ?? true);
+    }
+
+    /**
+     * The style properties a cleaned paste keeps.
+     *
+     * Shipped as the alignment and nothing else, which is the one thing in Word's `style`
+     * whose absence a reader would notice and the one this package has no other way to
+     * carry. Everything else there - the font, the size, the colour, the line height - is
+     * parsed into a mark of this package's own, so a property left standing is not noise the
+     * next save drops: it is Calibri 11pt in black, in the document, for good.
+     *
+     * A project that wants a paste to arrive wearing its colours names them here. Naming a
+     * property also takes it out of the promotion to tags, because `font-weight` kept is a
+     * style somebody wants rather than a `<strong>` and a style.
+     *
+     * @param  array<int, string> | Closure  $properties
+     */
+    public function pasteKeepStyles(array|Closure $properties): static
+    {
+        $this->pasteKeepStyles = $properties;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getPasteKeepStyles(): array
+    {
+        $properties = $this->evaluate($this->pasteKeepStyles)
+            ?? config('filament-advanced-rich-editor.paste.keep_styles')
+            ?? PasteCleanupPlugin::DEFAULT_KEEP_STYLES;
+
+        $kept = [];
+
+        foreach ((array) $properties as $property) {
+            // A published config file is hand-written, and a stray null or number in this
+            // list is a typo rather than a property: dropped here, because the alternative
+            // is a TypeError out of a form that was only being rendered.
+            if (! is_string($property)) {
+                continue;
+            }
+
+            $property = strtolower(trim($property));
+
+            if ($property !== '') {
+                $kept[] = $property;
+            }
+        }
+
+        return $kept;
+    }
+
+    /**
+     * What the extension reads off the editor element. Null while the cleaning is switched
+     * off, which is also when the extension that would read it was never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPasteSettingsForJs(): ?array
+    {
+        return $this->hasPasteCleanup() ? PasteCleanupPlugin::getSettings($this->getPasteKeepStyles()) : null;
     }
 
     /**

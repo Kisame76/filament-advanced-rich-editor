@@ -2,14 +2,18 @@
     Forked from Filament v5.6.7:
     vendor/filament/forms/resources/views/components/rich-editor.blade.php
 
-    Kept byte-for-byte identical to upstream apart from the four changes listed
-    below, so that a future Filament release can be diffed against the original
-    file and the fork re-applied mechanically.
+    Kept byte-for-byte identical to upstream apart from the changes listed below,
+    so that a future Filament release can be diffed against the original file and
+    the fork re-applied mechanically. The list is the whole of it: a change that
+    reaches this file without reaching the list is one the next re-fork drops.
 
     Everything changed relative to that file, in document order:
       - this comment block
       - top-of-file PHP block: resolved $isStickyToolbar / $stickyToolbarOffset next to
         the other accessors, following upstream's own "call it once at the top" style
+      - top-of-file PHP block: the settings each of this package's TipTap extensions reads
+        off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
+        $codeBlockSettings, $findSettings, $pasteSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -20,6 +24,10 @@
         the toolbar carries a 'pin' marker, so the buttons behind it can keep an edge of
         the bar while the rest stays aligned; without a marker the groups are emitted
         exactly as upstream emits them
+      - .fi-fo-rich-editor-content div: one data-arte-* attribute per resolved settings
+        object above. A TipTap extension has no other channel to anything the field knows,
+        so dropping this block on a re-fork leaves every one of those features mounted and
+        silent rather than broken
 
     Deliberately NOT changed: x-load-src still points at Filament's own compiled
     'rich-editor' Alpine component, because this package extends the upstream editor
@@ -58,6 +66,7 @@
     $embedSettings = $getEmbedSettingsForJs();
     $codeBlockSettings = $getCodeBlockSettingsForJs();
     $findSettings = $getFindSettingsForJs();
+    $pasteSettings = $getPasteSettingsForJs();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -223,6 +232,7 @@
                     @if ($embedSettings) data-arte-embed="{{ json_encode($embedSettings) }}" @endif
                     @if ($codeBlockSettings) data-arte-code-block="{{ json_encode($codeBlockSettings) }}" @endif
                     @if ($findSettings) data-arte-find="{{ json_encode($findSettings) }}" @endif
+                    @if ($pasteSettings) data-arte-paste="{{ json_encode($pasteSettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div

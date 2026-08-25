@@ -840,6 +840,93 @@ Nothing about any of this is stored. A search marks no document and a replacemen
 ordinary text by the time it is saved, so turning the feature off later leaves everything
 written with it exactly as it is - it only takes the button and the keys away.
 
+### Pasting from Word and Google Docs
+
+A paste is cleaned on the way in. Nothing is stored about it, there is no button for it and
+nothing says it happened - what arrives in the document is what the paste was worth.
+
+```php
+AdvancedRichEditor::make('content')
+    ->pasteCleanup(false)                          // default: config('...paste.cleanup')
+    ->pasteKeepStyles(['text-align', 'color']);    // default: config('...paste.keep_styles')
+                                                   // shipped: ['text-align', 'aspect-ratio']
+```
+
+Word does not put a paragraph on the clipboard. It puts a paragraph, the stylesheet it was
+drawn with, a handful of tags no browser has heard of, and a list that is not a list.
+Google Docs is tidier and worse: every run of text is a `<span>` carrying eleven
+declarations, one of which is the only place its bold lives.
+
+What survives is the document: headings, paragraphs, lists, tables, links, images, video
+embeds, bold, italic, underline, struck-out text, superscript and subscript, and the
+alignment. What does not is the typography - the fonts, the sizes, the colours, the line
+heights and the margins of a document that was written somewhere else.
+
+Two style properties are kept, because both of them are structure wearing a style attribute
+rather than typography: `text-align`, and the `aspect-ratio` an embed is drawn at. An
+element that *is* its `src` - a frame, a video, an audio player - keeps it for the same
+reason: this package's embed reads the video off the frame inside it and drops the node
+when it cannot, so an embed whose `src` had been stripped would come back as nothing at
+all. Which frames are allowed to stand is not decided here: the schema takes only a frame
+inside an embed whose host it recognises, and the sanitiser narrows it again on the way out.
+
+That last part is a deliberate opinion rather than a shortcut. This package parses
+`font-family`, `font-size`, `color`, `background-color` and `line-height` into marks of its
+own, so a declaration left standing is not cosmetic noise that the next save drops: it is
+Calibri 11pt in black, in the document, for good, in a design system that never asked for
+it. A project that wants a paste to arrive wearing its colours names the properties in
+`pasteKeepStyles()`, and naming one also takes it out of the promotion below - keeping
+`font-weight` means wanting the style, not a `<strong>` and a style.
+
+**Word's lists are rebuilt.** A bulleted list in a Word paste is a run of paragraphs, each
+carrying `mso-list` in its style and drawing its own bullet as text in a span. Twelve
+paragraphs starting with a dot is what every editor without a paste filter shows, and it
+cannot be fixed later - by then the list is gone. The run is put back together here, nested
+by the level in the style, and whether a level is bulleted or numbered is read off the
+marker: a number always brings its `.` or `)` along, which is what keeps Word's second-level
+bullet - the letter `o` in Courier - from turning into a lettered list. A list continued
+after an interruption keeps counting from where it was.
+
+**The meaning that only lives in a style attribute is turned into tags first.** Bold in
+Google Docs is `font-weight:700` and nothing else, so the styles become `<strong>`, `<em>`,
+`<u>`, `<s>`, `<sup>` and `<sub>` before anything is dropped. Strip first and the paste
+arrives correct in structure and flat in meaning, which is the one failure mode nobody
+notices until the article is published. The `<b style="font-weight:normal">` that Google
+Docs wraps a whole selection in - a tag meaning bold and a style meaning it is not - goes
+the other way and is unwrapped.
+
+**A stylesheet that came along is removed rather than kept.** ProseMirror walks into an
+element it has no rule for and keeps the text it finds, so a `<style>` block in a paste
+arrives in the document as three hundred words of CSS. So do `<o:p>`, `<xml>`, the VML
+shapes and Word's conditional comments, along with the empty paragraphs Word leaves between
+everything and the runs of non-breaking spaces it indents with. A single non-breaking space
+is a decision somebody made and stays.
+
+**What a browser puts in front of a paste is looked past.** Chrome hands over
+`<meta charset='utf-8'>` and then the markup, so every question this asks about what the
+paste starts with is asked of the string without it - otherwise a loose run of table rows,
+which has to be handed on untouched because an HTML parser throws it away rather than keeps
+it, would be flattened into the text of its cells.
+
+**Ids are kept where somebody chose them.** `id` on a heading is an anchor in this package,
+so dropping them all would cost a paste from a page it rendered the anchors it was written
+with - and keeping them all plants Word's `_Toc496` in the document. The generated ones go
+by name: `_Toc`, `_Ref`, `_Hlk`, `_GoBack`, `docs-internal-guid`. `data-*` is never dropped,
+which is the other half of the same round trip: a mention, an anchor and a named style are
+`data-*` and nothing else, so content copied out of a rendered page comes back as itself.
+
+**A copy from another editor is left exactly as it is.** It carries ProseMirror's own
+`data-pm-slice`, it is already the shape the document wants, and a field that quietly took
+the colours off content on its way to the field beside it would be worse than one that kept
+Word's fonts. The same goes for a fragment that is not a whole element - loose table rows,
+which an HTML parser throws away rather than keeps.
+
+The cleaning happens before ProseMirror parses the markup, which is also why a drag and drop
+of the same content is cleaned the same way, and why images in a Word paste still reach
+Filament's uploader: it hands its rebuilt markup back through the same door.
+
+Turning it off changes the next paste and no document already written with it.
+
 ### Fullscreen
 
 The last button expands the editor over the window, and Escape leaves again.
@@ -2048,6 +2135,7 @@ AdvancedRichEditor::make('content')
     ->slashGroups(['insert' => ['image']])         // what that menu offers, and in what groups
     ->slashChar('/')                               // the character that opens it
     ->embeds(true)                                 // the video button, and the paste handler
+    ->pasteCleanup(true)                           // clean a paste from Word and Google Docs
     ->codeBlockLanguages(['php' => 'PHP'])         // the language picker on a code block
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])

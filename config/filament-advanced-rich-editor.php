@@ -132,6 +132,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pasting
+    |--------------------------------------------------------------------------
+    | What arrives from the clipboard, made into a document again. Word sends a
+    | stylesheet, a handful of tags no browser has heard of and a list that is not a
+    | list; Google Docs sends every run of text in a span carrying eleven declarations,
+    | one of which is the only place its bold lives. Both are cleaned on the way in -
+    | headings, lists, tables, links and emphasis kept, typography dropped - and a copy
+    | from another editor is left exactly as it is.
+    |
+    | 'keep_styles' names the style properties that survive. Shipped as the two that are
+    | structure rather than typography - the alignment, and the shape of an embed -
+    | because everything else there is parsed into a mark of this package's own, so a
+    | property left standing is not noise the next save drops, it is Calibri 11pt in
+    | black in the document for good. Add 'color', 'background-color', 'font-family' or
+    | 'font-size' to a project that wants pastes to arrive wearing them; taking
+    | 'aspect-ratio' out costs a pasted embed its ratio and nothing else.
+    |
+    | Nothing about any of it is stored, so turning it off changes the next paste and no
+    | document already written. Per field: `->pasteCleanup()`, `->pasteKeepStyles()`.
+    */
+    'paste' => [
+        'cleanup' => true,
+        'keep_styles' => ['text-align', 'aspect-ratio'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Text direction
     |--------------------------------------------------------------------------
     | The 'ltr' and 'rtl' tools, which write a `dir` attribute on the block the caret

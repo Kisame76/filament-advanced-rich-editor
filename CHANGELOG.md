@@ -42,6 +42,38 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- A paste from Word and Google Docs arrives as a document rather than as somebody else's
+  document. Word does not put a paragraph on the clipboard: it puts a paragraph, the
+  stylesheet it was drawn with, a handful of tags no browser has heard of, and a list that
+  is not a list. What survives now is the structure - headings, paragraphs, lists, tables,
+  links, images, bold, italic, underline, struck-out text, superscript and subscript, and
+  the alignment - and what stays behind is the typography, because this package parses
+  `font-family`, `font-size`, `color` and `line-height` into marks of its own: a declaration
+  left standing is not cosmetic noise the next save drops, it is Calibri 11pt in black, in
+  the document, for good. Two properties are kept because they are structure wearing a style
+  attribute rather than typography - `text-align` and the `aspect-ratio` an embed is drawn
+  at - and an element that *is* its `src`, a frame or a player, keeps that for the same
+  reason; `->pasteKeepStyles()` names anything else a project does want to survive. A bulleted list in a Word paste is a run of paragraphs each carrying `mso-list`
+  in its style and drawing its own bullet as text, which is the one thing that cannot be
+  repaired later - by the time it reaches the document it is twelve paragraphs starting with
+  a dot - so the run is put back together, nested by the level in the style, with bulleted
+  or numbered read off the marker: a number always brings its `.` or `)` along, which is
+  what keeps Word's second-level bullet, the letter `o` in Courier, from turning into a
+  lettered list. The order of the two halves is the whole trick, because bold in Google Docs
+  is `font-weight:700` in a style attribute and nowhere else: the styles become `<strong>`,
+  `<em>`, `<u>`, `<s>`, `<sup>` and `<sub>` before anything is dropped, since stripping
+  first gives a paste that is right in structure and flat in meaning, which is the one
+  failure nobody notices until it is published. A `<style>` block that came along is removed
+  rather than kept, because ProseMirror walks into an element it has no rule for and keeps
+  the text it finds - three hundred words of CSS in the article. Ids are kept where somebody
+  chose them and dropped where a generator made them up, `data-*` is never dropped, and a
+  copy from another editor is left exactly as it is: it carries `data-pm-slice`, it is
+  already the shape the document wants, and a field that quietly took the colours off
+  content on its way to the field beside it would be worse than one that kept Word's fonts.
+  The cleaning happens before ProseMirror parses the markup, so a drag and drop of the same
+  content is cleaned the same way. Nothing about it is stored, so `->pasteCleanup(false)`
+  changes the next paste and no document already written
+
 - Finding and replacing inside a field. `'find'` sits at the end of the toolbar and `Ctrl+F`
   opens the same small window while the caret is in the editor, which was the most conspicuous thing
   every commercial editor could do and this one could not. Every hit is marked in the text

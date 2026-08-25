@@ -110,6 +110,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/floating-panel', __DIR__.'/../resources/dist/js/floating-panel.js')
                     ->loadedOnRequest(),
 
+                // Nothing is drawn and nothing is stored: the file decides what a paste is
+                // made of, before ProseMirror parses it.
+                Js::make('advanced-rich-editor/paste-cleanup', __DIR__.'/../resources/dist/js/paste-cleanup.js')
+                    ->loadedOnRequest(),
+
                 // The picker imports the list itself, the first time it opens. The file is
                 // registered so it is published and served next to the extension - the
                 // import resolves against the extension's own URL, which is what keeps the
