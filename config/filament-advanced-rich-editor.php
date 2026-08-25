@@ -391,6 +391,25 @@ return [
         'enabled' => true,
         'offset' => '4rem',
     ],
+    /*
+    |--------------------------------------------------------------------------
+    | Empty documents
+    |--------------------------------------------------------------------------
+    | Whether a document with nothing in it is stored as nothing rather than as the
+    | `<p></p>` TipTap always keeps. Off by default, and that is a decision about your
+    | database rather than a preference: a column that is `NOT NULL` without a default
+    | takes `<p></p>` and refuses a null, so a save that works today would stop working.
+    |
+    | Turned on, a field that shows nothing on the page is also nothing in the record,
+    | which is what `@if($post->content)` and a `whereNull` both already assume.
+    |
+    | A document counts as empty when it holds nothing but paragraphs, line breaks and
+    | whitespace - the non-breaking kind included. Anything else is content, an image and
+    | a horizontal rule as much as a word. Per field: `->nullWhenEmpty()`.
+    |
+    | This says nothing about `required()`, which rejects an empty document either way.
+    */
+    'null_when_empty' => false,
 
     /*
     |--------------------------------------------------------------------------

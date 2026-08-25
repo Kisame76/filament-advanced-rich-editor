@@ -1053,6 +1053,64 @@ The editor announces its counts as a DOM event and the line listens - nothing is
 view is replaced, and two editors on a page keep their numbers apart. Turning the counter
 off also drops the script that does the counting.
 
+### Required, and what counts as empty
+
+An empty editor is not an empty value. TipTap keeps at least one paragraph in the document
+at all times, so a field nobody typed into reaches the validator as
+`['type' => 'doc', 'content' => [['type' => 'paragraph']]]` — an array Laravel's `required`
+is perfectly happy with. Filament rejects that exact shape; press return once and the
+document has two empty paragraphs, which it does not.
+
+This package answers the question once, for every shape state arrives in:
+
+```php
+AdvancedRichEditor::make('content')->required();
+```
+
+A document counts as **empty** when it holds nothing but paragraphs, line breaks and
+whitespace — ordinary spaces, and the non-breaking ones a paste from Word leaves behind.
+Everything else is content: a list, a heading, a horizontal rule, an image, a table, a
+custom block, and any node a project or another package adds.
+
+That direction is deliberate. A list of nodes that count as content would need extending
+every time a node is added, and the day one was forgotten it would throw away somebody's
+work. Stated this way an unknown node counts as content, so the worst this can do is let an
+empty-looking document through — visible, and reported — rather than reject a document that
+had something in it.
+
+The same question is available on the field, which is what a custom rule or an observer
+wants:
+
+```php
+$field->hasContent($state);   // markup, a document, or null - all three
+```
+
+#### Storing nothing instead of `<p></p>`
+
+By default an empty document is stored as `<p></p>`, exactly as Filament stores it. That is
+noise in a nullable column, and it is why `@if($post->content)` is true for a post with no
+content. To store nothing instead:
+
+```php
+AdvancedRichEditor::make('content')->nullWhenEmpty();   // default: config('...null_when_empty')
+```
+
+It is off by default, and that is a decision about your database rather than a preference: a
+column that is `NOT NULL` without a default takes `<p></p>` and refuses a null, so turning
+this on for everyone would break a save that works today. Turn it on per field, or once in
+the config file when you know your columns.
+
+Emptiness means the same thing here as it does above, and `json()` fields get the same
+answer even though what they store is a document rather than markup.
+
+#### Hydrating an empty column
+
+A `text NOT NULL DEFAULT ''` column is ordinary, and Filament's cast only guards against
+null - an empty string went to TipTap's DOM parser, which reached for a `<body>` that was
+never built and threw `DOMParser::getDocumentBody(): Return value must be of type
+DOMElement, null returned` out of a form that was only being rendered. This package treats a
+blank string as no content, so such a record opens on an empty editor like any other.
+
 ### Images
 
 The `image` tool inserts an image and, when the cursor sits on one, re-opens the same

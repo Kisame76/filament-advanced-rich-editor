@@ -4,7 +4,40 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Fixed
+
+- `required()` now rejects an empty document in every shape it comes in. An empty editor is
+  not an empty value: TipTap keeps at least one paragraph in the document at all times, so a
+  field nobody typed into reaches the validator as an array with three keys, and Laravel's
+  `required` is happy with it. Filament rejects that exact shape and nothing else — press
+  return once and the document has two empty paragraphs, which it lets through, and so are a
+  stray space, a non-breaking space from a Word paste, a line break, the same document in
+  its markup form, and a field holding nothing at all. `DocumentContent` states the rule the
+  other way round and only once: a document is empty when it holds nothing but paragraphs,
+  line breaks and whitespace, and every other node — a list, a heading, a rule, an image, a
+  table, a custom block, one a project added — is content. An unknown node therefore counts
+  as content, so the mistake this can make is letting an empty-looking document through
+  rather than throwing away a document that had something in it. The same question is on the
+  field as `hasContent()`
+
+- A record whose column holds an empty string opens instead of throwing. `text NOT NULL
+  DEFAULT ''` is an ordinary column and a record nobody has edited yet holds exactly that,
+  but Filament's state cast only guards against null: the empty string went to TipTap's DOM
+  parser, which reached for a `<body>` that was never built and died with
+  `DOMParser::getDocumentBody(): Return value must be of type DOMElement, null returned` - a
+  TypeError out of a form that was only being rendered, naming a class the application has
+  never heard of, and unrecoverable because hydration is what failed. The cast this package
+  registers treats a blank string the way the one it extends treats null
+
 ### Added
+
+- `->nullWhenEmpty()` stores an empty document as nothing rather than as the `<p></p>` TipTap
+  always keeps, so a field that shows nothing on the page is also nothing in the record -
+  which is what `@if($post->content)` and a `whereNull` both already assume. Off by default,
+  and that is a decision about somebody else's database rather than a preference: a column
+  that is `NOT NULL` without a default takes `<p></p>` and refuses a null, so flipping it for
+  everyone would break a save that works today. `null_when_empty` in the config file turns it
+  on for a project that knows its columns, and a field still wins over it in both directions
 
 - The mention menu is this package's own, and its rows have room for a picture and a line of
   context under the name. Filament draws a suggestion as one line of text, which makes five
