@@ -141,10 +141,12 @@ return [
     |
     | 'rules' is which of the six are asked; a name left out is not reported.
     |
-    | Contrast is the one rule with an assumption in it, and it is stated rather than
-    | hidden: the editor cannot know what colour the page will be, because that belongs
-    | to the front end. 'background' is what a colour is measured against and 'threshold'
-    | is what it has to reach - 4.5 is WCAG AA for ordinary text, and 'large_threshold'
+    | Contrast is the one rule with two assumptions in it, and they are stated rather
+    | than hidden: the editor cannot know what colour the page will be, nor what colour
+    | it writes on that page where nobody chose one, because both belong to the front
+    | end. 'background' and 'text' are those two - a chosen colour is measured against
+    | the background, and a chosen background against the text colour, so highlighting a
+    | sentence in dark blue is caught as well. 'threshold' is what the ratio has to reach - 4.5 is WCAG AA for ordinary text, and 'large_threshold'
     | is the easier level that headings and text of 24px and up are held to. Only the
     | light half of the palette is checked: a document rendered in both themes is two
     | questions, and answering one of them twice is a panel listing everything twice.
@@ -169,6 +171,7 @@ return [
             'weak_contrast',
         ],
         'background' => '#ffffff',
+        'text' => '#18181b',
         'threshold' => 4.5,
         'large_threshold' => 3.0,
         'weak_link_phrases' => [],

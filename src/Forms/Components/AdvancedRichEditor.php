@@ -1540,8 +1540,10 @@ class AdvancedRichEditor extends RichEditor
             'weakPhrases' => AccessibilityPlugin::getWeakPhrases(),
             'threshold' => (float) (config('filament-advanced-rich-editor.accessibility.threshold') ?? 4.5),
             'largeThreshold' => (float) (config('filament-advanced-rich-editor.accessibility.large_threshold') ?? 3.0),
-            // What the editor cannot know, because it belongs to the front end.
+            // What the editor cannot know, because both belong to the front end: the colour
+            // a page is, and the colour it writes on it where nobody chose one.
             'background' => (string) (config('filament-advanced-rich-editor.accessibility.background') ?? '#ffffff'),
+            'text' => (string) (config('filament-advanced-rich-editor.accessibility.text') ?? '#18181b'),
             'palette' => $this->getAccessibilityPalette(),
         ]);
     }

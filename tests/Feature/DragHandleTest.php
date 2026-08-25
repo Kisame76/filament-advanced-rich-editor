@@ -5,16 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Blade;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 
-/**
- * @return array<int, string>
- */
-function registeredPlugins(mixed $editor): array
-{
-    return array_map(static fn (object $plugin): string => $plugin::class, $editor->getPlugins());
-}
-
 it('gives every field a grip unless a project says otherwise', function (): void {
-    expect(registeredPlugins(editor()))->toContain(DragHandlePlugin::class);
+    expect(pluginNames(editor()))->toContain(DragHandlePlugin::class);
 });
 
 it('stores nothing and puts nothing on the bar', function (): void {
@@ -56,7 +48,7 @@ it('keeps the grip when a field wants no plus', function (): void {
     $editor = editor()->dragHandleInsert(false);
 
     expect($editor->getDragHandleSettingsForJs()['insert'])->toBeFalse()
-        ->and(registeredPlugins($editor))->toContain(DragHandlePlugin::class);
+        ->and(pluginNames($editor))->toContain(DragHandlePlugin::class);
 });
 
 it('takes the extension away with the setting', function (): void {
@@ -65,7 +57,7 @@ it('takes the extension away with the setting', function (): void {
     // Without the settings the editor element carries no `data-arte-drag-handle`, and the
     // extension that reads them was never registered either.
     expect($editor->getDragHandleSettingsForJs())->toBeNull()
-        ->and(registeredPlugins($editor))->not->toContain(DragHandlePlugin::class);
+        ->and(pluginNames($editor))->not->toContain(DragHandlePlugin::class);
 });
 
 it('reads both switches out of the config file', function (): void {

@@ -5,6 +5,7 @@ import {
     findingsFor,
     isWeakLinkText,
     mergeRuns,
+    sizeInPixels,
     parseColor,
     relativeLuminance,
     resolveColor,
@@ -221,6 +222,23 @@ describe('the six rules', () => {
         expect(findingsFor([subject('colour', { color: '#ffffff' })])).toHaveLength(1)
     })
 
+    it('measures a chosen background against the colour the page writes in', () => {
+        // Highlighting a sentence and leaving the text at its default is the same failure
+        // as choosing a colour, and it is the more common one.
+        const findings = findingsFor(
+            [subject('colour', { color: null, background: '#3b0764', text: 'Highlighted' })],
+            { text: '#18181b' },
+        )
+
+        expect(findings.map((found) => found.rule)).toEqual(['weak_contrast'])
+
+        // And a light background under the same default text is fine.
+        expect(findingsFor(
+            [subject('colour', { color: null, background: '#fef9c3' })],
+            { text: '#18181b' },
+        )).toEqual([])
+    })
+
     it('measures against the colour a project says its pages are', () => {
         // The editor cannot know what colour the page will be, so it is told.
         expect(findingsFor([subject('colour', { color: '#ffffff' })], { background: '#18181b' })).toEqual([])
@@ -260,6 +278,18 @@ describe('which rules are asked', () => {
         ]
 
         expect(findingsFor(subjects, { rules: ['skipped_heading'] })).toHaveLength(1)
+    })
+
+    it('reads a font size in whatever unit it was written in', () => {
+        // Eighteen point is exactly the size WCAG calls large. Reading the number and
+        // ignoring the unit calls it 18, holds it to the stricter ratio, and reports text
+        // that passes.
+        expect(sizeInPixels('24px')).toBe(24)
+        expect(sizeInPixels('18pt')).toBe(24)
+        expect(sizeInPixels('1.5rem')).toBe(24)
+        expect(sizeInPixels('24')).toBe(24)
+        expect(sizeInPixels(null)).toBe(0)
+        expect(sizeInPixels('inherit')).toBe(0)
     })
 
     it('carries the position of everything it finds, so a row can be clicked', () => {

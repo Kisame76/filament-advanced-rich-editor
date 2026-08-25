@@ -24,16 +24,8 @@ function editorFor(?int $id, string $name = 'content'): AdvancedRichEditor
     return AdvancedRichEditor::make($name)->container($schema);
 }
 
-/**
- * @return array<int, string>
- */
-function autosavePlugins(mixed $editor): array
-{
-    return array_map(static fn (object $plugin): string => $plugin::class, $editor->getPlugins());
-}
-
 it('keeps a draft unless a project says otherwise', function (): void {
-    expect(autosavePlugins(editor()))->toContain(AutosavePlugin::class);
+    expect(pluginNames(editor()))->toContain(AutosavePlugin::class);
 });
 
 it('stores nothing on the server and puts nothing on the bar', function (): void {
@@ -102,14 +94,14 @@ it('takes the extension away with the setting', function (): void {
     $editor = editor()->autosave(false);
 
     expect($editor->getAutosaveSettingsForJs())->toBeNull()
-        ->and(autosavePlugins($editor))->not->toContain(AutosavePlugin::class);
+        ->and(pluginNames($editor))->not->toContain(AutosavePlugin::class);
 });
 
 it('keeps the draft when a field only wants no question on the way out', function (): void {
     $editor = editor()->autosaveWarnOnLeave(false);
 
     expect($editor->getAutosaveSettingsForJs()['warnOnLeave'])->toBeFalse()
-        ->and(autosavePlugins($editor))->toContain(AutosavePlugin::class);
+        ->and(pluginNames($editor))->toContain(AutosavePlugin::class);
 });
 
 it('reads all four settings out of the config file', function (): void {

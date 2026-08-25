@@ -3,17 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Blade;
-use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Shortcuts;
-
-/**
- * @return array<int, string>
- */
-function pluginNames(AdvancedRichEditor $editor): array
-{
-    return array_map(static fn (object $plugin): string => $plugin::class, $editor->getPlugins());
-}
 
 it('cleans a paste unless a project says otherwise', function (): void {
     expect(pluginNames(editor()))->toContain(PasteCleanupPlugin::class);

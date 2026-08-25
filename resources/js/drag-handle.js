@@ -46,9 +46,13 @@ const MARGIN = 2
  * reads as belonging to the middle of the text rather than to the block. It is centred on
  * the first line instead, which is where the eye already is.
  *
- * @param {{top: number, bottom: number, left: number, height: number}} block
- * @param {{top: number, bottom: number, left: number}} editor
- * @param {{width?: number, height?: number, gap?: number, margin?: number, lineHeight?: number}} options
+ * The horizontal answer has a direction in it, which is the part that is easy to get
+ * wrong: the handle belongs beside the start of the block and not beside its left-hand
+ * edge, and in a right-to-left field those are opposite ends of the field.
+ *
+ * @param {{top: number, bottom: number, left: number, right: number, height: number}} block
+ * @param {{top: number, bottom: number, left: number, right: number}} editor
+ * @param {{width?: number, height?: number, gap?: number, margin?: number, lineHeight?: number, rtl?: boolean}} options
  * @returns {{left: number, top: number}|null}
  */
 export function handlePosition(block, editor, options = {}) {
@@ -58,6 +62,7 @@ export function handlePosition(block, editor, options = {}) {
         gap = GAP,
         margin = MARGIN,
         lineHeight = block.height,
+        rtl = false,
     } = options
 
     // Scrolled out of the field's own window. A field with `maxHeight()` scrolls inside its
@@ -70,7 +75,9 @@ export function handlePosition(block, editor, options = {}) {
     const first = Math.min(lineHeight || block.height, block.height)
 
     return {
-        left: Math.max(editor.left + margin, block.left - gap - width),
+        left: rtl
+            ? Math.min(editor.right - margin - width, block.right + gap)
+            : Math.max(editor.left + margin, block.left - gap - width),
         top: block.top + (first - height) / 2,
     }
 }
@@ -292,6 +299,14 @@ export default () => {
                 return
             }
 
+            // Still over the block the handle already points at, so there is nothing to
+            // work out. `posAtCoords()` hit-tests through the browser and forces layout to
+            // do it, and a mouse crossing a long article would ask it several hundred times
+            // a second to be told the same answer.
+            if (this.covers(event)) {
+                return
+            }
+
             const block = this.blockAt(event)
 
             if (! block) {
@@ -300,6 +315,19 @@ export default () => {
 
             this.block = block
             this.reposition()
+        }
+
+        /**
+         * Whether a point is inside the block the handle is already for, gutter included -
+         * the strip the handle itself sits in belongs to the block beside it.
+         */
+        covers(event) {
+            if (! this.block?.isConnected || ! this.area) {
+                return false
+            }
+
+            return event.clientX >= this.area.left && event.clientX <= this.area.right
+                && event.clientY >= this.area.top && event.clientY <= this.area.bottom
         }
 
         reposition() {
@@ -313,15 +341,19 @@ export default () => {
             const container = this.view.dom.parentElement ?? this.view.dom
 
             // Measured rather than assumed: how big the two controls are is the
-            // stylesheet's business, and a project that resizes them there would otherwise
-            // get a handle sitting beside the line rather than on it.
+            // stylesheet's business, how tall a line is belongs to the theme, and which end
+            // of a block is its start belongs to the block. A project that changed any of
+            // the three would otherwise get a handle beside the line rather than on it.
+            const style = getComputedStyle(this.block)
+
             const where = handlePosition(
                 this.block.getBoundingClientRect(),
                 container.getBoundingClientRect(),
                 {
                     width: this.element.offsetWidth || WIDTH,
                     height: this.element.offsetHeight || HEIGHT,
-                    lineHeight: parseFloat(getComputedStyle(this.block).lineHeight),
+                    lineHeight: parseFloat(style.lineHeight),
+                    rtl: style.direction === 'rtl',
                 },
             )
 
@@ -332,6 +364,16 @@ export default () => {
             this.element.style.left = `${where.left}px`
             this.element.style.top = `${where.top}px`
             this.element.classList.add('fi-arte-drag-handle-visible')
+
+            const box = this.block.getBoundingClientRect()
+            const reach = (this.element.offsetWidth || WIDTH) + GAP
+
+            this.area = {
+                left: Math.min(box.left, where.left) - (style.direction === 'rtl' ? 0 : reach),
+                right: Math.max(box.right, where.left + (this.element.offsetWidth || WIDTH)),
+                top: box.top,
+                bottom: box.bottom,
+            }
         }
 
         /**
@@ -348,6 +390,7 @@ export default () => {
         }
 
         hide() {
+            this.area = null
             this.element.classList.remove('fi-arte-drag-handle-visible')
         }
 
@@ -427,20 +470,23 @@ export default () => {
                 caret = end + 1
             }
 
+            const char = slashChar(this.editor)
+
+            // Typed rather than signalled: the menu opens on what the document says, so
+            // putting the character there is the same event as somebody pressing the key,
+            // down to the query it starts with and the way backspacing out of it closes
+            // again. In the same transaction as the block, so that changing one's mind is
+            // one press of Ctrl+Z rather than two - the second of which would otherwise
+            // leave an empty paragraph nobody asked for.
+            if (char) {
+                transaction = transaction.insertText(char, caret)
+                caret += char.length
+            }
+
             transaction = transaction.setSelection(TextSelection.create(transaction.doc, caret))
 
             this.view.dispatch(transaction.scrollIntoView())
             this.view.focus()
-
-            const char = slashChar(this.editor)
-
-            // Typed rather than signalled: the menu opens on what the document says, so
-            // inserting the character is the same event as somebody pressing the key, down
-            // to the query it starts with and the way backspacing out of it closes again.
-            if (char) {
-                this.view.dispatch(this.view.state.tr.insertText(char))
-            }
-
             this.hide()
         }
 

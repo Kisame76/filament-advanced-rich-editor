@@ -6,14 +6,6 @@ use Illuminate\Support\Facades\Blade;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
 
-/**
- * @return array<int, string>
- */
-function accessibilityPlugins(mixed $editor): array
-{
-    return array_map(static fn (object $plugin): string => $plugin::class, $editor->getPlugins());
-}
-
 it('sits with the tools that are about the document rather than about the text', function (): void {
     // Next to searching, fullscreen and help: none of the four changes a document, they
     // change how one is being worked on.
@@ -38,11 +30,14 @@ it('stores nothing and parses nothing back', function (): void {
 it('hands over everything the browser cannot decide for itself', function (): void {
     $settings = editor()->getAccessibilitySettingsForJs();
 
-    expect($settings)->toHaveKeys(['rules', 'weakPhrases', 'threshold', 'largeThreshold', 'background', 'palette', 'labels', 'icons'])
+    expect($settings)->toHaveKeys(['rules', 'weakPhrases', 'threshold', 'largeThreshold', 'background', 'text', 'palette', 'labels', 'icons'])
         ->and($settings['threshold'])->toBe(4.5)
         ->and($settings['largeThreshold'])->toBe(3.0)
         // What the editor cannot know, because it belongs to the front end.
         ->and($settings['background'])->toBe('#ffffff')
+        // The second assumption, and the one that lets a chosen background be measured at
+        // all: what the page writes in where nobody chose a colour.
+        ->and($settings['text'])->toBe('#18181b')
         ->and($settings['labels']['rules'])->toHaveCount(6)
         ->and($settings['labels']['rules']['missing_alt'])->toBe('Image without alt text')
         // Two numbers in one string, because the second is what makes the first mean
@@ -117,7 +112,7 @@ it('drops the tool and the panel when a field turns the check off', function ():
 
     expect($editor->getTools())->not->toHaveKey('accessibility')
         ->and($editor->getAccessibilitySettingsForJs())->toBeNull()
-        ->and(accessibilityPlugins($editor))->not->toContain(AccessibilityPlugin::class);
+        ->and(pluginNames($editor))->not->toContain(AccessibilityPlugin::class);
 });
 
 it('takes its name off the bar as well, not only out of the tool list', function (): void {

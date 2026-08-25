@@ -35,6 +35,14 @@
 export const PREFIX = 'arte-draft:'
 
 /**
+ * Whether the sweeping up has already happened on this page.
+ *
+ * It is the same walk over the same storage whichever field asks for it, so a form with
+ * four editors on it would otherwise do it four times before any of them could be typed in.
+ */
+let swept = false
+
+/**
  * The key one field's draft lives under.
  *
  * Two halves, because neither knows enough alone: PHP knows the record and the field but
@@ -84,24 +92,29 @@ export function prune(storage, { now = 0, ttl = 0 } = {}) {
         return []
     }
 
-    const stale = []
+    // Every key first, and only then a word about any of them. `readDraft` removes what it
+    // finds expired, and removing from a storage shifts every key after it down one - so a
+    // walk that reads by index while that is happening steps over whatever moved into the
+    // place just freed, and leaves every second expired draft exactly where it was.
+    const ours = []
 
     for (let index = 0; index < storage.length; index++) {
         const key = storage.key(index)
 
-        if (! key?.startsWith(PREFIX)) {
-            continue
-        }
-
-        // `readDraft` removes what it finds expired, and calls anything unreadable expired
-        // too - a draft this version cannot parse is a draft from a version that is gone.
-        if (! readDraft(storage, key, { now, ttl })) {
-            stale.push(key)
+        if (key?.startsWith(PREFIX)) {
+            ours.push(key)
         }
     }
 
-    for (const key of stale) {
-        storage.removeItem(key)
+    const stale = []
+
+    for (const key of ours) {
+        // Anything unreadable counts as expired too - a draft this version cannot parse is
+        // a draft from a version that is gone.
+        if (! readDraft(storage, key, { now, ttl })) {
+            stale.push(key)
+            storage.removeItem(key)
+        }
     }
 
     return stale
@@ -238,14 +251,18 @@ export default () => {
             // document that says this again is a document with nothing unsaved in it.
             this.saved = JSON.stringify(view.state.doc.toJSON())
 
-            prune(this.storage, { now: Date.now(), ttl: this.settings.ttl })
+            if (! swept) {
+                swept = true
+
+                prune(this.storage, { now: Date.now(), ttl: this.settings.ttl })
+            }
 
             this.offer()
             this.listen()
         }
 
         listen() {
-            this.onSubmit = () => this.forget()
+            this.onSubmit = () => this.submitted()
             this.onBeforeUnload = (event) => this.warn(event)
 
             // The form is the only thing that knows a submit happened, and a submit is the
@@ -257,6 +274,21 @@ export default () => {
             if (this.settings.warnOnLeave) {
                 window.addEventListener('beforeunload', this.onBeforeUnload)
             }
+        }
+
+        /**
+         * The form went. What is on screen is on its way to the server, so from here on that
+         * is what "unchanged" means - and the draft of it has nothing left to recover.
+         *
+         * Whether it arrives is a different question, and the next opening answers it: a
+         * document that comes back saying something else is a document with a draft worth
+         * offering. Without this the baseline stays the document the page was opened with,
+         * and every save on a page that does not redirect leaves the field permanently
+         * dirty - asking "leave site?" on the way out of work that was saved ten minutes ago.
+         */
+        submitted() {
+            this.saved = JSON.stringify(this.view.state.doc.toJSON())
+            this.forget()
         }
 
         /**

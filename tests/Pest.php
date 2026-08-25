@@ -54,6 +54,19 @@ function editor(string $name = 'content'): AdvancedRichEditor
 }
 
 /**
+ * The plugins a field registered, by class name.
+ *
+ * Every feature that is a `RichContentPlugin` asks the same question of a field - is it
+ * registered, and is it gone when the switch is off - so the question is asked once here.
+ *
+ * @return array<int, string>
+ */
+function pluginNames(AdvancedRichEditor $editor): array
+{
+    return array_map(static fn (object $plugin): string => $plugin::class, $editor->getPlugins());
+}
+
+/**
  * What one resolved toolbar item is called in an expectation. Kept apart from
  * `toolbarShape()` so that a half of a split toolbar reads the same way the whole bar
  * does.

@@ -13,14 +13,15 @@ import { handlePosition, reusesBlock } from '../../resources/js/drag-handle.js'
  * Rectangles are viewport coordinates, the way `getBoundingClientRect()` gives them.
  */
 
-const rect = ({ top = 0, height = 24, left = 100, bottom = null }) => ({
+const rect = ({ top = 0, height = 24, left = 100, width = 600, bottom = null }) => ({
     top,
     height,
     left,
+    right: left + width,
     bottom: bottom ?? top + height,
 })
 
-const editor = rect({ top: 0, height: 400, left: 80 })
+const editor = rect({ top: 0, height: 400, left: 80, width: 640 })
 
 describe('where the handle goes', () => {
     it('sits in the margin, clear of the text', () => {
@@ -52,6 +53,22 @@ describe('where the handle goes', () => {
         const indented = rect({ top: 100, left: 90 })
 
         expect(handlePosition(indented, editor, { width: 44, gap: 6, margin: 2 }).left).toBe(82)
+    })
+
+    it('sits beside the start of the block and not beside its left edge', () => {
+        // A field written right to left starts at the other end, and a handle placed by the
+        // left edge would sit the width of the field away from the block it belongs to.
+        const block = rect({ top: 100, left: 200, width: 400 })
+
+        expect(handlePosition(block, editor, { width: 44, gap: 6, rtl: true }).left).toBe(606)
+        expect(handlePosition(block, editor, { width: 44, gap: 6, rtl: false }).left).toBe(150)
+    })
+
+    it('never leaves the editor on that side either', () => {
+        const block = rect({ top: 100, left: 100, width: 616 })
+
+        expect(handlePosition(block, editor, { width: 44, gap: 6, margin: 2, rtl: true }).left)
+            .toBe(674)
     })
 
     it('says nothing for a block scrolled out of the field', () => {

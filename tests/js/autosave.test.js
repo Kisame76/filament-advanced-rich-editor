@@ -108,6 +108,18 @@ describe('sweeping up', () => {
         expect(readDraft(storage, `${PREFIX}new`)).not.toBeNull()
     })
 
+    it('removes a run of expired drafts without stepping over any of them', () => {
+        // Removing from a storage shifts every key after it down one, so a walk that reads
+        // by index while that is happening skips whatever moved into the place just freed.
+        // Two entries cannot show it; three in a row can, and did.
+        writeDraft(storage, `${PREFIX}a`, doc('a'), { now: 0 })
+        writeDraft(storage, `${PREFIX}b`, doc('b'), { now: 0 })
+        writeDraft(storage, `${PREFIX}c`, doc('c'), { now: 0 })
+
+        expect(prune(storage, { now: DAY * 5, ttl: DAY })).toHaveLength(3)
+        expect(storage.length).toBe(0)
+    })
+
     it('touches nothing that another script put there', () => {
         storage.setItem('somebody-else', 'theirs')
 

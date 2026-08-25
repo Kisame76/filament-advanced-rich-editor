@@ -2555,7 +2555,9 @@ body.fi-arte-fullscreen-lock {
  * editor on the page exactly as Filament drew it.
  */
 .fi-fo-rich-editor-content[data-arte-drag-handle] {
-    padding-left: 3.25rem;
+    /* Logical rather than left: the gutter belongs beside the start of the text, and in a
+       field written right to left that is the other side of the box. */
+    padding-inline-start: 3.25rem;
 }
 
 .fi-arte-drag-handle {

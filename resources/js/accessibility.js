@@ -47,6 +47,9 @@ const LARGE_THRESHOLD = 3
 /** From what size text counts as large: eighteen point, which is where WCAG puts it. */
 const LARGE_SIZE = 24
 
+/** What a CSS length is worth in pixels, for the units a font size is written in. */
+const UNITS = { px: 1, pt: 96 / 72, rem: 16, em: 16 }
+
 /**
  * A colour as three channels, or null for anything this cannot be sure about.
  *
@@ -116,6 +119,23 @@ export function contrastRatio(one, two) {
     const second = relativeLuminance(two)
 
     return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
+}
+
+/**
+ * A font size in pixels, whatever it was written in.
+ *
+ * The unit is not decoration: eighteen point is exactly the size WCAG calls large, and a
+ * comparison that read the number and ignored the `pt` would call it 18 and hold it to the
+ * stricter of the two ratios - a finding against text that passes.
+ */
+export function sizeInPixels(value) {
+    const match = /^([\d.]+)\s*(px|pt|rem|em)?$/i.exec(String(value ?? '').trim())
+
+    if (! match) {
+        return 0
+    }
+
+    return parseFloat(match[1]) * (UNITS[(match[2] ?? 'px').toLowerCase()] ?? 1)
 }
 
 /**
@@ -205,6 +225,9 @@ export function findingsFor(subjects, options = {}) {
         threshold = THRESHOLD,
         largeThreshold = LARGE_THRESHOLD,
         background = '#ffffff',
+        // What the page paints text in where nobody chose a colour. The editor cannot know
+        // it any more than it knows the background, and both are the front end's business.
+        text = '#18181b',
         palette = {},
     } = options
 
@@ -265,7 +288,10 @@ export function findingsFor(subjects, options = {}) {
                     break
                 }
 
-                const colour = resolveColor(subject.color, palette)
+                // Either half may be the one somebody chose. Text in the default colour on
+                // a background out of the palette is the same failure as a colour on the
+                // default background, and it is the more common one.
+                const colour = subject.color ? resolveColor(subject.color, palette) : parseColor(text)
                 const behind = subject.background ? resolveColor(subject.background, palette) : page
                 const ratio = contrastRatio(colour, behind)
 
@@ -321,7 +347,16 @@ export function subjectsOf(doc) {
         }
 
         if (node.type.name === 'table') {
-            subjects.push({ kind: 'table', from, to, node: true, headerCells: headerCellsIn(node) })
+            subjects.push({
+                kind: 'table',
+                from,
+                to,
+                node: true,
+                headerCells: headerCellsIn(node),
+                // The first row, so that three tables with no header row are three rows in
+                // the panel saying which is which rather than the same sentence three times.
+                text: node.firstChild?.textContent ?? '',
+            })
 
             return true
         }
@@ -337,9 +372,11 @@ export function subjectsOf(doc) {
         }
 
         const colour = node.marks.find((mark) => mark.type.name === 'textColor')
+        const background = node.marks.find((mark) => mark.type.name === 'textBackground')
 
-        if (colour) {
-            const background = node.marks.find((mark) => mark.type.name === 'textBackground')
+        // Either mark is worth measuring: text left in the page's own colour on a chosen
+        // background is as unreadable as a chosen colour on the page's own background.
+        if (colour || background) {
             const size = node.marks.find((mark) => mark.type.name === 'fontSize')
 
             colours.push({
@@ -347,7 +384,7 @@ export function subjectsOf(doc) {
                 from,
                 to,
                 text: node.text ?? '',
-                color: colour.attrs['data-color'] ?? colour.attrs.color ?? null,
+                color: colour ? (colour.attrs['data-color'] ?? colour.attrs.color ?? null) : null,
                 background: background?.attrs?.color ?? null,
                 large: isLarge(parent, size),
             })
@@ -372,7 +409,7 @@ function isLarge(parent, size) {
         return true
     }
 
-    return parseFloat(size?.attrs?.size ?? '0') >= LARGE_SIZE
+    return sizeInPixels(size?.attrs?.size) >= LARGE_SIZE
 }
 
 /**
@@ -475,10 +512,12 @@ export default () => {
         }
 
         open() {
+            // A second press puts it away. The button lives in the toolbar, which the panel
+            // is told to stay open for, so the press reaches this rather than being taken
+            // as a click outside - which is what would otherwise close and reopen it, and
+            // lose wherever it had been dragged to on the way.
             if (this.window) {
-                // Opened again while it is already up: the document has usually changed
-                // since, and the answer to a second press is the current list.
-                return this.draw()
+                return this.close()
             }
 
             if (! panel) {
@@ -516,7 +555,10 @@ export default () => {
 
             this.window = panel.floatingPanel(element, {
                 handle: header,
-                keepOpenInside: [this.view.dom],
+                // The toolbar as well as the text: pressing another button while the report
+                // is open is how somebody fixes what it is pointing at, and the button that
+                // opened it has to be able to close it again.
+                keepOpenInside: [this.view.dom, this.toolbar()].filter(Boolean),
                 onClose: () => {
                     this.window = null
                     this.list = null
@@ -524,8 +566,15 @@ export default () => {
                 onResize: () => this.place(element),
             })
 
-            this.place(element)
+            // Drawn before it is placed: the panel is a header and nothing else until the
+            // list is in it, and a corner worked out from that height puts a full panel off
+            // the bottom of the screen.
             this.draw()
+            this.place(element)
+        }
+
+        toolbar() {
+            return this.view.dom.closest('.fi-fo-rich-editor')?.querySelector('.fi-fo-rich-editor-toolbar') ?? null
         }
 
         place(element) {
@@ -623,8 +672,13 @@ export default () => {
     return Extension.create({
         name: 'arteAccessibility',
 
+        addStorage() {
+            return { report: null }
+        },
+
         addProseMirrorPlugins() {
             const editor = this.editor
+            const storage = this.storage
 
             return [
                 new Plugin({
@@ -638,7 +692,11 @@ export default () => {
 
                         const report = new Report(view, settings)
 
-                        editor.arteAccessibilityReport = report
+                        // The extension's own storage rather than a property hung on the
+                        // editor: that is the drawer TipTap provides for this, it is cleared
+                        // with the extension, and it takes no name in a namespace this
+                        // package does not own.
+                        storage.report = report
 
                         return {
                             // Only while it is open, and only when the document actually
@@ -649,7 +707,10 @@ export default () => {
                                     report.draw()
                                 }
                             },
-                            destroy: () => report.close(),
+                            destroy: () => {
+                                report.close()
+                                storage.report = null
+                            },
                         }
                     },
                 }),
@@ -658,8 +719,8 @@ export default () => {
 
         addCommands() {
             return {
-                openAccessibilityReport: () => ({ editor }) => {
-                    editor.arteAccessibilityReport?.open()
+                openAccessibilityReport: () => () => {
+                    this.storage.report?.open()
 
                     return true
                 },
