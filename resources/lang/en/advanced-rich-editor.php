@@ -227,6 +227,27 @@ return [
         ],
     ],
 
+    'accessibility' => [
+        'title' => 'Accessibility check',
+        'close' => 'Close',
+        'empty' => 'Nothing to report.',
+        'ratio' => ':ratio of the :needed needed',
+        'rules' => [
+            'missing_alt' => 'Image without alt text',
+            'empty_link' => 'Link with no text',
+            'weak_link_text' => 'Link text says nothing',
+            'skipped_heading' => 'Heading level skipped',
+            'table_without_header' => 'Table without a header row',
+            'weak_contrast' => 'Text colour too weak to read',
+        ],
+        // A link's whole text has to be one of these, so what belongs here is what people
+        // write as the entire text of a link and nothing longer.
+        'weak_link_phrases' => [
+            'here', 'click here', 'click', 'this', 'this link', 'link', 'read more',
+            'more', 'learn more', 'find out more', 'see more', 'details', 'go', 'download',
+        ],
+    ],
+
     'autosave' => [
         'found' => 'An unsaved draft from :time was found in this browser.',
         'restore' => 'Restore it',

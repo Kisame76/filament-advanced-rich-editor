@@ -36,6 +36,8 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Slash menu** — type `/` for a searchable list of the commands *this* field offers
 - **Find and replace** — `Ctrl+F` inside the field, every hit marked, whole words and case
   optional, and replacing all of them is one undo
+- **Accessibility check** — missing alt text, "click here" links, skipped heading levels,
+  tables with no header row and colours too weak to read, each one a row that selects it
 - **Drafts in the browser** — a lost reply is not a lost article: the draft is offered back
   on the next opening, and closing the tab with unsaved changes asks first
 - **Drag handle** — a grip in the margin to move a block and a plus to start one, which

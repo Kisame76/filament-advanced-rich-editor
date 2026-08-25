@@ -71,7 +71,7 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        ['find', 'accessibility', 'fullscreen', 'help'],
     ]);
 });
 
@@ -88,7 +88,7 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        ['find', 'accessibility', 'fullscreen', 'help'],
     ]);
 });
 
@@ -121,13 +121,13 @@ it('collapses the dividers that an emptied group left behind', function (): void
         ['dropdown:bulletList,orderedList,taskList'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        ['find', 'accessibility', 'fullscreen', 'help'],
     ]);
 });
 
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
-    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->disableToolbarButtons([
+    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->accessibility(false)->disableToolbarButtons([
         'lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
     ]);
 

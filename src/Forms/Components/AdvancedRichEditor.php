@@ -35,6 +35,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AutosavePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
@@ -122,6 +123,13 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasEmoji = null;
 
     protected bool|Closure|null $hasFind = null;
+
+    protected bool|Closure|null $hasAccessibility = null;
+
+    /**
+     * @var array<int, string> | Closure | null
+     */
+    protected array|Closure|null $accessibilityRules = null;
 
     protected bool|Closure|null $hasAutosave = null;
 
@@ -413,6 +421,15 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // Off means the tool is gone and the extension is not loaded. Nothing is stored
+        // either way: a check marks no document, and a picture that was given alt text is an
+        // ordinary picture by the time it is saved.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasAccessibility()
+                ? [AccessibilityPlugin::make()]
+                : [],
+        );
+
         // A draft never reaches the application, so switching it off takes the drafts of
         // the next session away and leaves every record exactly as it is.
         $this->plugins(
@@ -583,7 +600,7 @@ class AdvancedRichEditor extends RichEditor
             'divider',
             ['more'],
             'pin',
-            ['find', 'sourceCode', 'fullscreen', 'help'],
+            ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help'],
         ];
     }
 
@@ -1431,6 +1448,102 @@ class AdvancedRichEditor extends RichEditor
     public function getFindSettingsForJs(): ?array
     {
         return $this->hasFind() ? FindReplacePlugin::getLabels() : null;
+    }
+
+    /**
+     * The check that reads the document and says what is wrong with it.
+     *
+     * Six questions, and they are the six a person writing an article can answer and nobody
+     * downstream can: a picture nobody described, a link that says "click here", a heading
+     * level jumped over, a table with no header row, a link with nothing in it, and a colour
+     * that cannot be read on the page it is going to.
+     *
+     * Nothing about it is stored - a check marks no document - so switching it off later
+     * changes nothing that was written with it, and takes the button away with the panel.
+     */
+    public function accessibility(bool|Closure $condition = true): static
+    {
+        $this->hasAccessibility = $condition;
+
+        return $this;
+    }
+
+    public function hasAccessibility(): bool
+    {
+        return (bool) ($this->evaluate($this->hasAccessibility) ?? config('filament-advanced-rich-editor.accessibility.enabled') ?? true);
+    }
+
+    /**
+     * Which of the six are asked. A rule left out is not reported and not counted.
+     *
+     * @param  array<int, string> | Closure  $rules
+     */
+    public function accessibilityRules(array|Closure $rules): static
+    {
+        $this->accessibilityRules = $rules;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getAccessibilityRules(): array
+    {
+        $rules = $this->evaluate($this->accessibilityRules)
+            ?? config('filament-advanced-rich-editor.accessibility.rules')
+            ?? AccessibilityPlugin::RULES;
+
+        return array_values(array_filter(
+            (array) $rules,
+            static fn (mixed $rule): bool => is_string($rule) && in_array($rule, AccessibilityPlugin::RULES, strict: true),
+        ));
+    }
+
+    /**
+     * The palette as three channels rather than as names.
+     *
+     * Filament stores `data-color="ink"` and not the colour, which is the right way round
+     * and leaves the browser with a name it cannot turn into a contrast ratio. Only the
+     * light half crosses over: a document rendered in both themes is two questions, and
+     * answering one of them twice would be a panel listing everything twice.
+     *
+     * @return array<string, string>
+     */
+    public function getAccessibilityPalette(): array
+    {
+        $palette = [];
+
+        foreach ($this->getTextColorsForPicker() as $color) {
+            if (filled($color['color'])) {
+                $palette[$color['value']] = $color['color'];
+            }
+        }
+
+        return $palette;
+    }
+
+    /**
+     * What the extension reads off the editor element. Null while the check is switched off,
+     * which is also when the extension that would read it was never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getAccessibilitySettingsForJs(): ?array
+    {
+        if (! $this->hasAccessibility()) {
+            return null;
+        }
+
+        return AccessibilityPlugin::getSettings([
+            'rules' => $this->getAccessibilityRules(),
+            'weakPhrases' => AccessibilityPlugin::getWeakPhrases(),
+            'threshold' => (float) (config('filament-advanced-rich-editor.accessibility.threshold') ?? 4.5),
+            'largeThreshold' => (float) (config('filament-advanced-rich-editor.accessibility.large_threshold') ?? 3.0),
+            // What the editor cannot know, because it belongs to the front end.
+            'background' => (string) (config('filament-advanced-rich-editor.accessibility.background') ?? '#ffffff'),
+            'palette' => $this->getAccessibilityPalette(),
+        ]);
     }
 
     /**

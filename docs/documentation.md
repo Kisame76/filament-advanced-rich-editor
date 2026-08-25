@@ -840,6 +840,63 @@ Nothing about any of this is stored. A search marks no document and a replacemen
 ordinary text by the time it is saved, so turning the feature off later leaves everything
 written with it exactly as it is - it only takes the button and the keys away.
 
+### Accessibility check
+
+`'accessibility'` opens a panel listing what is wrong with the document, and every row in it
+selects the thing it is about.
+
+```php
+AdvancedRichEditor::make('content')
+    ->accessibility(false)                            // default: config('...accessibility.enabled')
+    ->accessibilityRules(['missing_alt', 'empty_link']);
+```
+
+Six questions, and they are six because they are the ones a person writing an article can
+answer and nobody downstream can. A stylesheet cannot invent alt text and a renderer cannot
+decide what a link should have said.
+
+| Rule | What it finds |
+|---|---|
+| `missing_alt` | an image with no alt text |
+| `empty_link` | a link with nothing in it |
+| `weak_link_text` | a link whose whole text is "click here" or the like |
+| `skipped_heading` | a heading level jumped over, such as `h2` followed by `h4` |
+| `table_without_header` | a table whose first row is ordinary cells |
+| `weak_contrast` | a set text colour that cannot be read on the page it is going to |
+
+**Heading levels are only checked for jumps, never for where the document starts.** An
+article whose page already carries the `<h1>` starts at two, and one rendered inside a card
+may reasonably start at three. What no document can defend is two, then four.
+
+**A weak link text has to be the whole text, not part of it.** "Click here for the report"
+says what it is and is left alone; "click here" on its own does not. The phrases come from
+the translation files, because "click here" is a fact about English rather than about the
+web - and `accessibility.weak_link_phrases` adds a project's own to the shipped list rather
+than replacing it.
+
+**Contrast is the one rule with an assumption in it, and it is stated rather than hidden.**
+The editor cannot know what colour the page will be, because that belongs to the front end.
+A colour is measured against `accessibility.background` - white unless a project says
+otherwise - or against the text background where one was set on the same words, and it has
+to reach `accessibility.threshold`, which is 4.5, WCAG AA for ordinary text. Headings of the
+first two levels and text of 24px and up are held to `large_threshold` instead, which is 3,
+the same standard's easier level for large text. The finding says the number it got and the
+number it needed, because "not enough" is not something anybody can act on.
+
+Only the light half of the palette is checked. A document rendered in both a light and a
+dark theme is two questions, and answering one of them twice would be a panel listing
+everything twice.
+
+The panel rechecks itself as the document changes, so a finding disappears when it is fixed
+rather than when the panel is opened again. Nothing about any of it is stored: a check marks
+no document, and a picture that was given alt text is an ordinary picture by the time it is
+saved.
+
+> **If you have published the config file**, add `'accessibility'` to its `toolbar` array -
+> the shipped default has it between `'find'` and `'sourceCode'`, and a published file is
+> the one that answers. The check itself is registered either way; without the token there
+> is no button to open it with.
+
 ### Drafts in the browser
 
 A draft of what is being written is kept in the browser's own storage, offered back the next
@@ -2251,6 +2308,7 @@ AdvancedRichEditor::make('content')
     ->pasteCleanup(true)                           // clean a paste from Word and Google Docs
     ->dragHandle(true)                             // the grip and the plus in the margin
     ->autosave(true)                               // keep a draft in the browser's storage
+    ->accessibility(true)                          // the check, and the panel it reports in
     ->codeBlockLanguages(['php' => 'PHP'])         // the language picker on a code block
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])

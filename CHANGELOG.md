@@ -4,6 +4,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Changed
+
+- The shipped toolbar has an `'accessibility'` token in it, between `'find'` and
+  `'sourceCode'`. A project that published the config file keeps the toolbar it published
+  and adds the token itself; the check is registered either way, and without the token there
+  is simply no button to open it with
+
 ### Fixed
 
 - `required()` now rejects an empty document in every shape it comes in. An empty editor is
@@ -41,6 +48,22 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   registers treats a blank string the way the one it extends treats null
 
 ### Added
+
+- An accessibility check, on the toolbar between finding and the source view. It asks six
+  questions - an image with no alt text, a link with nothing in it, a link whose whole text
+  is "click here", a heading level jumped over, a table whose first row is ordinary cells,
+  and a set text colour that cannot be read on the page it is going to - and every row in
+  the panel selects the thing it is about, which is the whole reason it runs in the editor
+  rather than as a report after saving. Heading levels are checked for jumps and never for
+  where a document starts, since an article whose page already carries the `<h1>` starts at
+  two. A weak link text has to be the whole text: "click here for the report" says what it
+  is and is left alone, and the phrases follow the locale, because "click here" is a fact
+  about English rather than about the web. Contrast is the one rule with an assumption in
+  it and it is stated rather than hidden: a colour is measured against
+  `accessibility.background`, white unless a project says otherwise, or against the
+  background set on the same words, and headings and text of 24px and up are held to WCAG's
+  easier level for large text. The finding says the ratio it got and the ratio it needed.
+  Nothing about any of it is stored
 
 - A draft of what is being written, kept in the browser's own storage, so a reply that comes
   back as an expired session or as a 500 is not an afternoon's work. It is not a save:

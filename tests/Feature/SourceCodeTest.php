@@ -7,7 +7,7 @@ use Filament\Forms\Components\CodeEditor\Enums\Language;
 
 it('puts the button left of the fullscreen one', function (): void {
     // Switched on for this: the shipped default leaves the source dialog off the bar.
-    expect(toolbarGroup(editor()->sourceCode(), 'fullscreen'))->toBe(['find', 'sourceCode', 'fullscreen', 'help']);
+    expect(toolbarGroup(editor()->sourceCode(), 'fullscreen'))->toBe(['find', 'accessibility', 'sourceCode', 'fullscreen', 'help']);
 });
 
 it('hands the editor its own html to open with', function (): void {
@@ -53,7 +53,7 @@ it('drops the button when a field or the config says so', function (): void {
     config()->set('filament-advanced-rich-editor.source_code', true);
 
     expect(editor()->sourceCode(false)->getTools())->not->toHaveKey('sourceCode')
-        ->and(toolbarGroup(editor()->sourceCode(false), 'fullscreen'))->toBe(['find', 'fullscreen', 'help']);
+        ->and(toolbarGroup(editor()->sourceCode(false), 'fullscreen'))->toBe(['find', 'accessibility', 'fullscreen', 'help']);
 
     config()->set('filament-advanced-rich-editor.source_code', false);
 
@@ -66,11 +66,11 @@ it('keeps the source dialog off the bar until a project asks for it', function (
     // that box writes whatever the schema will accept. Worth having, not worth handing to
     // everybody who installs the package without being asked.
     expect(editor()->hasSourceCode())->toBeFalse()
-        ->and(toolbarShape(editor()))->not->toContain(['find', 'sourceCode', 'fullscreen', 'help'])
+        ->and(toolbarShape(editor()))->not->toContain(['find', 'accessibility', 'sourceCode', 'fullscreen', 'help'])
         // The token stays in the shipped layout and resolves to nothing, exactly the way
         // the styles picker does - so switching it on needs no toolbar surgery.
-        ->and(toolbarGroup(editor(), 'fullscreen'))->toBe(['find', 'fullscreen', 'help'])
-        ->and(toolbarGroup(editor()->sourceCode(), 'fullscreen'))->toBe(['find', 'sourceCode', 'fullscreen', 'help']);
+        ->and(toolbarGroup(editor(), 'fullscreen'))->toBe(['find', 'accessibility', 'fullscreen', 'help'])
+        ->and(toolbarGroup(editor()->sourceCode(), 'fullscreen'))->toBe(['find', 'accessibility', 'sourceCode', 'fullscreen', 'help']);
 });
 
 it('turns the source dialog on from the config file', function (): void {

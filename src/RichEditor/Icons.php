@@ -66,6 +66,12 @@ class Icons
             'find_replace' => 'arte-replace',
             'find_grip' => 'arte-grip-vertical',
 
+            // The report reads as a list of things to check rather than as a warning,
+            // which is what it is: nothing is broken, six questions have been asked.
+            'accessibility' => 'heroicon-o-clipboard-document-check',
+            'accessibility_grip' => 'arte-grip-vertical',
+            'accessibility_close' => 'heroicon-o-x-mark',
+
             // The grip in the margin, and the plus that starts a block under it. The same
             // drawing as the find window's grip on purpose: both of them say the same thing
             // about the thing they sit on, which is that it can be taken hold of.

@@ -14,7 +14,7 @@
       - top-of-file PHP block: the settings each of this package's TipTap extensions reads
         off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
         $codeBlockSettings, $findSettings, $pasteSettings, $dragHandleSettings,
-        $autosaveSettings), resolved alongside them
+        $autosaveSettings, $accessibilitySettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -70,6 +70,7 @@
     $pasteSettings = $getPasteSettingsForJs();
     $dragHandleSettings = $getDragHandleSettingsForJs();
     $autosaveSettings = $getAutosaveSettingsForJs();
+    $accessibilitySettings = $getAccessibilitySettingsForJs();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -238,6 +239,7 @@
                     @if ($pasteSettings) data-arte-paste="{{ json_encode($pasteSettings) }}" @endif
                     @if ($dragHandleSettings) data-arte-drag-handle="{{ json_encode($dragHandleSettings) }}" @endif
                     @if ($autosaveSettings) data-arte-autosave="{{ json_encode($autosaveSettings) }}" @endif
+                    @if ($accessibilitySettings) data-arte-accessibility="{{ json_encode($accessibilitySettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div

@@ -36,7 +36,7 @@ return [
         'divider',
         ['more'],
         'pin',
-        ['find', 'sourceCode', 'fullscreen', 'help'],
+        ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help'],
     ],
 
     /*
@@ -129,6 +129,50 @@ return [
     | Per field: `->find()`.
     */
     'find' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessibility check
+    |--------------------------------------------------------------------------
+    | The 'accessibility' tool and the panel behind it: a picture nobody described, a
+    | link whose text is "click here", a heading level jumped over, a table with no
+    | header row, a link with nothing in it, and a colour that cannot be read on the
+    | page it is going to. Every finding is a row that selects what it is about.
+    |
+    | 'rules' is which of the six are asked; a name left out is not reported.
+    |
+    | Contrast is the one rule with an assumption in it, and it is stated rather than
+    | hidden: the editor cannot know what colour the page will be, because that belongs
+    | to the front end. 'background' is what a colour is measured against and 'threshold'
+    | is what it has to reach - 4.5 is WCAG AA for ordinary text, and 'large_threshold'
+    | is the easier level that headings and text of 24px and up are held to. Only the
+    | light half of the palette is checked: a document rendered in both themes is two
+    | questions, and answering one of them twice is a panel listing everything twice.
+    |
+    | 'weak_link_phrases' are added to the translated list rather than replacing it -
+    | "click here" is a fact about English and not about the web, so the shipped list
+    | follows the locale, and this is where a project adds the wording its own house
+    | style keeps producing. A link's whole text has to be the phrase: "click here for
+    | the report" says what it is and is left alone.
+    |
+    | Nothing about any of it is stored. Per field: `->accessibility()`,
+    | `->accessibilityRules()`.
+    */
+    'accessibility' => [
+        'enabled' => true,
+        'rules' => [
+            'missing_alt',
+            'empty_link',
+            'weak_link_text',
+            'skipped_heading',
+            'table_without_header',
+            'weak_contrast',
+        ],
+        'background' => '#ffffff',
+        'threshold' => 4.5,
+        'large_threshold' => 3.0,
+        'weak_link_phrases' => [],
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -806,6 +850,11 @@ return [
         'find_close' => 'heroicon-o-x-mark',
         'find_replace' => 'arte-replace',
         'find_grip' => 'arte-grip-vertical',
+
+        // The accessibility report and the window it opens in.
+        'accessibility' => 'heroicon-o-clipboard-document-check',
+        'accessibility_grip' => 'arte-grip-vertical',
+        'accessibility_close' => 'heroicon-o-x-mark',
 
         // The grip in the margin, and the plus that starts a block under it.
         'drag_handle' => 'arte-grip-vertical',

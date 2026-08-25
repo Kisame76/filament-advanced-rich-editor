@@ -18,7 +18,7 @@ it('resolves the shipped toolbar into groups, dropdowns and dividers', function 
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        ['find', 'accessibility', 'fullscreen', 'help'],
     ]);
 });
 
@@ -50,7 +50,7 @@ it('falls back to the same toolbar when the config was never merged', function (
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
         ['divider'],
         [moreShape()],
-        ['find', 'fullscreen', 'help'],
+        ['find', 'accessibility', 'fullscreen', 'help'],
     ]);
 });
 

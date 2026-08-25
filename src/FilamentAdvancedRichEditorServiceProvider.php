@@ -121,6 +121,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/floating-panel', __DIR__.'/../resources/dist/js/floating-panel.js')
                     ->loadedOnRequest(),
 
+                // The report is the third window built on that panel, and it imports it the
+                // same way - warmed as soon as the extension loads, so the first press of
+                // the button opens rather than waits.
+                Js::make('advanced-rich-editor/accessibility', __DIR__.'/../resources/dist/js/accessibility.js')
+                    ->loadedOnRequest(),
+
                 // Nothing is drawn and nothing is stored: the file decides what a paste is
                 // made of, before ProseMirror parses it.
                 Js::make('advanced-rich-editor/paste-cleanup', __DIR__.'/../resources/dist/js/paste-cleanup.js')

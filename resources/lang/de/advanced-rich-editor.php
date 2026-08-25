@@ -225,6 +225,28 @@ return [
         ],
     ],
 
+    'accessibility' => [
+        'title' => 'Barrierefreiheit prüfen',
+        'close' => 'Schließen',
+        'empty' => 'Nichts zu beanstanden.',
+        'ratio' => ':ratio von :needed nötig',
+        'rules' => [
+            'missing_alt' => 'Bild ohne Alternativtext',
+            'empty_link' => 'Link ohne Text',
+            'weak_link_text' => 'Linktext sagt nichts',
+            'skipped_heading' => 'Überschriftenebene übersprungen',
+            'table_without_header' => 'Tabelle ohne Kopfzeile',
+            'weak_contrast' => 'Textfarbe zu schwach zum Lesen',
+        ],
+        // Der ganze Linktext muss einer davon sein, hier gehört also hinein, was Leute als
+        // vollständigen Text eines Links schreiben, und nichts Längeres.
+        'weak_link_phrases' => [
+            'hier', 'hier klicken', 'klicken', 'klick hier', 'dies', 'dieser link', 'link',
+            'mehr', 'mehr erfahren', 'weiterlesen', 'weitere informationen', 'details',
+            'los', 'download', 'herunterladen',
+        ],
+    ],
+
     'autosave' => [
         'found' => 'In diesem Browser liegt ein ungespeicherter Entwurf von :time.',
         'restore' => 'Wiederherstellen',

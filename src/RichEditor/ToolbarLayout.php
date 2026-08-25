@@ -117,6 +117,9 @@ class ToolbarLayout
             'find' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFind()
                 ? 'find'
                 : [],
+            'accessibility' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasAccessibility()
+                ? 'accessibility'
+                : [],
             'textBackground' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextBackground()
                 ? ToolbarColorPicker::background($editor->getBackgroundColors(), $editor->hasCustomColors())
                 : [],
