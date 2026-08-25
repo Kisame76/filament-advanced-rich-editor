@@ -927,6 +927,25 @@ Filament's uploader: it hands its rebuilt markup back through the same door.
 
 Turning it off changes the next paste and no document already written with it.
 
+#### Pasting as plain text
+
+`Ctrl+Shift+V` takes the text and none of the markup - no headings, no lists, no links, no
+emphasis, whatever was on the clipboard. It is the way out of a paste that arrived wearing
+more than it should, and it is bound in the help dialog's shortcut list alongside everything
+else the editor answers to.
+
+Nothing in this package binds it, which is why it works whether or not a field cleans its
+pastes. A browser reads `Ctrl+Shift+V` (`Cmd+Shift+V`) as paste-and-match-style and hands
+over the plain half of the clipboard on its own; where one keeps that key for itself -
+Safari does - ProseMirror sees the shift and takes the text half anyway. Line breaks in the
+text become paragraphs, the way they do in every editor built on ProseMirror.
+
+There is no menu entry for it and there is not going to be one. A button cannot paste: it
+would have to read the clipboard itself through `navigator.clipboard.readText()`, which
+needs a permission Chrome prompts for, Safari confirms with its own dialog and Firefox does
+not give a page at all - a button that silently does nothing on one browser in three is
+worse than no button.
+
 ### Fullscreen
 
 The last button expands the editor over the window, and Escape leaves again.

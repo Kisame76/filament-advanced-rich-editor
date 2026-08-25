@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Blade;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Shortcuts;
 
 /**
  * @return array<int, string>
@@ -98,4 +99,23 @@ it('lets a field decide for itself', function (): void {
 
     // A comment field takes whatever it is given; the article beside it does not.
     expect(editor()->pasteCleanup()->hasPasteCleanup())->toBeTrue();
+});
+
+it('says how to paste without any of it, which is a key nothing here binds', function (): void {
+    // Mod+Shift+V is the browser's own paste-and-match-style, and where a browser keeps
+    // that key for itself ProseMirror still sees the shift and takes the text half of the
+    // clipboard. Listing it is the whole of what this package adds: the way out of a paste
+    // that arrived wearing more than it should was until now something people guessed.
+    $keys = array_column(Shortcuts::for(editor()), 'keys', 'label');
+
+    expect($keys)->toHaveKey('Paste as plain text')
+        ->and($keys['Paste as plain text'])->toBe(['Mod', 'Shift', 'V']);
+});
+
+it('says it whether or not this field cleans a paste', function (): void {
+    // The two are not the same feature: one decides what a paste is made of and the other
+    // is the browser handing over the text half instead.
+    $keys = array_column(Shortcuts::for(editor()->pasteCleanup(false)), 'keys', 'label');
+
+    expect($keys)->toHaveKey('Paste as plain text');
 });

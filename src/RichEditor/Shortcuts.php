@@ -114,6 +114,14 @@ class Shortcuts
 
         $rows = [$line('line_break', ['Shift', 'Enter'])];
 
+        // Nothing in this package binds it and nothing needs to: a browser reads
+        // Mod+Shift+V as paste-and-match-style and hands over the plain text alone, and
+        // where one does not - Safari keeps that key for itself - ProseMirror sees the
+        // shift and takes the text half of the clipboard anyway. It is listed because it
+        // is the way out of a paste that arrived wearing more than it should, and until
+        // it was written down here the only people who knew were the ones who guessed.
+        $rows[] = $line('paste_plain', ['Mod', 'Shift', 'V']);
+
         $tools = $editor->getTools();
 
         if (array_key_exists('bulletList', $tools) || array_key_exists('orderedList', $tools)) {

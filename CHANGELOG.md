@@ -42,6 +42,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- The help dialog lists `Ctrl+Shift+V`, which takes the text on the clipboard and none of
+  its markup. Nothing in this package binds it and nothing needs to - a browser reads it as
+  paste-and-match-style and hands over the plain half on its own, and where one keeps that
+  key for itself ProseMirror sees the shift and takes the text half anyway - so it works
+  whether or not a field cleans its pastes. It is listed because it is the way out of a
+  paste that arrived wearing more than it should, and until now the only people who knew it
+  was there were the ones who guessed
+
 - A paste from Word and Google Docs arrives as a document rather than as somebody else's
   document. Word does not put a paragraph on the clipboard: it puts a paragraph, the
   stylesheet it was drawn with, a handful of tags no browser has heard of, and a list that

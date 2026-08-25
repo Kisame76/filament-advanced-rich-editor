@@ -218,6 +218,7 @@ return [
         'close' => 'Close',
         'editing' => [
             'line_break' => 'Line break without a new paragraph',
+            'paste_plain' => 'Paste as plain text',
             'indent_list' => 'Indent list item',
             'outdent_list' => 'Outdent list item',
             'next_cell' => 'Next table cell',

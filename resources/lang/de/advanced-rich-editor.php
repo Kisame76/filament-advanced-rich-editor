@@ -216,6 +216,7 @@ return [
         'close' => 'Schließen',
         'editing' => [
             'line_break' => 'Zeilenumbruch ohne neuen Absatz',
+            'paste_plain' => 'Als reinen Text einfügen',
             'indent_list' => 'Listenpunkt einrücken',
             'outdent_list' => 'Listenpunkt ausrücken',
             'find' => 'Suchen',
