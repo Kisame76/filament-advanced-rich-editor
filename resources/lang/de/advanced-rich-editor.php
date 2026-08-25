@@ -71,6 +71,8 @@ return [
         ],
         'task_list' => 'Aufgabenliste',
         'heading_level' => 'Überschrift :level',
+        'styles' => 'Stil',
+        'styles_clear' => 'Keiner',
         'font_family' => 'Schriftart',
         'font_family_clear' => 'Standard',
         'font_size' => [
@@ -204,6 +206,11 @@ return [
             'outdent_list' => 'Listenpunkt ausrücken',
             'next_cell' => 'Nächste Tabellenzelle',
         ],
+    ],
+
+    'styles' => [
+        'block' => 'Absatz',
+        'inline' => 'Text',
     ],
 
     'fonts' => [

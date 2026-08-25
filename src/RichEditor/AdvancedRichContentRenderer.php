@@ -9,8 +9,10 @@ use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageCaption;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
 use League\HTMLToMarkdown\HtmlConverter;
@@ -45,6 +47,11 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     protected string $anchorSymbol = '#';
 
     protected string $anchorClass = 'fi-arte-anchor';
+
+    /**
+     * @var array<int, array{key: string, label: string, class: string, scope: string, types: array<int, string>}>|null
+     */
+    protected ?array $styles = null;
 
     protected bool $hasLinkAttributes = true;
 
@@ -88,6 +95,22 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      * it off matches a field that was set up the same way, and strips them on the next
      * render.
      */
+    /**
+     * The named styles this render knows about, overriding the project's.
+     *
+     * A field passes its own list here so that the schema a save is parsed through is the
+     * same one the toolbar offered from. Null keeps the project's, which is what a plain
+     * render of a stored document wants.
+     *
+     * @param  array<int, array{key: string, label: string, class: string, scope: string, types: array<int, string>}>|null  $styles
+     */
+    public function styles(?array $styles): static
+    {
+        $this->styles = $styles;
+
+        return $this;
+    }
+
     public function linkAttributes(bool $condition = true): static
     {
         $this->hasLinkAttributes = $condition;
@@ -187,7 +210,43 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // somebody forgets to tell it.
             app(Embed::class),
             app(ImageCaption::class),
+            // Declared with whatever the project configured, for the reason above: a
+            // renderer that has to be told about a style is one that drops it the day
+            // somebody forgets to say so. An empty list declares nothing, so a project with
+            // no styles pays nothing for them.
+            //
+            // Skipped where a plugin already brought them, and that is not an optimisation:
+            // two extensions of the same name are both applied, so a second copy renders a
+            // span inside a span and grows another layer on every save. A field passes its
+            // own list through `styles()` and its plugin declares the pair, which is the
+            // one that has to win - it is the list the toolbar offered from.
+            ...$this->styleExtensions($extensions),
         ];
+    }
+
+    /**
+     * The two style extensions, or none where the list is empty or something already
+     * declared them.
+     *
+     * @param  array<int, Extension>  $extensions
+     * @return array<int, Extension>
+     */
+    protected function styleExtensions(array $extensions): array
+    {
+        foreach ($extensions as $extension) {
+            if ($extension instanceof BlockStyle || $extension instanceof StyleClass) {
+                return [];
+            }
+        }
+
+        $styles = $this->styles ?? Styles::all();
+
+        return ($styles === [])
+            ? []
+            : [
+                app(BlockStyle::class, ['options' => ['styles' => Styles::ofScope($styles, 'block')]]),
+                app(StyleClass::class, ['options' => ['styles' => Styles::ofScope($styles, 'inline')]]),
+            ];
     }
 
     /**

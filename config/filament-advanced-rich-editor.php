@@ -16,6 +16,7 @@ return [
     |   'headings'   dropdown of `heading_levels`      'lists'  dropdown of `lists`
     |   'alignment'  dropdown of `alignments`          'more'   overflow dropdown
     |   'lineHeight' dropdown of `line_height.values`
+    |   'styles'     dropdown of `styles`, absent while that list is empty
     |
     | Tokens work at any depth, and a ToolbarDropdown or RichEditorTool may be mixed
     | in. Every other Filament tool is registered too and can be named anywhere:
@@ -391,6 +392,71 @@ return [
         'enabled' => true,
         'offset' => '4rem',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Marking styled text in the editor
+    |--------------------------------------------------------------------------
+    | Whether the editor marks the text a style sits on. Off, and that is deliberate
+    | rather than an oversight: a style is a set of your classes, and none of them resolve
+    | in an admin panel that never loaded your front end's stylesheet. The package can
+    | therefore show that a style is set, never what it looks like.
+    |
+    | Turned on, styled text gets a neutral marking - a rule down the side of a block, a
+    | dotted line under a run of text. It is a stopgap, not the real thing.
+    |
+    | The real thing is six lines in your panel theme, and it beats this in every way:
+    |
+    |   [data-style="lead"]   { font-size: 1.125rem; color: #475569; }
+    |   [data-style="kicker"] { text-transform: uppercase; letter-spacing: .05em; }
+    |
+    | Those override this, so switching it on while you write them costs nothing.
+    | Per field: `->stylePreview()`.
+    */
+    'style_preview' => false,
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Styles
+    |--------------------------------------------------------------------------
+    | Named styles from your own design system, offered by the 'styles' token. Shipped
+    | empty on purpose: the classes belong to your front end, and an editor offering
+    | styles nobody designed is worse than one offering none.
+    |
+    | Each entry is a key, a label and the classes it applies:
+    |
+    |   'label'  what the dropdown shows
+    |   'class'  the classes written into the rendered page
+    |   'scope'  'block' (default) puts them on the paragraph or heading the caret sits
+    |            in; 'inline' puts them on the selected text
+    |   'types'  block only: which blocks may carry it. Defaults to all of paragraph,
+    |            heading, blockquote, listItem and codeBlock
+    |
+    | One style at a time, per scope: picking a second replaces the first, the way a
+    | heading level does. A style that wants two of your classes together is one entry
+    | holding both.
+    |
+    | Stored as `data-style="<key>"` alongside the classes. The key is what the next parse
+    | reads, so editing the classes here updates documents that already exist rather than
+    | leaving them on the old ones. The sanitiser drops the key when the page is rendered
+    | and keeps the classes, which is exactly the split that is wanted.
+    |
+    | Per field: `->styles([...])`, and `->styles([])` takes the button away.
+    */
+    'styles' => [
+        // 'lead' => [
+        //     'label' => 'Lead',
+        //     'class' => 'text-lg text-slate-600',
+        //     'scope' => 'block',
+        // ],
+        // 'kicker' => [
+        //     'label' => 'Kicker',
+        //     'class' => 'uppercase tracking-wide text-sm',
+        //     'scope' => 'inline',
+        // ],
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Empty documents

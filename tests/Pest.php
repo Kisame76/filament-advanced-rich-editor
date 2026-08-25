@@ -15,6 +15,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFontPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFontSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFullscreen;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarStylePicker;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
 use Tiptap\Core\Extension;
@@ -31,6 +32,16 @@ uses(TestCase::class)->in('Feature');
 function testSchema(): Schema
 {
     return Schema::make(new TestSchemaComponent)->operation('edit');
+}
+
+/**
+ * The styles a project declared, for the tests that work on them.
+ *
+ * @param  array<string, mixed>  $styles
+ */
+function withStyles(array $styles): void
+{
+    config()->set('filament-advanced-rich-editor.styles', $styles);
 }
 
 /**
@@ -55,6 +66,7 @@ function toolbarItemName(mixed $item): string
         $item instanceof ToolbarPin => 'pin',
         $item instanceof ToolbarFontSize => 'fontSize',
         $item instanceof ToolbarFontPicker => 'fontFamily',
+        $item instanceof ToolbarStylePicker => 'styles',
         $item instanceof ToolbarFullscreen => 'fullscreen',
         $item instanceof ToolbarColorPicker => $item->getName(),
         // Dropdowns are matched before their parent class, which they extend.

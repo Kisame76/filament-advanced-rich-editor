@@ -618,6 +618,109 @@
 }
 
 /*
+ * The named styles a project's own design system offers. Drawn like the font picker
+ * next to it, because it is the same kind of thing: a list of names, one of which the
+ * text currently is.
+ */
+.fi-arte-style-picker-trigger {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+}
+
+.fi-arte-style-picker-label {
+    max-inline-size: 7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+}
+
+.fi-arte-style-menu {
+    flex-direction: column;
+    min-inline-size: 11rem;
+    max-block-size: 18rem;
+    overflow-y: auto;
+}
+
+/*
+ * The optional marking on text a style sits on, drawn only where a field asked for it with
+ * `->stylePreview()`.
+ *
+ * Off by default on purpose. A style is a set of the project's own classes, and none of
+ * them resolve in an admin panel that has never loaded the front end's stylesheet - so the
+ * package cannot show what a style looks like, only that one is set. This says that much
+ * and no more: a rule down the side of a block, a dotted line under a run of text.
+ *
+ * Everything here is a plain single class, so a project's own `[data-style="…"]` rules -
+ * which is the way to get the real appearance - override it without a fight.
+ */
+.fi-arte-style-preview .fi-fo-rich-editor-content [data-style] {
+    text-decoration: underline dotted var(--gray-400, #a1a1aa);
+    text-underline-offset: 0.25em;
+}
+
+/*
+ * A block carries its marking down the side instead: an underline under a whole paragraph
+ * says "link" to everyone who has ever used a browser.
+ */
+.fi-arte-style-preview .fi-fo-rich-editor-content p[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h1[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h2[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h3[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h4[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h5[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h6[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content blockquote[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content li[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content pre[data-style] {
+    text-decoration: none;
+    border-inline-start: 2px solid var(--gray-300, #d4d4d8);
+    padding-inline-start: 0.625rem;
+}
+
+.fi-arte-style-preview .fi-fo-rich-editor-content [data-style]:where(.dark, .dark *) {
+    border-color: var(--gray-600, #52525b);
+}
+
+.fi-arte-style-option {
+    inline-size: 100%;
+    font-size: 0.9375rem;
+}
+
+/*
+ * A style that cannot apply where the caret is - one meant for headings while the caret
+ * sits in a paragraph. Dimmed rather than removed: a list that changes length as the
+ * caret moves is a list nobody can aim at.
+ */
+.fi-arte-style-option.fi-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/*
+ * Which of the two kinds the rows under it are. Only drawn when both are in the list,
+ * because with one kind there is nothing to tell apart.
+ */
+.fi-arte-style-group {
+    padding: 0.375rem 0.5rem 0.125rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gray-400, #a1a1aa);
+}
+
+/*
+ * The picker itself, which carries no look of its own - the class is what the trigger and
+ * the menu are found by, and what a project overrides when it wants a different one.
+ */
+.fi-arte-style-picker {
+    position: relative;
+}
+
+/*
  * The one button in the image toolbar that takes the image away. It is the only
  * destructive thing in there, so it is the only thing that is not grey.
  */

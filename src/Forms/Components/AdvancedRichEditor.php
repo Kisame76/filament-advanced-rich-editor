@@ -50,11 +50,13 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StylesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts\RichEditorStateCast;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
@@ -141,6 +143,13 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasTaskList = null;
 
     protected bool|Closure|null $isNullWhenEmpty = null;
+
+    /**
+     * @var array<string, mixed>|Closure|null
+     */
+    protected array|Closure|null $styles = null;
+
+    protected bool|Closure|null $hasStylePreview = null;
 
     protected bool|Closure|null $hasFontSize = null;
 
@@ -365,6 +374,17 @@ class AdvancedRichEditor extends RichEditor
             static fn (AdvancedRichEditor $component): array => $component->hasTextDirection()
                 ? [TextDirectionPlugin::make()]
                 : [],
+        );
+
+        // Resolved on every call, because the list may be a closure and two fields on one
+        // page may offer different styles. Nothing is registered where a project named
+        // none, which is the shipped state.
+        $this->plugins(
+            static function (AdvancedRichEditor $component): array {
+                $styles = Styles::for($component);
+
+                return $styles === [] ? [] : [StylesPlugin::make($styles)];
+            },
         );
 
         // Always: a caption is worth having where nothing may be dragged, and it lives in
@@ -1105,6 +1125,7 @@ class AdvancedRichEditor extends RichEditor
             ->plugins($this->getPlugins())
             ->linkProtocols($this->getLinkProtocols())
             ->linkAttributes($this->hasLinkAttributes())
+            ->styles(Styles::for($this))
             ->getEditor();
     }
 
@@ -1620,6 +1641,29 @@ class AdvancedRichEditor extends RichEditor
         };
     }
 
+    /**
+     * The named styles this field offers, or null to take the project's.
+     *
+     * An empty array is a field saying it wants none, which is why null rather than `[]` is
+     * what means "not answered" - the same distinction `moreTools([])` draws.
+     *
+     * @param  array<string, mixed>|Closure|null  $styles
+     */
+    public function styles(array|Closure|null $styles): static
+    {
+        $this->styles = $styles;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getStyles(): ?array
+    {
+        return $this->evaluate($this->styles);
+    }
+
     public function taskList(bool|Closure $condition = true): static
     {
         $this->hasTaskList = $condition;
@@ -1665,6 +1709,50 @@ class AdvancedRichEditor extends RichEditor
             ...$toolbars,
             'image' => $buttons,
         ];
+    }
+
+    /**
+     * Whether the editor marks the text a style sits on.
+     *
+     * Off, and that is the same reasoning the empty styles list follows rather than an
+     * oversight. The classes belong to the project, so the look does too, and none of them
+     * resolve in an admin panel that has never loaded the front end's stylesheet - a package
+     * that invented an appearance here would be putting a design on content it knows nothing
+     * about, and getting it wrong.
+     *
+     * Turned on, styled text gets a neutral marking: a rule down the side of a block, a
+     * dotted line under a run of text. It says that something is set without claiming to
+     * know what it looks like, and a project's own `[data-style]` rules overrule it.
+     */
+    public function stylePreview(bool|Closure $condition = true): static
+    {
+        $this->hasStylePreview = $condition;
+
+        return $this;
+    }
+
+    public function hasStylePreview(): bool
+    {
+        return (bool) ($this->evaluate($this->hasStylePreview)
+            ?? config('filament-advanced-rich-editor.style_preview', false));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getExtraInputAttributes(): array
+    {
+        $attributes = parent::getExtraInputAttributes();
+
+        if (! $this->hasStylePreview()) {
+            return $attributes;
+        }
+
+        // On the field's own wrapper rather than on the styled node: the marking is a
+        // decision one field makes, and the nodes are shared with every other one.
+        $attributes['class'] = trim(($attributes['class'] ?? '').' fi-arte-style-preview');
+
+        return $attributes;
     }
 
     /**

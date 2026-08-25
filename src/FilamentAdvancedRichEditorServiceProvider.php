@@ -68,6 +68,13 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/text-direction', __DIR__.'/../resources/dist/js/text-direction.js')
                     ->loadedOnRequest(),
 
+                // The project's own named styles. Both halves only ever carry the key: the
+                // classes belong to the front end's design system and are added in PHP.
+                Js::make('advanced-rich-editor/block-style', __DIR__.'/../resources/dist/js/block-style.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/style-class', __DIR__.'/../resources/dist/js/style-class.js')
+                    ->loadedOnRequest(),
+
                 // The attributes a link and a heading carry beyond what Filament declares.
                 Js::make('advanced-rich-editor/link-attributes', __DIR__.'/../resources/dist/js/link-attributes.js')
                     ->loadedOnRequest(),

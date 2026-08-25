@@ -42,6 +42,16 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- `->stylePreview()` marks the text a style sits on, for the projects that have not written
+  their own rules yet. Off by default, and that is the same reasoning the empty styles list
+  follows rather than an oversight: a style is a set of the project's classes, none of which
+  resolve in an admin panel that has never loaded the front end's stylesheet, so the package
+  can show that a style is set and never what it looks like. Inventing an appearance for
+  content it knows nothing about is how an editor ends up lying about the page. Turned on,
+  a styled block gets a rule down its side and a styled run of text a dotted underline - a
+  stopgap that a project's own `[data-style]` rules override, so leaving it on while those
+  are written costs nothing. The manual now spells out those rules, which are the real answer
+
 - Every dropdown in the package turns upwards when there is no room for it below - the
   colour pickers, the font and size pickers, the image panel and the styles picker. They all
   hang off their trigger with `position: absolute`, which is right in the middle of a page
@@ -56,6 +66,28 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   measured against whichever edge comes first, and measured once the menu exists rather than
   guessed from a maximum height, since these lists are as long as a project's configuration
   makes them. `OpensAwayFromTheEdge` holds it once for all five
+
+- Named styles from the project's own design system, as a dropdown behind the `styles`
+  token. This is the thing a Filament editor can do that a generic one cannot: an editor
+  reaches the front end's classes without ever opening the source dialog. An entry is a
+  label, a set of classes and a scope - `block` puts them on the paragraph or heading the
+  caret sits in, `inline` on the selected text - and a block entry may name the types it
+  applies to. One style at a time per scope, the way a heading level works; a style wanting
+  two of the project's classes together is one entry holding both. Shipped empty, because an
+  editor offering styles nobody designed is worse than one offering none. Per field with
+  `->styles([...])`, and `->styles([])` takes the button away
+
+  Stored as `data-style="<key>"` beside the classes, and both are needed: the classes are
+  what the page uses, the key is what the next parse reads. Editing a style's class list in
+  the configuration therefore updates the documents that already exist, where a document
+  carrying only classes would keep the old ones until a save quietly dropped them. The
+  sanitiser passes the classes through and drops the key, so it reaches the database and not
+  the reader. Content pasted out of a rendered page is recognised by its classes alone
+
+  The editor's own markup carries the key rather than the classes. Writing the classes there
+  would produce text that looks styled in a panel that has never loaded the front end's
+  stylesheet - markup that renders plain the moment it leaves. A project that wants the
+  preview styles `[data-style="…"]` in its panel theme
 
 - `->nullWhenEmpty()` stores an empty document as nothing rather than as the `<p></p>` TipTap
   always keeps, so a field that shows nothing on the page is also nothing in the record -

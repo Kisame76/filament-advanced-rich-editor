@@ -117,6 +117,13 @@ class ToolbarLayout
             'textBackground' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextBackground()
                 ? ToolbarColorPicker::background($editor->getBackgroundColors(), $editor->hasCustomColors())
                 : [],
+            // Shipped empty, so most projects never see this at all - and one with no
+            // styles gets no trigger rather than a button opening onto nothing.
+            'styles' => static function (AdvancedRichEditor $editor): object|array {
+                $styles = Styles::for($editor);
+
+                return $styles === [] ? [] : ToolbarStylePicker::make()->styles($styles);
+            },
             // Nothing to pick from means no picker: a project with no fonts of its own and
             // the generic stacks switched off would otherwise get an empty menu.
             'fontFamily' => static function (AdvancedRichEditor $editor): object|array {

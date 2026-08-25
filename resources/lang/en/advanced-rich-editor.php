@@ -71,6 +71,8 @@ return [
         ],
         'task_list' => 'Task list',
         'heading_level' => 'Heading :level',
+        'styles' => 'Style',
+        'styles_clear' => 'None',
         'font_family' => 'Font',
         'font_family_clear' => 'Default',
         'font_size' => [
@@ -204,6 +206,11 @@ return [
             'outdent_list' => 'Outdent list item',
             'next_cell' => 'Next table cell',
         ],
+    ],
+
+    'styles' => [
+        'block' => 'Block',
+        'inline' => 'Text',
     ],
 
     'fonts' => [

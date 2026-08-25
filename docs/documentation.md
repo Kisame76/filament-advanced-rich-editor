@@ -994,6 +994,102 @@ The family is written into the `style` attribute, checked against a pattern on b
 of the round trip. That check is the only thing between the editor and a stylesheet smuggled
 in as a family name: Filament's sanitiser passes `style` through untouched.
 
+### Styles
+
+Named styles from your own design system, offered as a dropdown. This is the thing a
+Filament editor can do that a generic one cannot: the classes belong to your front end, so
+an editor gets at the design system without anyone opening the source dialog.
+
+Shipped empty — an editor offering styles nobody designed is worse than one offering none.
+
+```php
+// config/filament-advanced-rich-editor.php
+'styles' => [
+    'lead'   => ['label' => 'Lead',   'class' => 'text-lg text-slate-600', 'scope' => 'block'],
+    'kicker' => ['label' => 'Kicker', 'class' => 'uppercase tracking-wide', 'scope' => 'inline'],
+],
+```
+
+Then put `'styles'` in the toolbar, or in `more`. Per field:
+
+```php
+AdvancedRichEditor::make('content')
+    ->styles(['note' => ['label' => 'Note', 'class' => 'rounded bg-amber-50 p-4']]);
+
+AdvancedRichEditor::make('comment')->styles([]);   // no styles on this field
+```
+
+**Two scopes, because there are two mechanisms.** A `block` style is an attribute on the
+paragraph or heading the caret sits in; an `inline` style is a mark on the selected text.
+`scope` defaults to `block`, which is the common case by a distance. A block entry may name
+`'types' => ['heading']` to restrict where it applies; the default is every block that can
+also carry a text direction. A style that cannot apply where the caret is stays in the menu,
+dimmed — a list that changes length as the caret moves is a list nobody can aim at.
+
+**One style at a time, per scope.** Picking a second replaces the first, the way a heading
+level does. A style that wants two of your classes together is one entry holding both.
+
+#### What gets stored
+
+```html
+<p data-style="lead" class="text-lg text-slate-600">…</p>
+```
+
+Both, and both are needed. The classes are what the page uses; the key is what the next
+parse reads. Editing a style's class list in the config therefore updates documents that
+already exist, instead of leaving them on the old classes until a save quietly dropped them.
+`data-style` is not on Filament's sanitiser allow list, so it reaches the database and not
+the reader — which is exactly the split that is wanted. Content that arrives carrying only
+the classes, pasted out of a rendered page, is recognised by them.
+
+#### Seeing a style in the editor
+
+**The editor cannot show you what a style looks like, and neither can this package.** A
+style is a set of *your* classes, and an admin panel has never loaded your front end's
+stylesheet — `text-lg` and `bg-amber-50` mean nothing in there. So the editor's markup
+carries the key rather than the classes:
+
+```html
+<p data-style="lead">…</p>
+```
+
+The dropdown names the style and shows a checkmark, and that is the whole of the feedback
+you get out of the box. Two ways to get more.
+
+**Style the keys in your panel theme.** This is the real answer: precise, scoped to the
+editor, and it makes the editor look like the page. Six lines, once:
+
+```css
+/* resources/css/filament/admin/theme.css */
+.fi-fo-rich-editor-content [data-style="lead"]   { font-size: 1.125rem; color: #475569; }
+.fi-fo-rich-editor-content [data-style="kicker"] { text-transform: uppercase; letter-spacing: .05em; }
+.fi-fo-rich-editor-content [data-style="note"]   { border-radius: .5rem; background: #fffbeb; padding: 1rem; }
+```
+
+Write one rule per style you configured, using the same declarations your front end's
+classes produce. Nothing else is needed — the attribute is already in the markup.
+
+**Or switch on the neutral marking** while you have not written those rules yet:
+
+```php
+AdvancedRichEditor::make('content')->stylePreview();   // default: config('...style_preview')
+```
+
+Styled text then gets a rule down the side of a block and a dotted line under a run of text.
+It says that a style is set, never what it looks like — a stopgap, and your own
+`[data-style]` rules override it, so leaving it on while you write them costs nothing.
+
+Why the package does not simply do this for you: inventing an appearance for content it
+knows nothing about is how an editor ends up lying about the page. The list of styles ships
+empty for the same reason.
+
+#### Class names
+
+Anything a class can be, including Tailwind's colons, slashes, brackets and leading hyphens.
+An entry with no label, no classes, an unknown scope, or characters that could not appear in
+a class attribute at all is left out of the list — visibly absent rather than quietly
+rendered as nonsense. The value is escaped on its way into the attribute either way.
+
 ### Font size
 
 The `fontSize` token shows the size in force and opens a menu of the sizes people actually
