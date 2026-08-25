@@ -26,9 +26,9 @@ return [
     'toolbar' => [
         ['undo', 'redo'],
         'divider',
-        ['headings', 'styles', 'fontFamily', 'fontSize'],
+        ['headings', 'styles', 'fontSize'],
         'divider',
-        ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
@@ -102,7 +102,7 @@ return [
     | Per field: `->moreTools([...])`.
     */
     'more' => [
-        'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
+        'strike', 'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
         'details',
         'emoji',
     ],

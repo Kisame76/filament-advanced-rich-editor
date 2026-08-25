@@ -6,9 +6,11 @@ use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFontSize;
 
-it('sits after the typeface, in the group that sets what the text is', function (): void {
+it('sits in the group that sets what the text is', function (): void {
+    // The typeface picker is no longer beside it: choosing a font is the front end's
+    // business, and this package strips one out of a paste for exactly that reason.
     expect(toolbarGroup(editor(), 'fontSize'))->toBe([
-        'dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize',
+        'dropdown:paragraph,h1,h2,h3,h4', 'fontSize',
     ]);
 });
 
@@ -23,8 +25,10 @@ it('drops the stepper and the plugin when the font size is turned off', function
     $editor = editor()->fontSize(false);
 
     expect($editor->hasFontSize())->toBeFalse()
-        ->and(toolbarGroup($editor, 'fontFamily'))->toBe([
-            'dropdown:paragraph,h1,h2,h3,h4', 'fontFamily',
+        // Nothing left in the group but the heading levels: the typeface picker is not on
+        // the shipped bar either.
+        ->and(toolbarGroup($editor, 'dropdown:paragraph,h1,h2,h3,h4'))->toBe([
+            'dropdown:paragraph,h1,h2,h3,h4',
         ])
         ->and(array_filter($editor->getPlugins(), fn (object $plugin): bool => $plugin instanceof FontSizePlugin))->toBe([]);
 });

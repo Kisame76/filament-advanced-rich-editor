@@ -595,9 +595,9 @@ class AdvancedRichEditor extends RichEditor
         return config('filament-advanced-rich-editor.toolbar') ?? [
             ['undo', 'redo'],
             'divider',
-            ['headings', 'styles', 'fontFamily', 'fontSize'],
+            ['headings', 'styles', 'fontSize'],
             'divider',
-            ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
+            ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
             'divider',
             ['alignment', 'lineHeight'],
             'divider',
@@ -1434,7 +1434,7 @@ class AdvancedRichEditor extends RichEditor
     {
         return array_values($this->evaluate($this->moreTools)
             ?? config('filament-advanced-rich-editor.more')
-            ?? ['subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
+            ?? ['strike', 'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
                 'details', 'emoji']);
     }
 

@@ -9,7 +9,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarColorPicker;
 
 it('puts both pickers next to the other character controls', function (): void {
     expect(toolbarGroup(editor(), 'textColor'))->toBe([
-        'bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground',
+        'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground',
     ]);
 });
 
@@ -45,10 +45,10 @@ it('accepts a plain list of colours as a palette', function (): void {
 
 it('drops a picker the field turned off', function (): void {
     expect(toolbarGroup(editor()->textColor(false), 'textBackground'))->toBe([
-        'bold', 'italic', 'underline', 'strike', 'link', 'textBackground',
+        'bold', 'italic', 'underline', 'link', 'textBackground',
     ])
         ->and(toolbarGroup(editor()->textBackground(false), 'textColor'))->toBe([
-            'bold', 'italic', 'underline', 'strike', 'link', 'textColor',
+            'bold', 'italic', 'underline', 'link', 'textColor',
         ]);
 });
 

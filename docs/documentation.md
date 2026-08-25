@@ -72,9 +72,9 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
 [
     ['undo', 'redo'],
     'divider',
-    ['headings', 'styles', 'fontFamily', 'fontSize'],
+    ['headings', 'styles', 'fontSize'],
     'divider',
-    ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
+    ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
     'divider',
     ['alignment', 'lineHeight'],
     'divider',
@@ -87,10 +87,21 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
 ```
 
 Each nested array is one visually grouped cluster, and the groups answer one question each:
-what came before, what the text *is* (its block type, its typeface, its size), how the
-characters look, how the block is laid out, what to put into the document, how to view it.
-Left to right that is also the order the decisions are made in — you pick a heading before
-you pick a font, and you emphasise a word before you decide how the paragraph sits.
+what came before, what the text *is* (its block type, its size), how the characters look,
+how the block is laid out, what to put into the document, how to view it. Left to right that
+is also the order the decisions are made in — you pick a heading before you pick a size, and
+you emphasise a word before you decide how the paragraph sits.
+
+**Two things are registered but deliberately not on this bar.** The typeface picker
+(`fontFamily`) is one: choosing a font in an article is the front end's business, not the
+author's, and this package strips `font-family` out of a paste on exactly that reasoning —
+a bar that offers the picker invites somebody to do by hand what the paste cleanup exists to
+undo. Where a project genuinely needs it, name the token. The `styles` dropdown is the
+sanctioned way to reach a theme's typography, because it carries the theme's own names.
+
+Striking out is the other. It stays in the bubble toolbar over a selection, which is the
+only time anybody wants it, and it is in the `more` menu for the times they want it without
+one — the top bar spends no button on it.
 
 The two block dropdowns are apart on purpose. Alignment and line spacing shape a paragraph,
 so they share a group; a list is a thing you *make*, which is why it sits with the link, the

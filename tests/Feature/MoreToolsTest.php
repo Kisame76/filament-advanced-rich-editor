@@ -9,7 +9,7 @@ it('parks the rarely used tools in a dropdown at the end of the toolbar', functi
     // The end of the aligned groups, not of the whole bar: what the menu holds are tools
     // for the text, so it travels with them rather than with the pinned corner.
     expect(array_slice(toolbarGroupsShape(editor()->getFlowToolbarButtons()), -1))->toBe([
-        ['dropdown:subscript,superscript,code,codeBlock,clearFormatting,horizontalRule,details,emoji'],
+        ['dropdown:strike,subscript,superscript,code,codeBlock,clearFormatting,horizontalRule,details,emoji'],
     ]);
 });
 
@@ -17,7 +17,7 @@ it('fills the dropdown with the tools most documents never need', function (): v
     // Every one of them is a stock Filament tool, so they resolve without the package
     // registering anything of its own.
     expect(resolvedButtonNames(toolbarDropdown(editor(), 'subscript')))->toBe([
-        'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule', 'details',
+        'strike', 'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule', 'details',
         // The package's own addition, and the only one shipped in the list. The two
         // direction tools are registered but left out - see TextDirectionTest.
         'emoji',

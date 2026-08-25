@@ -55,7 +55,15 @@ it('reads the same left to right as the bar at the top', function (): void {
     // A link is an annotation on selected text, the same as bold, so it sits with the marks
     // in both places. Two bars that offer the same buttons in a different order are two
     // things to learn instead of one.
+    //
+    // The bubble carries one the bar does not: striking out is rare enough that the top bar
+    // spends no button on it, and a selection is the only time anybody wants it - so it is
+    // in the one place that only exists when there is a selection.
     $bubble = toolbarGroupsShape([editor()->getFloatingToolbars()['paragraph']])[0];
 
-    expect(toolbarGroup(editor(), 'bold'))->toBe($bubble);
+    expect($bubble)->toBe(['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'])
+        ->and(array_values(array_diff($bubble, toolbarGroup(editor(), 'bold'))))->toBe(['strike'])
+        // And what they share is in the same order in both.
+        ->and(array_values(array_intersect($bubble, toolbarGroup(editor(), 'bold'))))
+        ->toBe(toolbarGroup(editor(), 'bold'));
 });

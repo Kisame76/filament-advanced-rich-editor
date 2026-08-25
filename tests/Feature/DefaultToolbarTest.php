@@ -9,9 +9,9 @@ it('resolves the shipped toolbar into groups, dropdowns and dividers', function 
     expect(toolbarShape(editor()))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
+        ['dropdown:paragraph,h1,h2,h3,h4', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
@@ -41,9 +41,9 @@ it('falls back to the same toolbar when the config was never merged', function (
     expect(toolbarShape(editor()))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
+        ['dropdown:paragraph,h1,h2,h3,h4', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
@@ -127,12 +127,13 @@ it('never answers a button lookup with a divider', function (): void {
 
 it('makes room for the styles picker beside the heading levels', function (): void {
     // The token is in the shipped layout and removes itself where a project named no
-    // styles, the same way the font picker does. Without it in the default nobody who has
-    // not read the manual would ever see the feature at all.
-    expect(toolbarGroup(editor(), 'fontFamily'))->not->toContain('styles');
+    // styles. Without it in the default nobody who has not read the manual would ever see
+    // the feature at all - and it is now the sanctioned way to reach a theme's typography,
+    // since the typeface picker is no longer on the bar.
+    expect(toolbarGroup(editor(), 'fontSize'))->not->toContain('styles');
 
     withStyles(['lead' => ['label' => 'Lead', 'class' => 'text-lg']]);
 
-    expect(toolbarGroup(editor(), 'fontFamily'))
-        ->toBe(['dropdown:paragraph,h1,h2,h3,h4', 'styles', 'fontFamily', 'fontSize']);
+    expect(toolbarGroup(editor(), 'fontSize'))
+        ->toBe(['dropdown:paragraph,h1,h2,h3,h4', 'styles', 'fontSize']);
 });

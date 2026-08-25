@@ -6,6 +6,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- The shipped toolbar is shorter by two. The typeface picker is registered but no longer on
+  it: choosing a font in an article is the front end's business, and this package strips
+  `font-family` out of a paste on exactly that reasoning - a bar offering the picker invites
+  somebody to do by hand what the paste cleanup exists to undo. Name the `fontFamily` token
+  to put it back. Striking out moved into the `more` menu, and stays in the bubble toolbar
+  over a selection, which is the only time anybody wants it
+
 - The shipped toolbar has an `'accessibility'` token in it, between `'find'` and
   `'sourceCode'`. It resolves to nothing while the check is off, which is how it ships, so
   no toolbar changes for anybody until the check is switched on - and switching it on is
