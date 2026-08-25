@@ -100,6 +100,13 @@ class ToolbarLayout
 
                 return $tools === [] ? [] : ToolbarDropdown::more($tools);
             },
+            // Empty is nothing rather than an empty menu, the same way `more` behaves: a
+            // trigger opening onto a list of nothing is worse than no trigger.
+            'tools' => static function (AdvancedRichEditor $editor): object|array {
+                $tools = $editor->getToolsMenu();
+
+                return $tools === [] ? [] : ToolbarDropdown::tools($tools);
+            },
             'textColor' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextColor()
                 ? ToolbarColorPicker::text($editor->getTextColorsForPicker(), $editor->hasCustomColors())
                 : [],

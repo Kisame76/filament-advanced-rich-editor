@@ -317,6 +317,33 @@ second one has nothing left to split and goes the same way. Each half collapses 
 dividers, so a rule left leading or trailing by the split disappears rather than floating
 in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one row.
 
+### The tools menu
+
+`'tools'` is a second overflow for the other half of a toolbar: what a field *does* rather
+than what it writes - searching, the accessibility check, the source view, the shortcut
+list.
+
+```php
+// The corner, as a menu and one button rather than as five buttons.
+->toolbarButtons([
+    // ...
+    'pin',
+    ['tools', 'fullscreen'],
+])
+->toolsMenu(['find', 'accessibility', 'sourceCode', 'help']);
+```
+
+It is named rather than being a second set of three dots, and that is the whole reason it
+can exist. Two menus both called "More" on one bar are two doors with the same sign and
+different rooms behind them; a menu called Tools is a different kind of thing, and a reader
+has to be told which once rather than guess every time.
+
+**It is not in the shipped toolbar.** With the accessibility check and the source view both
+off, it would hold two entries - and a dropdown wrapping two of anything is worse than the
+two buttons it replaced. It is here for the bar that has grown past that: name `'tools'` in
+a group and take the individual names out of it. An empty menu is dropped rather than drawn,
+the same way `'more'` is.
+
 ### The more menu
 
 The `'more'` token renders the overflow dropdown at the end of the toolbar: the tools that

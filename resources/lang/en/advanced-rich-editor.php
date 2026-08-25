@@ -164,6 +164,7 @@ return [
         'headings' => 'Headings',
         'lists' => 'Lists',
         'more' => 'More',
+        'tools_menu' => 'Tools',
         'find' => [
             'label' => 'Find and replace',
             'find' => 'Find',

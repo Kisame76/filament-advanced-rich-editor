@@ -164,6 +164,7 @@ return [
         'headings' => 'Überschriften',
         'lists' => 'Listen',
         'more' => 'Mehr',
+        'tools_menu' => 'Werkzeuge',
         'find' => [
             'label' => 'Suchen und Ersetzen',
             'find' => 'Suchen',

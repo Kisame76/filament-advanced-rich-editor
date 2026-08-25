@@ -109,6 +109,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The tools menu
+    |--------------------------------------------------------------------------
+    | What the 'tools' token offers: the things a field does rather than the things it
+    | writes. Named rather than a second set of three dots, because two menus both
+    | called "More" on one bar are two doors with the same sign and different rooms
+    | behind them.
+    |
+    | Not in the shipped toolbar. With the check and the source view both off it would
+    | hold two entries, and a dropdown wrapping two of anything is worse than the two
+    | buttons it replaced. It is here for the bar that has grown past that: name 'tools'
+    | in a toolbar group and take the individual names out of it.
+    |
+    |   ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help']  becomes
+    |   ['tools', 'fullscreen']
+    |
+    | Per field: `->toolsMenu()`.
+    */
+    'tools_menu' => ['find', 'accessibility', 'sourceCode', 'help'],
+
+    /*
+    |--------------------------------------------------------------------------
     | Emoji
     |--------------------------------------------------------------------------
     | The emoji picker behind the 'emoji' tool. Emojis are inserted as ordinary Unicode
@@ -852,6 +873,7 @@ return [
         'text_background' => 'arte-highlighter',
         'color_custom' => 'arte-palette',
         'more' => 'heroicon-o-ellipsis-horizontal',
+        'tools_menu' => 'heroicon-o-wrench-screwdriver',
         'source_code' => 'heroicon-o-code-bracket',
         'find' => 'heroicon-o-magnifying-glass',
         'find_previous' => 'heroicon-o-chevron-up',

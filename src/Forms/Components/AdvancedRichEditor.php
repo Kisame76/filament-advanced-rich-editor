@@ -120,6 +120,11 @@ class AdvancedRichEditor extends RichEditor
      */
     protected array|Closure|null $moreTools = null;
 
+    /**
+     * @var array<int, string> | Closure | null
+     */
+    protected array|Closure|null $toolsMenu = null;
+
     protected bool|Closure|null $hasEmoji = null;
 
     protected bool|Closure|null $hasFind = null;
@@ -1392,6 +1397,34 @@ class AdvancedRichEditor extends RichEditor
         $this->moreTools = $tools;
 
         return $this;
+    }
+
+    /**
+     * What the `'tools'` menu offers: the things a field does rather than the things it
+     * writes - searching, checking, the source view, the shortcut list.
+     *
+     * Not in the shipped toolbar, and deliberately: with the check and the source view both
+     * off, the menu would hold two entries, and a dropdown wrapping two of anything is worse
+     * than the two buttons it replaced. It is here for the bar that has grown past that -
+     * name `'tools'` in a toolbar group and take the individual names out.
+     *
+     * @param  array<int, string> | Closure  $tools
+     */
+    public function toolsMenu(array|Closure $tools): static
+    {
+        $this->toolsMenu = $tools;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getToolsMenu(): array
+    {
+        return array_values($this->evaluate($this->toolsMenu)
+            ?? config('filament-advanced-rich-editor.tools_menu')
+            ?? ['find', 'accessibility', 'sourceCode', 'help']);
     }
 
     /**

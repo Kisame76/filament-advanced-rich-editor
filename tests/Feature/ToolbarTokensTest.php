@@ -9,7 +9,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 
 it('exposes the built-in tokens', function (): void {
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'lineHeight', 'more', 'textColor', 'fullscreen', 'sourceCode', 'help', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize']);
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize']);
 });
 
 it('resolves tokens at any nesting depth', function (): void {
@@ -34,7 +34,7 @@ it('registers extra tokens from the config file', function (): void {
 
     $toolbar = editor('body')->toolbarButtons([['inline', 'link']])->getToolbarButtons();
 
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'lineHeight', 'more', 'textColor', 'fullscreen', 'sourceCode', 'help', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize', 'inline'])
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize', 'inline'])
         ->and($toolbar[0][0])->toBeInstanceOf(ToolbarDropdown::class)
         // The token closure is evaluated through the field, so it can read its configuration.
         ->and($toolbar[0][0]->getName())->toBe('body inline')
@@ -82,4 +82,31 @@ it('does not resolve tokens produced by another token', function (): void {
     expect(toolbarShape(editor()->toolbarButtons([['loop']])))->toBe([
         ['loop', 'bold'],
     ]);
+});
+
+it('offers a second overflow that is named rather than a second set of dots', function (): void {
+    // Two menus both called "More" on one bar are two doors with the same sign and
+    // different rooms behind them. This one says what is in it.
+    $editor = editor()->accessibility()->sourceCode()->toolbarButtons([['tools', 'fullscreen']]);
+
+    expect(toolbarShape($editor))->toBe([['dropdown:find,accessibility,sourceCode,help', 'fullscreen']])
+        ->and(toolbarItem($editor, 'dropdown:find,accessibility,sourceCode,help')->getName())->toBe('Tools');
+});
+
+it('leaves the shipped toolbar alone, because two entries are worse in a menu', function (): void {
+    // With the check and the source view both off the menu would hold find and help, and a
+    // dropdown wrapping two of anything is worse than the two buttons it replaced.
+    expect(array_merge(...toolbarShape(editor())))->not->toContain('dropdown:find,help')
+        ->and(toolbarGroup(editor(), 'find'))->toBe(['find', 'fullscreen', 'help']);
+});
+
+it('drops the menu rather than opening one onto nothing', function (): void {
+    expect(toolbarShape(editor()->toolsMenu([])->toolbarButtons([['tools', 'fullscreen']])))
+        ->toBe([['fullscreen']]);
+});
+
+it('reads the menu out of the config file', function (): void {
+    config()->set('filament-advanced-rich-editor.tools_menu', ['help']);
+
+    expect(editor()->getToolsMenu())->toBe(['help']);
 });

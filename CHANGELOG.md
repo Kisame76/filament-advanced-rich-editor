@@ -50,6 +50,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- A `'tools'` toolbar token: a second overflow for what a field does rather than what it
+  writes - searching, the accessibility check, the source view, the shortcut list - so a
+  corner that has grown past a few buttons can be `['tools', 'fullscreen']` instead. Named
+  rather than a second set of three dots, because two menus both called "More" on one bar
+  are two doors with the same sign and different rooms behind them. Not in the shipped
+  toolbar: with the check and the source view both off it would hold two entries, and a
+  dropdown wrapping two of anything is worse than the two buttons it replaced. `'tools_menu'`
+  in the config, or `->toolsMenu()` per field
+
 - An accessibility check, shipped off and switched on with `->accessibility()` or in the
   config, which then puts it on the toolbar between finding and the source view. It asks six
   questions - an image with no alt text, a link with nothing in it, a link whose whole text

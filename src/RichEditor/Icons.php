@@ -52,6 +52,9 @@ class Icons
             // The overflow menu. Three dots is what a toolbar has always used for "the rest
             // of it", so the trigger says what it is without a label.
             'more' => 'heroicon-o-ellipsis-horizontal',
+            // Not a second set of three dots: the two menus have to look as different as
+            // they are, or the bar has two doors with the same sign on them.
+            'tools_menu' => 'heroicon-o-wrench-screwdriver',
             'source_code' => 'heroicon-o-code-bracket',
             // Searching. The magnifier is the button, and the three inside the bar are the
             // chrome around it: two chevrons for the way through the hits and a cross for

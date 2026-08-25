@@ -116,6 +116,27 @@ class ToolbarDropdown extends ToolbarButtonGroup
     }
 
     /**
+     * The other overflow: what a field does rather than what it writes.
+     *
+     * Named rather than a second set of three dots, and that is the whole reason it can
+     * exist at all. Two menus both called "More" on one bar are two doors with the same
+     * sign and different rooms behind them; a menu called Tools is a different kind of
+     * thing, and a reader has to be told which once rather than guess every time.
+     *
+     * @param  array<int, string>  $tools
+     */
+    public static function tools(array $tools, ?string $label = null): static
+    {
+        return static::make(
+            $label ?? __('filament-advanced-rich-editor::advanced-rich-editor.tools.tools_menu'),
+            array_values($tools),
+        )
+            ->icon(Icons::get('tools_menu'))
+            ->staticIcon()
+            ->textualButtons();
+    }
+
+    /**
      * Keeps the configured icon on the trigger instead of swapping it for the active
      * option, which is what the parent does by default.
      */
