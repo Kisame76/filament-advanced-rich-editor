@@ -107,6 +107,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/character-count', __DIR__.'/../resources/dist/js/character-count.js')
                     ->loadedOnRequest(),
 
+                // Nothing it does reaches the application: the draft it keeps lives in the
+                // browser's own storage and is offered back on the next opening.
+                Js::make('advanced-rich-editor/autosave', __DIR__.'/../resources/dist/js/autosave.js')
+                    ->loadedOnRequest(),
+
                 // The bar imports the panel itself, warmed as soon as the extension loads.
                 // Registered so it is published and served next to the extension - the
                 // import resolves against the extension's own URL, which is what keeps the

@@ -36,6 +36,8 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Slash menu** — type `/` for a searchable list of the commands *this* field offers
 - **Find and replace** — `Ctrl+F` inside the field, every hit marked, whole words and case
   optional, and replacing all of them is one undo
+- **Drafts in the browser** — a lost reply is not a lost article: the draft is offered back
+  on the next opening, and closing the tab with unsaved changes asks first
 - **Drag handle** — a grip in the margin to move a block and a plus to start one, which
   opens the slash menu rather than inserting a paragraph
 - **Paste from Word and Google Docs** — the list Word writes as twelve paragraphs is a list

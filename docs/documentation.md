@@ -840,6 +840,59 @@ Nothing about any of this is stored. A search marks no document and a replacemen
 ordinary text by the time it is saved, so turning the feature off later leaves everything
 written with it exactly as it is - it only takes the button and the keys away.
 
+### Drafts in the browser
+
+A draft of what is being written is kept in the browser's own storage, offered back the next
+time the same field on the same record is opened, and dropped as soon as the document on
+screen says the same thing.
+
+```php
+AdvancedRichEditor::make('content')
+    ->autosave(false)              // default: config('...autosave.enabled')
+    ->autosaveWarnOnLeave(false);  // the "leave site?" question only
+```
+
+This is not a save. Nothing about it reaches the application, nothing about it is a record,
+and a draft that is never restored is never anything. It exists for the moment a submit
+comes back as an expired session, as a validation error on a field nobody can see, or as
+the 500 that [Raise Livewire's nesting limit](#raise-livewires-nesting-limit) explains how
+to cause - where the reply is not the saved record but a page that has forgotten the
+article.
+
+Three parts, and they are three because they fail at three different moments:
+
+| When | What happens |
+|---|---|
+| While typing | the document is written to the browser's storage, once typing stops for `autosave.debounce` |
+| On opening | a bar above the document offers a draft that says something the page does not |
+| On leaving | the browser's own "leave site?" question, for an editor with changes the server has not been told about |
+
+**The draft is found again by its field, its record and its page.** The key is a hash of the
+Livewire component, the model, the record's key and the path to the field within the form,
+plus the path of the page in the browser - PHP knows the first four and cannot reliably know
+the last, because to Livewire every request looks like the same endpoint. Nothing in the key
+is in the clear: it is a key in storage that anything on the origin can read, so what it says
+is that two drafts are different rather than what either of them is about.
+
+**Restoring is an ordinary edit.** It is a ProseMirror transaction rather than a call into
+TipTap, which is what makes the restored document reach the state the form submits - and it
+is one step in the undo chain, so restoring can be taken back with `Ctrl+Z`.
+
+**A draft is dropped as soon as it is stale**: when the document on screen says the same
+thing, when the form is submitted, when it is discarded, and when it is older than
+`autosave.ttl`. Expired drafts belonging to this package are swept whenever a field opens,
+because the tab that wrote one is usually the tab that is never coming back.
+
+> **This is content in a browser's storage.** It sits on whatever machine somebody was
+> working on and it outlives the session that wrote it - a day by default, `autosave.ttl`
+> otherwise. A field holding something that should not sit there switches this off with
+> `->autosave(false)`, and a project that wants none of it anywhere sets
+> `autosave.enabled` to false.
+
+Where the browser has no storage to offer - a private window, storage switched off, a
+third-party iframe - the field is the field it was before: no draft, no bar, no question on
+the way out.
+
 ### Drag handle
 
 Hovering a block puts two controls in the margin to its left: a grip to move the block, and
@@ -2197,6 +2250,7 @@ AdvancedRichEditor::make('content')
     ->embeds(true)                                 // the video button, and the paste handler
     ->pasteCleanup(true)                           // clean a paste from Word and Google Docs
     ->dragHandle(true)                             // the grip and the plus in the margin
+    ->autosave(true)                               // keep a draft in the browser's storage
     ->codeBlockLanguages(['php' => 'PHP'])         // the language picker on a code block
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])

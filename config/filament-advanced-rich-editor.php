@@ -132,6 +132,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Drafts in the browser
+    |--------------------------------------------------------------------------
+    | A draft of what is being written, kept in the browser's own storage, offered
+    | back the next time the same field on the same record is opened, and dropped as
+    | soon as the document on screen says the same thing. Nothing about it reaches the
+    | application: it exists for the moment a submit comes back as an expired session
+    | or a 500 instead of as a saved record.
+    |
+    | 'debounce' is how long typing has to stop before a draft is written, in
+    | milliseconds. 'ttl' is how long one survives, in seconds - a day by default,
+    | which is long enough to recover a lost article and short enough that a shared
+    | machine does not become an archive. This is content in a browser's storage that
+    | outlives the session that wrote it, so a field holding something that should not
+    | sit there turns this off: `->autosave(false)`.
+    |
+    | 'warn_on_leave' is the browser's own "leave site?" question, raised on closing a
+    | tab whose editor says something the server has not been told. The wording is the
+    | browser's; the only decision here is whether it is asked at all. Per field:
+    | `->autosaveWarnOnLeave()`.
+    */
+    'autosave' => [
+        'enabled' => true,
+        'debounce' => 1500,
+        'ttl' => 86400,
+        'warn_on_leave' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Drag handle
     |--------------------------------------------------------------------------
     | The grip that appears in the margin of the block under the mouse, and the plus

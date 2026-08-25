@@ -227,6 +227,12 @@ return [
         ],
     ],
 
+    'autosave' => [
+        'found' => 'An unsaved draft from :time was found in this browser.',
+        'restore' => 'Restore it',
+        'discard' => 'Discard it',
+    ],
+
     'drag_handle' => [
         'drag' => 'Drag to move this block, click to select it',
         'insert' => 'Add a block below',

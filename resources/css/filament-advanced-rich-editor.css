@@ -2638,3 +2638,74 @@ body.fi-arte-fullscreen-lock {
 .fi-arte-dragging * {
     cursor: grabbing !important;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Draft bar                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Offered above the document when the browser is holding a draft that says something the
+ * page does not. It is one row, it is not a notification, and it does not go away on its
+ * own: the two answers it wants are both destructive in one direction or the other, so it
+ * waits for one of them.
+ *
+ * Amber rather than red or green, because neither is true - nothing has gone wrong and
+ * nothing has succeeded. Something is being held that somebody has to decide about.
+ */
+.fi-arte-draft-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    background-color: var(--amber-50, #fffbeb);
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
+
+.fi-arte-draft-bar:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: color-mix(in oklab, var(--amber-400, #fbbf24) 12%, transparent);
+}
+
+.fi-arte-draft-message {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: var(--amber-900, #78350f);
+}
+
+.fi-arte-draft-message:where(.dark, .dark *) {
+    color: var(--amber-200, #fde68a);
+}
+
+/* Both answers are the same weight on purpose: neither of them is the safe one. */
+.fi-arte-draft-restore,
+.fi-arte-draft-discard {
+    flex: 0 0 auto;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.375rem;
+    background-color: var(--color-white, #fff);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    color: inherit;
+}
+
+.fi-arte-draft-restore:hover,
+.fi-arte-draft-discard:hover {
+    background-color: var(--gray-50, #fafafa);
+}
+
+.fi-arte-draft-restore:where(.dark, .dark *),
+.fi-arte-draft-discard:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
+}
+
+.fi-arte-draft-restore:where(.dark, .dark *):hover,
+.fi-arte-draft-discard:where(.dark, .dark *):hover {
+    background-color: color-mix(in oklab, var(--color-white, #fff) 18%, transparent);
+}

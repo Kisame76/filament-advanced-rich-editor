@@ -42,6 +42,24 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- A draft of what is being written, kept in the browser's own storage, so a reply that comes
+  back as an expired session or as a 500 is not an afternoon's work. It is not a save:
+  nothing about it reaches the application, and a draft that is never restored is never
+  anything. Three parts, because they fail at three different moments - the document is
+  written to storage once typing stops, a bar above the document offers a draft that says
+  something the page does not, and closing the tab with changes the server has not been told
+  about raises the browser's own question. The draft is found again by a key built from the
+  Livewire component, the model, the record and the field, hashed, plus the path of the page,
+  which PHP cannot reliably know because to Livewire every request looks like the same
+  endpoint - and nothing in it is in the clear, since it is a key anything on the origin can
+  read. Restoring is a ProseMirror transaction rather than a call into TipTap, which is what
+  makes the restored document reach the state the form submits and what makes restoring one
+  step in the undo chain. A draft is dropped as soon as the document on screen says the same
+  thing, when the form is submitted, when it is discarded and when it is older than
+  `autosave.ttl` - a day by default, because this is content sitting in a browser's storage
+  on whatever machine somebody was working on. `->autosave(false)` for a field that should
+  not keep one, `->autosaveWarnOnLeave(false)` for the question alone
+
 - A grip in the margin of the block under the mouse, and a plus beside it. Dragging the grip
   moves the block; clicking it selects the block, which is what puts the floating toolbar on
   it. Almost none of the moving is this package's: ProseMirror already knows where a slice

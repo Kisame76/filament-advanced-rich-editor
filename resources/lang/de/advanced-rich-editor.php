@@ -225,6 +225,12 @@ return [
         ],
     ],
 
+    'autosave' => [
+        'found' => 'In diesem Browser liegt ein ungespeicherter Entwurf von :time.',
+        'restore' => 'Wiederherstellen',
+        'discard' => 'Verwerfen',
+    ],
+
     'drag_handle' => [
         'drag' => 'Ziehen verschiebt diesen Block, Klicken wählt ihn aus',
         'insert' => 'Block darunter einfügen',
