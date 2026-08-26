@@ -68,6 +68,20 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/text-direction', __DIR__.'/../resources/dist/js/text-direction.js')
                     ->loadedOnRequest(),
 
+                // Two keyboard shortcuts and nothing else. It is asked for by every field
+                // rather than by a configured few, because the keys it repairs are bound by
+                // Filament's own build on every field.
+                Js::make('advanced-rich-editor/alignment', __DIR__.'/../resources/dist/js/alignment.js')
+                    ->loadedOnRequest(),
+
+                // The language a passage is written in, and what a list is told about
+                // itself. Both are schema only - a mark and a set of global attributes -
+                // so a field that offers neither loads neither.
+                Js::make('advanced-rich-editor/language', __DIR__.'/../resources/dist/js/language.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/list-properties', __DIR__.'/../resources/dist/js/list-properties.js')
+                    ->loadedOnRequest(),
+
                 // The project's own named styles. Both halves only ever carry the key: the
                 // classes belong to the front end's design system and are added in PHP.
                 Js::make('advanced-rich-editor/block-style', __DIR__.'/../resources/dist/js/block-style.js')

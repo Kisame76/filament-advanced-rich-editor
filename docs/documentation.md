@@ -261,6 +261,12 @@ right-to-left content keeps working; the wording is translatable.
 AdvancedRichEditor::make('content')
     ->alignments(['alignStart', 'alignCenter', 'alignEnd']);   // default: config('...alignments')
 ```
+All four keyboard shortcuts work - `Ctrl+Shift+L`, `E`, `R` and `J`. Two of them only do
+because this package rebinds them: TipTap binds `L` and `R` to the alignments `left` and
+`right`, which Filament's editor is not configured with, so both keys did nothing and
+`Ctrl+Shift+R` reached the browser as a hard reload. The repair is registered on every
+field, whatever the field's own `alignments()` is, because the keys are bound by Filament's
+build either way. See [Help](#help).
 
 ### Line spacing
 
@@ -1179,6 +1185,14 @@ list.
 
 Keys are drawn as caps and named by the machine reading them: ⌘⌥⇧ on a Mac, Ctrl/Alt/Shift
 everywhere else.
+Two of them are repaired rather than reported. TipTap's `TextAlign` binds `Ctrl+Shift+L`
+and `Ctrl+Shift+R` to the alignments `left` and `right`, Filament configures the extension
+with `start` and `end` so that right-to-left content behaves, and `setTextAlign` answers an
+alignment it was not configured with by doing nothing - which also hands the key back to
+the browser, where `Ctrl+Shift+R` is a hard reload with the draft still in the field. This
+package rebinds those two to `start` and `end`. Centring and justifying are TipTap's own
+and always worked, since `center` and `justify` are spelled the same on both lists.
+
 
 Add a second tab with something to tell the people writing in the field:
 

@@ -36,6 +36,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AlignmentPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AutosavePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
@@ -475,6 +476,11 @@ class AdvancedRichEditor extends RichEditor
         // the schema - a field that stopped declaring it would drop every caption already
         // written on the next save.
         $this->plugins([ImageCaptionPlugin::make()]);
+
+        // Always, for a different reason: it repairs two keyboard shortcuts Filament's own
+        // build binds and then declines to answer, on every field, whether or not this one
+        // shows the alignment dropdown.
+        $this->plugins([AlignmentPlugin::make()]);
 
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasEmbeds()

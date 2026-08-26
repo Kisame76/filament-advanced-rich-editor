@@ -20,6 +20,16 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the token to its own `toolbar` array
 
 ### Fixed
+- `Ctrl+Shift+L` and `Ctrl+Shift+R` align a paragraph left and right, which is what the help
+  dialog has been saying they do. TipTap's `TextAlign` binds those two keys to the alignments
+  `left` and `right`, Filament configures the extension with `start` and `end` so that
+  right-to-left content behaves, and `setTextAlign` answers an alignment it was not
+  configured with by doing nothing at all. The dead half was the smaller problem: a shortcut
+  handler that does nothing also returns false, which leaves the key to the browser - so the
+  advertised way to align a paragraph right was a hard reload in Chrome and Firefox, with
+  the unsaved draft still in the field. Centring and justifying were never affected, since
+  `center` and `justify` are spelled the same on both lists
+
 
 - `required()` now rejects an empty document in every shape it comes in. An empty editor is
   not an empty value: TipTap keeps at least one paragraph in the document at all times, so a

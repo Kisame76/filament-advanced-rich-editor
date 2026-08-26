@@ -39,6 +39,10 @@ class Shortcuts
         'taskList' => ['Mod', 'Shift', '9'],
         'blockquote' => ['Mod', 'Shift', 'B'],
         'codeBlock' => ['Mod', 'Alt', 'C'],
+        // The outer two are answered by this package rather than by TipTap, which binds
+        // these keys to `left` and `right` while Filament configures the extension with
+        // `start` and `end`. See `AlignmentPlugin` - and note that the middle two are
+        // TipTap's own, because `center` and `justify` are spelled the same either way.
         'alignStart' => ['Mod', 'Shift', 'L'],
         'alignCenter' => ['Mod', 'Shift', 'E'],
         'alignEnd' => ['Mod', 'Shift', 'R'],
