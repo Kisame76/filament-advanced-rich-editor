@@ -85,6 +85,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- The slash menu and the mention menu keep their rounded corners once there is enough in
+  them to scroll. A scrollbar is painted inside the border box and a `border-radius` does
+  not clip it, so a panel that scrolled itself drew a straight bar across its own top and
+  bottom right corners - the two corners the rounding was for. The shell and the scrolling
+  are now two elements: the outer one keeps the border, the radius and the shadow and
+  clips, the inner one scrolls inside its padding, and the bar sits clear of the curve
+  whatever a platform decides a scrollbar looks like. `role="listbox"` moved with the
+  scrolling, so the options are still held by the element that claims them
+
 - `Ctrl+Shift+L` and `Ctrl+Shift+R` align a paragraph left and right, which is what the help
   dialog has been saying they do. TipTap's `TextAlign` binds those two keys to the alignments
   `left` and `right`, Filament configures the extension with `start` and `end` so that

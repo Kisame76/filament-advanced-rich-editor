@@ -258,6 +258,7 @@ export class MentionMenu {
         this.editor = editor
         this.config = readConfig(editor)
         this.panel = null
+        this.list = null
         this.items = []
         // What the server last answered for this trigger, kept so that the next keystroke
         // can narrow it on the spot instead of waiting for a second answer.
@@ -420,18 +421,26 @@ export class MentionMenu {
         if (!this.panel) {
             this.panel = document.createElement('div')
             this.panel.className = 'fi-arte-mention-menu'
-            this.panel.setAttribute('role', 'listbox')
+
+            // The scrolling is the inner element's, so the bar it draws is held clear of the
+            // rounded corners - see the stylesheet. The list is what carries the role: the
+            // options are inside it, and a listbox has to be the thing that holds them.
+            this.list = document.createElement('div')
+            this.list.className = 'fi-arte-mention-list'
+            this.list.setAttribute('role', 'listbox')
+            this.panel.append(this.list)
+
             document.body.append(this.panel)
             document.addEventListener('mousedown', this.onOutsideClick, true)
         }
 
-        this.panel.replaceChildren()
+        this.list.replaceChildren()
 
         if (this.items.length === 0) {
             const note = document.createElement('div')
             note.className = 'fi-arte-mention-note'
             note.textContent = this.emptyMessage()
-            this.panel.append(note)
+            this.list.append(note)
             this.position()
 
             return
@@ -445,7 +454,7 @@ export class MentionMenu {
                 event.preventDefault()
                 this.choose(index)
             })
-            this.panel.append(row)
+            this.list.append(row)
         })
 
         this.position()
@@ -478,7 +487,11 @@ export class MentionMenu {
         }
 
         const caret = this.editor.view.coordsAtPos(this.range.from)
-        const height = Math.min(this.panel.scrollHeight, MAX_HEIGHT)
+        // Measured off the shell rather than out of it: the list inside is capped to the
+        // room the shell has, so its own `scrollHeight` is the content's and the shell's is
+        // not. `offsetHeight` is what the panel actually occupies, which is what a position
+        // has to be worked out against.
+        const height = Math.min(this.panel.offsetHeight || MAX_HEIGHT, MAX_HEIGHT)
         const below = window.innerHeight - caret.bottom - MARGIN
         const flip = below < height && caret.top > below
 
@@ -498,7 +511,7 @@ export class MentionMenu {
         this.active = (this.active + direction + this.items.length) % this.items.length
         this.render()
 
-        this.panel?.children[this.active]?.scrollIntoView({ block: 'nearest' })
+        this.list?.children[this.active]?.scrollIntoView({ block: 'nearest' })
     }
 
     choose(index) {
@@ -542,6 +555,7 @@ export class MentionMenu {
         document.removeEventListener('mousedown', this.onOutsideClick, true)
         this.panel.remove()
         this.panel = null
+        this.list = null
         this.items = []
         this.results = []
         this.range = null

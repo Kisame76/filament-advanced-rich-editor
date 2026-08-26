@@ -129,6 +129,7 @@ class SlashMenu {
         this.editor = editor
         this.menu = readMenu(editor)
         this.panel = null
+        this.list = null
         this.items = []
         this.active = 0
         this.range = null
@@ -180,18 +181,26 @@ class SlashMenu {
         if (!this.panel) {
             this.panel = document.createElement('div')
             this.panel.className = 'fi-arte-slash'
-            this.panel.setAttribute('role', 'listbox')
+
+            // The scrolling is the inner element's, so the bar it draws is held clear of
+            // the rounded corners - see the stylesheet. The list is what carries the role:
+            // the options are inside it, and a listbox has to be the thing that holds them.
+            this.list = document.createElement('div')
+            this.list.className = 'fi-arte-slash-list'
+            this.list.setAttribute('role', 'listbox')
+            this.panel.append(this.list)
+
             document.body.append(this.panel)
             document.addEventListener('mousedown', this.onOutsideClick, true)
         }
 
-        this.panel.replaceChildren()
+        this.list.replaceChildren()
 
         if (groups.length === 0) {
             const empty = document.createElement('div')
             empty.className = 'fi-arte-slash-empty'
             empty.textContent = this.menu.empty
-            this.panel.append(empty)
+            this.list.append(empty)
 
             return
         }
@@ -212,7 +221,7 @@ class SlashMenu {
                 index++
             }
 
-            this.panel.append(section)
+            this.list.append(section)
         }
 
         this.paint()
@@ -253,7 +262,7 @@ class SlashMenu {
     }
 
     paint() {
-        for (const button of this.panel.querySelectorAll('.fi-arte-slash-item')) {
+        for (const button of this.list.querySelectorAll('.fi-arte-slash-item')) {
             const isActive = Number(button.dataset.index) === this.active
 
             button.classList.toggle('fi-arte-slash-item-active', isActive)
@@ -349,6 +358,7 @@ class SlashMenu {
         document.removeEventListener('mousedown', this.onOutsideClick, true)
         this.panel.remove()
         this.panel = null
+        this.list = null
         this.items = []
         this.range = null
     }
