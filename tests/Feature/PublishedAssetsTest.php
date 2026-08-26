@@ -25,6 +25,7 @@ const STYLE_HOOKS = [
     'fi-arte-font-picker',
     'fi-arte-font-size',
     'fi-arte-image-panel',
+    'fi-arte-list-panel',
     // A toolbar button, drawn by Filament's own `fi-fo-rich-editor-tool`.
     'fi-arte-fullscreen-toggle',
     // A second class on the find bar's own row, which `fi-arte-find-row` already styles.

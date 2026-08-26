@@ -21,6 +21,10 @@ return [
             'orderedList' => 'ol, nummeriert, nummerierung',
             'taskList' => 'todo, aufgaben, checkliste, haken',
             'blockquote' => 'zitat',
+            'calloutNote' => 'hinweis, info, infobox, kasten, callout',
+            'calloutTip' => 'tipp, ratschlag, kasten, callout',
+            'calloutWarning' => 'warnung, achtung, vorsicht, kasten, callout',
+            'calloutDanger' => 'gefahr, fehler, kritisch, kasten, callout',
             'codeBlock' => 'code, quelltext',
             'horizontalRule' => 'hr, trenner, linie',
             'details' => 'akkordeon, aufklappen, ausklappen',
@@ -29,9 +33,21 @@ return [
             'table' => 'tabelle, raster, spalten',
             'attachFiles' => 'datei, anhang, hochladen',
             'emoji' => 'smiley, symbol',
+            'characters' => 'sonderzeichen, zeichen, strich, pfeil, währung, akzent',
             'customBlocks' => 'block, baustein',
             'mergeTags' => 'platzhalter, variable',
         ],
+    ],
+    /*
+     * Die Arten von Infobox. Der Schlüssel ist der Name der Variante: wer eine eigene
+     * hinzufügt, übersetzt sie mit einem Eintrag hier; ohne Übersetzung wird der Name
+     * selbst als Beschriftung verwendet.
+     */
+    'callouts' => [
+        'note' => 'Hinweis',
+        'tip' => 'Tipp',
+        'warning' => 'Warnung',
+        'danger' => 'Gefahr',
     ],
     'tools' => [
         'image' => 'Bild',
@@ -70,6 +86,50 @@ return [
             ],
         ],
         'task_list' => 'Aufgabenliste',
+        'callouts' => 'Infobox',
+        'language' => 'Sprache',
+        'language_none' => 'Sprache der Seite',
+        'list_properties' => [
+            'bullet' => 'Listeneigenschaften',
+            'ordered' => 'Listeneigenschaften',
+            'marker' => 'Aufzählungszeichen',
+            'marker_default' => 'Standard',
+            'start' => 'Beginnt bei',
+            'reversed' => 'Rückwärts zählen',
+            'markers' => [
+                // Mit einem Beispiel benannt statt mit einem Namen: „a, b, c" sagt, was
+                // die Wahl bewirkt, „Kleinbuchstaben" sagt, wie jemand sie genannt hat.
+                'ordered' => [
+                    '1' => '1, 2, 3',
+                    'a' => 'a, b, c',
+                    'A' => 'A, B, C',
+                    'i' => 'i, ii, iii',
+                    'I' => 'I, II, III',
+                ],
+                'bullet' => [
+                    'disc' => 'Punkt',
+                    'circle' => 'Kreis',
+                    'square' => 'Quadrat',
+                ],
+            ],
+        ],
+        'characters' => [
+            'label' => 'Sonderzeichen',
+            'search' => 'Zeichen suchen...',
+            'empty' => 'Kein passendes Zeichen',
+            'empty_recent' => 'Zeichen, die du auswählst, erscheinen hier.',
+            'close' => 'Schließen',
+            'groups' => [
+                'recent' => 'Zuletzt',
+                'punctuation' => 'Interpunktion',
+                'currency' => 'Währung',
+                'math' => 'Mathematik',
+                'arrows' => 'Pfeile',
+                'symbols' => 'Symbole',
+                'latin' => 'Lateinische Buchstaben',
+                'greek' => 'Griechische Buchstaben',
+            ],
+        ],
         'heading_level' => 'Überschrift :level',
         'styles' => 'Stil',
         'styles_clear' => 'Keiner',

@@ -40,6 +40,15 @@ class Icons
             'line_height' => 'arte-line-spacing',
             'task_list' => 'arte-task-list',
             'blockquote' => 'arte-message-square-quote',
+            // The callouts. The dropdown's own trigger is the circled i - the sign for the
+            // whole family, and the one a reader already reads as "something set apart" -
+            // and each kind carries what it is: a lamp for a tip, the triangle every road
+            // sign uses for a warning, and a shield for the one that says stop.
+            'callouts' => 'heroicon-o-information-circle',
+            'callout_note' => 'heroicon-o-information-circle',
+            'callout_tip' => 'heroicon-o-light-bulb',
+            'callout_warning' => 'heroicon-o-exclamation-triangle',
+            'callout_danger' => 'heroicon-o-shield-exclamation',
             'image' => 'heroicon-o-photo',
             'embed' => 'heroicon-o-film',
             // The colour tools carry the thing they paint, not the instrument: a bare `A`
@@ -82,6 +91,34 @@ class Icons
             'drag_handle_insert' => 'heroicon-o-plus',
             'help' => 'heroicon-o-question-mark-circle',
             'emoji' => 'heroicon-o-face-smile',
+
+            // The language a passage is written in, and the way back to the language of the
+            // page. The globe with letters on it is the sign for "this is in another one";
+            // the cross is the same cross every other clearing control in here uses.
+            'language' => 'heroicon-o-language',
+            'language_none' => 'heroicon-o-x-mark',
+
+            // The two list panels, each carrying the list it belongs to rather than a
+            // wrench: the bubble it sits in has one button, so that button has to say which
+            // kind of list is being talked about.
+            'list_bullet' => 'heroicon-o-list-bullet',
+            'list_ordered' => 'heroicon-o-numbered-list',
+
+            // The special characters picker and its tabs. Drawn icons rather than a
+            // representative glyph, for the reason the emoji tabs use them: a row of eight
+            // characters reads as things to pick rather than as the chrome around them.
+            'characters' => 'heroicon-o-hashtag',
+            'characters_close' => 'heroicon-o-x-mark',
+            'characters_recent' => 'heroicon-o-clock',
+            'characters_punctuation' => 'heroicon-o-chat-bubble-oval-left',
+            'characters_currency' => 'heroicon-o-banknotes',
+            'characters_math' => 'heroicon-o-calculator',
+            'characters_arrows' => 'heroicon-o-arrows-right-left',
+            'characters_symbols' => 'heroicon-o-sparkles',
+            // The letter this package already draws, put to a second use: the Latin tab is
+            // the one holding letters.
+            'characters_latin' => 'arte-letter-a',
+            'characters_greek' => 'heroicon-o-academic-cap',
             // The emoji picker's tabs. Drawn icons, not emoji: nine coloured faces in a row
             // read as things to pick rather than as the chrome around them.
             'emoji_recent' => 'heroicon-o-clock',

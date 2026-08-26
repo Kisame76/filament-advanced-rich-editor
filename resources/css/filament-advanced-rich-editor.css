@@ -321,6 +321,137 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Callouts                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Like the task list, these classes live in the stored rich content rather than only in
+ * the editor, so they are deliberately NOT scoped under .fi-arte — the same markup has to
+ * render in text entries, in tables and on a front end that has never heard of this
+ * package.
+ *
+ * The colour is set once, on the variant class, as three custom properties: the accent
+ * that draws the rule and the icon, the wash behind the text, and the icon itself. The
+ * box below then reads those, so a project adds a kind of its own with one small rule
+ * rather than a copy of everything here.
+ *
+ * A variant nobody defined properties for falls through to the neutral values on
+ * .fi-arte-callout and is drawn as a grey box with no icon, which reads as "set apart"
+ * even when nothing says which kind it is.
+ */
+.fi-arte-callout {
+    --fi-arte-callout-accent: var(--gray-400, #a1a1aa);
+    --fi-arte-callout-wash: rgba(9, 9, 11, 0.04);
+    /*
+     * A mask that hides everything, rather than `none`. `mask-image: none` means no mask
+     * at all, so the accent behind it fills the whole box and a kind with no icon is drawn
+     * as a solid square. A transparent gradient is a mask that paints nothing.
+     */
+    --fi-arte-callout-icon: linear-gradient(transparent, transparent);
+
+    position: relative;
+    /* Room for the icon column, which is drawn rather than sitting in the markup. */
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border-inline-start: 3px solid var(--fi-arte-callout-accent);
+    border-radius: 0.375rem;
+    background-color: var(--fi-arte-callout-wash);
+}
+
+.fi-arte-callout:where(.dark, .dark *) {
+    --fi-arte-callout-wash: rgba(255, 255, 255, 0.05);
+}
+
+/*
+ * The icon is painted as a mask over the accent colour rather than shipped as an element.
+ * Nothing then has to be `contenteditable="false"` inside the editor, and nothing has to
+ * survive the sanitiser on the way to a page — the class carries the whole drawing.
+ */
+.fi-arte-callout::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0.9375rem;
+    /* Centred on the first line of the box's own text, not on the box. */
+    top: calc(0.75rem + 0.75em);
+    margin-top: -0.625rem;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    background-color: var(--fi-arte-callout-accent);
+    -webkit-mask-image: var(--fi-arte-callout-icon);
+    mask-image: var(--fi-arte-callout-icon);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+/*
+ * Filament's prose styles give block children a top margin, which would push the first
+ * paragraph away from the icon that is meant to sit beside it.
+ */
+.fi-arte-callout > :first-child {
+    margin-top: 0;
+}
+
+.fi-arte-callout > :last-child {
+    margin-bottom: 0;
+}
+
+/*
+ * The four kinds the package ships. Each names its colour through Filament's own
+ * registered properties, so a panel with a different palette gets its own note blue and
+ * its own warning amber rather than a hard-coded one.
+ */
+.fi-arte-callout-note {
+    --fi-arte-callout-accent: var(--info-600, #2563eb);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--info-600, #2563eb) 7%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z'/%3E%3C/svg%3E");
+}
+
+.fi-arte-callout-tip {
+    --fi-arte-callout-accent: var(--success-600, #16a34a);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--success-600, #16a34a) 7%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18'/%3E%3C/svg%3E");
+}
+
+.fi-arte-callout-warning {
+    --fi-arte-callout-accent: var(--warning-600, #ca8a04);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--warning-600, #ca8a04) 9%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z'/%3E%3C/svg%3E");
+}
+
+.fi-arte-callout-danger {
+    --fi-arte-callout-accent: var(--danger-600, #dc2626);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--danger-600, #dc2626) 7%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v3.75m0-10.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.25-8.25-3.286Zm0 13.036h.008v.008H12v-.008Z'/%3E%3C/svg%3E");
+}
+
+/*
+ * The lighter end of each ramp in dark mode: the 600s are drawn for white behind them and
+ * go muddy against the panel's near-black.
+ */
+.fi-arte-callout-note:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--info-400, #60a5fa);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--info-400, #60a5fa) 10%, transparent);
+}
+
+.fi-arte-callout-tip:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--success-400, #4ade80);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--success-400, #4ade80) 10%, transparent);
+}
+
+.fi-arte-callout-warning:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--warning-400, #facc15);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--warning-400, #facc15) 10%, transparent);
+}
+
+.fi-arte-callout-danger:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--danger-400, #f87171);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--danger-400, #f87171) 10%, transparent);
+}
+
+/* -------------------------------------------------------------------------- */
 /* Textual toolbar dropdowns                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -340,14 +471,54 @@
 }
 
 /*
- * The headings dropdown can list six levels. Capping the menu keeps it inside the
- * viewport when the toolbar is pinned near the bottom of a tall form.
+ * An option keeps its height. The menu is a column flex box and Filament leaves its options
+ * at the default `flex-shrink: 1`, so a list that runs past the cap below - this package's
+ * cap; Filament sets no height on this menu at all - does not scroll, it squashes. Every row loses a few pixels and the menu quietly ends up with shorter rows
+ * than the menu beside it, which is the one failure mode here nobody would think to look
+ * for. Overflowing is the honest answer, and the rule under this one is what it overflows
+ * into.
+ */
+.fi-arte
+    .fi-fo-rich-editor-dropdown-tool-textual
+    .fi-fo-rich-editor-dropdown-tool-option {
+    flex-shrink: 0;
+}
+
+/*
+ * Capping the menu keeps it inside the viewport when the toolbar is pinned near the bottom
+ * of a tall form. The number is arithmetic rather than taste, and worth writing down: a row
+ * is 2rem tall with a 0.25rem gap BETWEEN rows, and the menu adds 0.5rem of padding and 2px
+ * of border, so n rows want 36n + 6 pixels. The longest list this package ships is the
+ * overflow menu at ten, which measures 366; 26rem is 416, so that one fits and a project
+ * has somewhere to put an eleventh tool - 402 - before anything scrolls.
+ *
+ * The headroom matters beyond the scrolling itself. A scrollbar takes its width out of the
+ * content box, so the options in a scrolling menu are some fifteen pixels narrower than the
+ * ones in a menu beside it - the highlight under the pointer stops short of the edge, and
+ * two menus built from the same component stop looking like it.
  */
 .fi-arte
     .fi-fo-rich-editor-dropdown-tool-textual
     .fi-fo-rich-editor-dropdown-tool-menu {
-    max-height: 18rem;
+    max-height: 26rem;
     overflow-y: auto;
+    /*
+     * Vertically only, and the other axis has to be said out loud rather than left alone:
+     * once one axis is anything but `visible`, the specification computes the other from
+     * `visible` to `auto`. So the `overflow-y` above was quietly asking for a sideways
+     * scrollbar too, and a menu that can scroll sideways is one that will eventually be
+     * caught doing it - a label a fraction too wide, a font that loaded late.
+     *
+     * Filament sets neither. Its own rule for this menu is border, padding, shadow and
+     * `position: absolute`; the height cap and the scrolling are this package's, which
+     * makes the sideways scrollbar this package's too.
+     *
+     * Deliberately NOT `scrollbar-gutter: stable`: the browser already accounts for the
+     * scrollbar when it works out how wide a menu wants to be, so the gutter fixes nothing
+     * and charges every menu that does not scroll fifteen pixels of dead space on the
+     * right, with the highlight stopping short of it.
+     */
+    overflow-x: hidden;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1165,8 +1336,15 @@ body.fi-arte-fullscreen-lock {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Emoji picker                                                               */
+/* Emoji and special character pickers                                        */
 /* -------------------------------------------------------------------------- */
+
+/*
+ * One set of rules, two popups. The two pickers are the same thing drawn over different
+ * lists - `resources/js/glyph-picker.js` builds both - so their classes are twinned here
+ * rather than the rules being written twice. Each family keeps its own names because a
+ * project styling one of them should not be styling the other by accident.
+ */
 
 /*
  * The popup lives on the body, not inside the field: the button that opens it usually sits
@@ -1175,7 +1353,8 @@ body.fi-arte-fullscreen-lock {
  * overflow. The z-index sits above the fullscreen overlay (30) and below Filament's modal
  * layer (40), which is the same lane the rest of this package's chrome uses.
  */
-.fi-arte-emoji-popup {
+.fi-arte-emoji-popup,
+.fi-arte-characters-popup {
     position: fixed;
     z-index: 35;
     display: flex;
@@ -1188,13 +1367,15 @@ body.fi-arte-fullscreen-lock {
     box-shadow: 0 10px 25px rgba(9, 9, 11, 0.15);
 }
 
-.fi-arte-emoji-popup:where(.dark, .dark *) {
+.fi-arte-emoji-popup:where(.dark, .dark *),
+.fi-arte-characters-popup:where(.dark, .dark *) {
     border-color: var(--gray-600, #52525b);
     background-color: var(--gray-800, #27272a);
 }
 
 /* Titled and moved by the same bar: it is a handle either way. */
-.fi-arte-emoji-header {
+.fi-arte-emoji-header,
+.fi-arte-characters-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1205,18 +1386,21 @@ body.fi-arte-fullscreen-lock {
     user-select: none;
 }
 
-.fi-arte-emoji-header:active {
+.fi-arte-emoji-header:active,
+.fi-arte-characters-header:active {
     cursor: grabbing;
 }
 
-.fi-arte-emoji-title {
+.fi-arte-emoji-title,
+.fi-arte-characters-title {
     font-size: 0.75rem;
     font-weight: 500;
     line-height: 1rem;
     color: var(--gray-500, #71717a);
 }
 
-.fi-arte-emoji-close {
+.fi-arte-emoji-close,
+.fi-arte-characters-close {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1227,22 +1411,26 @@ body.fi-arte-fullscreen-lock {
     cursor: pointer;
 }
 
-.fi-arte-emoji-close svg {
+.fi-arte-emoji-close svg,
+.fi-arte-characters-close svg {
     inline-size: 0.875rem;
     block-size: 0.875rem;
 }
 
-.fi-arte-emoji-close:hover {
+.fi-arte-emoji-close:hover,
+.fi-arte-characters-close:hover {
     color: var(--gray-600, #52525b);
     background-color: rgba(9, 9, 11, 0.06);
 }
 
-.fi-arte-emoji-close:hover:where(.dark, .dark *) {
+.fi-arte-emoji-close:hover:where(.dark, .dark *),
+.fi-arte-characters-close:hover:where(.dark, .dark *) {
     color: var(--gray-300, #d4d4d8);
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-search {
+.fi-arte-emoji-search,
+.fi-arte-characters-search {
     inline-size: 100%;
     padding: 0.25rem 0.5rem;
     border-radius: 0.375rem;
@@ -1253,29 +1441,44 @@ body.fi-arte-fullscreen-lock {
     color: inherit;
 }
 
-.fi-arte-emoji-search:where(.dark, .dark *) {
+.fi-arte-emoji-search:where(.dark, .dark *),
+.fi-arte-characters-search:where(.dark, .dark *) {
     border-color: var(--gray-600, #52525b);
 }
 
-.fi-arte-emoji-search:focus {
+.fi-arte-emoji-search:focus,
+.fi-arte-characters-search:focus {
     outline: 2px solid var(--primary-600, #2563eb);
     outline-offset: -1px;
 }
 
-.fi-arte-emoji-tabs {
+.fi-arte-emoji-tabs,
+.fi-arte-characters-tabs {
     display: flex;
+    /*
+     * Spread rather than stretched. Stretched, each tab was a full-width slab and the
+     * highlight on the active one ran up against the icons either side of it, which reads
+     * as three tabs selected rather than one.
+     */
+    justify-content: space-between;
     gap: 0.125rem;
     padding-block-end: 0.375rem;
     border-block-end: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.1));
 }
 
-.fi-arte-emoji-tabs:where(.dark, .dark *) {
+.fi-arte-emoji-tabs:where(.dark, .dark *),
+.fi-arte-characters-tabs:where(.dark, .dark *) {
     border-block-end-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-tab {
-    flex: 1 1 0;
-    padding-block: 0.125rem;
+.fi-arte-emoji-tab,
+.fi-arte-characters-tab {
+    /* As wide as the icon it holds, so the highlight is a square around it. */
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
     border-radius: 0.375rem;
     font-size: 1rem;
     line-height: 1.25rem;
@@ -1286,22 +1489,35 @@ body.fi-arte-fullscreen-lock {
 }
 
 .fi-arte-emoji-tab:hover,
-.fi-arte-emoji-tab.fi-active {
+.fi-arte-characters-tab:hover,
+.fi-arte-emoji-tab.fi-active,
+.fi-arte-characters-tab.fi-active {
     filter: none;
     opacity: 1;
 }
 
-.fi-arte-emoji-tab.fi-active {
+.fi-arte-emoji-tab.fi-active,
+.fi-arte-characters-tab.fi-active {
     background-color: rgba(9, 9, 11, 0.06);
 }
 
-.fi-arte-emoji-tab.fi-active:where(.dark, .dark *) {
+.fi-arte-emoji-tab.fi-active:where(.dark, .dark *),
+.fi-arte-characters-tab.fi-active:where(.dark, .dark *) {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-grid {
+.fi-arte-emoji-grid,
+.fi-arte-characters-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(2rem, 1fr));
+    /*
+     * Rows keep their own height instead of sharing out the leftover space. The grid is a
+     * flex child that fills the popup, and a grid's default `align-content` is stretch - so
+     * a tab with two rows in it drew two rows a hundred pixels tall with the characters
+     * floating in the middle of each. It never showed on the emoji tabs, which always have
+     * more rows than fit.
+     */
+    align-content: start;
     gap: 0.125rem;
     overflow-y: auto;
     flex: 1 1 auto;
@@ -1309,7 +1525,19 @@ body.fi-arte-fullscreen-lock {
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 
-.fi-arte-emoji-item {
+/*
+ * The one place the two pickers part company. These are letters and signs rather than
+ * pictures, so they are drawn in the panel's own text font - the emoji stack above would
+ * hand a Greek omega to a font that has no letters in it - and they pack denser, because a
+ * text-sized glyph needs less room than an emoji.
+ */
+.fi-arte-characters-grid {
+    grid-template-columns: repeat(auto-fill, minmax(1.75rem, 1fr));
+    font-family: inherit;
+}
+
+.fi-arte-emoji-item,
+.fi-arte-characters-item {
     aspect-ratio: 1;
     border-radius: 0.375rem;
     font-size: 1.25rem;
@@ -1318,21 +1546,142 @@ body.fi-arte-fullscreen-lock {
 }
 
 .fi-arte-emoji-item:hover,
-.fi-arte-emoji-item:focus-visible {
+.fi-arte-characters-item:hover,
+.fi-arte-emoji-item:focus-visible,
+.fi-arte-characters-item:focus-visible {
     background-color: rgba(9, 9, 11, 0.06);
     outline: none;
 }
 
 .fi-arte-emoji-item:hover:where(.dark, .dark *),
-.fi-arte-emoji-item:focus-visible:where(.dark, .dark *) {
+.fi-arte-characters-item:hover:where(.dark, .dark *),
+.fi-arte-emoji-item:focus-visible:where(.dark, .dark *),
+.fi-arte-characters-item:focus-visible:where(.dark, .dark *) {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-empty {
+.fi-arte-emoji-empty,
+.fi-arte-characters-empty {
     padding-block: 1rem;
     text-align: center;
     font-size: 0.8125rem;
     color: var(--gray-500, #71717a);
+}
+
+/* -------------------------------------------------------------------------- */
+/* List properties panel                                                      */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The panel in the bubble that appears while the caret is in a list. Its own family of
+ * classes rather than the image panel's: the two look alike on purpose but they are
+ * different controls, and a project restyling one of them should not silently be
+ * restyling the other.
+ */
+.fi-arte-list-panel-menu {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    min-inline-size: 12rem;
+}
+
+.fi-arte-list-panel-label {
+    margin: 0;
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    color: var(--gray-500, #71717a);
+}
+
+/*
+ * The markers wrap rather than scroll: five of them at text width is one row on a wide
+ * bubble and two on a narrow one, and either is easier to aim at than a row that slides.
+ */
+.fi-arte-list-panel-markers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.fi-arte-list-panel-marker {
+    padding: 0.1875rem 0.4375rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    /* The ordered markers are drawn as examples - "a, b, c" - so they are read as text. */
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.fi-arte-list-panel-marker:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.fi-arte-list-panel-marker:hover {
+    background-color: rgba(9, 9, 11, 0.05);
+}
+
+.fi-arte-list-panel-marker:hover:where(.dark, .dark *) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.fi-arte-list-panel-marker.fi-active {
+    border-color: var(--primary-600, #2563eb);
+    color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-list-panel-marker.fi-active:where(.dark, .dark *) {
+    border-color: var(--primary-400, #60a5fa);
+    color: var(--primary-400, #60a5fa);
+}
+
+.fi-arte-list-panel-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.fi-arte-list-panel-input {
+    inline-size: 100%;
+    padding: 0.25rem 0.375rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.375rem;
+    background-color: transparent;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: inherit;
+}
+
+.fi-arte-list-panel-input:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.fi-arte-list-panel-input:focus {
+    outline: 2px solid var(--primary-600, #2563eb);
+    outline-offset: -1px;
+}
+
+.fi-arte-list-panel-check {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fi-arte-list-panel-check > input[type='checkbox'] {
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+    margin: 0;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    accent-color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-list-panel-check > input[type='checkbox']:where(.dark, .dark *) {
+    accent-color: var(--primary-500, #3b82f6);
 }
 
 /* -------------------------------------------------------------------------- */

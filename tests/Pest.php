@@ -8,6 +8,8 @@ use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Schema;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarColorPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
@@ -124,6 +126,39 @@ function toolbarShape(AdvancedRichEditor $editor): array
 function moreShape(?AdvancedRichEditor $editor = null): string
 {
     return 'dropdown:'.implode(',', ($editor ?? editor())->getMoreTools());
+}
+
+/**
+ * What `toolbarShape()` calls the callout dropdown, on the same reasoning as `moreShape()`:
+ * a layout test cares that the trigger is on the bar, and which kinds are behind it is
+ * `CalloutTest`'s business.
+ */
+function calloutsShape(?AdvancedRichEditor $editor = null): string
+{
+    $editor ??= editor();
+
+    return 'dropdown:'.implode(',', array_map(
+        Callouts::toolName(...),
+        $editor->getCalloutVariants(),
+    ));
+}
+
+/**
+ * What `toolbarShape()` calls the language dropdown. Same reasoning as `calloutsShape()`:
+ * a layout test cares that the trigger is in the bubble, and which languages are behind it
+ * is `LanguageTest`'s business.
+ */
+function languagesShape(?AdvancedRichEditor $editor = null): string
+{
+    $editor ??= editor();
+
+    return 'dropdown:'.implode(',', [
+        Languages::CLEAR,
+        ...array_map(
+            static fn (array $language): string => Languages::toolName($language['code']),
+            $editor->getLanguageOptions(),
+        ),
+    ]);
 }
 
 /**

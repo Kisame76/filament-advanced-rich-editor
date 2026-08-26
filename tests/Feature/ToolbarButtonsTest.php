@@ -68,7 +68,7 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -85,7 +85,7 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', 'blockquote'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -103,12 +103,12 @@ it('does not reach inside a dropdown token', function (): void {
 
 it('collapses the dividers that an emptied group left behind', function (): void {
     $editor = editor()->disableToolbarButtons([
-        'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
+        'link', 'image', 'embed', 'table', 'codeBlock',
     ]);
 
-    // Everything the insert group inserted is gone; the lists dropdown it shares the group
-    // with is not, so the group - and both dividers around it - stay. The link goes from the
-    // marks group as well, because that is where it lives now.
+    // Everything the insert group inserted is gone; the two dropdowns it shares the group
+    // with are not, so the group - and both dividers around it - stay. The link goes from
+    // the marks group as well, because that is where it lives now.
     expect(toolbarShape($editor))->toBe([
         ['undo', 'redo'],
         ['divider'],
@@ -118,7 +118,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList'],
+        ['dropdown:bulletList,orderedList,taskList', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -128,7 +128,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
     $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->disableToolbarButtons([
-        'lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
+        'lists', 'callouts', 'link', 'image', 'embed', 'table',
     ]);
 
     expect(array_slice(toolbarShape($editor), -1))->toBe([

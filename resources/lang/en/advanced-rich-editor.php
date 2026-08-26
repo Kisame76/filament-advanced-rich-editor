@@ -21,6 +21,10 @@ return [
             'orderedList' => 'ol, numbered',
             'taskList' => 'todo, checkbox, checklist',
             'blockquote' => 'quote, citation',
+            'calloutNote' => 'note, info, infobox, callout, admonition',
+            'calloutTip' => 'tip, hint, suggestion, callout',
+            'calloutWarning' => 'warning, caution, attention, callout',
+            'calloutDanger' => 'danger, error, critical, callout',
             'codeBlock' => 'code, pre, snippet',
             'horizontalRule' => 'hr, divider, separator, rule',
             'details' => 'accordion, collapse, toggle',
@@ -29,9 +33,21 @@ return [
             'table' => 'grid, rows, columns',
             'attachFiles' => 'file, upload, attachment',
             'emoji' => 'smiley, icon',
+            'characters' => 'symbol, special character, dash, arrow, currency, accent',
             'customBlocks' => 'block, component',
             'mergeTags' => 'tag, variable, placeholder',
         ],
+    ],
+    /*
+     * The kinds of callout. The key is the variant's own name, so a project that adds one
+     * translates it by adding a key here; one without a translation is titled from its
+     * name.
+     */
+    'callouts' => [
+        'note' => 'Note',
+        'tip' => 'Tip',
+        'warning' => 'Warning',
+        'danger' => 'Danger',
     ],
     'tools' => [
         'image' => 'Image',
@@ -70,6 +86,50 @@ return [
             ],
         ],
         'task_list' => 'Task list',
+        'callouts' => 'Callout',
+        'language' => 'Language',
+        'language_none' => 'Page language',
+        'list_properties' => [
+            'bullet' => 'List properties',
+            'ordered' => 'List properties',
+            'marker' => 'Marker',
+            'marker_default' => 'Default',
+            'start' => 'Start at',
+            'reversed' => 'Count backwards',
+            'markers' => [
+                // Named by an example rather than by a name: "a, b, c" says what the
+                // choice does and "Lower alpha" says what somebody called it.
+                'ordered' => [
+                    '1' => '1, 2, 3',
+                    'a' => 'a, b, c',
+                    'A' => 'A, B, C',
+                    'i' => 'i, ii, iii',
+                    'I' => 'I, II, III',
+                ],
+                'bullet' => [
+                    'disc' => 'Disc',
+                    'circle' => 'Circle',
+                    'square' => 'Square',
+                ],
+            ],
+        ],
+        'characters' => [
+            'label' => 'Special character',
+            'search' => 'Search characters...',
+            'empty' => 'No matching character',
+            'empty_recent' => 'Characters you pick appear here.',
+            'close' => 'Close',
+            'groups' => [
+                'recent' => 'Recent',
+                'punctuation' => 'Punctuation',
+                'currency' => 'Currency',
+                'math' => 'Mathematics',
+                'arrows' => 'Arrows',
+                'symbols' => 'Symbols',
+                'latin' => 'Latin letters',
+                'greek' => 'Greek letters',
+            ],
+        ],
         'heading_level' => 'Heading :level',
         'styles' => 'Style',
         'styles_clear' => 'None',

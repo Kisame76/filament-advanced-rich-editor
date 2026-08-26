@@ -78,7 +78,7 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
     'divider',
     ['alignment', 'lineHeight'],
     'divider',
-    ['lists', 'image', 'embed', 'table', 'blockquote'],
+    ['lists', 'image', 'embed', 'table', 'callouts'],
     'divider',
     ['more'],
     'pin',
@@ -92,22 +92,35 @@ how the block is laid out, what to put into the document, how to view it. Left t
 is also the order the decisions are made in — you pick a heading before you pick a size, and
 you emphasise a word before you decide how the paragraph sits.
 
-**Two things are registered but deliberately not on this bar.** The typeface picker
+**Four things are registered but deliberately not in the shipped layout.** The typeface picker
 (`fontFamily`) is one: choosing a font in an article is the front end's business, not the
 author's, and this package strips `font-family` out of a paste on exactly that reasoning —
 a bar that offers the picker invites somebody to do by hand what the paste cleanup exists to
 undo. Where a project genuinely needs it, name the token. The `styles` dropdown is the
 sanctioned way to reach a theme's typography, because it carries the theme's own names.
 
-Striking out is the other. It stays in the bubble toolbar over a selection, which is the
-only time anybody wants it, and it is in the `more` menu for the times they want it without
-one — the top bar spends no button on it.
+Striking out is the second, and it is nowhere in the shipped layout at all — not on the bar,
+not in the overflow menu, not in the bubble. It is registered, so `'strike'` anywhere in any
+of those three lists brings it back; it simply is not one of the eight or nine things a
+default toolbar should spend a row on.
+
+The quote is the third. It sits in the `more` menu rather than beside the table, because a
+document that needs one usually needs one — a quote is a thing you reach for occasionally,
+not a thing you reach for while writing. The callout dropdown took the place it had, and
+that is the trade being made: a note, a warning and a tip come up far more often than a
+pull quote does.
+
+The language of a passage is the fourth, and it is nowhere at all — not on the bar, not in
+the overflow menu, not in the bubble. Most documents never quote a foreign phrase, and a bar
+should not carry a control for something most of its readers will never do. A project that
+does want it names `'language'` in `text_toolbar_buttons`, which is where it belongs; see
+[Language of a passage](#language-of-a-passage).
 
 The two block dropdowns are apart on purpose. Alignment and line spacing shape a paragraph,
-so they share a group; a list is a thing you *make*, which is why it sits with the link, the
-image, the table, the quote and the code block rather than with the alignment. Those five
-all insert something, and that is what groups them rather than whether they happen to be a
-mark or a node.
+so they share a group; a list is a thing you *make*, which is why it sits with the image, the
+table and the callout rather than with the alignment. All four put something into the
+document, and that is what groups them rather than whether they happen to be a mark or a
+node.
 
 The last group sits behind `'pin'` — see [Pinned buttons](#pinned-buttons). Those three are
 about the *editor* rather than about the text, so they keep a corner of the bar to
@@ -115,9 +128,9 @@ themselves instead of moving with everything else. The overflow menu is not one 
 what it holds are tools for the text, so it stays with the aligned groups and ends them.
 
 The tools most documents never need do not get a button of their own: `superscript`,
-`subscript`, inline `code`, `clearFormatting`, `horizontalRule` and `details` sit in the
-`'more'` dropdown at the end, together with this package's own `emoji` picker and the two
-direction buttons. Every other Filament tool - `highlight`, `small`, `lead`, `attachFiles`,
+`subscript`, inline `code`, `codeBlock`, `blockquote`, `clearFormatting`, `horizontalRule`
+and `details` sit in the `'more'` dropdown at the end, together with this package's own
+`emoji` and `characters` pickers. Every other Filament tool - `highlight`, `small`, `lead`, `attachFiles`,
 `mergeTags`, `customBlocks` and the table editing ones - is registered too, so naming it
 anywhere in the array, or in the `more` list, brings it into the bar.
 
@@ -163,16 +176,19 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 
 ### Dropdowns
 
-Five tokens build a dropdown for you from the field's own configuration:
+Seven tokens build a dropdown for you from the field's own configuration:
 
 - `'headings'` — one entry per configured heading level
 - `'lists'` — one entry per configured list type, including the task list when it is enabled
 - `'alignment'` — one entry per configured alignment, see [Alignment](#alignment)
 - `'lineHeight'` — one entry per configured spacing, see [Line spacing](#line-spacing)
+- `'callouts'` — one entry per configured kind of callout, see [Callouts](#callouts)
+- `'language'` — one entry per configured language, see [Language of a passage](#language-of-a-passage)
 - `'more'` — one entry per tool in the `more` list, see [The more menu](#the-more-menu)
 
-All five render with a label next to the icon. `'headings'`, `'lists'` and `'alignment'`
-mirror the icon of whatever is active in the current selection on their trigger; `'more'`
+All seven render with a label next to the icon. `'headings'`, `'lists'`, `'alignment'`
+and `'callouts'` mirror the icon of whatever is active in the current selection on their
+trigger; `'language'` keeps its globe, because every entry carries the same one; `'more'`
 keeps its three dots, because an overflow menu that hides its own handle is one you cannot
 find your way back to, and `'lineHeight'` keeps its own icon because its options are
 numbers and there is nothing to swap it for. Both still highlight while one of their tools
@@ -198,6 +214,18 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 `ToolbarDropdown::make()` takes the trigger label first and the button names second; the
 names are resolved against the editor's registered tools, so an unknown or disabled button
 is simply dropped.
+
+Every one of them opens upwards when there is no room below, and caps itself to the room
+it has when neither side can hold it whole. That is not cosmetic: the editor's content box
+scrolls its own overflow, so a menu opening low in the field is cut off by the field — and
+the bar over a selection makes that the normal case, since it hangs below the text it
+belongs to. A higher `z-index` would not help, because the menu is clipped by geometry
+rather than by paint order.
+
+The cap matters as much as the turn. A field a few hundred pixels tall with a selection in
+the middle of it has less than half of that above the bar and less than half below, which a
+long list outgrows either way — so the menu takes the roomier side and scrolls inside what
+is there.
 
 ### Custom tokens
 
@@ -261,6 +289,7 @@ right-to-left content keeps working; the wording is translatable.
 AdvancedRichEditor::make('content')
     ->alignments(['alignStart', 'alignCenter', 'alignEnd']);   // default: config('...alignments')
 ```
+
 All four keyboard shortcuts work - `Ctrl+Shift+L`, `E`, `R` and `J`. Two of them only do
 because this package rebinds them: TipTap binds `L` and `R` to the alignments `left` and
 `right`, which Filament's editor is not configured with, so both keys did nothing and
@@ -1143,10 +1172,17 @@ more than it should, and it is bound in the help dialog's shortcut list alongsid
 else the editor answers to.
 
 Nothing in this package binds it, which is why it works whether or not a field cleans its
-pastes. A browser reads `Ctrl+Shift+V` (`Cmd+Shift+V`) as paste-and-match-style and hands
-over the plain half of the clipboard on its own; where one keeps that key for itself -
-Safari does - ProseMirror sees the shift and takes the text half anyway. Line breaks in the
-text become paragraphs, the way they do in every editor built on ProseMirror.
+pastes. Chrome, Edge and Firefox read `Ctrl+Shift+V` (`Cmd+Shift+V`) as paste-and-match-style
+and hand over the plain half of the clipboard on their own, and ProseMirror's own paste
+handler takes the text half whenever Shift is held - so the markup is dropped twice over.
+Line breaks in the text become paragraphs, the way they do in every editor built on
+ProseMirror.
+
+Safari is the exception, and the shortcut list does not say so. WebKit maps no command to
+`Cmd+Shift+V` - its paste-and-match-style is `Cmd+Alt+Shift+V` - so nothing is pasted at
+all there. The row keeps the key that is right on every other browser rather than naming
+one that is wrong on all of them; Safari users have the Edit menu, which spells its own
+key out.
 
 There is no menu entry for it and there is not going to be one. A button cannot paste: it
 would have to read the clipboard itself through `navigator.clipboard.readText()`, which
@@ -1180,11 +1216,12 @@ AdvancedRichEditor::make('content')->help(false);   // default: config('...help'
 The list is built from the field's own configuration, not from a fixed table: it names the
 heading levels that field offers, leaves the task list out where the task list is off, and
 mentions the table keys only where there is a table tool. Every shortcut in it was read out
-of the editor build Filament ships - a list that names keys nobody bound is worse than no
-list.
+of the editor build Filament ships, or out of the extension in this package that binds it -
+a list that names keys nobody bound is worse than no list.
 
 Keys are drawn as caps and named by the machine reading them: ⌘⌥⇧ on a Mac, Ctrl/Alt/Shift
 everywhere else.
+
 Two of them are repaired rather than reported. TipTap's `TextAlign` binds `Ctrl+Shift+L`
 and `Ctrl+Shift+R` to the alignments `left` and `right`, Filament configures the extension
 with `start` and `end` so that right-to-left content behaves, and `setTextAlign` answers an
@@ -1193,6 +1230,17 @@ the browser, where `Ctrl+Shift+R` is a hard reload with the draft still in the f
 package rebinds those two to `start` and `end`. Centring and justifying are TipTap's own
 and always worked, since `center` and `justify` are spelled the same on both lists.
 
+The heading rows are the one place the list is narrower than the editor. TipTap registers
+`Ctrl+Alt+1` through `Ctrl+Alt+6` whatever the field offers, so a field that stops at four
+still writes an `h5` for `Ctrl+Alt+5` - one no button can take back. The list names the
+levels the field has rather than advertising that.
+
+Some of what TipTap binds collides with the browser, and nothing in a page can win those.
+On Windows and Linux `Ctrl+Shift+J` (justify), `Ctrl+Shift+E` (centre) and `Ctrl+Shift+S`
+(strikethrough) are developer-tools shortcuts in Chrome or Firefox and open a panel instead.
+On German, Polish and other AltGr layouts, `AltGr` is `Ctrl+Alt`, so the paragraph, heading
+and code block keys sit on top of `{`, `[`, `]`, `}`, `²` and `³`. Both are upstream
+defaults; the toolbar, the slash menu and the dropdowns are the way round them.
 
 Add a second tab with something to tell the people writing in the field:
 
@@ -1296,6 +1344,215 @@ attribute, which would take the tick state with them. The state is therefore als
 `fi-arte-task-item-checked` class — `class` survives sanitisation — and the checkbox itself is
 drawn in CSS. Inside the editor a real checkbox is rendered by the node view, so ticking an
 item works as usual.
+
+### Language of a passage
+
+```php
+// config/filament-advanced-rich-editor.php — the dropdown is not in the shipped layout,
+// so naming the token is what puts it there.
+'text_toolbar_buttons' => [
+    'styles', 'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground',
+    'language',
+],
+```
+
+```php
+AdvancedRichEditor::make('content')
+    ->languages()                                     // default: config('…languages.enabled')
+    ->languageOptions(['fr' => 'Français', 'la']);    // either way round
+```
+
+Marks a phrase as being written in another language, as `<span lang="fr">`. WCAG 3.1.2 asks
+for it and a screen reader needs it: without it a French title inside a German paragraph is
+read out in German.
+
+**A mark, not an attribute on the block** — and that is the whole feature. The requirement is
+about a *passage*, which is usually a phrase inside a sentence, and a `lang` on the paragraph
+cannot say "these three words are French". `lang` is on the sanitiser's safe list, exactly
+like `dir`, so nothing has to be allowed in your application's sanitiser config.
+
+**It is registered but not shipped on any bar.** Most documents never quote a foreign
+phrase, and a bar should not carry a control for something most of its readers will never
+do — the same bargain the typeface picker and striking out make. Where it belongs once a
+project wants it is the [bar over a selection](#toolbar-over-a-selection), because marking a
+passage starts with selecting one; the `'language'` token works in the main `toolbar` array
+too, and per field through `->textToolbarButtons([...])`.
+
+Its first entry takes the marking off again — a list offering only languages has no way back
+to the language of the page, which is what most of a document is written in.
+
+The mark itself is declared whether or not a button is: a passage somebody marked elsewhere
+survives a save on a field that offers no way to have marked it.
+
+`languageOptions()` takes either `['fr' => 'Français']` or `['fr']`. A code is its own worst
+label but is still better than nothing, and a project adding one language should not have to
+look up how that language spells its own name. The shipped labels are endonyms on purpose: a
+language is best named in itself, which is the name somebody picking it out of a list
+recognises.
+
+Codes are lowercased throughout — `lang` is case-insensitive by specification, and kept apart
+`fr-CA` and `fr-ca` would be two languages with a document stored under one spelling lighting
+up no button for the other. A code that could not be a language tag is dropped rather than
+escaped, because it travels into a tool name and into a button's JavaScript.
+
+`->languages(false)` unregisters the tools and does not load the extension.
+`AdvancedRichContentRenderer` declares the mark either way: a passage somebody marked as
+French is one a screen reader should still read in French, whatever this render was told.
+
+### Lists: markers, numbering and direction
+
+```php
+AdvancedRichEditor::make('content')
+    ->listProperties();                // default: config('…list_properties')
+```
+
+TinyMCE's `advlist`, and in every longer document needed eventually: which marker a list
+draws, which number it starts counting at, and whether it counts backwards.
+
+The panel offers *Default* and then the markers that differ from it — `a, b, c`, `A, B, C`,
+`i, ii, iii`, `I, II, III` for ordered lists; circle and square for bullet ones. The ones a
+browser already draws unasked, `1` and `disc`, are not offered: a button for them beside
+*Default* would be two buttons that draw the same list. They are still accepted, so a
+document that already carries `type="disc"` keeps it rather than having it stripped on the
+next save, and the panel shows *Default* as the one that is on.
+
+The controls are a panel in the bubble that appears while the caret is in a list, not a
+button on the bar. They mean nothing anywhere else in a document, and a bar already carrying
+five dropdowns has no room to say so permanently. Select text inside a list and you get the
+text bubble instead, which is right: somebody who has selected words wants to format them.
+
+All three ride in the attributes HTML already has for them, and all three are on the
+sanitiser's safe list:
+
+```html
+<ol type="a" start="3" reversed style="list-style-type: lower-alpha;">
+```
+
+**The marker is written twice, and both are load-bearing.** The attribute is what both
+halves of this package parse and what a bare browser honours. The inline `list-style-type`
+is what survives a stylesheet that sets one — and Filament's own prose styles do, so a list
+marked `type="a"` would otherwise still be drawn with numbers. It is the same reasoning the
+[embed wrapper](#video-embeds) carries its aspect ratio inline for: the page a document ends
+up on is not this package's, and `style` is what travels there.
+
+The marker is also read back *out* of that CSS, which is what makes a list pasted from Word
+or Google Docs arrive numbered the way it looked: those write the style and not the
+attribute.
+
+Case matters here and is kept — `a` and `A` are different alphabets, `i` and `I` different
+numerals — which is the one place this package does not fold case. `start="1"` is never
+written: it would be an attribute saying exactly what its absence says.
+
+`->listProperties(false)` declares the schema on neither side, so a stored list keeps its
+markup in the database and loses it on the next save.
+
+### Special characters
+
+```php
+AdvancedRichEditor::make('content')
+    ->characters();                    // default: config('…characters')
+```
+
+Dashes, typographic quotation marks, currencies, mathematics, arrows, marks, and the
+accented and Greek letters a keyboard cannot reach — about 265 of them across seven tabs,
+searchable by name, with the ones you picked last kept in a tab of their own.
+
+It is the emoji picker's twin and shares its popup, so only one of the two is ever open.
+Both sit in the `'more'` menu, because they do the same job: a character the keyboard cannot
+type. Both are also in the slash menu.
+
+Nothing about it touches the schema. A dash is a character, so it is inserted as plain text
+and travels through the sanitiser, the save and `RichContentRenderer` like any other letter
+— which is why switching the picker off later leaves every character already written exactly
+where it is.
+
+The list is a separate file, fetched the first time the picker opens, so an editor nobody
+clicks that button in never pays for it. Names are English throughout, the same as the emoji
+list: a Unicode name is an English name.
+
+One entry is invisible and is drawn as `␣` — the non-breaking space, which German typography
+needs several times a page ("10 %", "Nr. 5", "S. 12"). A blank button is one nobody can aim
+at.
+
+### Callouts
+
+```php
+AdvancedRichEditor::make('content')
+    ->callouts()                                          // default: config('…callouts.enabled')
+    ->calloutVariants(['note', 'tip', 'warning', 'danger']);
+```
+
+A callout is a paragraph pulled out of the flow and drawn as something the reader is meant
+to stop at — the note, tip, warning and danger boxes every documentation site has. It holds
+blocks rather than text, so it can carry a list or a second paragraph, which is the
+difference between an infobox and a coloured sentence.
+
+The four kinds are one node with the kind as an attribute rather than four nodes. Turning a
+note into a warning is therefore a change of colour rather than a delete and a rewrite, and
+the toolbar entry for the kind you are already in takes the box off again.
+
+Saved content looks like this:
+
+```html
+<div class="fi-arte-callout fi-arte-callout-warning" data-type="callout">
+    <p>Do not do this in production.</p>
+</div>
+```
+
+`data-type` says it is a callout and the class says which kind. Those are the two attributes
+Filament's sanitiser keeps on every element, which is why the kind rides in a class — a
+`data-variant` would be gone from every rendered page while still sitting in the database.
+
+**Reaching it.** The `'callouts'` token puts one dropdown on the bar with an entry per kind,
+and the same kinds are listed in the slash menu under *Style*. In the editor typing
+`:::warning ` at the start of a line makes one too, which is the spelling MkDocs, Docusaurus
+and GitHub's alerts all use.
+
+**Kinds of your own.** `calloutVariants()` decides which kinds are offered and in what order
+— that order is what the dropdown and the slash menu read in. A name is a lowercase word,
+optionally hyphenated; anything else is dropped rather than escaped, because a variant
+becomes part of a CSS class and part of a button's JavaScript handler.
+
+Naming one the package does not ship works: the tool, the menu entry and the class are all
+built from the name. It gets its name in title case for a label, the family's icon, and the
+neutral grey box the stylesheet draws for a kind it has no colour for. Give it its own by
+adding a translation, an icon and a rule:
+
+```php
+// config/filament-advanced-rich-editor.php
+'callouts' => ['enabled' => true, 'variants' => ['note', 'warning', 'legal-notice']],
+'icons' => ['callout_legal_notice' => 'heroicon-o-scale'],
+```
+
+```php
+// lang/vendor/filament-advanced-rich-editor/en/advanced-rich-editor.php
+'callouts' => ['legal-notice' => 'Legal notice'],
+```
+
+```css
+.fi-arte-callout-legal-notice {
+    --fi-arte-callout-accent: #7c3aed;
+    --fi-arte-callout-wash: rgba(124, 58, 237, 0.07);
+    --fi-arte-callout-icon: url("data:image/svg+xml,…");
+}
+```
+
+Those three custom properties are the whole colour: the accent draws the rule down the side
+and the icon, the wash sits behind the text, and the icon is painted as a mask so nothing has
+to be an element in the markup. The shipped kinds set them from Filament's own registered
+palette (`--info-*`, `--success-*`, `--warning-*`, `--danger-*`), so a panel with its own
+colours gets its own note blue.
+
+Both halves stamp the same classes onto the saved markup, so one stylesheet covers the
+editor, Filament text entries and your own front end. The package CSS is registered with
+Filament and therefore loads in the panel only — copy those rules into your front end
+stylesheet if you render the content outside Filament.
+
+`->callouts(false)` unregisters the tools and does not load the extension, so the trigger
+disappears from the bar on its own and the editor's JSON stays free of callout nodes.
+`AdvancedRichContentRenderer` declares the node either way: a callout somebody wrote is one
+that belongs on the page, whether or not this render was told the field had them switched
+on.
 
 ### Colours
 
@@ -1597,9 +1854,8 @@ blank string as no content, so such a record opens on an empty editor like any o
 ### Toolbar over a selection
 
 Select text and a small bar appears over it: the project's own styles, bold, italic,
-underline, strike, link, colour and the highlighter. Filament ships one of these for a
-selected image and one for a table cell; this is the third, and the one people reach for
-most.
+underline, link, colour and the highlighter. Filament ships one of these for a selected image
+and one for a table cell; this is the third, and the one people reach for most.
 
 It offers the same buttons in the same order as the group at the top of the field, which is
 why the link sits with the marks in both places rather than between the image and the table.
@@ -2378,6 +2634,12 @@ AdvancedRichEditor::make('content')
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists
+    ->callouts(true)                               // note, tip, warning and danger boxes
+    ->calloutVariants(['note', 'warning'])         // which kinds, and in what order
+    ->languages(true)                              // mark a passage as another language
+    ->languageOptions(['fr' => 'Français'])        // which languages, and in what order
+    ->listProperties(true)                         // list marker, start number, direction
+    ->characters(true)                             // the special characters picker
     ->spatieMediaLibrary('rich-editor');           // opt into media library attachments
 ```
 
@@ -2468,6 +2730,13 @@ theme:
 .fi-arte-toolbar-pinned { /* the half pinned to an edge */ }
 .fi-arte-task-list { /* <ul data-type="taskList"> */ }
 .fi-arte-task-item { /* a single checkbox item */ }
+.fi-arte-callout   { /* <div data-type="callout">, see Callouts */ }
+.fi-arte-callout-note, .fi-arte-callout-tip,
+.fi-arte-callout-warning, .fi-arte-callout-danger {
+  /* one kind of callout: --fi-arte-callout-accent, --wash and --icon */
+}
+.fi-arte-characters-popup { /* the special characters picker, twinned with the emoji one */ }
+.fi-arte-list-panel-menu  { /* the panel in the bubble a list opens */ }
 ```
 
 Two classes are written into rendered content rather than into the editor, so this package's

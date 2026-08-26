@@ -17,12 +17,20 @@ tool with alt text and optional Spatie Media Library storage on top.
 - **Same field, better toolbar** — extends `Filament\Forms\Components\RichEditor`, so every
   method you already use (`->disableToolbarButtons()`, `->customBlocks()`, `->mergeTags()`,
   `->fileAttachmentsDisk()`, …) keeps working
-- **Toolbar tokens** — write `'divider'`, `'headings'` or `'lists'` anywhere in the toolbar
-  array and they expand into real components
+- **Toolbar tokens** — write `'divider'`, `'headings'`, `'lists'` or `'callouts'` anywhere in
+  the toolbar array and they expand into real components
 - **Dropdowns** — fold any set of buttons behind one trigger, with icons or icon + label
 - **Sticky toolbar** — stays reachable in long documents, with a configurable offset
 - **Heading levels 1 to 6** — not just the stock `h2` / `h3`
 - **Task lists** — checkbox lists as a proper TipTap plugin, with the JS loaded on request
+- **Callouts** — note, tip, warning and danger boxes that hold whole blocks, reachable from
+  the bar, the slash menu or by typing `:::warning`, and coloured from the panel's own palette
+- **Language of a passage** — `<span lang="fr">` on the phrase, not the paragraph, which is
+  what WCAG 3.1.2 actually asks for; offered in the bar over a selection
+- **List markers, numbering and direction** — `a, b, c`, Roman numerals, a starting number
+  and counting backwards, in a panel that appears while the caret is in a list
+- **Special characters** — dashes, quotation marks, currencies, mathematics, arrows and
+  accented letters, searchable, sharing the emoji picker's popup
 - **Image tool** — insert and re-edit images including their alt text and caption
 - **Media browser** — the image button opens the pictures already on the server, so one file
   can be reused across articles instead of uploaded again

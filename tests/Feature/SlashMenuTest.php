@@ -45,7 +45,8 @@ it('separates what a block is from what gets added to the document', function ()
         'paragraph', 'h1', 'h2', 'h3', 'h4',
         'bulletList', 'orderedList', 'taskList',
         'blockquote', 'codeBlock',
-        'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji',
+        'calloutNote', 'calloutTip', 'calloutWarning', 'calloutDanger',
+        'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
     ]);
 });
 

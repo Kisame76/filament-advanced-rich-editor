@@ -82,6 +82,33 @@ class ToolbarLayout
             'headings' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::headings($editor->getHeadingLevels(), $editor->hasHeadingParagraph()),
             'lists' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::lists($editor->getListTypes()),
             'alignment' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::alignment($editor->getAlignments()),
+            // Off, or configured down to nothing, means no trigger - the same rule the
+            // spacing and colour dropdowns follow.
+            'callouts' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasCallouts()) {
+                    return [];
+                }
+
+                $variants = $editor->getCalloutVariants();
+
+                return $variants === [] ? [] : ToolbarDropdown::callouts($variants);
+            },
+            // Off, or configured down to nothing, means no trigger. A dropdown holding only
+            // the way out of a marking nobody can apply is a door onto a wall.
+            'language' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasLanguages()) {
+                    return [];
+                }
+
+                $languages = $editor->getLanguageOptions();
+
+                return $languages === [] ? [] : ToolbarDropdown::languages($languages);
+            },
+            // A plain button name, but a token all the same: an unregistered name in a
+            // toolbar group is an exception, so the switch has to reach the layout too.
+            'characters' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasCharacters()
+                ? 'characters'
+                : [],
             // Nothing to pick from means no trigger, the same way the overflow menu and the
             // colour pickers vanish when what they open onto is empty.
             'lineHeight' => static function (AdvancedRichEditor $editor): object|array {

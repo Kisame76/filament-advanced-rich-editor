@@ -27,9 +27,11 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\SourceCodeAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
@@ -38,7 +40,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AlignmentPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AutosavePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CalloutPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharactersPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
@@ -49,8 +53,10 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
@@ -68,6 +74,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarListPanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -176,6 +183,24 @@ class AdvancedRichEditor extends RichEditor
     protected int|Closure|null $characterCountLimit = null;
 
     protected bool|Closure|null $hasTaskList = null;
+
+    protected bool|Closure|null $hasCallouts = null;
+
+    protected bool|Closure|null $hasLanguages = null;
+
+    /**
+     * @var array<mixed>|Closure|null
+     */
+    protected array|Closure|null $languageOptions = null;
+
+    protected bool|Closure|null $hasListProperties = null;
+
+    protected bool|Closure|null $hasCharacters = null;
+
+    /**
+     * @var array<int, mixed>|Closure|null
+     */
+    protected array|Closure|null $calloutVariants = null;
 
     protected bool|Closure|null $isNullWhenEmpty = null;
 
@@ -379,6 +404,42 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTaskList()
                 ? [TaskListPlugin::make()]
+                : [],
+        );
+
+        // Carries its variants rather than reading the config itself: the tools it
+        // registers are one per kind, and which kinds there are is a per-field answer.
+        // Nothing is registered for a field with none, so the node is not declared either
+        // and the editor's JSON stays free of callouts.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasCallouts()
+                && ($variants = $component->getCalloutVariants()) !== []
+                    ? [CalloutPlugin::make()->variants($variants)]
+                    : [],
+        );
+
+        // Carries its languages for the reason the callout plugin carries its kinds: the
+        // tools it registers are one per language, and which languages there are is a
+        // per-field answer.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasLanguages()
+                && ($languages = $component->getLanguageOptions()) !== []
+                    ? [LanguagePlugin::make()->languages($languages)]
+                    : [],
+        );
+
+        // No tools of its own: what it registers is the schema both halves need for a list
+        // to keep its marker and its numbering. The controls live in the bubble that
+        // appears while the caret is in a list.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasListProperties()
+                ? [ListPropertiesPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasCharacters()
+                ? [CharactersPlugin::make()]
                 : [],
         );
 
@@ -607,7 +668,7 @@ class AdvancedRichEditor extends RichEditor
             'divider',
             ['alignment', 'lineHeight'],
             'divider',
-            ['lists', 'image', 'embed', 'table', 'blockquote'],
+            ['lists', 'image', 'embed', 'table', 'callouts'],
             'divider',
             ['more'],
             'pin',
@@ -1440,8 +1501,8 @@ class AdvancedRichEditor extends RichEditor
     {
         return array_values($this->evaluate($this->moreTools)
             ?? config('filament-advanced-rich-editor.more')
-            ?? ['strike', 'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
-                'details', 'emoji']);
+            ?? ['subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
+                'details', 'emoji', 'characters']);
     }
 
     /**
@@ -2162,6 +2223,122 @@ class AdvancedRichEditor extends RichEditor
         return (bool) ($this->evaluate($this->hasTaskList) ?? config('filament-advanced-rich-editor.task_list') ?? true);
     }
 
+    public function callouts(bool|Closure $condition = true): static
+    {
+        $this->hasCallouts = $condition;
+
+        return $this;
+    }
+
+    public function hasCallouts(): bool
+    {
+        return (bool) ($this->evaluate($this->hasCallouts) ?? config('filament-advanced-rich-editor.callouts.enabled') ?? true);
+    }
+
+    /**
+     * Which kinds of callout this field offers, in the order the dropdown and the slash
+     * menu read them in.
+     *
+     * @param  array<int, mixed>|Closure|null  $variants
+     */
+    public function calloutVariants(array|Closure|null $variants): static
+    {
+        $this->calloutVariants = $variants;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getCalloutVariants(): array
+    {
+        return Callouts::normalize(
+            $this->evaluate($this->calloutVariants)
+                ?? config('filament-advanced-rich-editor.callouts.variants')
+                ?? Callouts::VARIANTS,
+        );
+    }
+
+    /**
+     * Whether a passage can be marked as being written in another language.
+     */
+    public function languages(bool|Closure $condition = true): static
+    {
+        $this->hasLanguages = $condition;
+
+        return $this;
+    }
+
+    public function hasLanguages(): bool
+    {
+        return (bool) ($this->evaluate($this->hasLanguages) ?? config('filament-advanced-rich-editor.languages.enabled') ?? true);
+    }
+
+    /**
+     * Which languages the dropdown offers, in order.
+     *
+     * Either `['fr' => 'Français']` or `['fr']`: a code is its own worst label but is still
+     * better than nothing, and a project adding one language should not have to look up how
+     * that language spells its own name.
+     *
+     * @param  array<mixed>|Closure|null  $languages
+     */
+    public function languageOptions(array|Closure|null $languages): static
+    {
+        $this->languageOptions = $languages;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, array{code: string, label: string}>
+     */
+    public function getLanguageOptions(): array
+    {
+        return Languages::normalize(
+            $this->evaluate($this->languageOptions)
+                ?? config('filament-advanced-rich-editor.languages.values')
+                ?? Languages::VALUES,
+        );
+    }
+
+    /**
+     * Whether a list can be told which marker to draw, where to start counting and whether
+     * to count backwards.
+     *
+     * Off means the schema is not declared on either side, so a stored list keeps its
+     * markup in the database and loses it on the next save - the same bargain every other
+     * switch in here makes.
+     */
+    public function listProperties(bool|Closure $condition = true): static
+    {
+        $this->hasListProperties = $condition;
+
+        return $this;
+    }
+
+    public function hasListProperties(): bool
+    {
+        return (bool) ($this->evaluate($this->hasListProperties) ?? config('filament-advanced-rich-editor.list_properties') ?? true);
+    }
+
+    /**
+     * The special characters picker. Nothing about it is stored as markup - a dash is a
+     * character - so switching it off later leaves every one already written where it is.
+     */
+    public function characters(bool|Closure $condition = true): static
+    {
+        $this->hasCharacters = $condition;
+
+        return $this;
+    }
+
+    public function hasCharacters(): bool
+    {
+        return (bool) ($this->evaluate($this->hasCharacters) ?? config('filament-advanced-rich-editor.characters') ?? true);
+    }
+
     /**
      * @return array<string, array<int, mixed>>
      */
@@ -2171,6 +2348,23 @@ class AdvancedRichEditor extends RichEditor
 
         if ($this->hasTextToolbar() && ($text = $this->getTextToolbarButtons()) !== []) {
             $toolbars['paragraph'] = $text;
+        }
+
+        // What a list is told about itself, in the one place it means anything.
+        //
+        // Filament shows a floating toolbar while `editor.isActive(<its key>)`, so a bubble
+        // keyed `bulletList` appears when the caret enters one and takes itself away on the
+        // way out. That is the whole reason these three controls are affordable at all: a
+        // bar already carrying five dropdowns has no room to say something permanently that
+        // is true in one paragraph out of twenty.
+        //
+        // With a selection inside a list Filament shows the paragraph bubble instead of
+        // this one - a list item holds a paragraph, and its own rule prefers the text bar
+        // when there is text selected. Which is right: somebody who has selected words
+        // wants to format them.
+        if ($this->hasListProperties()) {
+            $toolbars['bulletList'] = [ToolbarListPanel::bullet()];
+            $toolbars['orderedList'] = [ToolbarListPanel::ordered()];
         }
 
         if (! $this->hasImageToolbar()) {
@@ -2286,7 +2480,7 @@ class AdvancedRichEditor extends RichEditor
     {
         $buttons = $this->evaluate($this->textToolbarButtons)
             ?? config('filament-advanced-rich-editor.text_toolbar_buttons')
-            ?? ['styles', 'bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground'];
+            ?? ['styles', 'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'];
 
         // Resolved through the same tokens the bar itself uses, so `'styles'` and
         // `'textColor'` mean here what they mean up there - and a switched-off feature

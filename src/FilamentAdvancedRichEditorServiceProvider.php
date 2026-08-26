@@ -112,6 +112,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/embed', __DIR__.'/../resources/dist/js/embed.js')
                     ->loadedOnRequest(),
 
+                // The note, tip, warning and danger boxes. Loaded only by fields that offer
+                // at least one of them.
+                Js::make('advanced-rich-editor/callout', __DIR__.'/../resources/dist/js/callout.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/code-block', __DIR__.'/../resources/dist/js/code-block.js')
                     ->loadedOnRequest(),
 
@@ -153,6 +158,16 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/emoji', __DIR__.'/../resources/dist/js/emoji.js')
                     ->loadedOnRequest(),
                 Js::make('advanced-rich-editor/emoji-data', __DIR__.'/../resources/dist/js/emoji-data.js')
+                    ->loadedOnRequest(),
+
+                // The special characters picker, the same way, and its list too. The popup
+                // both pickers are drawn in is a third file, imported by whichever of them
+                // loads - registered here so it is published and served beside them.
+                Js::make('advanced-rich-editor/characters', __DIR__.'/../resources/dist/js/characters.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/character-data', __DIR__.'/../resources/dist/js/character-data.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/glyph-picker', __DIR__.'/../resources/dist/js/glyph-picker.js')
                     ->loadedOnRequest(),
             ],
             'kisame76/filament-advanced-rich-editor',

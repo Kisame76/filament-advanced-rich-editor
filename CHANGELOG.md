@@ -4,14 +4,78 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- Callouts: the note, tip, warning and danger boxes every documentation site has. One node
+  with the kind as an attribute rather than four nodes, so turning a note into a warning is
+  a change of colour rather than a delete and a rewrite, and pressing the entry for the kind
+  you are already in takes the box off. They hold blocks rather than text, so a callout can
+  carry a list or a second paragraph - which is the difference between an infobox and a
+  coloured sentence. The `'callouts'` token puts one dropdown on the shipped toolbar next to
+  the quote, the same kinds are in the slash menu under *Style*, and typing `:::warning ` at
+  the start of a line makes one as well. `data-type="callout"` says it is one and a class
+  says which kind, because those are the two attributes Filament's sanitiser keeps - so the
+  colour survives the trip to a page rather than sitting unused in the database. A project
+  can name kinds of its own: the tool, the menu entry and the class are all built from the
+  name, and three custom properties on one CSS rule are the whole colour. Per field:
+  `->callouts()` and `->calloutVariants([...])`; project-wide: the `callouts` config key
+
+- The language of a passage, as `<span lang="fr">`. A mark rather than an attribute on the
+  block, and that is the whole feature: WCAG 3.1.2 is about a *passage*, usually a phrase
+  inside a sentence, and a `lang` on the paragraph cannot say "these three words are
+  French" - which is exactly the case a screen reader gets wrong without it. `lang` is on
+  the sanitiser's safe list, like `dir`, so nothing has to be allowed. The dropdown sits in
+  the bar over a selection rather than on the toolbar, because marking a passage starts with
+  selecting one - but it is registered rather than shipped there, the same bargain the
+  typeface picker and striking out make: most documents never quote a foreign phrase, and a
+  bar should not carry a control for something most of its readers will never do. Name
+  `'language'` in `text_toolbar_buttons` and it appears. The mark is declared either way, so
+  a passage marked elsewhere survives a save on a field with no button for it. Its first
+  entry is the way back to the language of the page, and codes are lowercased throughout
+  since `lang` is case-insensitive by specification. Per field: `->languages()` and
+  `->languageOptions([...])`
+
+- What a list is told about itself: the marker it draws, the number it starts counting at
+  and whether it counts backwards - TinyMCE's `advlist`. All three ride in the attributes
+  HTML already has (`type`, `start`, `reversed`), which are on the sanitiser's safe list. The
+  marker is written twice and both are load-bearing: the attribute is what both halves parse
+  and what a bare browser honours, and an inline `list-style-type` is what survives a
+  stylesheet that sets one - Filament's own prose styles do, so the attribute alone is drawn
+  with numbers. It is read back out of that CSS as well, which is what makes a list pasted
+  from Word or Google Docs arrive numbered the way it looked. The panel offers Default and
+  then the markers that differ from it - the ones a browser already draws unasked, `1` and
+  `disc`, would be a second button drawing exactly what Default draws. Both are still
+  accepted, so a document already carrying one keeps it. The controls are a panel in the
+  bubble that appears while the caret is in a list, not a button on the bar: they mean
+  nothing anywhere else in a document. That bubble is shown by a wider rule than Filament's,
+  the way the image one already is: a toolbar that only exists while the *editor* has the
+  focus takes itself off the moment a marker is clicked - the click focuses the button, and
+  the bubble removes its element, and the panel and the state saying it was open go with it.
+  So it counts as wanted while the focus, or the press on its way to it, is inside the panel
+  as well; it still goes away when either lands anywhere else. Per field:
+  `->listProperties()`
+
+- A special characters picker: dashes, typographic quotation marks, currencies, mathematics,
+  arrows, marks, and the accented and Greek letters a keyboard cannot reach. The emoji
+  picker's twin, sharing its popup - the two do the same thing to the same kind of thing, so
+  the popup moved into a file of its own and both are now adapters over it. Only one of them
+  is ever open. Nothing touches the schema: a dash is a character, inserted as text, so
+  switching the picker off later leaves every one already written where it is. Per field:
+  `->characters()`
+
 ### Changed
 
-- The shipped toolbar is shorter by two. The typeface picker is registered but no longer on
-  it: choosing a font in an article is the front end's business, and this package strips
+- The shipped toolbar is shorter by three. The typeface picker is registered but no longer
+  on it: choosing a font in an article is the front end's business, and this package strips
   `font-family` out of a paste on exactly that reasoning - a bar offering the picker invites
   somebody to do by hand what the paste cleanup exists to undo. Name the `fontFamily` token
-  to put it back. Striking out moved into the `more` menu, and stays in the bubble toolbar
-  over a selection, which is the only time anybody wants it
+  to put it back. Striking out is out of the shipped layout altogether - not on the bar, not
+  in the overflow menu, not in the bubble - and is still registered, so naming `'strike'` in
+  any of those three lists brings it back; the language dropdown ships the same way. And the
+  quote moved into the `more`
+  menu: a quote is a thing you reach for occasionally rather than while writing, and the
+  callout dropdown took the place it had - a note, a warning and a tip come up far more often
+  than a pull quote does
 
 - The shipped toolbar has an `'accessibility'` token in it, between `'find'` and
   `'sourceCode'`. It resolves to nothing while the check is off, which is how it ships, so
@@ -20,6 +84,7 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the token to its own `toolbar` array
 
 ### Fixed
+
 - `Ctrl+Shift+L` and `Ctrl+Shift+R` align a paragraph left and right, which is what the help
   dialog has been saying they do. TipTap's `TextAlign` binds those two keys to the alignments
   `left` and `right`, Filament configures the extension with `start` and `end` so that
@@ -30,6 +95,44 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the unsaved draft still in the field. Centring and justifying were never affected, since
   `center` and `justify` are spelled the same on both lists
 
+- The character and emoji pickers draw their rows at the top of a tab instead of spreading
+  them over its height. The grid is a flex child filling the popup and a grid stretches its
+  rows by default, so a tab holding two rows drew two rows a hundred pixels tall with the
+  characters floating in the middle of each. It never showed on the emoji tabs, which always
+  have more rows than fit
+
+- A tab in either picker is now a square around its icon rather than a slab across the row.
+  Stretched, the highlight on the active tab ran up against the icons either side of it,
+  which reads as three tabs selected rather than one
+
+- The options in a textual toolbar dropdown all have the same height again. The menu is a
+  column flex box and Filament leaves its options shrinkable, so a list that ran past the
+  height cap - this package's cap, since Filament sets none - did not scroll, it squashed,
+  every row losing a few pixels. The
+  overflow menu was doing exactly that and its rows were shorter than the ones in the menu
+  beside it, which is the failure mode here nobody would think to look for. Options no
+  longer shrink, and the cap moved past the longest list this package ships so that none of
+  them scrolls out of the box
+
+- A textual toolbar dropdown scrolls one way only. Filament sets no height and no overflow
+  on that menu - the cap and the scrolling are this package's - and asking for `overflow-y`
+  alone is asking for both, because the specification computes the other axis from `visible`
+  to `auto` as soon as one of them is anything else. So the menu had a sideways scrollbar
+  nobody wanted and nothing worth reaching sideways for. Not `scrollbar-gutter: stable`
+  either: the browser already accounts for the scrollbar when it works out how wide a menu
+  wants to be, so the gutter fixes nothing and charges every menu that does not scroll
+  fifteen pixels of dead space on the right, with the highlight under the pointer stopping
+  short of it
+
+- An extension declared by both a plugin and the renderer is no longer applied twice. The
+  field's TipTap editor is an `AdvancedRichContentRenderer` carrying the field's own plugins,
+  and the renderer also declares several of this package's extensions unconditionally so that
+  a stored document keeps its videos and its markings whatever a render was told. Those two
+  lists overlapped, and `tiptap-php` applies both copies rather than letting one win - so a
+  field with videos switched on wrote a stray `</div>` after every embed on every save,
+  which a browser drops silently and a diff does not show. The renderer now keeps the first
+  of any repeat, which is the plugin's: that is the instance carrying the field's
+  configuration
 
 - `required()` now rejects an empty document in every shape it comes in. An empty editor is
   not an empty value: TipTap keeps at least one paragraph in the document at all times, so a

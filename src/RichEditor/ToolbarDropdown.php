@@ -8,6 +8,7 @@ use Closure;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensAwayFromTheEdge;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 
 /**
@@ -20,6 +21,8 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
  */
 class ToolbarDropdown extends ToolbarButtonGroup
 {
+    use OpensAwayFromTheEdge;
+
     protected bool|Closure $hasStaticIcon = false;
 
     /**
@@ -71,6 +74,51 @@ class ToolbarDropdown extends ToolbarButtonGroup
             array_values($types),
         )
             ->icon(Icons::get('lists'))
+            ->textualButtons();
+    }
+
+    /**
+     * The callout dropdown. Not a static trigger: the icon becomes whichever kind the
+     * caret is sitting in, so the bar says which box you are inside without being opened.
+     * The family's own icon is what it rests at, which is a sign for the whole menu rather
+     * than for whichever variant a project happened to list first.
+     *
+     * @param  array<int, string>  $variants
+     */
+    public static function callouts(array $variants, ?string $label = null): static
+    {
+        return static::make(
+            $label ?? __('filament-advanced-rich-editor::advanced-rich-editor.tools.callouts'),
+            array_values(array_map(Callouts::toolName(...), $variants)),
+        )
+            ->icon(Icons::get('callouts'))
+            ->textualButtons();
+    }
+
+    /**
+     * The language dropdown, with the way back out at the top of it.
+     *
+     * A static trigger: every entry carries the same globe, so there is nothing to swap it
+     * for, and the icon is the only thing on a button with no room for a label. Which
+     * language is on is shown where it can be - the entry is lit inside the menu, and the
+     * trigger lights up while the caret sits in a marked passage.
+     *
+     * @param  array<int, array{code: string, label: string}>  $languages
+     */
+    public static function languages(array $languages, ?string $label = null): static
+    {
+        return static::make(
+            $label ?? __('filament-advanced-rich-editor::advanced-rich-editor.tools.language'),
+            [
+                Languages::CLEAR,
+                ...array_map(
+                    static fn (array $language): string => Languages::toolName($language['code']),
+                    array_values($languages),
+                ),
+            ],
+        )
+            ->icon(Icons::get('language'))
+            ->staticIcon()
             ->textualButtons();
     }
 
@@ -134,6 +182,68 @@ class ToolbarDropdown extends ToolbarButtonGroup
             ->icon(Icons::get('tools_menu'))
             ->staticIcon()
             ->textualButtons();
+    }
+
+    /**
+     * The parent's markup, taught to open upwards when there is no room below it.
+     *
+     * Every menu in this package hangs off its trigger with `position: absolute`, and
+     * `.fi-fo-rich-editor-content` scrolls its own overflow - so a menu opening low in the
+     * editor is cut off by the editor itself. The bar over a selection makes that the
+     * normal case rather than the edge case, since it hangs below the text it belongs to.
+     * Raising `z-index` does nothing about it: the menu is clipped by geometry, and paint
+     * order has no say.
+     *
+     * The package's own dropdowns - the colour pickers, the font size stepper, the style
+     * picker, the image and list panels - each build their own markup and drop
+     * `OpensAwayFromTheEdge` into it. This one does not build its markup; Filament does.
+     * So the three attributes the trait needs are threaded into what the parent rendered
+     * rather than the whole method being reimplemented, which would mean owning a copy of
+     * upstream's markup and watching it rot.
+     *
+     * Nothing is guessed: each anchor has to appear exactly once or that injection is
+     * skipped, and `ToolbarDropdownTest` fails loudly if upstream ever renames one - which
+     * is the trade for not owning the markup.
+     */
+    public function toEmbeddedHtml(): string
+    {
+        $html = parent::toEmbeddedHtml();
+
+        return $html === '' ? $html : $this->openingAwayFromTheEdge($html);
+    }
+
+    /**
+     * The anchors in the parent's markup, and what each one becomes.
+     *
+     * @return array<string, string>
+     */
+    protected function edgeAwareAttributes(): array
+    {
+        return [
+            // The state the trait needs, spliced in beside the parent's own.
+            'x-data="{ open: false, ' => 'x-data="{ open: false, '.e($this->menuPositioning()).' ',
+            // The trigger is measured from, and measures once it has been opened. The
+            // entity rather than a bare `&&`: this is an attribute value the parent already
+            // escaped, and it stays that way.
+            'x-on:click="open = !open"' => 'x-ref="trigger" x-on:click="open = !open; open &amp;&amp; positionMenu()"',
+            // And the menu is what gets measured and turned over. `menuUpClass` is the
+            // trait's own Alpine property, the same binding every other dropdown in this
+            // package uses - not the constant behind it, so the two cannot drift.
+            'class="fi-fo-rich-editor-dropdown-tool-menu"' => 'x-ref="menu" x-bind:class="{ [menuUpClass]: dropUp }" class="fi-fo-rich-editor-dropdown-tool-menu"',
+        ];
+    }
+
+    protected function openingAwayFromTheEdge(string $html): string
+    {
+        foreach ($this->edgeAwareAttributes() as $anchor => $replacement) {
+            if (substr_count($html, $anchor) !== 1) {
+                continue;
+            }
+
+            $html = str_replace($anchor, $replacement, $html);
+        }
+
+        return $html;
     }
 
     /**

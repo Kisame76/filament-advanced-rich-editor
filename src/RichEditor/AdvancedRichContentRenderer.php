@@ -8,12 +8,15 @@ use BackedEnum;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Language;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageCaption;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
@@ -199,7 +202,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             );
         }
 
-        return [
+        return static::withoutDuplicates([
             ...$extensions,
             // Declared unconditionally. An anchor already in the stored markup should
             // survive being rendered whether or not this render asked for new ones, and
@@ -209,7 +212,16 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // embed node is one that silently drops every video in a document the day
             // somebody forgets to tell it.
             app(Embed::class),
+            // And the same again: a note somebody wrote is a note that belongs on the page,
+            // whether or not this render was told the field had callouts switched on.
+            app(Callout::class),
             app(ImageCaption::class),
+            // And again: a passage somebody marked as French is one a screen reader should
+            // still read in French, and a list somebody set to start at twelve is one that
+            // should still start at twelve - whether or not this render was told the field
+            // had either switched on.
+            app(Language::class),
+            app(ListProperties::class),
             // Declared with whatever the project configured, for the reason above: a
             // renderer that has to be told about a style is one that drops it the day
             // somebody forgets to say so. An empty list declares nothing, so a project with
@@ -221,7 +233,54 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // own list through `styles()` and its plugin declares the pair, which is the
             // one that has to win - it is the list the toolbar offered from.
             ...$this->styleExtensions($extensions),
-        ];
+        ]);
+    }
+
+    /**
+     * One extension per name, keeping the first of any repeat.
+     *
+     * Two extensions of one name are both applied rather than one winning, and what that
+     * looks like depends on what the extension is. A mark renders a span inside a span and
+     * grows another layer on every save. A node is worse and quieter: `DOMSerializer`
+     * breaks out of its opening-tag loop on the first match but not out of its closing one,
+     * so a document picks up a stray `</div>` that a browser silently drops and a diff does
+     * not.
+     *
+     * The list arrives with the field's own plugins in front of the ones declared here, and
+     * that is the order to keep: a plugin's instance carries the field's configuration,
+     * this one is the fallback for a render that was never told anything.
+     *
+     * This is not a tidy-up. A field with videos switched on declares the embed node twice
+     * - once through `EmbedPlugin`, once here - and every save it made wrote that stray tag.
+     *
+     * @param  array<int, Extension>  $extensions
+     * @return array<int, Extension>
+     */
+    protected static function withoutDuplicates(array $extensions): array
+    {
+        $kept = [];
+        $seen = [];
+
+        foreach ($extensions as $extension) {
+            // An extension with no name of its own cannot collide with anything, so it is
+            // passed through rather than folded into one nameless bucket.
+            $name = $extension::$name;
+
+            if (! is_string($name) || $name === '') {
+                $kept[] = $extension;
+
+                continue;
+            }
+
+            if (isset($seen[$name])) {
+                continue;
+            }
+
+            $seen[$name] = true;
+            $kept[] = $extension;
+        }
+
+        return $kept;
     }
 
     /**

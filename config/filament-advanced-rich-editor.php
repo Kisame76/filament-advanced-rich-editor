@@ -16,6 +16,9 @@ return [
     |   'headings'   dropdown of `heading_levels`      'lists'  dropdown of `lists`
     |   'alignment'  dropdown of `alignments`          'more'   overflow dropdown
     |   'lineHeight' dropdown of `line_height.values`
+    |   'callouts'   dropdown of `callouts.variants`
+    |   'language'   dropdown of `languages.values`
+    |   'characters' the special characters picker, absent while it is switched off
     |   'styles'     dropdown of `styles`, absent while that list is empty
     |
     | Tokens work at any depth, and a ToolbarDropdown or RichEditorTool may be mixed
@@ -32,7 +35,7 @@ return [
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'image', 'embed', 'table', 'blockquote'],
+        ['lists', 'image', 'embed', 'table', 'callouts'],
         'divider',
         ['more'],
         'pin',
@@ -102,9 +105,9 @@ return [
     | Per field: `->moreTools([...])`.
     */
     'more' => [
-        'strike', 'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule',
+        'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
         'details',
-        'emoji',
+        'emoji', 'characters',
     ],
 
     /*
@@ -378,8 +381,9 @@ return [
     | listed here that the field does not have is dropped.
     |
     | Only blocks and things you insert: the menu opens where the caret sits with nothing
-    | selected, and an inline format there would mark nothing. `'headings'` expands to the
-    | levels the field offers. Per field: `->slashMenu()`.
+    | selected, and an inline format there would mark nothing. `'headings'` and
+    | `'callouts'` expand to what the field offers - its heading levels and its kinds of
+    | callout. Per field: `->slashMenu()`.
     */
     /*
     |--------------------------------------------------------------------------
@@ -408,10 +412,10 @@ return [
             'style' => [
                 'paragraph', 'headings',
                 'bulletList', 'orderedList', 'taskList',
-                'blockquote', 'codeBlock',
+                'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
-                'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji',
+                'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
                 'customBlocks', 'mergeTags',
             ],
         ],
@@ -609,7 +613,7 @@ return [
     'text_toolbar' => true,
 
     'text_toolbar_buttons' => [
-        'styles', 'bold', 'italic', 'underline', 'strike', 'link', 'textColor', 'textBackground',
+        'styles', 'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground',
     ],
 
     /*
@@ -685,6 +689,108 @@ return [
     | is an array with `enabled` in front of them.
     */
     'task_list' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Callouts
+    |--------------------------------------------------------------------------
+    | The note, tip, warning and danger boxes: a paragraph pulled out of the flow and
+    | drawn as something the reader is meant to stop at. One node with the kind on it,
+    | so turning a note into a warning is a change of colour rather than a rewrite.
+    | Per field: `->callouts()` and `->calloutVariants([...])`.
+    |
+    | `variants` is which kinds are offered and in what order — that order is what the
+    | 'callouts' dropdown and the slash menu read in. A name is a lowercase word,
+    | optionally hyphenated; anything else is dropped rather than escaped, because a
+    | variant becomes part of a CSS class and part of a button's JavaScript handler.
+    |
+    | Naming one the package does not ship works: the tool, the menu entry and the class
+    | are all built from the name. It gets its name in title case for a label, the
+    | family's icon, and the neutral box the stylesheet draws for a kind it has no colour
+    | for — add `icons.callout_<name>` and a rule for `.fi-arte-callout-<name>` to give it
+    | its own.
+    |
+    | In the editor a callout is also reachable as ':::warning ' at the start of a line,
+    | the spelling documentation generators use. That input rule accepts any well-formed
+    | name, since the extension is loaded as a plain file and is never told what a
+    | particular field offers.
+    */
+    'callouts' => [
+        'enabled' => true,
+        'variants' => ['note', 'tip', 'warning', 'danger'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Language of a passage
+    |--------------------------------------------------------------------------
+    | Marks a phrase as being written in another language, as `<span lang="fr">`. WCAG
+    | 3.1.2 asks for it and a screen reader needs it: without it a French title inside a
+    | German paragraph is read out in German.
+    |
+    | A mark rather than an attribute on the block, because the requirement is about a
+    | *passage* — usually a phrase inside a sentence, which a `lang` on the paragraph
+    | cannot say. `lang` is on the sanitiser's safe list, so nothing has to be allowed.
+    |
+    | Registered but nowhere in the shipped layout, the same way the typeface picker and
+    | striking out are: most documents never quote a foreign phrase, and a bar should not
+    | carry a control for something most of its readers will never do. Where it belongs when
+    | a project does want it is the bar over a selection - marking a passage starts with
+    | selecting one - so add `'language'` to `text_toolbar_buttons`:
+    |
+    |   'text_toolbar_buttons' => ['styles', 'bold', 'italic', 'underline', 'link',
+    |                              'textColor', 'textBackground', 'language'],
+    |
+    | The token works in the main `toolbar` array too, and per field through
+    | `->textToolbarButtons([...])`.
+    |
+    | `values` may be written either way round — `['fr' => 'Français']` or `['fr']`. The
+    | labels are endonyms on purpose: a language is best named in itself, which is the name
+    | somebody picking it out of a list recognises. Codes are lowercased throughout, since
+    | `lang` is case-insensitive by specification. Per field: `->languages()` and
+    | `->languageOptions([...])`.
+    */
+    'languages' => [
+        'enabled' => true,
+        'values' => [
+            'en' => 'English',
+            'de' => 'Deutsch',
+            'fr' => 'Français',
+            'es' => 'Español',
+            'it' => 'Italiano',
+            'la' => 'Latina',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | List properties
+    |--------------------------------------------------------------------------
+    | The marker a list draws, the number it starts counting at and whether it counts
+    | backwards — TinyMCE's `advlist`. All three ride in the attributes HTML already has
+    | for them (`type`, `start`, `reversed`), which are on the sanitiser's safe list, so a
+    | list keeps its numbering on the page with no stylesheet and nothing allowed.
+    |
+    | The controls are a panel in the bubble that appears while the caret is in a list,
+    | rather than a button on the bar: they mean nothing anywhere else in a document.
+    |
+    | Off means the schema is not declared on either side, so a stored list keeps its
+    | markup in the database and loses it on the next save. Per field: `->listProperties()`.
+    */
+    'list_properties' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Special characters
+    |--------------------------------------------------------------------------
+    | The picker behind the 'characters' tool: dashes, typographic quotation marks,
+    | currencies, mathematics, arrows, marks, and accented and Greek letters. Characters
+    | are inserted as plain text, exactly like emoji, so switching the picker off leaves
+    | every one already written where it is. Per field: `->characters()`.
+    |
+    | It shares its popup with the emoji picker, so only one of the two is ever open.
+    */
+    'characters' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -870,6 +976,13 @@ return [
         'line_height' => 'arte-line-spacing',
         'task_list' => 'arte-task-list',
         'blockquote' => 'arte-message-square-quote',
+
+        // The callouts: the circled i for the whole family, then what each kind is.
+        'callouts' => 'heroicon-o-information-circle',
+        'callout_note' => 'heroicon-o-information-circle',
+        'callout_tip' => 'heroicon-o-light-bulb',
+        'callout_warning' => 'heroicon-o-exclamation-triangle',
+        'callout_danger' => 'heroicon-o-shield-exclamation',
         'image' => 'heroicon-o-photo',
         'embed' => 'heroicon-o-film',
         'text_color' => 'arte-letter-a',
@@ -895,6 +1008,34 @@ return [
         'drag_handle_insert' => 'heroicon-o-plus',
         'help' => 'heroicon-o-question-mark-circle',
         'emoji' => 'heroicon-o-face-smile',
+
+        // The language a passage is written in, and the way back to the language of the
+        // page. The globe with letters on it is the sign for "this is in another one";
+        // the cross is the same cross every other clearing control in here uses.
+        'language' => 'heroicon-o-language',
+        'language_none' => 'heroicon-o-x-mark',
+
+        // The two list panels, each carrying the list it belongs to rather than a
+        // wrench: the bubble it sits in has one button, so that button has to say which
+        // kind of list is being talked about.
+        'list_bullet' => 'heroicon-o-list-bullet',
+        'list_ordered' => 'heroicon-o-numbered-list',
+
+        // The special characters picker and its tabs. Drawn icons rather than a
+        // representative glyph, for the reason the emoji tabs use them: a row of eight
+        // characters reads as things to pick rather than as the chrome around them.
+        'characters' => 'heroicon-o-hashtag',
+        'characters_close' => 'heroicon-o-x-mark',
+        'characters_recent' => 'heroicon-o-clock',
+        'characters_punctuation' => 'heroicon-o-chat-bubble-oval-left',
+        'characters_currency' => 'heroicon-o-banknotes',
+        'characters_math' => 'heroicon-o-calculator',
+        'characters_arrows' => 'heroicon-o-arrows-right-left',
+        'characters_symbols' => 'heroicon-o-sparkles',
+        // The letter this package already draws, put to a second use: the Latin tab is
+        // the one holding letters.
+        'characters_latin' => 'arte-letter-a',
+        'characters_greek' => 'heroicon-o-academic-cap',
 
         // The emoji picker's own tabs.
         'emoji_recent' => 'heroicon-o-clock',
