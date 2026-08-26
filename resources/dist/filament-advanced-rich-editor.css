@@ -2959,7 +2959,10 @@ body.fi-arte-fullscreen-lock {
     align-items: center;
     gap: 0.125rem;
     /* Its own size, stated: it is a sibling of the document inside `.fi-prose`, which has
-       an opinion about the height of everything that is not told otherwise. */
+       an opinion about the height of everything that is not told otherwise. The margin is
+       that opinion too, and the element carries `fi-not-prose` for it - see the script.
+       Both are kept because a size the layout depends on should be read here rather than
+       inferred from a class somewhere else. */
     height: 1.5rem;
     margin: 0;
     line-height: 1;

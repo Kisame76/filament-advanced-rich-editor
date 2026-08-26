@@ -242,8 +242,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   feature is a drag that refuses more often than it works. A field that has a handle is
   given a wider left margin to keep it in, because Filament leaves twenty pixels there and
   two controls need fifty - fields without the handle are laid out exactly as Filament lays
-  them out. Nothing about it is stored, so `->dragHandle(false)` changes nothing already
-  written
+  them out. It carries `fi-not-prose`, Filament's own way out of the typography and the same
+  one its floating toolbars take: the handle is drawn inside `.fi-prose`, whose rule for two
+  adjacent elements puts a top margin on the second of them, which is the grip - so without
+  it the two controls sat eight pixels apart on the vertical. Nothing about it is stored, so
+  `->dragHandle(false)` changes nothing already written
 
 - The help dialog lists `Ctrl+Shift+V`, which takes the text on the clipboard and none of
   its markup. Nothing in this package binds it and nothing needs to - a browser reads it as

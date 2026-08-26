@@ -170,7 +170,14 @@ export default () => {
 
         build() {
             const element = document.createElement('div')
-            element.className = 'fi-arte-drag-handle'
+
+            // `fi-not-prose` is Filament's own way out of the typography, and this needs it
+            // for the same reason its floating toolbars do: the handle is drawn inside
+            // `.fi-prose`, whose rule for two adjacent elements puts a top margin on the
+            // second of them. The handle itself is one - it follows the editable - and so is
+            // the grip, which follows the plus. The class exempts the element and everything
+            // in it, which is the whole handle rather than the one margin noticed first.
+            element.className = 'fi-arte-drag-handle fi-not-prose'
 
             if (this.settings.insert) {
                 this.insert = document.createElement('button')
