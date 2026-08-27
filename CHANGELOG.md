@@ -13,6 +13,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   alt text rule had just been taught to stay quiet about marked pictures. It is now the
   seventh rule, `decorative_link`
 
+- A plugin that was both registered with `extendWith()` and handed to a render ran its
+  `TransformsRenderedHtml` pass twice, wrapping whatever it wraps inside a second copy of
+  itself. The plugin list is deduplicated by class now, the render's own copy winning, which
+  is what the method always claimed to do
+
 - The image link dialog could close having written nothing. The editor selection can arrive
   described as text rather than as a node, and `updateAttributes` then finds no picture; the
   media dialog has carried the correction for this at the same call site for some time, and
@@ -73,6 +78,24 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the browser and again in PHP because a document can be edited in the source view without
   ever passing the dialog. A picture already inside a link is left alone. Per field:
   `->imageLink(false)`; project-wide: `images.link`
+
+- A seam for packages that add a node of their own:
+  `AdvancedRichContentRenderer::extendWith(MyPlugin::make())`, once from a service provider,
+  and every render declares it. The editor half was already open and is Filament's - a
+  `RichContentPlugin` handed to a field gets its extensions and its tools - but the call this
+  package is built around is `make($content)->toHtml()` with nothing else said, and a node
+  that only survives when somebody remembers to name its plugin is a node that disappears
+  from the page the day somebody forgets. That is the bug this package found seven times in
+  itself. Registering the same plugin twice registers it once, because service providers run
+  in an order nobody controls, and a render handed its own copy keeps that one
+
+- `TransformsRenderedHtml`, for the half a schema cannot do. An attribute comes out the other
+  side as an attribute; what it cannot become is a `<figure>` around a picture or an `<a>`
+  around it. This package needs that four times over and did it privately; a plugin
+  implementing the interface now gets the same pass, after this package's own and after the
+  code highlighting, and still before the sanitiser. Registered plugins are part of the
+  render cache key as well - one that only transforms markup declares no extension, and the
+  extension list the fingerprint was built from could not see it
 
 ## 1.3.1 - 2026-08-27
 

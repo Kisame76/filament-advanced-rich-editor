@@ -7,9 +7,11 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 use BackedEnum;
 use Closure;
 use DateInterval;
+use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontFamily;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
@@ -86,6 +88,23 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      */
     protected ?array $codeThemes = null;
 
+    /**
+     * Plugins every render declares, whether or not it was handed them.
+     *
+     * The seam a package that adds a node of its own needs. Handing plugins to a render
+     * already works and is what a field does, but the call this package is built around is
+     * `AdvancedRichContentRenderer::make($article->content)->toHtml()` with nothing else
+     * said - and a node that only survives when somebody remembers to name its plugin is a
+     * node that disappears from the page the day somebody forgets. That is the same bug this
+     * package found seven times in itself.
+     *
+     * Static rather than a container binding because it has to survive `make()`, which
+     * builds a fresh renderer every time and has no idea what an application registered.
+     *
+     * @var array<int, RichContentPlugin>
+     */
+    protected static array $globalPlugins = [];
+
     protected bool $isCached = false;
 
     protected int|DateInterval|null $cacheTtl = null;
@@ -122,6 +141,75 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     public static function bind(): void
     {
         app()->bind(RichContentRenderer::class, static::class);
+    }
+
+    /**
+     * Declares plugins for every render, from a service provider.
+     *
+     * For the half of a plugin this package owns. The editor half is Filament's and already
+     * open: a `RichContentPlugin` handed to a field through `->plugins()` gets its PHP
+     * extensions, its JS extensions and its tools. What was closed is the rendering half -
+     * a node that renders in the form and vanishes on the page, because the renderer builds
+     * its own extension list and a plain `make()->toHtml()` was never told about the plugin.
+     *
+     * A plugin that also implements `TransformsRenderedHtml` gets a pass over the finished
+     * markup, which is how an attribute becomes a structure - the thing a schema cannot do
+     * and this package does four times over for captions, links, decorative pictures and
+     * column widths.
+     *
+     * Registering the same plugin twice registers it once: service providers run in an order
+     * nobody controls, and a plugin declared in two of them should not render its node twice.
+     */
+    public static function extendWith(RichContentPlugin ...$plugins): void
+    {
+        foreach ($plugins as $plugin) {
+            static::$globalPlugins[$plugin::class] = $plugin;
+        }
+    }
+
+    /**
+     * Forgets what `extendWith()` was told.
+     *
+     * For tests, and for the application that registers conditionally and has to undo it.
+     */
+    public static function forgetExtensions(): void
+    {
+        static::$globalPlugins = [];
+    }
+
+    /**
+     * @return array<int, RichContentPlugin>
+     */
+    public static function getGlobalPlugins(): array
+    {
+        return array_values(static::$globalPlugins);
+    }
+
+    /**
+     * The plugins this render uses: the ones it was handed, and the ones every render has.
+     *
+     * The render's own come first, so a field that configured a plugin wins over the plain
+     * instance an application registered - the same rule `withoutDuplicates()` applies to
+     * the extensions further down, and for the same reason: an instance carries
+     * configuration and the first of a name is the one that keeps it.
+     *
+     * @return array<int, RichContentPlugin>
+     */
+    public function getPlugins(): array
+    {
+        $plugins = [];
+
+        // The render's own first, so the copy a field configured is the one kept: an
+        // instance carries configuration and the first of a class is the one that has it.
+        // Keyed by class rather than concatenated, because the same plugin can arrive both
+        // ways - registered once by a service provider and handed to this render as well -
+        // and a `TransformsRenderedHtml` pass present twice runs twice, wrapping what it
+        // wraps inside a second copy of itself.
+        foreach ([...parent::getPlugins(), ...static::getGlobalPlugins()] as $plugin) {
+            $plugins[$plugin::class] ??= $plugin;
+        }
+
+        return array_values($plugins);
     }
 
     /**
@@ -302,6 +390,9 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             'protocols' => $this->linkProtocols,
             'processors' => $this->nodeProcessors,
             'plugins' => $this->plugins,
+            // The registered ones as well as the render's own: a plugin that only
+            // transforms markup adds no extension, so the list above cannot see it.
+            'globalPlugins' => static::getGlobalPlugins(),
         ]);
     }
 
@@ -602,7 +693,20 @@ class AdvancedRichContentRenderer extends RichContentRenderer
 
         // Before the sanitiser rather than after it: what a highlighter produces is markup,
         // and markup this package generates goes through the same door as everything else.
-        return $this->codeHighlighter?->apply($html) ?? $html;
+        $html = $this->codeHighlighter?->apply($html) ?? $html;
+
+        // Last, and on the finished markup: a plugin adding a node of its own needs the
+        // same attribute-into-structure step the four passes above are, and giving it a
+        // half-built document to work on would make the order of this method its problem.
+        // Still before the sanitiser, so nothing here reaches a page that a document could
+        // not have carried there itself.
+        foreach ($this->getPlugins() as $plugin) {
+            if ($plugin instanceof TransformsRenderedHtml) {
+                $html = $plugin->transformRenderedHtml($html);
+            }
+        }
+
+        return $html;
     }
 
     /**
