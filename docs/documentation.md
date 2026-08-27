@@ -2991,6 +2991,41 @@ AdvancedRichContentRenderer::make($article->content)
     ->toMarkdown(['header_style' => 'setext']);      // overrules the default
 ```
 
+### Excerpts
+
+The first few lines of a document, for a meta description, a teaser or a card:
+
+```php
+AdvancedRichContentRenderer::make($article->content)->toExcerpt();          // 160 characters
+AdvancedRichContentRenderer::make($article->content)->toExcerpt(200, ' …'); // and your own marker
+```
+
+The length is the length of the **text**; the marker is added on top of it, the way
+`Str::limit()` counts. The cut falls on a word boundary, and nothing is appended where the
+text already ends in a full stop — `Der erste Satz.…` is two marks doing one job. Defaults
+live under `excerpt` in the config.
+
+The text it cuts is `toText()`, which means mentions read the way they were typed and merge
+tags carry the values they hold now. Two things had to be repaired in that method to make an
+excerpt out of it, and both apply to `toText()` itself:
+
+- **A sentence is one line again.** TipTap's text serialiser puts its block separator
+  between *any* two children, not between blocks — so `<p>Hallo <strong>Welt</strong>!</p>`
+  came back as three lines, two of them one word long. Anything that indexed or excerpted a
+  document with a link or a bold word in it got that shape.
+- **Entities are spelled out.** The serialiser escapes every text node it walks, which is
+  right on the way into markup and wrong in the one method that promises there is none. A
+  search index holding `Tom &amp; Jerry` does not answer a search for Tom & Jerry.
+
+The cutting itself is a plain function on a string, usable on text this package did not
+produce:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Excerpt;
+
+Excerpt::from($text, 160);
+```
+
 ## Configuration
 
 ### What ships on

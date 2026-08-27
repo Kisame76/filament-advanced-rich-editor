@@ -1114,6 +1114,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Excerpt
+    |--------------------------------------------------------------------------
+    | Defaults for `AdvancedRichContentRenderer::toExcerpt()`, the teaser it builds out
+    | of a stored document — for a meta description, a card, a search result.
+    |
+    |   'characters'  how long the text may be. The ellipsis is added on top of it, the
+    |                 way `Str::limit()` counts. 160 is what a search engine shows of a
+    |                 meta description before it stops.
+    |   'end'         what marks the cut. Nothing is appended where the text already
+    |                 ends in a full stop, so the two marks never meet.
+    |
+    | The cut falls on a word boundary. Per call: `->toExcerpt(200, ' …')`.
+    */
+    'excerpt' => [
+        'characters' => 160,
+        'end' => '…',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Spatie Media Library attachments
     |--------------------------------------------------------------------------
     | Defaults for fields that opt in with `->spatieMediaLibrary()`. `conversion` is the

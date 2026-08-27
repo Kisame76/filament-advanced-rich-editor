@@ -431,6 +431,26 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     }
 
     /**
+     * The first few lines of the document, for a teaser or a meta description.
+     *
+     * Built on `toText()`, so a mention reads the way it was typed and a merge tag carries
+     * the value it holds now. The length is the length of the text and the ellipsis is
+     * added on top, the way `Str::limit()` counts - anyone reading the call will assume
+     * that, and a second convention for the same thing is one to look up every time.
+     *
+     * The cut falls on a word boundary, and nothing is appended where the text already
+     * ends in a full stop; `Excerpt` is where both of those are decided and tested.
+     */
+    public function toExcerpt(?int $characters = null, ?string $end = null): string
+    {
+        return Excerpt::from(
+            $this->toText(),
+            $characters ?? (int) config('filament-advanced-rich-editor.excerpt.characters', 160),
+            $end ?? (string) config('filament-advanced-rich-editor.excerpt.end', '…'),
+        );
+    }
+
+    /**
      * Rewrites every mention into the text it reads as.
      *
      * The joining that keeps "Ping @Ada and #Backend" on one line used to live here and

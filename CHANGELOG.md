@@ -27,6 +27,16 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the node view's outer box is placed instead of the picture, which is the element a
   paragraph actually lays out. Per field: `->imageFloat()`; project-wide: `images.float`
 
+- An excerpt: `AdvancedRichContentRenderer::toExcerpt()`, the first few lines of a document
+  for a meta description, a teaser or a card. The length is the length of the text and the
+  marker is added on top, the way `Str::limit()` counts, because a second convention for the
+  same thing is one to look up every time. The cut falls on a word boundary, and nothing is
+  appended where the text already ends in a full stop - `Der erste Satz.…` is two marks
+  doing one job, and the cut lands there more often than it looks, since it backs up to the
+  last space and the word before a space is regularly the last of a sentence. The cutting
+  itself is `Excerpt::from()`, a plain function on a string, usable on text this package did
+  not produce. Defaults under the `excerpt` config key; per call: `->toExcerpt(200, ' …')`
+
 ### Fixed
 
 - A highlighted code block no longer loses half its syntax inside prose styles. The colour
