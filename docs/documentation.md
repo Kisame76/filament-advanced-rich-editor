@@ -67,6 +67,9 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 
 **[Media and links](#media-and-links)** — [Images](#images) ·
 [Where a picture sits](#where-a-picture-sits) ·
+[Size and lazy loading](#size-and-lazy-loading) ·
+[A picture that carries nothing](#a-picture-that-carries-nothing) ·
+[A picture that points somewhere](#a-picture-that-points-somewhere) ·
 [Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
 [Links](#links) · [Video embeds](#video-embeds) ·
 [Anchors in the editor](#anchors-in-the-editor)
@@ -84,7 +87,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Anchors](#anchors) · [Table of contents](#table-of-contents) · [Mentions](#mentions) ·
 [Markdown](#markdown) · [Excerpts](#excerpts) · [Blade component](#blade-component) ·
 [On a view page](#on-a-view-page) · [Ticking a box there](#ticking-a-box-on-the-view-page) · [In a table](#in-a-table) ·
-[Caching a render](#caching-a-render)
+[Caching a render](#caching-a-render) · [Extending the renderer](#extending-the-renderer)
 
 **Project-wide** — [Configuration](#configuration) · [What ships on](#what-ships-on) ·
 [Everything, in one call](#everything-in-one-call) · [Icons](#icons) ·
@@ -1591,6 +1594,132 @@ projects have the second one in a reset already:
     height: auto;
 }
 ```
+
+#### Size and lazy loading
+
+A picture inserted through the media browser carries the size it was measured at on upload:
+
+```html
+<img src="…" width="1600" height="900">
+```
+
+That is not there to fix how large it is drawn. It is there so a browser knows the *shape* of
+the picture before it has the file, leaves a hole of the right proportions for it, and stops
+the article below jumping down the moment it arrives. It costs one round of measuring that
+already happened for the media browser's own listing.
+
+**One thing to know before leaving it on.** Filament renders `width` as an inline `style` as
+well as an attribute — the pair this package's own resizing drags — so the measured size is
+also the displayed size. On a page carrying the usual reset that is exactly right and costs
+nothing:
+
+```css
+img { max-width: 100%; height: auto }
+```
+
+Inside a Filament panel there is nothing to do: that rule is part of the preflight Filament
+already ships. On your own front end it is the one line this needs, and without it a page
+that caps the width and lets the height stand draws a squashed picture. A project that cannot
+promise the reset turns the size off rather than finding out on the front page:
+
+```php
+AdvancedRichEditor::make('content')->imageDimensions(false);
+```
+
+A file the measuring could not read — a remote disk, an SVG, a format `getimagesize()` does
+not know — is inserted without the pair rather than with half of it. Half a pair says nothing
+about the shape, and a lone `width` is worse than none.
+
+**The loading hint is off.** `loading="lazy"` is not written unless a project asks for it:
+
+```php
+AdvancedRichEditor::make('content')->imageLoading('lazy');
+```
+
+The default is nothing at all, and that is the considered answer rather than the timid one. A
+field cannot know where on a page its pictures land, and `lazy` on the one above the fold
+delays the largest contentful paint instead of helping it — which is usually the number
+somebody switching it on is trying to improve. The measured size above earns the bulk of the
+same prize without that risk. Set it project-wide under `images.loading`, and use
+`->imageLoading(false)` to keep one field eager where the project turned it on everywhere.
+
+#### A picture that carries nothing
+
+A divider, a texture, a flourish beside a heading the words already say. The **decorative**
+button on the image toolbar marks one, and what it writes is a pair:
+
+```html
+<img src="…" alt="" role="presentation">
+```
+
+Both halves matter. An empty `alt` on its own is indistinguishable from a description
+somebody forgot — which is exactly what the [accessibility check](#accessibility-check) has
+to report as a fault. Saying it deliberately is what takes the picture off that list, and the
+check knows about the mark.
+
+Pressing the button again takes the mark off. Turning it on clears the alt text, because a
+description and "there is nothing to describe" cannot both be true; turning it off leaves the
+empty alt alone rather than inventing one — the picture then wants a description, and the
+check is about to say so.
+
+**It ships off.** The whole of what the mark buys is an accessibility check that stops
+reporting a deliberate empty `alt` as a forgotten one — and [that check](#accessibility-check)
+ships off too. On a field without it the button has no visible effect, on a bar that already
+carries thirteen. Switch the two on together:
+
+```php
+AdvancedRichEditor::make('content')
+    ->accessibility()
+    ->imageDecorative();
+```
+
+Project-wide: the `images.decorative` key. One thing to know before switching it off again: a
+field that does not offer the mark does not know the attribute either, so a picture marked
+elsewhere loses the mark the next time that field saves. That is the bargain every switch in
+this package makes, and the rendering half is unaffected — a stored document keeps its role
+on the page whether or not any field offers the button.
+
+`role` survives the sanitiser on its own; nothing has to be allowed for this.
+
+#### A picture that points somewhere
+
+The **link** button asks for an address and whether it opens in a new tab, and the picture is
+rendered inside an anchor:
+
+```html
+<a href="/articles/7" target="_blank" rel="noopener noreferrer"><img src="…"></a>
+```
+
+`rel` is written whether or not anybody asked for it, the same reasoning the [link
+dialog](#links) applies to text: `target="_blank"` hands the opened page a handle on the
+window that opened it, and nobody ticking "new tab" is thinking about that.
+
+**With a caption, the link goes around the picture and not around the pair:**
+
+```html
+<figure>
+    <a href="/articles/7"><img src="…"></a>
+    <figcaption>Eine Katze</figcaption>
+</figure>
+```
+
+A caption is text *about* the picture rather than part of what is being linked, and an anchor
+wrapping the `<figcaption>` would make those words a click target nobody aimed at.
+
+Emptying the address removes the link — the same field, the same button, no second control
+for undoing something.
+
+**What may be written.** `http`, `https`, `mailto` and `tel`, plus any address with no scheme
+at all: `/articles/7`, `../up`, `#section` are what a link inside a site is written as.
+Anything else — `javascript:`, `data:` — is dropped rather than escaped, because there is no
+correct escaping for "this was meant to be an address". The check runs in the browser and
+again in PHP, since a document can be edited in the source view and saved without ever
+passing through the dialog.
+
+Inside the editor a linked picture is not clickable, and should not be: clicking a picture
+there selects it so it can be resized, turned, placed or described.
+
+Per field: `->imageLink(false)`; project-wide: the `images.link` key.
 
 ### Media browser
 
@@ -3196,6 +3325,95 @@ provider is exempt: the provider decides what a URL is, and Spatie's are ordinar
 
 Defaults live under `render_cache` in the config.
 
+### Extending the renderer
+
+A package that adds a node of its own has two halves to place, and only one of them was ever
+open.
+
+**The editor half is Filament's, and already works.** Implement `RichContentPlugin`, hand it
+to a field with `->plugins()`, and the plugin's PHP extensions, JS extensions and toolbar
+tools are all picked up.
+
+**The rendering half is this package's, and needed a seam.** The call everything here is
+built around is:
+
+```php
+AdvancedRichContentRenderer::make($article->content)->toHtml();
+```
+
+Nothing else said. A node that only survives when somebody remembers to name its plugin is a
+node that disappears from the page the day somebody forgets — which is the bug this package
+found seven times in itself, and why it declares its own extensions unconditionally. Declare
+yours the same way, once, from a service provider:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+
+public function boot(): void
+{
+    AdvancedRichContentRenderer::extendWith(MyPlugin::make());
+}
+```
+
+Every render then declares it, whether or not it was handed the plugin. Registering the same
+plugin twice registers it once — service providers run in an order nobody controls. A render
+that *was* handed its own copy keeps that one, because an instance carries configuration.
+
+#### Turning an attribute into a structure
+
+The half a schema cannot do. An attribute travels through the document and comes out the
+other side as an attribute; what it cannot become is a `<figure>` around a picture, an `<a>`
+around it, a `<colgroup>` in front of a table. This package needs that four times over and
+does it with passes over the rendered markup. Implement `TransformsRenderedHtml` alongside
+`RichContentPlugin` and yours runs too:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
+
+class MyPlugin implements RichContentPlugin, TransformsRenderedHtml
+{
+    public function transformRenderedHtml(string $html): string
+    {
+        // Cheap way out first: this runs on every render, including the documents
+        // that have nothing of yours in them.
+        if (! str_contains($html, 'data-mine')) {
+            return $html;
+        }
+
+        return $this->wrapThem($html);
+    }
+}
+```
+
+It runs **after** this package's own passes and after the code highlighting, so what arrives
+is the finished document rather than a half-built one — the order of `toUnsafeHtml()` is not
+your problem. It runs **before** the sanitiser, which is the point: markup produced there
+goes through the same door as everything else.
+
+#### Widening the sanitiser
+
+Which is the other half of getting a node onto a page, and the half people reach for first.
+It is worth being clear about the order: **the schema decides before the sanitiser does.** An
+`<aside>` in a stored document is gone before the sanitiser is asked, because no extension
+declares it — widening the allow list changes nothing until something parses the node.
+
+Once it does, the allow list is what decides whether the markup survives. Filament keeps a
+short list on any element — `class`, `data-type`, `data-id`, `style` and a few more — which
+is why the callouts and the embeds in this package ride on `data-type`. Needing more than
+that is an ordinary Laravel extension and needs nothing from this package:
+
+```php
+$this->app->extend(
+    HtmlSanitizerConfig::class,
+    fn (HtmlSanitizerConfig $config): HtmlSanitizerConfig => $config
+        ->allowElement('aside', ['class']),
+);
+```
+
+`extend()` composes rather than replaces, so this package's own widening — the one that lets
+a video embed keep its `<iframe>` — still applies afterwards. Do it while booting: the config
+is resolved once, and an `extend()` after that reaches nothing.
+
 ## Configuration
 
 ### What ships on
@@ -3211,6 +3429,8 @@ the whole project; the method sets it for one field and wins.
 | `null` in the column for an empty document | `null_when_empty` | `->nullWhenEmpty()` |
 | Named styles (the list ships empty, so the dropdown is absent) | `styles` | `->styles([...])` |
 | A height cap (`null`) | `max_height` | `->maxHeight('400px')` |
+| Marking a picture as carrying nothing | `images.decorative` | `->imageDecorative()` |
+| A loading hint on an inserted picture (`null`) | `images.loading` | `->imageLoading('lazy')` |
 
 | Ships **on** | Config key | Per field |
 | --- | --- | --- |
@@ -3238,6 +3458,9 @@ the whole project; the method sets it for one field and wins.
 | Bar over a selection | `text_toolbar` | `->textToolbar(false)` |
 | Image toolbar | `images.toolbar` | `->imageToolbar(false)` |
 | Image resizing | `images.resizable` | Filament's `->resizableImages(false)` |
+| Where a picture sits | `images.float` | `->imageFloat(false)` |
+| Linking a picture | `images.link` | `->imageLink(false)` |
+| The measured size on an inserted picture | `images.dimensions` | `->imageDimensions(false)` |
 | Link `rel` / `referrerpolicy` / `hreflang` | `link.attributes` | `->linkAttributes(false)` |
 | Paste cleanup | `paste.cleanup` | `->pasteCleanup(false)` |
 | Mention menu rows | `mentions.menu` | `->mentionMenu(false)` |
