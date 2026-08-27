@@ -2,7 +2,7 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
-## Unreleased
+## 1.2.0 - 2026-08-27
 
 ### Added
 
@@ -63,121 +63,6 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   switching the picker off later leaves every one already written where it is. Per field:
   `->characters()`
 
-### Changed
-
-- The shipped toolbar is shorter by three. The typeface picker is registered but no longer
-  on it: choosing a font in an article is the front end's business, and this package strips
-  `font-family` out of a paste on exactly that reasoning - a bar offering the picker invites
-  somebody to do by hand what the paste cleanup exists to undo. Name the `fontFamily` token
-  to put it back. Striking out is out of the shipped layout altogether - not on the bar, not
-  in the overflow menu, not in the bubble - and is still registered, so naming `'strike'` in
-  any of those three lists brings it back; the language dropdown ships the same way. And the
-  quote moved into the `more`
-  menu: a quote is a thing you reach for occasionally rather than while writing, and the
-  callout dropdown took the place it had - a note, a warning and a tip come up far more often
-  than a pull quote does
-
-- The shipped toolbar has an `'accessibility'` token in it, between `'find'` and
-  `'sourceCode'`. It resolves to nothing while the check is off, which is how it ships, so
-  no toolbar changes for anybody until the check is switched on - and switching it on is
-  then the whole of what a project has to do. A project that published the config file adds
-  the token to its own `toolbar` array
-
-### Fixed
-
-- The slash menu and the mention menu keep their rounded corners once there is enough in
-  them to scroll. A scrollbar is painted inside the border box and a `border-radius` does
-  not clip it, so a panel that scrolled itself drew a straight bar across its own top and
-  bottom right corners - the two corners the rounding was for. The shell and the scrolling
-  are now two elements: the outer one keeps the border, the radius and the shadow and
-  clips, the inner one scrolls inside its padding, and the bar sits clear of the curve
-  whatever a platform decides a scrollbar looks like. `role="listbox"` moved with the
-  scrolling, so the options are still held by the element that claims them
-
-- `Ctrl+Shift+L` and `Ctrl+Shift+R` align a paragraph left and right, which is what the help
-  dialog has been saying they do. TipTap's `TextAlign` binds those two keys to the alignments
-  `left` and `right`, Filament configures the extension with `start` and `end` so that
-  right-to-left content behaves, and `setTextAlign` answers an alignment it was not
-  configured with by doing nothing at all. The dead half was the smaller problem: a shortcut
-  handler that does nothing also returns false, which leaves the key to the browser - so the
-  advertised way to align a paragraph right was a hard reload in Chrome and Firefox, with
-  the unsaved draft still in the field. Centring and justifying were never affected, since
-  `center` and `justify` are spelled the same on both lists
-
-- The character and emoji pickers draw their rows at the top of a tab instead of spreading
-  them over its height. The grid is a flex child filling the popup and a grid stretches its
-  rows by default, so a tab holding two rows drew two rows a hundred pixels tall with the
-  characters floating in the middle of each. It never showed on the emoji tabs, which always
-  have more rows than fit
-
-- A tab in either picker is now a square around its icon rather than a slab across the row.
-  Stretched, the highlight on the active tab ran up against the icons either side of it,
-  which reads as three tabs selected rather than one
-
-- The options in a textual toolbar dropdown all have the same height again. The menu is a
-  column flex box and Filament leaves its options shrinkable, so a list that ran past the
-  height cap - this package's cap, since Filament sets none - did not scroll, it squashed,
-  every row losing a few pixels. The
-  overflow menu was doing exactly that and its rows were shorter than the ones in the menu
-  beside it, which is the failure mode here nobody would think to look for. Options no
-  longer shrink, and the cap moved past the longest list this package ships so that none of
-  them scrolls out of the box
-
-- A textual toolbar dropdown scrolls one way only. Filament sets no height and no overflow
-  on that menu - the cap and the scrolling are this package's - and asking for `overflow-y`
-  alone is asking for both, because the specification computes the other axis from `visible`
-  to `auto` as soon as one of them is anything else. So the menu had a sideways scrollbar
-  nobody wanted and nothing worth reaching sideways for. Not `scrollbar-gutter: stable`
-  either: the browser already accounts for the scrollbar when it works out how wide a menu
-  wants to be, so the gutter fixes nothing and charges every menu that does not scroll
-  fifteen pixels of dead space on the right, with the highlight under the pointer stopping
-  short of it
-
-- An extension declared by both a plugin and the renderer is no longer applied twice. The
-  field's TipTap editor is an `AdvancedRichContentRenderer` carrying the field's own plugins,
-  and the renderer also declares several of this package's extensions unconditionally so that
-  a stored document keeps its videos and its markings whatever a render was told. Those two
-  lists overlapped, and `tiptap-php` applies both copies rather than letting one win - so a
-  field with videos switched on wrote a stray `</div>` after every embed on every save,
-  which a browser drops silently and a diff does not show. The renderer now keeps the first
-  of any repeat, which is the plugin's: that is the instance carrying the field's
-  configuration
-
-- `required()` now rejects an empty document in every shape it comes in. An empty editor is
-  not an empty value: TipTap keeps at least one paragraph in the document at all times, so a
-  field nobody typed into reaches the validator as an array with three keys, and Laravel's
-  `required` is happy with it. Filament rejects that exact shape and nothing else — press
-  return once and the document has two empty paragraphs, which it lets through, and so are a
-  stray space, a non-breaking space from a Word paste, a line break, the same document in
-  its markup form, and a field holding nothing at all. `DocumentContent` states the rule the
-  other way round and only once: a document is empty when it holds nothing but paragraphs,
-  line breaks and whitespace, and every other node — a list, a heading, a rule, an image, a
-  table, a custom block, one a project added — is content. An unknown node therefore counts
-  as content, so the mistake this can make is letting an empty-looking document through
-  rather than throwing away a document that had something in it. The same question is on the
-  field as `hasContent()`
-
-- A column somebody dragged wider stays wider on the page. Filament configures TipTap's
-  table with `resizable: true`, so dragging worked and the width was kept in the document -
-  it just never reached the reader. `ueberdosis/tiptap-php` writes it as `data-colwidth` on
-  the cell, which is neither on the sanitiser's allow list nor anything a browser does
-  something with, because CSS cannot read an attribute value as a width. The editor looked
-  right, the page did not, and nothing said so. `TableColumnWidths` turns the widths into the
-  `<colgroup>` ProseMirror itself draws while resizing, read off the first row the way
-  ProseMirror reads them, with `table-layout: fixed` alongside so that a width is not a
-  suggestion the browser drops as soon as the text is wider. A table nobody resized is left
-  exactly as it was. Nothing about what is stored changes
-
-- A record whose column holds an empty string opens instead of throwing. `text NOT NULL
-  DEFAULT ''` is an ordinary column and a record nobody has edited yet holds exactly that,
-  but Filament's state cast only guards against null: the empty string went to TipTap's DOM
-  parser, which reached for a `<body>` that was never built and died with
-  `DOMParser::getDocumentBody(): Return value must be of type DOMElement, null returned` - a
-  TypeError out of a form that was only being rendered, naming a class the application has
-  never heard of, and unrecoverable because hydration is what failed. The cast this package
-  registers treats a blank string the way the one it extends treats null
-
-### Added
 
 - A `'tools'` toolbar token: a second overflow for what a field does rather than what it
   writes - searching, the accessibility check, the source view, the shortcut list - so a
@@ -404,7 +289,49 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   package: roughly six hundred lines that decide which page is asked for and what is
   selected after an upload
 
+
 ### Changed
+
+- The README opens with what the field does that Filament's own does not, as a table rather
+  than a list of claims. Every row names the stock behaviour beside this package's, each
+  checked against `filament/forms` v5.7 rather than remembered, and links to the section
+  that covers it. Five of the claims the list made were wrong: stock registers all six
+  heading levels and a paragraph tool, ships a free colour picker behind
+  `customTextColors()`, already offers alt text that reopens for correction, and registers
+  four alignments rather than three
+
+- The documentation is grouped rather than flat. Forty-five sections hung under one `##
+  Usage`, which is why the plugin directory's own index listed eight entries for a file with
+  eighty headings. They now sit under The toolbar, Blocks, Characters, Media and links,
+  Typing instead of aiming and Getting it right, with a contents list above them and the
+  comparison table above that - so the page a reader lands on opens with what the package is
+  for rather than with its PHP version. No section moved out of the file and no anchor
+  changed
+
+- One table says which features ship on and which ship off, with the config key and the
+  per-field method for each. Thirty sections never stated their default, and three - the
+  drag handle, the drafts and the callouts - read as though they were off when they ship on
+
+
+- The shipped toolbar is shorter by three. The typeface picker is registered but no longer
+  on it: choosing a font in an article is the front end's business, and this package strips
+  `font-family` out of a paste on exactly that reasoning - a bar offering the picker invites
+  somebody to do by hand what the paste cleanup exists to undo. Name the `fontFamily` token
+  to put it back. Striking out is out of the shipped layout altogether - not on the bar, not
+  in the overflow menu, not in the bubble - and is still registered, so naming `'strike'` in
+  any of those three lists brings it back; the language dropdown ships the same way. And the
+  quote moved into the `more`
+  menu: a quote is a thing you reach for occasionally rather than while writing, and the
+  callout dropdown took the place it had - a note, a warning and a tip come up far more often
+  than a pull quote does
+
+- The shipped tools menu has an `'accessibility'` token in it, between `'find'` and
+  `'sourceCode'`. It resolves to nothing while the check is off, which is how it ships, so
+  no toolbar changes for anybody until the check is switched on - and switching it on is
+  then the whole of what a project has to do. A project that published the config file
+  already has it in `tools_menu` and needs to change nothing; naming `'accessibility'` in
+  `toolbar` instead gives it a button of its own on the bar
+
 
 - The source dialog is off by default. It hands an editor a way past every control the
   toolbar stands for - whoever types into that box writes whatever the schema will accept,
@@ -468,6 +395,131 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   empty and send every reader away from it. `docs/documentation.md` repeats the requirements
   and the installation steps rather than linking back to them, so that a reader arriving
   from the plugin directory is not left without the Livewire setting the package needs
+
+
+### Fixed
+
+- Three statements in the documentation described a toolbar that no longer ships. The
+  pinned corner was said to hold the source view, the fullscreen switch and the help
+  dialog; it holds `['tools', 'fullscreen']`, with the other three one click inside the
+  menu. `'help'` was said to sit at the end of the toolbar; it ships inside `tools_menu`.
+  And the accessibility check named `toolbar` as the place a published config adds its
+  token, where the shipped place is `tools_menu`. All three date from the release that made
+  the tools menu the shipped corner, and all three would have sent a reader looking for a
+  button that is not where they were told to look
+
+- Three features could not be reached from the documentation alone. The `fontFamily` token
+  is in none of the shipped lists, and the Fonts section walked a reader through configuring
+  a font directory without ever saying the dropdown would not appear; the Colours snippet
+  used `TextColor::make()` with no import, so it did not compile; and `->floatingToolbars()`
+  and the four panel classes behind it - the only way to change what the image bar, the
+  selection bar or the list bubbles hold - appeared nowhere in the file at all. Each now has
+  the call that makes it work
+
+- Seven public methods and classes were documented nowhere: `toUnsafeHtml()`,
+  `normaliseSourceHtml()`, `measureCharacterCount()`, `DocumentContent::isBlank()`,
+  `TableColumnWidths::apply()`, `ImageCaptions::apply()` and
+  `CodeHighlighter::isAvailable()`. They are the escape hatches for importers, seeders,
+  observers and anyone rendering outside `AdvancedRichContentRenderer`, and each now has the
+  signature and the case it exists for
+
+- The Livewire snippet in both the README and the documentation showed
+  `'max_nesting_depth' => 32` without the `payload` array it belongs inside or the file it
+  belongs in, so pasting it where a reader would paste it did nothing
+
+
+- The slash menu and the mention menu keep their rounded corners once there is enough in
+  them to scroll. A scrollbar is painted inside the border box and a `border-radius` does
+  not clip it, so a panel that scrolled itself drew a straight bar across its own top and
+  bottom right corners - the two corners the rounding was for. The shell and the scrolling
+  are now two elements: the outer one keeps the border, the radius and the shadow and
+  clips, the inner one scrolls inside its padding, and the bar sits clear of the curve
+  whatever a platform decides a scrollbar looks like. `role="listbox"` moved with the
+  scrolling, so the options are still held by the element that claims them
+
+- `Ctrl+Shift+L` and `Ctrl+Shift+R` align a paragraph left and right, which is what the help
+  dialog has been saying they do. TipTap's `TextAlign` binds those two keys to the alignments
+  `left` and `right`, Filament configures the extension with `start` and `end` so that
+  right-to-left content behaves, and `setTextAlign` answers an alignment it was not
+  configured with by doing nothing at all. The dead half was the smaller problem: a shortcut
+  handler that does nothing also returns false, which leaves the key to the browser - so the
+  advertised way to align a paragraph right was a hard reload in Chrome and Firefox, with
+  the unsaved draft still in the field. Centring and justifying were never affected, since
+  `center` and `justify` are spelled the same on both lists
+
+- The character and emoji pickers draw their rows at the top of a tab instead of spreading
+  them over its height. The grid is a flex child filling the popup and a grid stretches its
+  rows by default, so a tab holding two rows drew two rows a hundred pixels tall with the
+  characters floating in the middle of each. It never showed on the emoji tabs, which always
+  have more rows than fit
+
+- A tab in either picker is now a square around its icon rather than a slab across the row.
+  Stretched, the highlight on the active tab ran up against the icons either side of it,
+  which reads as three tabs selected rather than one
+
+- The options in a textual toolbar dropdown all have the same height again. The menu is a
+  column flex box and Filament leaves its options shrinkable, so a list that ran past the
+  height cap - this package's cap, since Filament sets none - did not scroll, it squashed,
+  every row losing a few pixels. The
+  overflow menu was doing exactly that and its rows were shorter than the ones in the menu
+  beside it, which is the failure mode here nobody would think to look for. Options no
+  longer shrink, and the cap moved past the longest list this package ships so that none of
+  them scrolls out of the box
+
+- A textual toolbar dropdown scrolls one way only. Filament sets no height and no overflow
+  on that menu - the cap and the scrolling are this package's - and asking for `overflow-y`
+  alone is asking for both, because the specification computes the other axis from `visible`
+  to `auto` as soon as one of them is anything else. So the menu had a sideways scrollbar
+  nobody wanted and nothing worth reaching sideways for. Not `scrollbar-gutter: stable`
+  either: the browser already accounts for the scrollbar when it works out how wide a menu
+  wants to be, so the gutter fixes nothing and charges every menu that does not scroll
+  fifteen pixels of dead space on the right, with the highlight under the pointer stopping
+  short of it
+
+- An extension declared by both a plugin and the renderer is no longer applied twice. The
+  field's TipTap editor is an `AdvancedRichContentRenderer` carrying the field's own plugins,
+  and the renderer also declares several of this package's extensions unconditionally so that
+  a stored document keeps its videos and its markings whatever a render was told. Those two
+  lists overlapped, and `tiptap-php` applies both copies rather than letting one win - so a
+  field with videos switched on wrote a stray `</div>` after every embed on every save,
+  which a browser drops silently and a diff does not show. The renderer now keeps the first
+  of any repeat, which is the plugin's: that is the instance carrying the field's
+  configuration
+
+- `required()` now rejects an empty document in every shape it comes in. An empty editor is
+  not an empty value: TipTap keeps at least one paragraph in the document at all times, so a
+  field nobody typed into reaches the validator as an array with three keys, and Laravel's
+  `required` is happy with it. Filament rejects that exact shape and nothing else — press
+  return once and the document has two empty paragraphs, which it lets through, and so are a
+  stray space, a non-breaking space from a Word paste, a line break, the same document in
+  its markup form, and a field holding nothing at all. `DocumentContent` states the rule the
+  other way round and only once: a document is empty when it holds nothing but paragraphs,
+  line breaks and whitespace, and every other node — a list, a heading, a rule, an image, a
+  table, a custom block, one a project added — is content. An unknown node therefore counts
+  as content, so the mistake this can make is letting an empty-looking document through
+  rather than throwing away a document that had something in it. The same question is on the
+  field as `hasContent()`
+
+- A column somebody dragged wider stays wider on the page. Filament configures TipTap's
+  table with `resizable: true`, so dragging worked and the width was kept in the document -
+  it just never reached the reader. `ueberdosis/tiptap-php` writes it as `data-colwidth` on
+  the cell, which is neither on the sanitiser's allow list nor anything a browser does
+  something with, because CSS cannot read an attribute value as a width. The editor looked
+  right, the page did not, and nothing said so. `TableColumnWidths` turns the widths into the
+  `<colgroup>` ProseMirror itself draws while resizing, read off the first row the way
+  ProseMirror reads them, with `table-layout: fixed` alongside so that a width is not a
+  suggestion the browser drops as soon as the text is wider. A table nobody resized is left
+  exactly as it was. Nothing about what is stored changes
+
+- A record whose column holds an empty string opens instead of throwing. `text NOT NULL
+  DEFAULT ''` is an ordinary column and a record nobody has edited yet holds exactly that,
+  but Filament's state cast only guards against null: the empty string went to TipTap's DOM
+  parser, which reached for a `<body>` that was never built and died with
+  `DOMParser::getDocumentBody(): Return value must be of type DOMElement, null returned` - a
+  TypeError out of a form that was only being rendered, naming a class the application has
+  never heard of, and unrecoverable because hydration is what failed. The cast this package
+  registers treats a blank string the way the one it extends treats null
+
 
 ## 1.1.1 - 2026-08-22
 
