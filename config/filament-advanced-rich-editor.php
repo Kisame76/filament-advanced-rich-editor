@@ -197,6 +197,7 @@ return [
         'enabled' => false,
         'rules' => [
             'missing_alt',
+            'decorative_link',
             'empty_link',
             'weak_link_text',
             'skipped_heading',

@@ -307,6 +307,7 @@ return [
         'ratio' => ':ratio of the :needed needed',
         'rules' => [
             'missing_alt' => 'Image without alt text',
+            'decorative_link' => 'Linked picture with nothing to announce',
             'empty_link' => 'Link with no text',
             'weak_link_text' => 'Link text says nothing',
             'skipped_heading' => 'Heading level skipped',

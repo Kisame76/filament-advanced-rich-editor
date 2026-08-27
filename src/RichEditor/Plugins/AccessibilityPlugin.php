@@ -45,6 +45,7 @@ class AccessibilityPlugin implements RichContentPlugin
      */
     public const RULES = [
         'missing_alt',
+        'decorative_link',
         'empty_link',
         'weak_link_text',
         'skipped_heading',
@@ -76,6 +77,7 @@ class AccessibilityPlugin implements RichContentPlugin
                 'ratio' => $line('ratio'),
                 'rules' => [
                     'missing_alt' => $line('rules.missing_alt'),
+                    'decorative_link' => $line('rules.decorative_link'),
                     'empty_link' => $line('rules.empty_link'),
                     'weak_link_text' => $line('rules.weak_link_text'),
                     'skipped_heading' => $line('rules.skipped_heading'),

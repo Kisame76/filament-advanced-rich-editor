@@ -31,6 +31,7 @@
 /** Every rule, in the order a report reads best in: the picture, the links, the structure. */
 export const RULES = [
     'missing_alt',
+    'decorative_link',
     'empty_link',
     'weak_link_text',
     'skipped_heading',
@@ -249,6 +250,15 @@ export function findingsFor(subjects, options = {}) {
                     findings.push(finding('missing_alt', subject, subject.src ?? ''))
                 }
 
+                // A marked picture that is also a link. Each half is right on its own, which
+                // is why nothing else catches the pair: the mark tells a screen reader to
+                // skip the picture, the picture is the whole of the link, and what is
+                // announced is "link" and nothing else. The alt text is what would name it,
+                // and the mark is a promise that there is none.
+                if (enabled.has('decorative_link') && subject.decorative === true && String(subject.href ?? '').trim()) {
+                    findings.push(finding('decorative_link', subject, subject.href))
+                }
+
                 break
 
             case 'link': {
@@ -348,6 +358,7 @@ export function subjectsOf(doc) {
                 alt: node.attrs.alt,
                 src: node.attrs.src,
                 decorative: node.attrs.decorative === true,
+                href: node.attrs.href ?? null,
             })
 
             return false

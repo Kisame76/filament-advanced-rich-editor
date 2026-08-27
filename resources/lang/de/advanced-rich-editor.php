@@ -305,6 +305,7 @@ return [
         'ratio' => ':ratio von :needed nötig',
         'rules' => [
             'missing_alt' => 'Bild ohne Alternativtext',
+            'decorative_link' => 'Verlinktes Bild ohne Beschriftung',
             'empty_link' => 'Link ohne Text',
             'weak_link_text' => 'Linktext sagt nichts',
             'skipped_heading' => 'Überschriftenebene übersprungen',

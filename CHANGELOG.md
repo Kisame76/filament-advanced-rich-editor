@@ -6,6 +6,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- A picture that was both marked decorative and given a link produced a link with no
+  accessible name: the mark tells a screen reader to skip the picture, the picture is the
+  whole of the link, and what is announced is "link" and nothing else. Each half is right on
+  its own, which is why nothing caught the pair - least of all the accessibility check, whose
+  alt text rule had just been taught to stay quiet about marked pictures. It is now the
+  seventh rule, `decorative_link`
+
 - The image link dialog could close having written nothing. The editor selection can arrive
   described as text rather than as a node, and `updateAttributes` then finds no picture; the
   media dialog has carried the correction for this at the same call site for some time, and
