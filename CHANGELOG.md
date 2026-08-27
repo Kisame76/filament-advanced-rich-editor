@@ -2,6 +2,20 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- A highlighted code block no longer loses half its syntax inside prose styles. The colour
+  was written once, on the `<pre>`, and everything inside took it by inheritance - which
+  loses to any rule naming `code` directly. Filament's own prose styles do exactly that
+  (`.fi-prose code { color: var(--prose-code-color) }`), and so does Tailwind's typography
+  plugin. In a dark panel that drew white text over the light theme's white background, so
+  every token the theme gives no colour of its own - the brackets, the commas, the spaces -
+  disappeared while the coloured ones stayed. It reads as a highlighter that swallowed the
+  punctuation. The `<code>` now carries `color: inherit`, which beats a stylesheet and still
+  follows the `<pre>` when a project swaps a pair of themes over
+
 ## 1.2.0 - 2026-08-27
 
 ### Added

@@ -155,6 +155,8 @@ class CodeHighlighter
             return null;
         }
 
+        $this->letCodeInheritColour($snippet);
+
         $fragment = $document->createDocumentFragment();
 
         foreach (iterator_to_array($wrapper->childNodes) as $child) {
@@ -162,6 +164,32 @@ class CodeHighlighter
         }
 
         return $fragment->hasChildNodes() ? $fragment : null;
+    }
+
+    /**
+     * Puts the block's colour on the `<code>` as well as on the `<pre>`.
+     *
+     * The highlighter writes it once, on the `<pre>`, and everything inside takes it by
+     * inheritance - which loses to any rule that names `code` directly. Filament's prose
+     * styles do exactly that (`.fi-prose code { color: var(--prose-code-color) }`), and so
+     * does Tailwind's typography plugin. In a dark panel that is white text over the light
+     * theme's white background, and the tokens the theme gives no colour of their own - the
+     * brackets, the commas, the spaces - disappear while the coloured ones stay. What that
+     * reads as is a highlighter that swallowed half the syntax.
+     *
+     * `inherit` rather than the colour itself, so that a project swapping the pair over
+     * still only has to swap it on the `<pre>` - the same reason the list marker is written
+     * inline: inline beats a stylesheet, and one place to change beats two.
+     */
+    protected function letCodeInheritColour(DOMDocument $snippet): void
+    {
+        foreach (iterator_to_array($snippet->getElementsByTagName('code')) as $code) {
+            $style = trim($code->getAttribute('style'));
+
+            // First, so that anything the highlighter wrote for this element still wins:
+            // the last declaration of a property is the one that counts.
+            $code->setAttribute('style', trim('color: inherit;'.($style === '' ? '' : ' '.$style)));
+        }
     }
 
     /**
