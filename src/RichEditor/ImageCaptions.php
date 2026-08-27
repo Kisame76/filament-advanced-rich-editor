@@ -92,6 +92,13 @@ class ImageCaptions
         // looks is left to `.fi-arte-figure`.
         $figure->setAttribute('style', 'margin-inline: 0;');
 
+        // A `<figure>` is a block, and placing a picture inside a block places it within
+        // the block rather than placing the block - a float reads as a caption sitting in a
+        // column of its own with the text refusing to come near it, and a centred picture
+        // is centred inside a figure that is still hard left. So the placement moves out to
+        // the figure, along with the gap the extension wrote beside it.
+        $this->moveFloat($image, $figure);
+
         $figcaption = $document->createElement('figcaption');
         // `textContent` escapes; a caption is text somebody typed, not markup.
         $figcaption->textContent = $caption;
@@ -100,6 +107,89 @@ class ImageCaptions
 
         $figure->appendChild($image);
         $figure->appendChild($figcaption);
+    }
+
+    /**
+     * The declarations that place a picture, taken off the image and put on the figure
+     * around it.
+     *
+     * Only these: everything else the image carries - its width, its height, the transform
+     * of a turned picture - describes the picture and belongs where it is.
+     *
+     * Matched on the value as well as on the property, because two of these names are not
+     * this feature's alone. `margin-inline` is also what a quarter turn writes to make its
+     * layout box match what is drawn, paired with a `margin-block` that is not on this
+     * list - moving one half of that pair and leaving the other splits the compensation
+     * across two elements and lays the picture across the lines around it. So only the
+     * automatic margin travels, which is the one that centres.
+     */
+    protected function moveFloat(DOMElement $image, DOMElement $figure): void
+    {
+        $style = $image->getAttribute('style');
+
+        if (blank($style)) {
+            return;
+        }
+
+        $moved = [];
+        $kept = [];
+
+        foreach (explode(';', $style) as $declaration) {
+            $declaration = trim($declaration);
+
+            if ($declaration === '') {
+                continue;
+            }
+
+            [$property, $value] = [...explode(':', $declaration, 2), ''];
+            $property = strtolower(trim($property));
+            $value = strtolower(trim($value));
+
+            if (static::places($property, $value)) {
+                $moved[] = $declaration;
+
+                continue;
+            }
+
+            $kept[] = $declaration;
+        }
+
+        if ($moved === []) {
+            return;
+        }
+
+        // After whatever the figure already says, because a longhand that follows a
+        // shorthand is the one that counts - the figure carries `margin-inline: 0`.
+        $figure->setAttribute('style', trim(implode('; ', [
+            rtrim($figure->getAttribute('style'), '; '),
+            ...$moved,
+        ]), '; ').';');
+
+        if ($kept === []) {
+            $image->removeAttribute('style');
+
+            return;
+        }
+
+        $image->setAttribute('style', implode('; ', $kept).';');
+    }
+
+    /**
+     * Whether one declaration is part of placing the picture rather than describing it.
+     */
+    protected static function places(string $property, string $value): bool
+    {
+        return match ($property) {
+            // A float and the gap beside it. `margin-block-end` is the float's alone: a
+            // turn writes the shorthand `margin-block`, which is a different property.
+            'float', 'margin-inline-start', 'margin-inline-end', 'margin-block-end' => true,
+            // The centring pair, and only where it centres. A turn writes both of these
+            // names too, with a length rather than `auto` and with `inline-flex` rather
+            // than `block`.
+            'margin-inline' => $value === 'auto',
+            'display' => $value === 'block',
+            default => false,
+        };
     }
 
     /**

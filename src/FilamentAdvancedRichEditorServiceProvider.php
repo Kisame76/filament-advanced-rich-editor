@@ -62,6 +62,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/image-caption', __DIR__.'/../resources/dist/js/image-caption.js')
                     ->loadedOnRequest(),
 
+                // The side a picture sits on. Schema and one command, so a field that does
+                // not offer it loads nothing.
+                Js::make('advanced-rich-editor/image-float', __DIR__.'/../resources/dist/js/image-float.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/text-background', __DIR__.'/../resources/dist/js/text-background.js')
                     ->loadedOnRequest(),
 

@@ -20,6 +20,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageCaption;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageFloat;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageRotate;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
@@ -230,6 +231,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // offered the buttons. The rotation used to arrive only with
             // `ImageResizePlugin`, so a plain render of a stored document dropped it.
             app(ImageRotate::class),
+            app(ImageFloat::class),
             // The same again, six times over. Every one of these used to arrive only with
             // the plugin that puts its button on the bar, so a plain render of a stored
             // document dropped it without a word: a task list came back as an ordinary

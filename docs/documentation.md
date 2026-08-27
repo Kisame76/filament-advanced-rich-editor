@@ -66,6 +66,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Special characters](#special-characters)
 
 **[Media and links](#media-and-links)** — [Images](#images) ·
+[Where a picture sits](#where-a-picture-sits) ·
 [Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
 [Links](#links) · [Video embeds](#video-embeds) ·
 [Anchors in the editor](#anchors-in-the-editor)
@@ -1474,6 +1475,64 @@ lives in `images.resizable`, and a field always wins:
 ```php
 AdvancedRichEditor::make('content')->resizableImages(false);
 ```
+
+#### Where a picture sits
+
+Three buttons on the image toolbar — left, centre, right. Left and right let the text run
+past the picture instead of starting below it, the oldest thing anybody has ever asked an
+editor for and the last piece of laying a picture out that this package did not have; the
+size, the rotation and the caption were all already there.
+
+**Centre is not a float, and cannot be.** CSS has no way to run text down both sides of a
+block, so centre is what every editor means by it: the picture on its own line, in the
+middle, with the text above and below. It is written as a block with automatic margins.
+
+Pressing the placement a picture already has takes it off again, so three buttons cover four
+states. It is the idiom the callouts already use: the button that put something there is the
+one that takes it away. The button of the current placement is drawn as active — spelled out
+rather than left to Filament, which decides that by asking `editor.isActive(<the tool's
+name>)` and therefore only ever recognises a node or a mark. A placement is neither; it is a
+global attribute on the image node.
+
+```php
+AdvancedRichEditor::make('content')->imageFloat();        // on by default
+AdvancedRichEditor::make('content')->imageFloat(false);   // no buttons, and the extension is not loaded
+```
+
+**The placement rides in the inline `style`**, which is what survives Filament's sanitiser —
+the same road the rotation takes, and the reason both are whitelisted before they are
+written: nothing in the stack validates CSS. The gap beside a floated picture is written
+with it:
+
+```html
+<img src="/cat.jpg" style="float: left; margin-inline-end: 1rem; margin-block-end: 1rem;">
+<img src="/cat.jpg" style="display: block; margin-inline: auto;">
+```
+
+The gap travels in the markup because the page a document lands on has not loaded this
+package's stylesheet, and a floated picture with no gap has the words against the frame.
+It is `images.float_gap` in the config, and a project that would rather draw it itself sets
+that to null and gets the bare `float`. Logical properties, so a picture inside a
+right-to-left passage gets its gap on the correct side.
+
+**A caption moves the placement outwards.** A captioned image is wrapped in a `<figure>`,
+which is a block — and placing a picture inside a block places it within the block rather
+than placing the block. A float reads as a caption sitting in a column of its own with the
+text refusing to come near it; a centred picture is centred inside a figure that is still
+hard left. The placement and its gap move to the figure; everything that describes the
+picture stays on it.
+
+**In the editor it is the node view that moves.** Filament draws an image through a resize
+node view: the picture sits in a wrapper, and that wrapper sits in an `inline-flex` box
+which is what the paragraph lays out. Placing either inner element moves nothing, so the
+package stylesheet places the outer one, matched on the style the extension wrote. Centring
+it needs one `!important`, because that `display: inline-flex` is an inline style and no
+ordinary rule outranks one. All of this is the editor's business only — a page sees the
+`<img>` and needs no rule of yours.
+
+There is a second way to centre an image: the alignment dropdown centres the paragraph it
+sits in, which centres an inline picture with it. The button here is the one that works
+whatever that paragraph says, and it is where somebody laying out a picture looks.
 
 #### Captions
 

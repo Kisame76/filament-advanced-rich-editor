@@ -143,6 +143,12 @@ class Icons
             // rotation icon, and its arrows read as undo and redo.
             'image_rotate_left' => 'arte-rotate-ccw',
             'image_rotate_right' => 'arte-rotate-cw',
+            // The two float sides are drawn for this package: an icon for "the text runs
+            // past this" has to show both the picture and the text, and neither Heroicons
+            // nor Lucide has one that does.
+            'image_float_left' => 'arte-image-left',
+            'image_float_center' => 'arte-image-center',
+            'image_float_right' => 'arte-image-right',
             'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
             'image_size' => 'heroicon-o-arrows-pointing-out',
             'image_download' => 'heroicon-o-arrow-down-tray',

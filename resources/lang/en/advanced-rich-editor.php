@@ -168,6 +168,9 @@ return [
         ],
         'image_download' => 'Download image',
         'image_delete' => 'Delete image',
+        'image_float_left' => 'Float left',
+        'image_float_right' => 'Float right',
+        'image_float_center' => 'Centre',
         'image_rotate_left' => 'Rotate left',
         'image_rotate_right' => 'Rotate right',
         'media_library' => [

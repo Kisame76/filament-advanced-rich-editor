@@ -20,11 +20,17 @@ it('offers the whole image toolbar on a selected image', function (): void {
         ->and($toolbars['image'][2])->toBe('imageRotateLeft')
         ->and($toolbars['image'][3])->toBe('imageRotateRight')
         ->and($toolbars['image'][4])->toBeInstanceOf(ToolbarDivider::class)
-        ->and($toolbars['image'][5])->toBeInstanceOf(ToolbarImagePanel::class)
-        ->and($toolbars['image'][5]->getMode())->toBe(ToolbarImagePanel::MODE_ALT)
-        ->and($toolbars['image'][6])->toBe('imageDownload')
-        ->and($toolbars['image'][7])->toBe('imageDelete')
-        ->and(editor()->getTools())->toHaveKeys(['imageRotateLeft', 'imageRotateRight', 'imageDownload', 'imageDelete'])
+        // Where the picture sits, beside how it is turned: both are about placing it
+        // rather than about what it says.
+        ->and($toolbars['image'][5])->toBe('imageFloatLeft')
+        ->and($toolbars['image'][6])->toBe('imageFloatCenter')
+        ->and($toolbars['image'][7])->toBe('imageFloatRight')
+        ->and($toolbars['image'][8])->toBeInstanceOf(ToolbarDivider::class)
+        ->and($toolbars['image'][9])->toBeInstanceOf(ToolbarImagePanel::class)
+        ->and($toolbars['image'][9]->getMode())->toBe(ToolbarImagePanel::MODE_ALT)
+        ->and($toolbars['image'][10])->toBe('imageDownload')
+        ->and($toolbars['image'][11])->toBe('imageDelete')
+        ->and(editor()->getTools())->toHaveKeys(['imageRotateLeft', 'imageRotateRight', 'imageFloatLeft', 'imageFloatCenter', 'imageFloatRight', 'imageDownload', 'imageDelete'])
         // Filament's own table toolbar has to survive the addition.
         ->and($toolbars)->toHaveKey('table');
 });
@@ -33,10 +39,15 @@ it('keeps only the size independent controls when resizing is off', function ():
     $buttons = editor()->resizableImages(false)->getFloatingToolbars()['image'];
 
     // No switch, no size panel, no rotation - all three write what a drag writes - and
-    // therefore no divider to separate them from the rest.
-    expect($buttons[0])->toBeInstanceOf(ToolbarImagePanel::class)
-        ->and($buttons[0]->getMode())->toBe(ToolbarImagePanel::MODE_ALT)
-        ->and(array_slice($buttons, 1))->toBe(['imageDownload', 'imageDelete']);
+    // therefore no divider to separate them from the rest. The float stays: it is not a
+    // size, and a field may well allow one without the other.
+    expect($buttons[0])->toBe('imageFloatLeft')
+        ->and($buttons[1])->toBe('imageFloatCenter')
+        ->and($buttons[2])->toBe('imageFloatRight')
+        ->and($buttons[3])->toBeInstanceOf(ToolbarDivider::class)
+        ->and($buttons[4])->toBeInstanceOf(ToolbarImagePanel::class)
+        ->and($buttons[4]->getMode())->toBe(ToolbarImagePanel::MODE_ALT)
+        ->and(array_slice($buttons, 5))->toBe(['imageDownload', 'imageDelete']);
 });
 
 it('drops the image toolbar entirely when asked', function (): void {

@@ -1138,6 +1138,66 @@ body.fi-arte-fullscreen-lock {
     max-width: none;
 }
 
+/*
+ * A floated picture, inside the editor.
+ *
+ * The float is written on the `<img>`, because that is where it has to end up in the
+ * stored markup - but inside the editor the picture is not what is laid out. Filament
+ * draws an image through a resize node view: the picture sits in a resize wrapper, and
+ * that wrapper sits in an `inline-flex` box which is the thing the paragraph actually
+ * lays out. Floating either of the inner two moves nothing, so the outer one is floated -
+ * `:has(> [data-resize-wrapper] …)` names exactly it, since `>` inside `:has()` matches
+ * only the element the wrapper is a direct child of.
+ *
+ * Matched on the style the extension wrote rather than on a class: a class would have to
+ * survive the sanitiser to be worth writing, and this one never leaves the editor.
+ *
+ * The gap is drawn here too, from the property the field writes the configured value onto.
+ * The stored markup carries its own copy, written in PHP - which is the half a save
+ * renders from, and the only half a page ever sees.
+ */
+.fi-arte :has(> [data-resize-wrapper] img[style*='float: left']) {
+    float: left;
+    margin-inline-end: var(--fi-arte-image-float-gap, 1rem);
+    margin-block-end: var(--fi-arte-image-float-gap, 1rem);
+}
+
+.fi-arte :has(> [data-resize-wrapper] img[style*='float: right']) {
+    float: right;
+    margin-inline-start: var(--fi-arte-image-float-gap, 1rem);
+    margin-block-end: var(--fi-arte-image-float-gap, 1rem);
+}
+
+/*
+ * Centred, which is not a float and cannot be one: CSS has no way to run text down both
+ * sides of a block. A block with automatic margins is what every editor means by it, and
+ * `fit-content` is what keeps that block the width of the picture rather than the width of
+ * the line - without it the automatic margins have nothing to share out.
+ */
+.fi-arte :has(> [data-resize-wrapper] img[style*='margin-inline: auto']) {
+    /*
+     * `!important` on this one line, and it is load-bearing: the node view writes
+     * `display: inline-flex` as an inline style on this element, which no ordinary rule
+     * outranks. The float rules above need nothing of the sort - `float` is not in that
+     * inline style.
+     */
+    display: block !important;
+    inline-size: fit-content;
+    margin-inline: auto;
+}
+
+/*
+ * The paragraph a floated picture sits in collapses to nothing, so without this the
+ * following block starts at the top of the picture rather than beside it - which is right
+ * on a page and wrong in an editor, where a caret has to be reachable. The float is
+ * cleared at the end of the document instead.
+ */
+.fi-arte .fi-fo-rich-editor-content::after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
 /* The unlocked state is the notable one, so it is the one that gets the accent. */
 .fi-arte-image-lock.fi-active {
     color: var(--primary-600, #2563eb);

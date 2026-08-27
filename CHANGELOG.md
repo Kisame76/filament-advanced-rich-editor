@@ -4,6 +4,29 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- Where a picture sits: three buttons on the image toolbar - left, centre, right. Left and
+  right let the text run past it, which is the oldest thing anybody has ever asked an editor
+  for and the last piece of laying a picture out that was missing; the size, the rotation and
+  the caption were all already there. Centre is not a float and cannot be one - CSS has no
+  way to run text down both sides of a block - so it is what every editor means by centre:
+  the picture on its own line, in the middle, with the text above and below. Pressing the
+  placement a picture already has takes it off, so three buttons cover four states; the
+  callouts already work that way. The button of the current placement is drawn active, and
+  that had to be spelled out: Filament decides active by asking `editor.isActive(<the tool's
+  name>)`, which only ever recognises a node or a mark, and a placement is a global attribute
+  on the image node. The placement rides in the inline `style` like the rotation does,
+  because that is what survives the sanitiser, and it is whitelisted to three words before it
+  is written - nothing in the stack validates CSS. The gap beside a floated picture is
+  written with it, since the page a document lands on has not loaded this package's
+  stylesheet and a bare float has the words against the frame; `images.float_gap` sets it,
+  and null writes the bare `float` for a project that would rather draw the gap itself. A
+  captioned picture moves its placement out to the `<figure>`, because placing a picture
+  inside a block places it within the block rather than placing the block. Inside the editor
+  the node view's outer box is placed instead of the picture, which is the element a
+  paragraph actually lays out. Per field: `->imageFloat()`; project-wide: `images.float`
+
 ### Fixed
 
 - A highlighted code block no longer loses half its syntax inside prose styles. The colour

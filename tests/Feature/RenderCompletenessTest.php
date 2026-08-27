@@ -47,6 +47,7 @@ it('keeps what was written when nobody named a plugin', function (string $stored
         '<p><img src="/a.png" width="20" height="10" style="transform: rotate(90deg)" /></p>',
         'rotate(90deg)',
     ],
+    'a floated picture' => ['<p><img src="/a.png" style="float: left" /></p>', 'float: left'],
     'a caption' => ['<p><img src="/a.png" data-caption="Untertitel" /></p>', '<figcaption>Untertitel</figcaption>'],
     'a video' => [
         '<div data-type="embed" style="aspect-ratio: 16 / 9"><iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe></div>',

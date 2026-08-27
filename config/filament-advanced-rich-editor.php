@@ -845,11 +845,26 @@ return [
     | node and is kept in the saved markup. `toolbar` is the strip over a selected
     | image: aspect ratio lock, size and alt text panels, rotation, download, delete.
     | Per field: `->resizableImages()`.
+    |
+    | `float` puts the two side buttons on that strip, which let the text run past the
+    | picture instead of starting below it. Pressing the side a picture is already on
+    | takes the float off again, so two buttons cover three states. Per field:
+    | `->imageFloat()`.
+    |
+    | `float_gap` is the space written between the picture and the text beside it, as a
+    | CSS length. It travels in the stored markup, because the page a document ends up on
+    | has not loaded this package's stylesheet and a floated picture with no gap has the
+    | text touching it. Set it to null to write the bare `float` and draw the gap in your
+    | own stylesheet.
     */
     'images' => [
         'resizable' => true,
 
         'toolbar' => true,
+
+        'float' => true,
+
+        'float_gap' => '1rem',
     ],
 
     /*
@@ -1057,6 +1072,9 @@ return [
         // The toolbar over a selected image.
         'image_rotate_left' => 'arte-rotate-ccw',
         'image_rotate_right' => 'arte-rotate-cw',
+        'image_float_left' => 'arte-image-left',
+        'image_float_center' => 'arte-image-center',
+        'image_float_right' => 'arte-image-right',
         'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
         'image_size' => 'heroicon-o-arrows-pointing-out',
         'image_download' => 'heroicon-o-arrow-down-tray',
