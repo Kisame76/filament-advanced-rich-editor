@@ -82,6 +82,19 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   reasoning as the anchors, the embeds and the callouts: a renderer that has to be told is
   one that drops it the day somebody forgets to say so
 
+- `toText()` no longer breaks a sentence apart at a link, a bold word or a mention. TipTap's
+  text serialiser puts its block separator between *any* two children rather than between
+  blocks, so `<p>Hallo <strong>Welt</strong>!</p>` came back as three lines, two of them one
+  word long - the shape a search index and an excerpt both fall over. Adjacent pieces of
+  text are joined into one before serialising, which is what the mention pass already did
+  for the sentences it touched
+
+- `toText()` spells entities out instead of handing back the escaped text the serialiser
+  produces. Escaping is right on the way into markup and wrong in the one method that
+  promises there is none: an index holding `Tom &amp; Jerry` does not answer a search for
+  Tom & Jerry, and a meta description built on it says the entity out loud. Whoever prints
+  the result is printing text, and escaping text for a page is `{{ }}`'s job
+
 ## 1.2.0 - 2026-08-27
 
 ### Added

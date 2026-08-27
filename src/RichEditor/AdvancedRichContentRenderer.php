@@ -396,6 +396,11 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      * around this for merge tags by rewriting them into text before serialising; mentions
      * need the same treatment, and this is where a search index, an excerpt or the body of
      * a notification gets its copy of the document.
+     *
+     * Two further repairs, both of them the serialiser's rather than the document's: the
+     * separator it puts between any two children, and the escaping it does to text that is
+     * on its way out of HTML rather than into it. See `joinAdjacentText()` and the return
+     * below.
      */
     public function toText(): string
     {
@@ -407,23 +412,30 @@ class AdvancedRichContentRenderer extends RichContentRenderer
 
         $editor = $this->getEditor();
 
-        // In the order Filament's own `toText()` uses them, with the mention passes added:
-        // resolving first, so that the text is written from what the providers say now
-        // rather than from the copy the document was saved with.
-        $this->processMergeTags($editor);
-        $this->flattenMergeTagsForText($editor);
-        $this->processMentions($editor);
-        $this->flattenMentionsForText($editor);
+            // In the order Filament's own `toText()` uses them, with the mention passes
+            // added: resolving first, so that the text is written from what the providers
+            // say now rather than from the copy the document was saved with.
+            $this->processMergeTags($editor);
+            $this->flattenMergeTagsForText($editor);
+            $this->processMentions($editor);
+            $this->flattenMentionsForText($editor);
+            $this->joinAdjacentText($editor);
 
-        return $editor->getText();
+            // The serialiser escapes every text node it walks, which is right on the way
+            // into markup and wrong in the one method that promises there is none. An index
+            // holding `Tom &amp; Jerry` does not answer a search for Tom & Jerry, and a meta
+            // description built on it says the entity out loud. Whoever prints this is
+            // printing text, and escaping text for a page is the page's job - `{{ }}`
+            // already does it.
+            return html_entity_decode($editor->getText(), ENT_QUOTES, 'UTF-8');
     }
 
     /**
      * Rewrites every mention into the text it reads as.
      *
-     * Adjacent text is joined rather than left as neighbouring nodes, because the serialiser
-     * puts its block separator between any two children - so "Ping @Ada and #Backend" would
-     * come out as four lines with the mention missing from two of them.
+     * The joining that keeps "Ping @Ada and #Backend" on one line used to live here and
+     * now lives in `joinAdjacentText()`, which runs straight after: what a mention needed
+     * turned out to be what every sentence in the document needs.
      */
     protected function flattenMentionsForText(Editor $editor): void
     {
@@ -446,31 +458,62 @@ class AdvancedRichContentRenderer extends RichContentRenderer
                 return;
             }
 
-            $merged = [];
+            $flattened = [];
 
             foreach ($node->content as $child) {
-                $resolved = ($child->type ?? null) === 'mention'
-                    ? static::mentionAsText($child)
-                    : $child;
+                if (($child->type ?? null) !== 'mention') {
+                    $flattened[] = $child;
+
+                    continue;
+                }
+
+                $resolved = static::mentionAsText($child);
 
                 // A mention with neither a label nor an id names nobody. Dropping it leaves
                 // the sentence around it intact, which is the best available answer.
-                if ($resolved === null) {
-                    continue;
+                if ($resolved !== null) {
+                    $flattened[] = $resolved;
                 }
-
-                $last = end($merged);
-
-                if ($last && ($last->type ?? null) === 'text' && $resolved->type === 'text') {
-                    $last->text .= $resolved->text;
-
-                    continue;
-                }
-
-                $merged[] = $resolved;
             }
 
-            $node->content = $merged;
+            $node->content = $flattened;
+        });
+    }
+
+    /**
+     * Joins neighbouring pieces of text into one.
+     *
+     * The serialiser puts its block separator between ANY two children rather than between
+     * blocks, and a sentence carrying a link, a bold word or a mention is three or four
+     * text nodes. Without this pass `<p>Hallo <strong>Welt</strong>!</p>` comes back as
+     * three lines, two of which are one word - which is the shape a search index and an
+     * excerpt both fall over.
+     *
+     * The marks on the second node are dropped in the joining, and that is what this is
+     * for: the document is walked once by `getText()` after this and never rendered again.
+     */
+    protected function joinAdjacentText(Editor $editor): void
+    {
+        $editor->descendants(function (object &$node): void {
+            if (! isset($node->content) || ! is_array($node->content)) {
+                return;
+            }
+
+            $joined = [];
+
+            foreach ($node->content as $child) {
+                $last = end($joined);
+
+                if ($last && ($last->type ?? null) === 'text' && ($child->type ?? null) === 'text') {
+                    $last->text = ($last->text ?? '').($child->text ?? '');
+
+                    continue;
+                }
+
+                $joined[] = $child;
+            }
+
+            $node->content = $joined;
         });
     }
 
