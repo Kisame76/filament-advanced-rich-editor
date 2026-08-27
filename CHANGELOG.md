@@ -20,6 +20,21 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   selection to a caret. The panel now remembers which picture it was opened on, which is what
   the method beside it already did for reading
 
+- The bar over selected text was drawn on top of the bar over a selected picture. Filament
+  decides per toolbar whether to show, and the two answers disagree about a picture selected
+  inside a paragraph: the text bubble asks only whether the selection is non-empty and sits
+  in a paragraph, and a selected picture answers yes to both. The bubble now stays out of the
+  way while a node is selected - which is the general rule rather than a rule about pictures,
+  since a node selection is not a text selection and bold, italic and a link have nothing to
+  say about one
+
+- A floating toolbar was cut off at the bottom of a field that had `maxHeight()` set. The cap
+  was on the box Filament puts those toolbars in, which made it a scrolling ancestor of them,
+  and a scrolling ancestor clips what its children position outside it. The cap sits on the
+  document one element in now: the text still scrolls inside the field, and the bar over a
+  picture near the foot of it can reach past the border. Raising `z-index` does not help with
+  this and never did - clipping by a scrolling ancestor is geometry, not paint order
+
 - A picture that was both marked decorative and given a link produced a link with no
   accessible name: the mark tells a screen reader to skip the picture, the picture is the
   whole of the link, and what is announced is "link" and nothing else. Each half is right on
