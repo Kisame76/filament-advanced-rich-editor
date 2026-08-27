@@ -32,6 +32,26 @@ function imageStyle(string $html): array
 }
 
 /**
+ * The width on the first `<img>`, without its unit.
+ *
+ * Filament writes it as `width: 200px` on current releases and as `width: 200` on the
+ * oldest this package still supports, and neither spelling says anything about a float.
+ * Asking for the number is the same decision `imageStyle()` makes when it sorts instead of
+ * matching a string: a test that pins what carries no meaning fails on a change that moved
+ * nothing.
+ */
+function imageWidth(string $html): ?string
+{
+    foreach (imageStyle($html) as $declaration) {
+        if (preg_match('/^width:\s*(\d+(?:\.\d+)?)/', $declaration, $matches) === 1) {
+            return $matches[1];
+        }
+    }
+
+    return null;
+}
+
+/**
  * @return array<int, string>
  */
 function figureStyle(string $html): array
@@ -146,10 +166,12 @@ it('keeps the float beside a size and a rotation', function (): void {
     // overwrites. If it ever stopped doing so, this is where it would show.
     $html = '<p><img src="/cat.jpg" width="200" height="100" style="float: left; transform: rotate(90deg)" /></p>';
 
-    expect(imageStyle(AdvancedRichContentRenderer::make($html)->toHtml()))
+    $rendered = AdvancedRichContentRenderer::make($html)->toHtml();
+
+    expect(imageStyle($rendered))
         ->toContain('float: left')
         ->toContain('transform: rotate(90deg)')
-        ->toContain('width: 200px');
+        ->and(imageWidth($rendered))->toBe('200');
 });
 
 it('moves the float out to the figure a caption builds', function (): void {
@@ -170,8 +192,10 @@ it('leaves the picture its own styles when the float moves out', function (): vo
 
     $rendered = AdvancedRichContentRenderer::make($html)->toHtml();
 
+    // Nothing but the width stayed behind on the picture.
     expect(figureStyle($rendered))->toContain('float: right')
-        ->and(imageStyle($rendered))->toBe(['width: 200px']);
+        ->and(imageStyle($rendered))->toHaveCount(1)
+        ->and(imageWidth($rendered))->toBe('200');
 });
 
 it('registers the extension whether or not a field asked for the buttons', function (): void {
