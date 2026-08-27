@@ -64,16 +64,20 @@ class BlockStyle extends Extension
             return [];
         }
 
-        // One declaration over every block a style may sit on. Which styles a particular
-        // block is offered is a question for the picker, not for the schema: content that
-        // already carries a style is better shown than silently stripped.
-        $types = array_values(array_unique(array_merge(
-            ...array_map(static fn (array $style): array => $style['types'], $styles),
-        )));
-
+        // Every block type, and not the union of the ones the configured styles name.
+        // Which styles a particular block is *offered* is a question for the picker; the
+        // schema's question is what a document may carry, and the answer to that is
+        // "whatever it already carries" - content that has a style is better shown than
+        // silently stripped.
+        //
+        // The union was the narrower answer and it disagreed with the browser, which
+        // declares the attribute over all five. Style a paragraph, turn it into a heading,
+        // save: the editor kept the style and this half threw it away. A project that
+        // narrows a style to paragraphs is saying where the picker may offer it, not that
+        // the same words stop being a lead the moment they become a heading.
         return [
             [
-                'types' => $types,
+                'types' => Styles::BLOCK_TYPES,
                 'attributes' => [
                     static::ATTRIBUTE => [
                         'parseHTML' => fn ($DOMNode): ?string => static::read($styles, $DOMNode),

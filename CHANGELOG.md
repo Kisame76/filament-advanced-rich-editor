@@ -21,6 +21,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   and wrong for the one place where "dark mode" has a single meaning: the package stylesheet
   is registered with Filament and loads nowhere else, so it ships the rule
 
+- A named style stays on a block the picker was narrowed away from. The browser half
+  declares the style attribute over all five block types; this half declared it only over
+  the ones the configured styles happened to name, so a project that narrowed a style to
+  paragraphs lost it the moment somebody styled a paragraph and then turned it into a
+  heading - the editor kept it on screen and the save threw it away. Narrowing says where
+  the picker may offer a style, not that the same words stop being a lead once they are a
+  heading. Which classes count is unchanged: a class the project never declared is still
+  dropped
+
 ## 1.2.0 - 2026-08-27
 
 ### Added
