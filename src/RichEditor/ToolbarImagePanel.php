@@ -13,6 +13,7 @@ use Filament\Support\Concerns\HasExtraAttributes;
 use function Filament\Support\generate_icon_html;
 
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensAwayFromTheEdge;
 
 /**
  * The two panels of the image toolbar: the alt text, and the width and height.
@@ -29,6 +30,8 @@ use Illuminate\Support\Js;
  */
 class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
 {
+    use OpensAwayFromTheEdge;
+
     public const MODE_ALT = 'alt';
 
     public const MODE_SIZE = 'size';
@@ -101,6 +104,7 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
         // as it happens, and `commit()` is the only writer.
         $xData = <<<JS
             {
+                {$this->menuPositioning()}
                 open: false,
             {$members}
                 position() {
@@ -162,7 +166,8 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
                 x-bind:aria-expanded="open"
                 aria-label="<?= e($label) ?>"
                 x-tooltip="{ content: <?= Js::from($label)->toHtml() ?>, theme: $store.theme }"
-                x-on:click="open = ! open; open && (read(), $nextTick(() => $refs.first?.focus()))"
+                x-ref="trigger"
+                x-on:click="open = ! open; open && (read(), positionMenu(), $nextTick(() => $refs.first?.focus()))"
                 class="fi-fo-rich-editor-tool"
             >
                 <?= $icon ?>
@@ -171,6 +176,8 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
             <div
                 x-show="open"
                 x-cloak
+                x-ref="menu"
+                x-bind:class="{ [menuUpClass]: dropUp }"
                 class="fi-fo-rich-editor-dropdown-tool-menu fi-arte-image-panel-menu"
             >
                 <?= $body ?>

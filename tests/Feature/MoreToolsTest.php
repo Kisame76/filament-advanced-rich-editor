@@ -9,7 +9,7 @@ it('parks the rarely used tools in a dropdown at the end of the toolbar', functi
     // The end of the aligned groups, not of the whole bar: what the menu holds are tools
     // for the text, so it travels with them rather than with the pinned corner.
     expect(array_slice(toolbarGroupsShape(editor()->getFlowToolbarButtons()), -1))->toBe([
-        ['dropdown:subscript,superscript,code,clearFormatting,horizontalRule,details,emoji'],
+        ['dropdown:subscript,superscript,code,codeBlock,blockquote,clearFormatting,horizontalRule,details,emoji,characters'],
     ]);
 });
 
@@ -17,10 +17,12 @@ it('fills the dropdown with the tools most documents never need', function (): v
     // Every one of them is a stock Filament tool, so they resolve without the package
     // registering anything of its own.
     expect(resolvedButtonNames(toolbarDropdown(editor(), 'subscript')))->toBe([
-        'subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details',
-        // The package's own addition, and the only one shipped in the list. The two
-        // direction tools are registered but left out - see TextDirectionTest.
-        'emoji',
+        'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule', 'details',
+        // The package's own two, and the only ones shipped in the list. They sit together
+        // because they do the same job - a character the keyboard cannot type - and the
+        // popup behind them is literally the same one. The two direction tools are
+        // registered but left out; see TextDirectionTest.
+        'emoji', 'characters',
     ]);
 });
 
@@ -35,7 +37,7 @@ it('lets a field and the config file say what goes in there', function (): void 
 
 it('leaves the button out entirely when there is nothing to put in it', function (): void {
     // An empty dropdown would be a trigger that opens onto nothing.
-    expect(toolbarGroup(editor()->moreTools([]), 'fullscreen'))->toBe(['sourceCode', 'fullscreen', 'help']);
+    expect(toolbarGroup(editor()->moreTools([]), 'fullscreen'))->toBe([toolsShape(), 'fullscreen']);
 });
 
 it('keeps the three dots on the trigger whatever the caret sits in', function (): void {

@@ -10,8 +10,10 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\HasFileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
+use Filament\Forms\Components\RichEditor\StateCasts\RichEditorStateCast as BaseRichEditorStateCast;
 use Filament\Forms\Components\RichEditor\TextColor;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
+use Filament\Schemas\Components\StateCasts\Contracts\StateCast;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Icons\Heroicon;
@@ -25,35 +27,54 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\SourceCodeAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AlignmentPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AutosavePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CalloutPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharactersPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StylesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts\RichEditorStateCast;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarListPanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -107,7 +128,36 @@ class AdvancedRichEditor extends RichEditor
      */
     protected array|Closure|null $moreTools = null;
 
+    /**
+     * @var array<int, string> | Closure | null
+     */
+    protected array|Closure|null $toolsMenu = null;
+
     protected bool|Closure|null $hasEmoji = null;
+
+    protected bool|Closure|null $hasFind = null;
+
+    protected bool|Closure|null $hasAccessibility = null;
+
+    /**
+     * @var array<int, string> | Closure | null
+     */
+    protected array|Closure|null $accessibilityRules = null;
+
+    protected bool|Closure|null $hasAutosave = null;
+
+    protected bool|Closure|null $warnsOnLeave = null;
+
+    protected bool|Closure|null $hasDragHandle = null;
+
+    protected bool|Closure|null $hasDragHandleInsert = null;
+
+    protected bool|Closure|null $hasPasteCleanup = null;
+
+    /**
+     * @var array<int, string> | Closure | null
+     */
+    protected array|Closure|null $pasteKeepStyles = null;
 
     protected bool|Closure|null $hasTextDirection = null;
 
@@ -133,6 +183,40 @@ class AdvancedRichEditor extends RichEditor
     protected int|Closure|null $characterCountLimit = null;
 
     protected bool|Closure|null $hasTaskList = null;
+
+    protected bool|Closure|null $hasCallouts = null;
+
+    protected bool|Closure|null $hasLanguages = null;
+
+    /**
+     * @var array<mixed>|Closure|null
+     */
+    protected array|Closure|null $languageOptions = null;
+
+    protected bool|Closure|null $hasListProperties = null;
+
+    protected bool|Closure|null $hasCharacters = null;
+
+    /**
+     * @var array<int, mixed>|Closure|null
+     */
+    protected array|Closure|null $calloutVariants = null;
+
+    protected bool|Closure|null $isNullWhenEmpty = null;
+
+    /**
+     * @var array<string, mixed>|Closure|null
+     */
+    protected array|Closure|null $styles = null;
+
+    protected bool|Closure|null $hasTextToolbar = null;
+
+    protected bool|Closure|null $hasStylePreview = null;
+
+    /**
+     * @var array<int, mixed>|Closure|null
+     */
+    protected array|Closure|null $textToolbarButtons = null;
 
     protected bool|Closure|null $hasFontSize = null;
 
@@ -161,6 +245,8 @@ class AdvancedRichEditor extends RichEditor
     protected array|Closure|null $slashGroups = null;
 
     protected string|Closure|null $slashChar = null;
+
+    protected bool|Closure|null $hasMentionMenu = null;
 
     protected bool|Closure|null $hasImageToolbar = null;
 
@@ -321,6 +407,42 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // Carries its variants rather than reading the config itself: the tools it
+        // registers are one per kind, and which kinds there are is a per-field answer.
+        // Nothing is registered for a field with none, so the node is not declared either
+        // and the editor's JSON stays free of callouts.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasCallouts()
+                && ($variants = $component->getCalloutVariants()) !== []
+                    ? [CalloutPlugin::make()->variants($variants)]
+                    : [],
+        );
+
+        // Carries its languages for the reason the callout plugin carries its kinds: the
+        // tools it registers are one per language, and which languages there are is a
+        // per-field answer.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasLanguages()
+                && ($languages = $component->getLanguageOptions()) !== []
+                    ? [LanguagePlugin::make()->languages($languages)]
+                    : [],
+        );
+
+        // No tools of its own: what it registers is the schema both halves need for a list
+        // to keep its marker and its numbering. The controls live in the bubble that
+        // appears while the caret is in a list.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasListProperties()
+                ? [ListPropertiesPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasCharacters()
+                ? [CharactersPlugin::make()]
+                : [],
+        );
+
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasFontSize()
                 ? [FontSizePlugin::make()]
@@ -357,10 +479,69 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // Off means the extension is not loaded at all, which is what takes the keyboard
+        // shortcut away with the button: a bar reachable by `Ctrl+F` on a field that hides
+        // the tool is a feature, and one on a field that switched searching off is a bug.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasFind()
+                ? [FindReplacePlugin::make()]
+                : [],
+        );
+
+        // Off means the tool is gone and the extension is not loaded. Nothing is stored
+        // either way: a check marks no document, and a picture that was given alt text is an
+        // ordinary picture by the time it is saved.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasAccessibility()
+                ? [AccessibilityPlugin::make()]
+                : [],
+        );
+
+        // A draft never reaches the application, so switching it off takes the drafts of
+        // the next session away and leaves every record exactly as it is.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasAutosave()
+                ? [AutosavePlugin::make()]
+                : [],
+        );
+
+        // Nothing is stored either way, so a field that switches the grip off keeps every
+        // document that was ever rearranged with it.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasDragHandle()
+                ? [DragHandlePlugin::make()]
+                : [],
+        );
+
+        // Off means the extension is not loaded, and a paste then arrives the way Filament
+        // takes it: this cleans the markup on its way in and stores nothing of its own, so
+        // switching it off changes the next paste and no document already written.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasPasteCleanup()
+                ? [PasteCleanupPlugin::make()]
+                : [],
+        );
+
+        // Resolved on every call, because the list may be a closure and two fields on one
+        // page may offer different styles. Nothing is registered where a project named
+        // none, which is the shipped state.
+        $this->plugins(
+            static function (AdvancedRichEditor $component): array {
+                $styles = Styles::for($component);
+
+                return $styles === [] ? [] : [StylesPlugin::make($styles)];
+            },
+        );
+
         // Always: a caption is worth having where nothing may be dragged, and it lives in
         // the schema - a field that stopped declaring it would drop every caption already
         // written on the next save.
         $this->plugins([ImageCaptionPlugin::make()]);
+
+        // Always, for a different reason: it repairs two keyboard shortcuts Filament's own
+        // build binds and then declines to answer, on every field, whether or not this one
+        // shows the alignment dropdown.
+        $this->plugins([AlignmentPlugin::make()]);
 
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasEmbeds()
@@ -378,6 +559,15 @@ class AdvancedRichEditor extends RichEditor
             static fn (AdvancedRichEditor $component): array => $component->hasSlashMenu()
                 ? [SlashMenuPlugin::make()]
                 : [],
+        );
+
+        // Only where the field mentions something. The extension carries Filament's own
+        // name and therefore takes its place, and taking the place of a node on a field
+        // that was never given a provider would be a swap nobody asked for.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->getMentionMenuForJs() === null
+                ? []
+                : [MentionMenuPlugin::make()],
         );
 
         // The editor half of the widened link and of the heading anchor. Both are
@@ -472,17 +662,17 @@ class AdvancedRichEditor extends RichEditor
         return config('filament-advanced-rich-editor.toolbar') ?? [
             ['undo', 'redo'],
             'divider',
-            ['headings', 'fontFamily', 'fontSize'],
+            ['headings', 'styles', 'fontSize'],
             'divider',
-            ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+            ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
             'divider',
             ['alignment', 'lineHeight'],
             'divider',
-            ['lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+            ['lists', 'image', 'embed', 'table', 'callouts'],
             'divider',
             ['more'],
             'pin',
-            ['sourceCode', 'fullscreen', 'help'],
+            ['tools', 'fullscreen'],
         ];
     }
 
@@ -888,6 +1078,70 @@ class AdvancedRichEditor extends RichEditor
     }
 
     /**
+     * Whether the mention menu is this package's own.
+     *
+     * Filament draws a mention as a label and nothing else. This one has room for a picture
+     * and a line of context beneath the name, which is what tells two people with the same
+     * name apart. Switched off, the field falls back to Filament's menu - the node, and
+     * everything stored, is the same either way.
+     */
+    public function mentionMenu(bool|Closure $condition = true): static
+    {
+        $this->hasMentionMenu = $condition;
+
+        return $this;
+    }
+
+    public function hasMentionMenu(): bool
+    {
+        return (bool) ($this->evaluate($this->hasMentionMenu) ?? config('filament-advanced-rich-editor.mentions.menu') ?? true);
+    }
+
+    /**
+     * What the mention menu offers, for the view to hand to the script.
+     *
+     * Null where the menu is switched off and where the field mentions nothing: an
+     * extension that replaces Filament's own has no business loading for a field that never
+     * asked for mentions.
+     *
+     * The triggers are Filament's own description of them - the same array its extension is
+     * configured with - so a provider written against Filament works here untouched. The key
+     * is what lets the script call back for a search, the same way the media browser does.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getMentionMenuForJs(): ?array
+    {
+        if (! $this->hasMentionMenu()) {
+            return null;
+        }
+
+        $triggers = $this->getMentionsForJs();
+
+        if ($triggers === []) {
+            return null;
+        }
+
+        // The rows go in front of the labels where a provider has them. Both are read from
+        // the same list in the same order, which is how a trigger is matched to the provider
+        // it was built from - Filament's own description carries no way back to it.
+        $providers = array_values($this->getMentionProviders());
+
+        foreach ($triggers as $index => $trigger) {
+            $provider = $providers[$index] ?? null;
+
+            if ($provider instanceof MentionProvider && $provider->hasRows()) {
+                $triggers[$index]['items'] = $provider->getRows();
+            }
+        }
+
+        return [
+            'key' => $this->getKey(),
+            'triggers' => $triggers,
+        ];
+    }
+
+    /**
      * What the slash menu offers, and in which groups.
      *
      * Keys are group names, which are also the translation keys their headings are read
@@ -1022,6 +1276,7 @@ class AdvancedRichEditor extends RichEditor
             ->plugins($this->getPlugins())
             ->linkProtocols($this->getLinkProtocols())
             ->linkAttributes($this->hasLinkAttributes())
+            ->styles(Styles::for($this))
             ->getEditor();
     }
 
@@ -1212,13 +1467,42 @@ class AdvancedRichEditor extends RichEditor
     }
 
     /**
+     * What the `'tools'` menu offers: the things a field does rather than the things it
+     * writes - searching, checking, the source view, the shortcut list.
+     *
+     * In the shipped toolbar as `['tools', 'fullscreen']`, so the corner never changes
+     * shape: switching the check or the source view on puts them in the menu rather than
+     * beside it, and the preview, statistics and export tools still to come go the same way.
+     * A project that would rather have the buttons names them individually.
+     *
+     * @param  array<int, string> | Closure  $tools
+     */
+    public function toolsMenu(array|Closure $tools): static
+    {
+        $this->toolsMenu = $tools;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getToolsMenu(): array
+    {
+        return array_values($this->evaluate($this->toolsMenu)
+            ?? config('filament-advanced-rich-editor.tools_menu')
+            ?? ['find', 'accessibility', 'sourceCode', 'help']);
+    }
+
+    /**
      * @return array<int, string>
      */
     public function getMoreTools(): array
     {
         return array_values($this->evaluate($this->moreTools)
             ?? config('filament-advanced-rich-editor.more')
-            ?? ['subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details', 'emoji']);
+            ?? ['subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
+                'details', 'emoji', 'characters']);
     }
 
     /**
@@ -1235,6 +1519,373 @@ class AdvancedRichEditor extends RichEditor
     public function hasEmoji(): bool
     {
         return (bool) ($this->evaluate($this->hasEmoji) ?? config('filament-advanced-rich-editor.emoji') ?? true);
+    }
+
+    /**
+     * Finding and replacing inside this field. Nothing about it is stored - a search marks
+     * no document and a replacement is ordinary text - so switching it off later changes
+     * nothing that was ever written with it.
+     */
+    public function find(bool|Closure $condition = true): static
+    {
+        $this->hasFind = $condition;
+
+        return $this;
+    }
+
+    public function hasFind(): bool
+    {
+        return (bool) ($this->evaluate($this->hasFind) ?? config('filament-advanced-rich-editor.find') ?? true);
+    }
+
+    /**
+     * The strings and icons the bar draws, for the view to hand to the script. Null while
+     * searching is switched off, which is also when the extension that would read them was
+     * never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getFindSettingsForJs(): ?array
+    {
+        return $this->hasFind() ? FindReplacePlugin::getLabels() : null;
+    }
+
+    /**
+     * The check that reads the document and says what is wrong with it.
+     *
+     * Six questions, and they are the six a person writing an article can answer and nobody
+     * downstream can: a picture nobody described, a link that says "click here", a heading
+     * level jumped over, a table with no header row, a link with nothing in it, and a colour
+     * that cannot be read on the page it is going to.
+     *
+     * Shipped off, and switched on per field or in the config. Two reasons, and the second
+     * is the real one: it is a review tool rather than a way of writing, so it belongs on
+     * the bar of the fields a project decided it belongs on - and the contrast rule is
+     * measured against a page this package has to be told the colour of. Shipped on, every
+     * project whose pages are not white would be handed findings that are wrong, which is
+     * the surest way to teach somebody to stop reading a panel.
+     *
+     * Nothing about it is stored - a check marks no document - so switching it on and off
+     * changes nothing that was written either way.
+     */
+    public function accessibility(bool|Closure $condition = true): static
+    {
+        $this->hasAccessibility = $condition;
+
+        return $this;
+    }
+
+    public function hasAccessibility(): bool
+    {
+        return (bool) ($this->evaluate($this->hasAccessibility) ?? config('filament-advanced-rich-editor.accessibility.enabled') ?? false);
+    }
+
+    /**
+     * Which of the six are asked. A rule left out is not reported and not counted.
+     *
+     * @param  array<int, string> | Closure  $rules
+     */
+    public function accessibilityRules(array|Closure $rules): static
+    {
+        $this->accessibilityRules = $rules;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getAccessibilityRules(): array
+    {
+        $rules = $this->evaluate($this->accessibilityRules)
+            ?? config('filament-advanced-rich-editor.accessibility.rules')
+            ?? AccessibilityPlugin::RULES;
+
+        return array_values(array_filter(
+            (array) $rules,
+            static fn (mixed $rule): bool => is_string($rule) && in_array($rule, AccessibilityPlugin::RULES, strict: true),
+        ));
+    }
+
+    /**
+     * The palette as three channels rather than as names.
+     *
+     * Filament stores `data-color="ink"` and not the colour, which is the right way round
+     * and leaves the browser with a name it cannot turn into a contrast ratio. Only the
+     * light half crosses over: a document rendered in both themes is two questions, and
+     * answering one of them twice would be a panel listing everything twice.
+     *
+     * @return array<string, string>
+     */
+    public function getAccessibilityPalette(): array
+    {
+        $palette = [];
+
+        foreach ($this->getTextColorsForPicker() as $color) {
+            if (filled($color['color'])) {
+                $palette[$color['value']] = $color['color'];
+            }
+        }
+
+        return $palette;
+    }
+
+    /**
+     * What the extension reads off the editor element. Null while the check is switched off,
+     * which is also when the extension that would read it was never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getAccessibilitySettingsForJs(): ?array
+    {
+        if (! $this->hasAccessibility()) {
+            return null;
+        }
+
+        return AccessibilityPlugin::getSettings([
+            'rules' => $this->getAccessibilityRules(),
+            'weakPhrases' => AccessibilityPlugin::getWeakPhrases(),
+            'threshold' => (float) (config('filament-advanced-rich-editor.accessibility.threshold') ?? 4.5),
+            'largeThreshold' => (float) (config('filament-advanced-rich-editor.accessibility.large_threshold') ?? 3.0),
+            // What the editor cannot know, because both belong to the front end: the colour
+            // a page is, and the colour it writes on it where nobody chose one.
+            'background' => (string) (config('filament-advanced-rich-editor.accessibility.background') ?? '#ffffff'),
+            'text' => (string) (config('filament-advanced-rich-editor.accessibility.text') ?? '#18181b'),
+            'palette' => $this->getAccessibilityPalette(),
+        ]);
+    }
+
+    /**
+     * Keeping a draft of this field in the browser, so a lost reply is not a lost article.
+     *
+     * Nothing about it reaches the application: the draft lives in the browser's own
+     * storage, it is offered back the next time the same field on the same record is
+     * opened, and it is dropped as soon as the document on screen says the same thing.
+     *
+     * It is content in a browser's storage on whatever machine somebody was working on, and
+     * it outlives the session that wrote it - `autosave.ttl` is how long, and a field
+     * holding something that should not sit there switches this off.
+     */
+    public function autosave(bool|Closure $condition = true): static
+    {
+        $this->hasAutosave = $condition;
+
+        return $this;
+    }
+
+    public function hasAutosave(): bool
+    {
+        return (bool) ($this->evaluate($this->hasAutosave) ?? config('filament-advanced-rich-editor.autosave.enabled') ?? true);
+    }
+
+    /**
+     * Whether closing the tab with unsaved changes asks first.
+     *
+     * The browser writes the question and always has; what a page decides is only whether
+     * it is asked. Asked means asked for a stray space as much as for an afternoon's work,
+     * which is why it is a switch of its own.
+     */
+    public function autosaveWarnOnLeave(bool|Closure $condition = true): static
+    {
+        $this->warnsOnLeave = $condition;
+
+        return $this;
+    }
+
+    public function warnsOnLeave(): bool
+    {
+        return (bool) ($this->evaluate($this->warnsOnLeave) ?? config('filament-advanced-rich-editor.autosave.warn_on_leave') ?? true);
+    }
+
+    /**
+     * What tells one field's draft from another's.
+     *
+     * The record, the model it belongs to, the Livewire component the form is in and the
+     * path to this field within it - and none of it in the clear: it is a key in storage
+     * that anything on the origin can read, so what it says is that two drafts are different
+     * rather than what either of them is about. The browser adds the page it is on, which is
+     * the half PHP cannot answer: to Livewire every request looks like the same endpoint.
+     */
+    public function getAutosaveKey(): string
+    {
+        $record = $this->getRecord();
+
+        // A schema's record is a model most of the time and an array some of the time, and
+        // an array has neither a class nor a key worth telling two of them apart by. It
+        // therefore counts as a record that does not exist yet, which is what a form on a
+        // page with nothing saved behind it already is.
+        $model = is_object($record) ? $record::class : '';
+        $key = ($record instanceof Model ? $record->getKey() : null) ?? 'new';
+
+        return substr(hash('sha256', implode('|', [
+            $this->getLivewire()::class,
+            $model,
+            (string) $key,
+            $this->getStatePath(),
+        ])), 0, 16);
+    }
+
+    /**
+     * What the extension reads off the editor element. Null while drafts are switched off,
+     * which is also when the extension that would read them was never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getAutosaveSettingsForJs(): ?array
+    {
+        if (! $this->hasAutosave()) {
+            return null;
+        }
+
+        return AutosavePlugin::getSettings([
+            'key' => $this->getAutosaveKey(),
+            'debounce' => (int) (config('filament-advanced-rich-editor.autosave.debounce') ?? 1500),
+            // Seconds in the config file, because that is how a person writes a day;
+            // milliseconds by the time the browser compares it to a timestamp.
+            'ttl' => (int) (config('filament-advanced-rich-editor.autosave.ttl') ?? 86400) * 1000,
+            'warnOnLeave' => $this->warnsOnLeave(),
+        ]);
+    }
+
+    /**
+     * The grip in the margin that a block can be dragged by, and the plus beside it.
+     *
+     * Only the top level of the document gets one, and the grip on a list therefore takes
+     * the list rather than the item under the mouse: a list item is a node that may only
+     * live inside a list, so a drag of one is a drag that refuses more often than it works.
+     *
+     * Nothing about it is stored - rearranging a document changes the order of what is in it
+     * and leaves no trace of how - so switching it off later changes nothing that was
+     * written with it.
+     */
+    public function dragHandle(bool|Closure $condition = true): static
+    {
+        $this->hasDragHandle = $condition;
+
+        return $this;
+    }
+
+    public function hasDragHandle(): bool
+    {
+        return (bool) ($this->evaluate($this->hasDragHandle) ?? config('filament-advanced-rich-editor.drag_handle.enabled') ?? true);
+    }
+
+    /**
+     * The plus that starts a new block under the one being hovered.
+     *
+     * What it inserts is not a paragraph: the caret lands in an empty block and the slash
+     * menu opens on top of it, so the button offers everything that could go there. Where
+     * the slash menu is switched off it makes the empty block and stops, which is the whole
+     * of what it can honestly do without a list to offer.
+     */
+    public function dragHandleInsert(bool|Closure $condition = true): static
+    {
+        $this->hasDragHandleInsert = $condition;
+
+        return $this;
+    }
+
+    public function hasDragHandleInsert(): bool
+    {
+        return (bool) ($this->evaluate($this->hasDragHandleInsert) ?? config('filament-advanced-rich-editor.drag_handle.insert') ?? true);
+    }
+
+    /**
+     * The icons and labels the handle draws, for the view to hand to the script. Null while
+     * the grip is switched off, which is also when the extension that would read them was
+     * never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getDragHandleSettingsForJs(): ?array
+    {
+        return $this->hasDragHandle() ? DragHandlePlugin::getSettings($this->hasDragHandleInsert()) : null;
+    }
+
+    /**
+     * Cleaning what arrives from the clipboard.
+     *
+     * Word puts a stylesheet, a handful of tags no browser has heard of and a list that is
+     * not a list onto the clipboard alongside the paragraph; Google Docs puts every run of
+     * text in a span carrying eleven declarations, one of which is the only place its bold
+     * lives. Both are turned back into a document on the way in - structure kept, typography
+     * dropped - and a copy from another editor is left exactly as it is.
+     *
+     * Nothing about it is stored, so switching it off changes the next paste and no document
+     * that was ever written with it.
+     */
+    public function pasteCleanup(bool|Closure $condition = true): static
+    {
+        $this->hasPasteCleanup = $condition;
+
+        return $this;
+    }
+
+    public function hasPasteCleanup(): bool
+    {
+        return (bool) ($this->evaluate($this->hasPasteCleanup) ?? config('filament-advanced-rich-editor.paste.cleanup') ?? true);
+    }
+
+    /**
+     * The style properties a cleaned paste keeps.
+     *
+     * Shipped as the alignment and nothing else, which is the one thing in Word's `style`
+     * whose absence a reader would notice and the one this package has no other way to
+     * carry. Everything else there - the font, the size, the colour, the line height - is
+     * parsed into a mark of this package's own, so a property left standing is not noise the
+     * next save drops: it is Calibri 11pt in black, in the document, for good.
+     *
+     * A project that wants a paste to arrive wearing its colours names them here. Naming a
+     * property also takes it out of the promotion to tags, because `font-weight` kept is a
+     * style somebody wants rather than a `<strong>` and a style.
+     *
+     * @param  array<int, string> | Closure  $properties
+     */
+    public function pasteKeepStyles(array|Closure $properties): static
+    {
+        $this->pasteKeepStyles = $properties;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getPasteKeepStyles(): array
+    {
+        $properties = $this->evaluate($this->pasteKeepStyles)
+            ?? config('filament-advanced-rich-editor.paste.keep_styles')
+            ?? PasteCleanupPlugin::DEFAULT_KEEP_STYLES;
+
+        $kept = [];
+
+        foreach ((array) $properties as $property) {
+            // A published config file is hand-written, and a stray null or number in this
+            // list is a typo rather than a property: dropped here, because the alternative
+            // is a TypeError out of a form that was only being rendered.
+            if (! is_string($property)) {
+                continue;
+            }
+
+            $property = strtolower(trim($property));
+
+            if ($property !== '') {
+                $kept[] = $property;
+            }
+        }
+
+        return $kept;
+    }
+
+    /**
+     * What the extension reads off the editor element. Null while the cleaning is switched
+     * off, which is also when the extension that would read it was never registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPasteSettingsForJs(): ?array
+    {
+        return $this->hasPasteCleanup() ? PasteCleanupPlugin::getSettings($this->getPasteKeepStyles()) : null;
     }
 
     /**
@@ -1352,7 +2003,7 @@ class AdvancedRichEditor extends RichEditor
 
     public function hasSourceCode(): bool
     {
-        return (bool) ($this->evaluate($this->hasSourceCode) ?? config('filament-advanced-rich-editor.source_code') ?? true);
+        return (bool) ($this->evaluate($this->hasSourceCode) ?? config('filament-advanced-rich-editor.source_code', false));
     }
 
     /**
@@ -1432,6 +2083,134 @@ class AdvancedRichEditor extends RichEditor
         ];
     }
 
+    /**
+     * Filament's own cast, swapped for the one that survives an empty string. Swapped rather
+     * than appended, because the two directions apply the casts in opposite orders and a
+     * guard that has to run first in both cannot be a second entry in the list.
+     *
+     * @return array<StateCast>
+     */
+    public function getDefaultStateCasts(): array
+    {
+        return array_map(
+            fn (StateCast $stateCast): StateCast => ($stateCast instanceof BaseRichEditorStateCast)
+                ? app(RichEditorStateCast::class, ['richEditor' => $this])
+                : $stateCast,
+            parent::getDefaultStateCasts(),
+        );
+    }
+
+    /**
+     * Whether an empty document is stored as nothing rather than as `<p></p>`.
+     *
+     * Off by default, and that is a decision about somebody else's database rather than a
+     * preference: a column that is `NOT NULL` without a default takes Filament's `<p></p>`
+     * and refuses a null, so turning this on for everyone would break a save that works
+     * today. Turned on, a field that renders nothing on the page is also nothing in the
+     * record, which is what `@if($post->content)` and a `whereNull` both expect.
+     */
+    public function nullWhenEmpty(bool|Closure $condition = true): static
+    {
+        $this->isNullWhenEmpty = $condition;
+
+        return $this;
+    }
+
+    public function shouldBeNullWhenEmpty(): bool
+    {
+        return (bool) ($this->evaluate($this->isNullWhenEmpty)
+            ?? config('filament-advanced-rich-editor.null_when_empty', false));
+    }
+
+    public function mutateDehydratedState(mixed $state): mixed
+    {
+        if ($this->shouldBeNullWhenEmpty() && ! $this->hasContent($state)) {
+            return null;
+        }
+
+        return parent::mutateDehydratedState($state);
+    }
+
+    public function mutatesDehydratedState(): bool
+    {
+        return parent::mutatesDehydratedState() || $this->shouldBeNullWhenEmpty();
+    }
+
+    /**
+     * Whether a piece of state holds anything a reader would see.
+     *
+     * Accepts state in every shape one arrives in - the document Livewire carries, the
+     * markup a record was hydrated from, or nothing at all - because this is asked on the
+     * way into the validator, which is before the casts have finished agreeing on one.
+     */
+    public function hasContent(mixed $state): bool
+    {
+        if ($state instanceof Htmlable) {
+            $state = $state->toHtml();
+        }
+
+        // Also the guard that keeps an empty string away from the parser: `setContent('')`
+        // walks a document body that was never built and dies on the null.
+        if (blank($state)) {
+            return false;
+        }
+
+        if (is_string($state)) {
+            $state = $this->getTipTapEditor()->setContent($state)->getDocument();
+        }
+
+        if (! is_array($state)) {
+            return true;
+        }
+
+        return ! DocumentContent::isBlank($state);
+    }
+
+    /**
+     * Filament rejects a document holding exactly one empty paragraph, which is the shape an
+     * untouched editor produces and nothing else. A second empty paragraph, a space, a line
+     * break, the same document as markup and a field holding nothing at all all get through
+     * a `required()` that was meant to stop them. `hasContent()` answers the question once,
+     * for every shape.
+     */
+    public function getRequiredValidationRule(): string|Closure
+    {
+        if (! $this->isRequired()) {
+            return 'nullable';
+        }
+
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if ($this->hasContent($value)) {
+                return;
+            }
+
+            $fail('validation.required')->translate();
+        };
+    }
+
+    /**
+     * The named styles this field offers, or null to take the project's.
+     *
+     * An empty array is a field saying it wants none, which is why null rather than `[]` is
+     * what means "not answered" - the same distinction `moreTools([])` draws.
+     *
+     * @param  array<string, mixed>|Closure|null  $styles
+     */
+    public function styles(array|Closure|null $styles): static
+    {
+        $this->styles = $styles;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getStyles(): ?array
+    {
+        return $this->evaluate($this->styles);
+    }
+
     public function taskList(bool|Closure $condition = true): static
     {
         $this->hasTaskList = $condition;
@@ -1444,12 +2223,149 @@ class AdvancedRichEditor extends RichEditor
         return (bool) ($this->evaluate($this->hasTaskList) ?? config('filament-advanced-rich-editor.task_list') ?? true);
     }
 
+    public function callouts(bool|Closure $condition = true): static
+    {
+        $this->hasCallouts = $condition;
+
+        return $this;
+    }
+
+    public function hasCallouts(): bool
+    {
+        return (bool) ($this->evaluate($this->hasCallouts) ?? config('filament-advanced-rich-editor.callouts.enabled') ?? true);
+    }
+
+    /**
+     * Which kinds of callout this field offers, in the order the dropdown and the slash
+     * menu read them in.
+     *
+     * @param  array<int, mixed>|Closure|null  $variants
+     */
+    public function calloutVariants(array|Closure|null $variants): static
+    {
+        $this->calloutVariants = $variants;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getCalloutVariants(): array
+    {
+        return Callouts::normalize(
+            $this->evaluate($this->calloutVariants)
+                ?? config('filament-advanced-rich-editor.callouts.variants')
+                ?? Callouts::VARIANTS,
+        );
+    }
+
+    /**
+     * Whether a passage can be marked as being written in another language.
+     */
+    public function languages(bool|Closure $condition = true): static
+    {
+        $this->hasLanguages = $condition;
+
+        return $this;
+    }
+
+    public function hasLanguages(): bool
+    {
+        return (bool) ($this->evaluate($this->hasLanguages) ?? config('filament-advanced-rich-editor.languages.enabled') ?? true);
+    }
+
+    /**
+     * Which languages the dropdown offers, in order.
+     *
+     * Either `['fr' => 'Français']` or `['fr']`: a code is its own worst label but is still
+     * better than nothing, and a project adding one language should not have to look up how
+     * that language spells its own name.
+     *
+     * @param  array<mixed>|Closure|null  $languages
+     */
+    public function languageOptions(array|Closure|null $languages): static
+    {
+        $this->languageOptions = $languages;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, array{code: string, label: string}>
+     */
+    public function getLanguageOptions(): array
+    {
+        return Languages::normalize(
+            $this->evaluate($this->languageOptions)
+                ?? config('filament-advanced-rich-editor.languages.values')
+                ?? Languages::VALUES,
+        );
+    }
+
+    /**
+     * Whether a list can be told which marker to draw, where to start counting and whether
+     * to count backwards.
+     *
+     * Off means the schema is not declared on either side, so a stored list keeps its
+     * markup in the database and loses it on the next save - the same bargain every other
+     * switch in here makes.
+     */
+    public function listProperties(bool|Closure $condition = true): static
+    {
+        $this->hasListProperties = $condition;
+
+        return $this;
+    }
+
+    public function hasListProperties(): bool
+    {
+        return (bool) ($this->evaluate($this->hasListProperties) ?? config('filament-advanced-rich-editor.list_properties') ?? true);
+    }
+
+    /**
+     * The special characters picker. Nothing about it is stored as markup - a dash is a
+     * character - so switching it off later leaves every one already written where it is.
+     */
+    public function characters(bool|Closure $condition = true): static
+    {
+        $this->hasCharacters = $condition;
+
+        return $this;
+    }
+
+    public function hasCharacters(): bool
+    {
+        return (bool) ($this->evaluate($this->hasCharacters) ?? config('filament-advanced-rich-editor.characters') ?? true);
+    }
+
     /**
      * @return array<string, array<int, mixed>>
      */
     public function getDefaultFloatingToolbars(): array
     {
         $toolbars = parent::getDefaultFloatingToolbars();
+
+        if ($this->hasTextToolbar() && ($text = $this->getTextToolbarButtons()) !== []) {
+            $toolbars['paragraph'] = $text;
+        }
+
+        // What a list is told about itself, in the one place it means anything.
+        //
+        // Filament shows a floating toolbar while `editor.isActive(<its key>)`, so a bubble
+        // keyed `bulletList` appears when the caret enters one and takes itself away on the
+        // way out. That is the whole reason these three controls are affordable at all: a
+        // bar already carrying five dropdowns has no room to say something permanently that
+        // is true in one paragraph out of twenty.
+        //
+        // With a selection inside a list Filament shows the paragraph bubble instead of
+        // this one - a list item holds a paragraph, and its own rule prefers the text bar
+        // when there is text selected. Which is right: somebody who has selected words
+        // wants to format them.
+        if ($this->hasListProperties()) {
+            $toolbars['bulletList'] = [ToolbarListPanel::bullet()];
+            $toolbars['orderedList'] = [ToolbarListPanel::ordered()];
+        }
 
         if (! $this->hasImageToolbar()) {
             return $toolbars;
@@ -1477,6 +2393,99 @@ class AdvancedRichEditor extends RichEditor
             ...$toolbars,
             'image' => $buttons,
         ];
+    }
+
+    /**
+     * Whether the editor marks the text a style sits on.
+     *
+     * Off, and that is the same reasoning the empty styles list follows rather than an
+     * oversight. The classes belong to the project, so the look does too, and none of them
+     * resolve in an admin panel that has never loaded the front end's stylesheet - a package
+     * that invented an appearance here would be putting a design on content it knows nothing
+     * about, and getting it wrong.
+     *
+     * Turned on, styled text gets a neutral marking: a rule down the side of a block, a
+     * dotted line under a run of text. It says that something is set without claiming to
+     * know what it looks like, and a project's own `[data-style]` rules overrule it.
+     */
+    public function stylePreview(bool|Closure $condition = true): static
+    {
+        $this->hasStylePreview = $condition;
+
+        return $this;
+    }
+
+    public function hasStylePreview(): bool
+    {
+        return (bool) ($this->evaluate($this->hasStylePreview)
+            ?? config('filament-advanced-rich-editor.style_preview', false));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getExtraInputAttributes(): array
+    {
+        $attributes = parent::getExtraInputAttributes();
+
+        if (! $this->hasStylePreview()) {
+            return $attributes;
+        }
+
+        // On the field's own wrapper rather than on the styled node: the marking is a
+        // decision one field makes, and the nodes are shared with every other one.
+        $attributes['class'] = trim(($attributes['class'] ?? '').' fi-arte-style-preview');
+
+        return $attributes;
+    }
+
+    /**
+     * The bar that appears over selected text.
+     *
+     * Keyed `'paragraph'` rather than `'text'`, and that is not a naming choice: Filament's
+     * JavaScript treats this one key as a special case and shows its toolbar on a non-empty
+     * selection inside a paragraph, where every other key waits for `isActive()` on a node.
+     * A key called anything else would be drawn and never shown.
+     */
+    public function textToolbar(bool|Closure $condition = true): static
+    {
+        $this->hasTextToolbar = $condition;
+
+        return $this;
+    }
+
+    public function hasTextToolbar(): bool
+    {
+        return (bool) ($this->evaluate($this->hasTextToolbar)
+            ?? config('filament-advanced-rich-editor.text_toolbar', true));
+    }
+
+    /**
+     * What the bar over a selection holds. An empty list takes the bar away, the same way
+     * an empty `moreTools()` takes the overflow button away.
+     *
+     * @param  array<int, mixed>|Closure|null  $buttons
+     */
+    public function textToolbarButtons(array|Closure|null $buttons): static
+    {
+        $this->textToolbarButtons = $buttons;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    public function getTextToolbarButtons(): array
+    {
+        $buttons = $this->evaluate($this->textToolbarButtons)
+            ?? config('filament-advanced-rich-editor.text_toolbar_buttons')
+            ?? ['styles', 'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'];
+
+        // Resolved through the same tokens the bar itself uses, so `'styles'` and
+        // `'textColor'` mean here what they mean up there - and a switched-off feature
+        // takes its button out of the bubble too rather than leaving a dead one behind.
+        return ToolbarLayout::resolve(array_values($buttons), $this);
     }
 
     /**

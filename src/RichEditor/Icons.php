@@ -40,6 +40,15 @@ class Icons
             'line_height' => 'arte-line-spacing',
             'task_list' => 'arte-task-list',
             'blockquote' => 'arte-message-square-quote',
+            // The callouts. The dropdown's own trigger is the circled i - the sign for the
+            // whole family, and the one a reader already reads as "something set apart" -
+            // and each kind carries what it is: a lamp for a tip, the triangle every road
+            // sign uses for a warning, and a shield for the one that says stop.
+            'callouts' => 'heroicon-o-information-circle',
+            'callout_note' => 'heroicon-o-information-circle',
+            'callout_tip' => 'heroicon-o-light-bulb',
+            'callout_warning' => 'heroicon-o-exclamation-triangle',
+            'callout_danger' => 'heroicon-o-shield-exclamation',
             'image' => 'heroicon-o-photo',
             'embed' => 'heroicon-o-film',
             // The colour tools carry the thing they paint, not the instrument: a bare `A`
@@ -52,9 +61,64 @@ class Icons
             // The overflow menu. Three dots is what a toolbar has always used for "the rest
             // of it", so the trigger says what it is without a label.
             'more' => 'heroicon-o-ellipsis-horizontal',
+            // Not a second set of three dots: the two menus have to look as different as
+            // they are, or the bar has two doors with the same sign on them.
+            'tools_menu' => 'heroicon-o-wrench-screwdriver',
             'source_code' => 'heroicon-o-code-bracket',
+            // Searching. The magnifier is the button, and the three inside the bar are the
+            // chrome around it: two chevrons for the way through the hits and a cross for
+            // the way out. The arrow curving back is the replacement, which is one thing
+            // becoming another rather than a direction.
+            'find' => 'heroicon-o-magnifying-glass',
+            'find_previous' => 'heroicon-o-chevron-up',
+            'find_next' => 'heroicon-o-chevron-down',
+            'find_close' => 'heroicon-o-x-mark',
+            // Lucide's own, like the rotations: Heroicons has nothing for replacing, and
+            // its circular arrow reads as reload. The grip says the window can be moved.
+            'find_replace' => 'arte-replace',
+            'find_grip' => 'arte-grip-vertical',
+
+            // The report reads as a list of things to check rather than as a warning,
+            // which is what it is: nothing is broken, six questions have been asked.
+            'accessibility' => 'heroicon-o-clipboard-document-check',
+            'accessibility_grip' => 'arte-grip-vertical',
+            'accessibility_close' => 'heroicon-o-x-mark',
+
+            // The grip in the margin, and the plus that starts a block under it. The same
+            // drawing as the find window's grip on purpose: both of them say the same thing
+            // about the thing they sit on, which is that it can be taken hold of.
+            'drag_handle' => 'arte-grip-vertical',
+            'drag_handle_insert' => 'heroicon-o-plus',
             'help' => 'heroicon-o-question-mark-circle',
             'emoji' => 'heroicon-o-face-smile',
+
+            // The language a passage is written in, and the way back to the language of the
+            // page. The globe with letters on it is the sign for "this is in another one";
+            // the cross is the same cross every other clearing control in here uses.
+            'language' => 'heroicon-o-language',
+            'language_none' => 'heroicon-o-x-mark',
+
+            // The two list panels, each carrying the list it belongs to rather than a
+            // wrench: the bubble it sits in has one button, so that button has to say which
+            // kind of list is being talked about.
+            'list_bullet' => 'heroicon-o-list-bullet',
+            'list_ordered' => 'heroicon-o-numbered-list',
+
+            // The special characters picker and its tabs. Drawn icons rather than a
+            // representative glyph, for the reason the emoji tabs use them: a row of eight
+            // characters reads as things to pick rather than as the chrome around them.
+            'characters' => 'heroicon-o-hashtag',
+            'characters_close' => 'heroicon-o-x-mark',
+            'characters_recent' => 'heroicon-o-clock',
+            'characters_punctuation' => 'heroicon-o-chat-bubble-oval-left',
+            'characters_currency' => 'heroicon-o-banknotes',
+            'characters_math' => 'heroicon-o-calculator',
+            'characters_arrows' => 'heroicon-o-arrows-right-left',
+            'characters_symbols' => 'heroicon-o-sparkles',
+            // The letter this package already draws, put to a second use: the Latin tab is
+            // the one holding letters.
+            'characters_latin' => 'arte-letter-a',
+            'characters_greek' => 'heroicon-o-academic-cap',
             // The emoji picker's tabs. Drawn icons, not emoji: nine coloured faces in a row
             // read as things to pick rather than as the chrome around them.
             'emoji_recent' => 'heroicon-o-clock',

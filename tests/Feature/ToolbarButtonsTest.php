@@ -62,16 +62,16 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
     expect(toolbarShape(editor()->disableToolbarButtons(['italic'])))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
+        ['dropdown:paragraph,h1,h2,h3,h4', 'fontSize'],
         ['divider'],
-        ['bold', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'underline', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        [toolsShape(), 'fullscreen'],
     ]);
 });
 
@@ -79,16 +79,16 @@ it('drops a dropdown when its token is disabled', function (): void {
     expect(toolbarShape(editor()->disableToolbarButtons(['headings'])))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['fontFamily', 'fontSize'],
+        ['fontSize'],
         ['divider'],
-        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock'],
+        ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        [toolsShape(), 'fullscreen'],
     ]);
 });
 
@@ -103,31 +103,32 @@ it('does not reach inside a dropdown token', function (): void {
 
 it('collapses the dividers that an emptied group left behind', function (): void {
     $editor = editor()->disableToolbarButtons([
-        'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
+        'link', 'image', 'embed', 'table', 'codeBlock',
     ]);
 
-    // Everything the insert group inserted is gone; the lists dropdown it shares the group
-    // with is not, so the group - and both dividers around it - stay.
+    // Everything the insert group inserted is gone; the two dropdowns it shares the group
+    // with are not, so the group - and both dividers around it - stay. The link goes from
+    // the marks group as well, because that is where it lives now.
     expect(toolbarShape($editor))->toBe([
         ['undo', 'redo'],
         ['divider'],
-        ['dropdown:paragraph,h1,h2,h3,h4', 'fontFamily', 'fontSize'],
+        ['dropdown:paragraph,h1,h2,h3,h4', 'fontSize'],
         ['divider'],
-        ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+        ['bold', 'italic', 'underline', 'textColor', 'textBackground'],
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList'],
+        ['dropdown:bulletList,orderedList,taskList', calloutsShape()],
         ['divider'],
         [moreShape()],
-        ['sourceCode', 'fullscreen', 'help'],
+        [toolsShape(), 'fullscreen'],
     ]);
 });
 
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
-    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->disableToolbarButtons([
-        'lists', 'link', 'image', 'embed', 'table', 'blockquote', 'codeBlock',
+    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->disableToolbarButtons([
+        'lists', 'callouts', 'link', 'image', 'embed', 'table',
     ]);
 
     expect(array_slice(toolbarShape($editor), -1))->toBe([

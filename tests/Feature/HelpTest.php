@@ -8,7 +8,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Shortcuts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ShortcutTable;
 
 it('puts the button at the end, after fullscreen', function (): void {
-    expect(toolbarGroup(editor(), 'fullscreen'))->toBe(['sourceCode', 'fullscreen', 'help']);
+    expect(toolbarGroup(editor(), 'fullscreen'))->toBe([toolsShape(), 'fullscreen']);
 });
 
 it('lists the shortcuts this field actually has', function (): void {
@@ -85,7 +85,7 @@ it('draws the list as pairs, and ships the styles that lay them out', function (
 
 it('drops the button when a field or the config says so', function (): void {
     expect(editor()->help(false)->getTools())->not->toHaveKey('help')
-        ->and(toolbarGroup(editor()->help(false), 'fullscreen'))->toBe(['sourceCode', 'fullscreen']);
+        ->and(toolbarGroup(editor()->help(false), 'fullscreen'))->toBe([toolsShape(), 'fullscreen']);
 
     config()->set('filament-advanced-rich-editor.help', false);
 

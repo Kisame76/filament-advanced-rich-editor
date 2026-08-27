@@ -14,6 +14,9 @@
 /phpstan.neon.dist  export-ignore
 /phpunit.xml.dist   export-ignore
 /pint.json          export-ignore
+/package.json       export-ignore
+/package-lock.json  export-ignore
+/vitest.config.js   export-ignore
 /art                export-ignore
 
 # Always use LF for source files so hashes stay stable across platforms.

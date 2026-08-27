@@ -27,8 +27,8 @@ class SlashMenu
     /**
      * The groups and their contents, when the config file has nothing to say.
      *
-     * `'headings'` expands to the levels the field offers, the same token the toolbar
-     * uses.
+     * `'headings'` and `'callouts'` expand to what the field offers - its heading levels
+     * and its kinds of callout - which are the same tokens the toolbar uses.
      *
      * @var array<string, array<int, string>>
      */
@@ -38,12 +38,12 @@ class SlashMenu
         'style' => [
             'paragraph', 'headings',
             'bulletList', 'orderedList', 'taskList',
-            'blockquote', 'codeBlock',
+            'blockquote', 'codeBlock', 'callouts',
         ],
         // What arrives. Uploading is not a group of its own, the way it is in some editors:
         // one entry does not need a heading over it.
         'insert' => [
-            'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji',
+            'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
             'customBlocks', 'mergeTags',
         ],
     ];
@@ -114,8 +114,10 @@ class SlashMenu
     }
 
     /**
-     * Expands the tokens a group may hold. Only `'headings'` so far, and it expands to what
-     * this field offers rather than to a fixed six.
+     * Expands the tokens a group may hold, each into what this field offers rather than
+     * into a fixed list: the heading levels it was given, and the kinds of callout it was
+     * given. Both are the same tokens the toolbar uses, so a group written once agrees
+     * with the bar.
      *
      * @param  array<int, string>  $names
      * @return array<int, string>
@@ -125,15 +127,23 @@ class SlashMenu
         $expanded = [];
 
         foreach ($names as $name) {
-            if ($name !== 'headings') {
-                $expanded[] = $name;
+            if ($name === 'headings') {
+                foreach ($editor->getHeadingLevels() as $level) {
+                    $expanded[] = "h{$level}";
+                }
 
                 continue;
             }
 
-            foreach ($editor->getHeadingLevels() as $level) {
-                $expanded[] = "h{$level}";
+            if ($name === 'callouts') {
+                foreach ($editor->getCalloutVariants() as $variant) {
+                    $expanded[] = Callouts::toolName($variant);
+                }
+
+                continue;
             }
+
+            $expanded[] = $name;
         }
 
         return $expanded;

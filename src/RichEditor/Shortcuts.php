@@ -9,10 +9,16 @@ use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 /**
  * The keyboard shortcuts a field answers to.
  *
- * Every entry was read out of the editor build Filament ships rather than copied from
+ * Every entry was read out of the editor build Filament ships - or, for the handful this
+ * package binds itself, out of the extension that binds it - rather than copied from
  * someone's documentation, because a shortcut list that lies is worse than none. What is
  * listed, though, follows the field: a heading level the field does not offer has no
  * shortcut to mention, and neither does a task list that is switched off.
+ *
+ * The heading rows are the one place the list is narrower than the editor. TipTap
+ * registers the shortcut for all six levels whatever the field offers, so `Mod+Alt+5` on a
+ * field that stops at four still writes an `h5` - one the toolbar has no button to take
+ * back. Listing it would be advertising that, so the list names the levels the field has.
  *
  * The keys stay tokens (`Mod`, `Alt`, `Shift`) all the way to the browser. Whether `Mod`
  * is drawn as ⌘ or as Ctrl is a question about the machine looking at the screen, and PHP
@@ -39,6 +45,10 @@ class Shortcuts
         'taskList' => ['Mod', 'Shift', '9'],
         'blockquote' => ['Mod', 'Shift', 'B'],
         'codeBlock' => ['Mod', 'Alt', 'C'],
+        // The outer two are answered by this package rather than by TipTap, which binds
+        // these keys to `left` and `right` while Filament configures the extension with
+        // `start` and `end`. See `AlignmentPlugin` - and note that the middle two are
+        // TipTap's own, because `center` and `justify` are spelled the same either way.
         'alignStart' => ['Mod', 'Shift', 'L'],
         'alignCenter' => ['Mod', 'Shift', 'E'],
         'alignEnd' => ['Mod', 'Shift', 'R'],
@@ -99,8 +109,9 @@ class Shortcuts
     }
 
     /**
-     * The keys that belong to no button: they are part of how the editor behaves rather
-     * than of what it can be told to do.
+     * The keys that no single button accounts for: either they belong to no button at all
+     * and are part of how the editor behaves, or one button answers to more than one of
+     * them and neither row is called what the button is called.
      *
      * @return array<int, array{label: string, keys: array<int, string>}>
      */
@@ -113,6 +124,17 @@ class Shortcuts
 
         $rows = [$line('line_break', ['Shift', 'Enter'])];
 
+        // Nothing in this package binds it and nothing needs to. Chrome, Edge and Firefox
+        // read Mod+Shift+V as paste-and-match-style, and ProseMirror's own paste handler
+        // takes the text half whenever Shift is down, so the markup is gone twice over.
+        //
+        // Safari is the exception and the list does not say so: WebKit maps no command to
+        // Cmd+Shift+V at all - its paste-and-match-style is Cmd+Alt+Shift+V - so no paste
+        // event is fired and the key does nothing. The row is kept as it is because the
+        // key is right on every browser that has a keyboard shortcut for this, and a row
+        // that named both would be naming one that is wrong everywhere else.
+        $rows[] = $line('paste_plain', ['Mod', 'Shift', 'V']);
+
         $tools = $editor->getTools();
 
         if (array_key_exists('bulletList', $tools) || array_key_exists('orderedList', $tools)) {
@@ -122,6 +144,15 @@ class Shortcuts
 
         if (array_key_exists('table', $tools)) {
             $rows[] = $line('next_cell', ['Tab']);
+        }
+
+        // One window, two ways in: the first opens it to search, the second opens it with
+        // the replacing row already out. Mod+Alt+F rather than the Ctrl+H that is bound
+        // alongside it, because this is the pair that works on both platforms - Cmd+H is
+        // taken by macOS, and a list naming a key that does nothing is worse than none.
+        if (array_key_exists('find', $tools)) {
+            $rows[] = $line('find', ['Mod', 'F']);
+            $rows[] = $line('find_replace', ['Mod', 'Alt', 'F']);
         }
 
         return $rows;

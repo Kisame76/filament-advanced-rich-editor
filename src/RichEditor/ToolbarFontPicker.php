@@ -9,6 +9,7 @@ use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensAwayFromTheEdge;
 
 /**
  * The typeface dropdown.
@@ -24,6 +25,7 @@ class ToolbarFontPicker extends ViewComponent implements HasEmbeddedView
 {
     use HasExtraAttributes;
     use HasName;
+    use OpensAwayFromTheEdge;
 
     /**
      * A font stack is written into a `style` attribute, and Filament's sanitiser passes
@@ -140,6 +142,7 @@ class ToolbarFontPicker extends ViewComponent implements HasEmbeddedView
 
         $xData = <<<JS
             {
+                {$this->menuPositioning()}
                 open: false,
                 current: null,
                 defaultFamily: '',
@@ -293,7 +296,8 @@ class ToolbarFontPicker extends ViewComponent implements HasEmbeddedView
                 x-bind:aria-expanded="open"
                 aria-label="<?= e($label) ?>"
                 x-tooltip="{ content: <?= Js::from($label)->toHtml() ?>, theme: $store.theme }"
-                x-on:click="open = ! open"
+                x-ref="trigger"
+                x-on:click="open = ! open; open && positionMenu()"
                 class="fi-fo-rich-editor-tool fi-fo-rich-editor-dropdown-tool-trigger fi-arte-font-picker-trigger"
             >
                 <span class="fi-arte-font-picker-label" x-text="label()" x-bind:style="current ? { fontFamily: current } : {}"><?= e($clear) ?></span>
@@ -318,6 +322,8 @@ class ToolbarFontPicker extends ViewComponent implements HasEmbeddedView
                 x-show="open"
                 x-cloak
                 role="menu"
+                x-ref="menu"
+                x-bind:class="{ [menuUpClass]: dropUp }"
                 class="fi-fo-rich-editor-dropdown-tool-menu fi-arte-font-menu"
             >
                 <?php if (count($fonts) > 5) { ?>

@@ -321,6 +321,137 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Callouts                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Like the task list, these classes live in the stored rich content rather than only in
+ * the editor, so they are deliberately NOT scoped under .fi-arte — the same markup has to
+ * render in text entries, in tables and on a front end that has never heard of this
+ * package.
+ *
+ * The colour is set once, on the variant class, as three custom properties: the accent
+ * that draws the rule and the icon, the wash behind the text, and the icon itself. The
+ * box below then reads those, so a project adds a kind of its own with one small rule
+ * rather than a copy of everything here.
+ *
+ * A variant nobody defined properties for falls through to the neutral values on
+ * .fi-arte-callout and is drawn as a grey box with no icon, which reads as "set apart"
+ * even when nothing says which kind it is.
+ */
+.fi-arte-callout {
+    --fi-arte-callout-accent: var(--gray-400, #a1a1aa);
+    --fi-arte-callout-wash: rgba(9, 9, 11, 0.04);
+    /*
+     * A mask that hides everything, rather than `none`. `mask-image: none` means no mask
+     * at all, so the accent behind it fills the whole box and a kind with no icon is drawn
+     * as a solid square. A transparent gradient is a mask that paints nothing.
+     */
+    --fi-arte-callout-icon: linear-gradient(transparent, transparent);
+
+    position: relative;
+    /* Room for the icon column, which is drawn rather than sitting in the markup. */
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border-inline-start: 3px solid var(--fi-arte-callout-accent);
+    border-radius: 0.375rem;
+    background-color: var(--fi-arte-callout-wash);
+}
+
+.fi-arte-callout:where(.dark, .dark *) {
+    --fi-arte-callout-wash: rgba(255, 255, 255, 0.05);
+}
+
+/*
+ * The icon is painted as a mask over the accent colour rather than shipped as an element.
+ * Nothing then has to be `contenteditable="false"` inside the editor, and nothing has to
+ * survive the sanitiser on the way to a page — the class carries the whole drawing.
+ */
+.fi-arte-callout::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0.9375rem;
+    /* Centred on the first line of the box's own text, not on the box. */
+    top: calc(0.75rem + 0.75em);
+    margin-top: -0.625rem;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    background-color: var(--fi-arte-callout-accent);
+    -webkit-mask-image: var(--fi-arte-callout-icon);
+    mask-image: var(--fi-arte-callout-icon);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+/*
+ * Filament's prose styles give block children a top margin, which would push the first
+ * paragraph away from the icon that is meant to sit beside it.
+ */
+.fi-arte-callout > :first-child {
+    margin-top: 0;
+}
+
+.fi-arte-callout > :last-child {
+    margin-bottom: 0;
+}
+
+/*
+ * The four kinds the package ships. Each names its colour through Filament's own
+ * registered properties, so a panel with a different palette gets its own note blue and
+ * its own warning amber rather than a hard-coded one.
+ */
+.fi-arte-callout-note {
+    --fi-arte-callout-accent: var(--info-600, #2563eb);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--info-600, #2563eb) 7%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z'/%3E%3C/svg%3E");
+}
+
+.fi-arte-callout-tip {
+    --fi-arte-callout-accent: var(--success-600, #16a34a);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--success-600, #16a34a) 7%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18'/%3E%3C/svg%3E");
+}
+
+.fi-arte-callout-warning {
+    --fi-arte-callout-accent: var(--warning-600, #ca8a04);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--warning-600, #ca8a04) 9%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z'/%3E%3C/svg%3E");
+}
+
+.fi-arte-callout-danger {
+    --fi-arte-callout-accent: var(--danger-600, #dc2626);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--danger-600, #dc2626) 7%, transparent);
+    --fi-arte-callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' stroke-width='1.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 9v3.75m0-10.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.25-8.25-3.286Zm0 13.036h.008v.008H12v-.008Z'/%3E%3C/svg%3E");
+}
+
+/*
+ * The lighter end of each ramp in dark mode: the 600s are drawn for white behind them and
+ * go muddy against the panel's near-black.
+ */
+.fi-arte-callout-note:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--info-400, #60a5fa);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--info-400, #60a5fa) 10%, transparent);
+}
+
+.fi-arte-callout-tip:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--success-400, #4ade80);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--success-400, #4ade80) 10%, transparent);
+}
+
+.fi-arte-callout-warning:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--warning-400, #facc15);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--warning-400, #facc15) 10%, transparent);
+}
+
+.fi-arte-callout-danger:where(.dark, .dark *) {
+    --fi-arte-callout-accent: var(--danger-400, #f87171);
+    --fi-arte-callout-wash: color-mix(in oklab, var(--danger-400, #f87171) 10%, transparent);
+}
+
+/* -------------------------------------------------------------------------- */
 /* Textual toolbar dropdowns                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -340,14 +471,54 @@
 }
 
 /*
- * The headings dropdown can list six levels. Capping the menu keeps it inside the
- * viewport when the toolbar is pinned near the bottom of a tall form.
+ * An option keeps its height. The menu is a column flex box and Filament leaves its options
+ * at the default `flex-shrink: 1`, so a list that runs past the cap below - this package's
+ * cap; Filament sets no height on this menu at all - does not scroll, it squashes. Every row loses a few pixels and the menu quietly ends up with shorter rows
+ * than the menu beside it, which is the one failure mode here nobody would think to look
+ * for. Overflowing is the honest answer, and the rule under this one is what it overflows
+ * into.
+ */
+.fi-arte
+    .fi-fo-rich-editor-dropdown-tool-textual
+    .fi-fo-rich-editor-dropdown-tool-option {
+    flex-shrink: 0;
+}
+
+/*
+ * Capping the menu keeps it inside the viewport when the toolbar is pinned near the bottom
+ * of a tall form. The number is arithmetic rather than taste, and worth writing down: a row
+ * is 2rem tall with a 0.25rem gap BETWEEN rows, and the menu adds 0.5rem of padding and 2px
+ * of border, so n rows want 36n + 6 pixels. The longest list this package ships is the
+ * overflow menu at ten, which measures 366; 26rem is 416, so that one fits and a project
+ * has somewhere to put an eleventh tool - 402 - before anything scrolls.
+ *
+ * The headroom matters beyond the scrolling itself. A scrollbar takes its width out of the
+ * content box, so the options in a scrolling menu are some fifteen pixels narrower than the
+ * ones in a menu beside it - the highlight under the pointer stops short of the edge, and
+ * two menus built from the same component stop looking like it.
  */
 .fi-arte
     .fi-fo-rich-editor-dropdown-tool-textual
     .fi-fo-rich-editor-dropdown-tool-menu {
-    max-height: 18rem;
+    max-height: 26rem;
     overflow-y: auto;
+    /*
+     * Vertically only, and the other axis has to be said out loud rather than left alone:
+     * once one axis is anything but `visible`, the specification computes the other from
+     * `visible` to `auto`. So the `overflow-y` above was quietly asking for a sideways
+     * scrollbar too, and a menu that can scroll sideways is one that will eventually be
+     * caught doing it - a label a fraction too wide, a font that loaded late.
+     *
+     * Filament sets neither. Its own rule for this menu is border, padding, shadow and
+     * `position: absolute`; the height cap and the scrolling are this package's, which
+     * makes the sideways scrollbar this package's too.
+     *
+     * Deliberately NOT `scrollbar-gutter: stable`: the browser already accounts for the
+     * scrollbar when it works out how wide a menu wants to be, so the gutter fixes nothing
+     * and charges every menu that does not scroll fifteen pixels of dead space on the
+     * right, with the highlight stopping short of it.
+     */
+    overflow-x: hidden;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -593,6 +764,131 @@
 .fi-arte-font-size-default {
     font-size: 0.75rem;
     color: var(--gray-400, #a1a1aa);
+}
+
+/*
+ * A menu turned upwards, because there was no room for it below.
+ *
+ * Every dropdown in this package hangs off its trigger with `position: absolute`, which is
+ * right in the middle of a page and wrong at the foot of one. Two edges cut a menu off and
+ * only one of them is the window: `.fi-fo-rich-editor-content` scrolls its own overflow, so
+ * a menu opening low in the editor is clipped by the editor. The bar over a selection makes
+ * that the normal case, since it hangs below the text it belongs to.
+ *
+ * Raising `z-index` would not help with either of them. A menu reaching past the bottom of a
+ * scrolling ancestor is cut off by geometry, and paint order has no say in it.
+ *
+ * Both classes on the selector, so this wins wherever the two stylesheets land in the
+ * cascade. See `OpensAwayFromTheEdge` for the measuring.
+ */
+.fi-fo-rich-editor-dropdown-tool-menu.fi-arte-menu-up {
+    inset-block-start: auto;
+    inset-block-end: 100%;
+    margin-block-start: 0;
+    margin-block-end: 0.25rem;
+}
+
+/*
+ * The named styles a project's own design system offers. Drawn like the font picker
+ * next to it, because it is the same kind of thing: a list of names, one of which the
+ * text currently is.
+ */
+.fi-arte-style-picker-trigger {
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+}
+
+.fi-arte-style-picker-label {
+    max-inline-size: 7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+}
+
+.fi-arte-style-menu {
+    flex-direction: column;
+    min-inline-size: 11rem;
+    max-block-size: 18rem;
+    overflow-y: auto;
+}
+
+/*
+ * The optional marking on text a style sits on, drawn only where a field asked for it with
+ * `->stylePreview()`.
+ *
+ * Off by default on purpose. A style is a set of the project's own classes, and none of
+ * them resolve in an admin panel that has never loaded the front end's stylesheet - so the
+ * package cannot show what a style looks like, only that one is set. This says that much
+ * and no more: a rule down the side of a block, a dotted line under a run of text.
+ *
+ * Everything here is a plain single class, so a project's own `[data-style="…"]` rules -
+ * which is the way to get the real appearance - override it without a fight.
+ */
+.fi-arte-style-preview .fi-fo-rich-editor-content [data-style] {
+    text-decoration: underline dotted var(--gray-400, #a1a1aa);
+    text-underline-offset: 0.25em;
+}
+
+/*
+ * A block carries its marking down the side instead: an underline under a whole paragraph
+ * says "link" to everyone who has ever used a browser.
+ */
+.fi-arte-style-preview .fi-fo-rich-editor-content p[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h1[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h2[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h3[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h4[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h5[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content h6[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content blockquote[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content li[data-style],
+.fi-arte-style-preview .fi-fo-rich-editor-content pre[data-style] {
+    text-decoration: none;
+    border-inline-start: 2px solid var(--gray-300, #d4d4d8);
+    padding-inline-start: 0.625rem;
+}
+
+.fi-arte-style-preview .fi-fo-rich-editor-content [data-style]:where(.dark, .dark *) {
+    border-color: var(--gray-600, #52525b);
+}
+
+.fi-arte-style-option {
+    inline-size: 100%;
+    font-size: 0.9375rem;
+}
+
+/*
+ * A style that cannot apply where the caret is - one meant for headings while the caret
+ * sits in a paragraph. Dimmed rather than removed: a list that changes length as the
+ * caret moves is a list nobody can aim at.
+ */
+.fi-arte-style-option.fi-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/*
+ * Which of the two kinds the rows under it are. Only drawn when both are in the list,
+ * because with one kind there is nothing to tell apart.
+ */
+.fi-arte-style-group {
+    padding: 0.375rem 0.5rem 0.125rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gray-400, #a1a1aa);
+}
+
+/*
+ * The picker itself, which carries no look of its own - the class is what the trigger and
+ * the menu are found by, and what a project overrides when it wants a different one.
+ */
+.fi-arte-style-picker {
+    position: relative;
 }
 
 /*
@@ -1040,8 +1336,15 @@ body.fi-arte-fullscreen-lock {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Emoji picker                                                               */
+/* Emoji and special character pickers                                        */
 /* -------------------------------------------------------------------------- */
+
+/*
+ * One set of rules, two popups. The two pickers are the same thing drawn over different
+ * lists - `resources/js/glyph-picker.js` builds both - so their classes are twinned here
+ * rather than the rules being written twice. Each family keeps its own names because a
+ * project styling one of them should not be styling the other by accident.
+ */
 
 /*
  * The popup lives on the body, not inside the field: the button that opens it usually sits
@@ -1050,7 +1353,8 @@ body.fi-arte-fullscreen-lock {
  * overflow. The z-index sits above the fullscreen overlay (30) and below Filament's modal
  * layer (40), which is the same lane the rest of this package's chrome uses.
  */
-.fi-arte-emoji-popup {
+.fi-arte-emoji-popup,
+.fi-arte-characters-popup {
     position: fixed;
     z-index: 35;
     display: flex;
@@ -1063,13 +1367,15 @@ body.fi-arte-fullscreen-lock {
     box-shadow: 0 10px 25px rgba(9, 9, 11, 0.15);
 }
 
-.fi-arte-emoji-popup:where(.dark, .dark *) {
+.fi-arte-emoji-popup:where(.dark, .dark *),
+.fi-arte-characters-popup:where(.dark, .dark *) {
     border-color: var(--gray-600, #52525b);
     background-color: var(--gray-800, #27272a);
 }
 
 /* Titled and moved by the same bar: it is a handle either way. */
-.fi-arte-emoji-header {
+.fi-arte-emoji-header,
+.fi-arte-characters-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1080,18 +1386,21 @@ body.fi-arte-fullscreen-lock {
     user-select: none;
 }
 
-.fi-arte-emoji-header:active {
+.fi-arte-emoji-header:active,
+.fi-arte-characters-header:active {
     cursor: grabbing;
 }
 
-.fi-arte-emoji-title {
+.fi-arte-emoji-title,
+.fi-arte-characters-title {
     font-size: 0.75rem;
     font-weight: 500;
     line-height: 1rem;
     color: var(--gray-500, #71717a);
 }
 
-.fi-arte-emoji-close {
+.fi-arte-emoji-close,
+.fi-arte-characters-close {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1102,22 +1411,26 @@ body.fi-arte-fullscreen-lock {
     cursor: pointer;
 }
 
-.fi-arte-emoji-close svg {
+.fi-arte-emoji-close svg,
+.fi-arte-characters-close svg {
     inline-size: 0.875rem;
     block-size: 0.875rem;
 }
 
-.fi-arte-emoji-close:hover {
+.fi-arte-emoji-close:hover,
+.fi-arte-characters-close:hover {
     color: var(--gray-600, #52525b);
     background-color: rgba(9, 9, 11, 0.06);
 }
 
-.fi-arte-emoji-close:hover:where(.dark, .dark *) {
+.fi-arte-emoji-close:hover:where(.dark, .dark *),
+.fi-arte-characters-close:hover:where(.dark, .dark *) {
     color: var(--gray-300, #d4d4d8);
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-search {
+.fi-arte-emoji-search,
+.fi-arte-characters-search {
     inline-size: 100%;
     padding: 0.25rem 0.5rem;
     border-radius: 0.375rem;
@@ -1128,29 +1441,44 @@ body.fi-arte-fullscreen-lock {
     color: inherit;
 }
 
-.fi-arte-emoji-search:where(.dark, .dark *) {
+.fi-arte-emoji-search:where(.dark, .dark *),
+.fi-arte-characters-search:where(.dark, .dark *) {
     border-color: var(--gray-600, #52525b);
 }
 
-.fi-arte-emoji-search:focus {
+.fi-arte-emoji-search:focus,
+.fi-arte-characters-search:focus {
     outline: 2px solid var(--primary-600, #2563eb);
     outline-offset: -1px;
 }
 
-.fi-arte-emoji-tabs {
+.fi-arte-emoji-tabs,
+.fi-arte-characters-tabs {
     display: flex;
+    /*
+     * Spread rather than stretched. Stretched, each tab was a full-width slab and the
+     * highlight on the active one ran up against the icons either side of it, which reads
+     * as three tabs selected rather than one.
+     */
+    justify-content: space-between;
     gap: 0.125rem;
     padding-block-end: 0.375rem;
     border-block-end: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.1));
 }
 
-.fi-arte-emoji-tabs:where(.dark, .dark *) {
+.fi-arte-emoji-tabs:where(.dark, .dark *),
+.fi-arte-characters-tabs:where(.dark, .dark *) {
     border-block-end-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-tab {
-    flex: 1 1 0;
-    padding-block: 0.125rem;
+.fi-arte-emoji-tab,
+.fi-arte-characters-tab {
+    /* As wide as the icon it holds, so the highlight is a square around it. */
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
     border-radius: 0.375rem;
     font-size: 1rem;
     line-height: 1.25rem;
@@ -1161,22 +1489,35 @@ body.fi-arte-fullscreen-lock {
 }
 
 .fi-arte-emoji-tab:hover,
-.fi-arte-emoji-tab.fi-active {
+.fi-arte-characters-tab:hover,
+.fi-arte-emoji-tab.fi-active,
+.fi-arte-characters-tab.fi-active {
     filter: none;
     opacity: 1;
 }
 
-.fi-arte-emoji-tab.fi-active {
+.fi-arte-emoji-tab.fi-active,
+.fi-arte-characters-tab.fi-active {
     background-color: rgba(9, 9, 11, 0.06);
 }
 
-.fi-arte-emoji-tab.fi-active:where(.dark, .dark *) {
+.fi-arte-emoji-tab.fi-active:where(.dark, .dark *),
+.fi-arte-characters-tab.fi-active:where(.dark, .dark *) {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-grid {
+.fi-arte-emoji-grid,
+.fi-arte-characters-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(2rem, 1fr));
+    /*
+     * Rows keep their own height instead of sharing out the leftover space. The grid is a
+     * flex child that fills the popup, and a grid's default `align-content` is stretch - so
+     * a tab with two rows in it drew two rows a hundred pixels tall with the characters
+     * floating in the middle of each. It never showed on the emoji tabs, which always have
+     * more rows than fit.
+     */
+    align-content: start;
     gap: 0.125rem;
     overflow-y: auto;
     flex: 1 1 auto;
@@ -1184,7 +1525,19 @@ body.fi-arte-fullscreen-lock {
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 
-.fi-arte-emoji-item {
+/*
+ * The one place the two pickers part company. These are letters and signs rather than
+ * pictures, so they are drawn in the panel's own text font - the emoji stack above would
+ * hand a Greek omega to a font that has no letters in it - and they pack denser, because a
+ * text-sized glyph needs less room than an emoji.
+ */
+.fi-arte-characters-grid {
+    grid-template-columns: repeat(auto-fill, minmax(1.75rem, 1fr));
+    font-family: inherit;
+}
+
+.fi-arte-emoji-item,
+.fi-arte-characters-item {
     aspect-ratio: 1;
     border-radius: 0.375rem;
     font-size: 1.25rem;
@@ -1193,21 +1546,142 @@ body.fi-arte-fullscreen-lock {
 }
 
 .fi-arte-emoji-item:hover,
-.fi-arte-emoji-item:focus-visible {
+.fi-arte-characters-item:hover,
+.fi-arte-emoji-item:focus-visible,
+.fi-arte-characters-item:focus-visible {
     background-color: rgba(9, 9, 11, 0.06);
     outline: none;
 }
 
 .fi-arte-emoji-item:hover:where(.dark, .dark *),
-.fi-arte-emoji-item:focus-visible:where(.dark, .dark *) {
+.fi-arte-characters-item:hover:where(.dark, .dark *),
+.fi-arte-emoji-item:focus-visible:where(.dark, .dark *),
+.fi-arte-characters-item:focus-visible:where(.dark, .dark *) {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.fi-arte-emoji-empty {
+.fi-arte-emoji-empty,
+.fi-arte-characters-empty {
     padding-block: 1rem;
     text-align: center;
     font-size: 0.8125rem;
     color: var(--gray-500, #71717a);
+}
+
+/* -------------------------------------------------------------------------- */
+/* List properties panel                                                      */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The panel in the bubble that appears while the caret is in a list. Its own family of
+ * classes rather than the image panel's: the two look alike on purpose but they are
+ * different controls, and a project restyling one of them should not silently be
+ * restyling the other.
+ */
+.fi-arte-list-panel-menu {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    min-inline-size: 12rem;
+}
+
+.fi-arte-list-panel-label {
+    margin: 0;
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    color: var(--gray-500, #71717a);
+}
+
+/*
+ * The markers wrap rather than scroll: five of them at text width is one row on a wide
+ * bubble and two on a narrow one, and either is easier to aim at than a row that slides.
+ */
+.fi-arte-list-panel-markers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.fi-arte-list-panel-marker {
+    padding: 0.1875rem 0.4375rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    /* The ordered markers are drawn as examples - "a, b, c" - so they are read as text. */
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.fi-arte-list-panel-marker:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.fi-arte-list-panel-marker:hover {
+    background-color: rgba(9, 9, 11, 0.05);
+}
+
+.fi-arte-list-panel-marker:hover:where(.dark, .dark *) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.fi-arte-list-panel-marker.fi-active {
+    border-color: var(--primary-600, #2563eb);
+    color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-list-panel-marker.fi-active:where(.dark, .dark *) {
+    border-color: var(--primary-400, #60a5fa);
+    color: var(--primary-400, #60a5fa);
+}
+
+.fi-arte-list-panel-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.fi-arte-list-panel-input {
+    inline-size: 100%;
+    padding: 0.25rem 0.375rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.375rem;
+    background-color: transparent;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: inherit;
+}
+
+.fi-arte-list-panel-input:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.fi-arte-list-panel-input:focus {
+    outline: 2px solid var(--primary-600, #2563eb);
+    outline-offset: -1px;
+}
+
+.fi-arte-list-panel-check {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fi-arte-list-panel-check > input[type='checkbox'] {
+    inline-size: 0.875rem;
+    block-size: 0.875rem;
+    margin: 0;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    accent-color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-list-panel-check > input[type='checkbox']:where(.dark, .dark *) {
+    accent-color: var(--primary-500, #3b82f6);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1392,8 +1866,22 @@ body.fi-arte-fullscreen-lock {
        hanging off the edge. */
     width: min(16rem, calc(100vw - 1rem));
     max-height: 20rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    /*
+     * The shell and the scrolling are two elements rather than one, and the corners are the
+     * reason. A scrollbar is painted inside the border box and a `border-radius` does not
+     * clip it, so a rounded panel that scrolls itself draws a straight bar across its own
+     * top and bottom right corners - which is what the rounding was for. Split in two, the
+     * bar belongs to the inner element: the padding here holds it clear of the curve, and
+     * `overflow: hidden` on the rounded box is what guarantees it, whatever a platform
+     * decides a scrollbar looks like.
+     *
+     * The column is what lets the inner one have a height to scroll in: without it a flex
+     * child refuses to shrink below its content, and the cap above would be the panel's own
+     * problem rather than the list's.
+     */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 0.375rem;
     border-radius: 0.75rem;
     border: 1px solid var(--fi-arte-slash-border, rgb(228 228 231));
@@ -1401,6 +1889,23 @@ body.fi-arte-fullscreen-lock {
     box-shadow:
         0 10px 15px -3px rgb(0 0 0 / 0.1),
         0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fi-arte-slash-list {
+    /*
+     * `min-height: 0` for the reason above: it is what allows this to be shorter than the
+     * list inside it, which is the whole of the scrolling.
+     */
+    min-height: 0;
+    overflow-y: auto;
+    /*
+     * Said out loud rather than left alone, the same as the toolbar dropdowns: once one
+     * axis is anything but `visible`, the specification computes the other from `visible`
+     * to `auto`, and a menu that can scroll sideways is one that will eventually be caught
+     * doing it - a label a fraction too wide, a font that loaded late.
+     */
+    overflow-x: hidden;
+    overscroll-behavior: contain;
 }
 
 .fi-arte-slash:where(.dark, .dark *) {
@@ -1474,6 +1979,135 @@ body.fi-arte-fullscreen-lock {
 .fi-arte-slash:where(.dark, .dark *) .fi-arte-slash-item-icon,
 .fi-arte-slash:where(.dark, .dark *) .fi-arte-slash-empty {
     --fi-arte-slash-muted: rgb(161 161 170);
+}
+
+/* -------------------------------------------------------------------------- */
+/* The mention menu                                                           */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Deliberately the slash menu's panel again rather than a second look for the same idea:
+ * both are a list of things opened by typing a character, and two panels that differ only
+ * in their shadow read as two features nobody joined up.
+ *
+ * The row is what differs, and it is the whole reason this menu exists: a picture, a name,
+ * and a line under it. The name alone is what Filament draws, and a list of five people
+ * called the same thing is exactly where a mention menu is worth having.
+ */
+.fi-arte-mention-menu {
+    position: fixed;
+    z-index: 40;
+    /* Narrower than the panel is possible on a phone; the menu shrinks rather than hanging
+       off the edge. */
+    width: min(17rem, calc(100vw - 1rem));
+    /* The shell and the scrolling are two elements, for the reason `.fi-arte-slash` gives:
+       a scrollbar is not clipped by a `border-radius`, and a rounded panel that scrolls
+       itself draws a straight bar across its own corners. The cap is set from JavaScript,
+       which is why there is no `max-height` here. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0.375rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--fi-arte-mention-border, rgb(228 228 231));
+    background-color: var(--fi-arte-mention-bg, #fff);
+    box-shadow:
+        0 10px 15px -3px rgb(0 0 0 / 0.1),
+        0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fi-arte-mention-list {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+}
+
+.fi-arte-mention-menu:where(.dark, .dark *) {
+    --fi-arte-mention-border: rgb(63 63 70);
+    --fi-arte-mention-bg: rgb(24 24 27);
+}
+
+.fi-arte-mention-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.5rem;
+    text-align: start;
+    font-size: 0.875rem;
+    color: inherit;
+    cursor: pointer;
+}
+
+/*
+ * Hover is not styled separately: the pointer moves the same selection the arrow keys do,
+ * so a second highlight would say there are two selections.
+ */
+.fi-arte-mention-item-active {
+    background-color: var(--fi-arte-mention-active, rgb(244 244 245));
+}
+
+.fi-arte-mention-item-active:where(.dark, .dark *) {
+    --fi-arte-mention-active: rgb(39 39 42);
+}
+
+/*
+ * One square whether it holds a picture or two letters, because a column that changes width
+ * per row is what makes a list of people unreadable.
+ */
+.fi-arte-mention-avatar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    object-fit: cover;
+    background-color: var(--fi-arte-mention-avatar-bg, rgb(244 244 245));
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--fi-arte-mention-muted, rgb(113 113 122));
+}
+
+.fi-arte-mention-avatar:where(.dark, .dark *) {
+    --fi-arte-mention-avatar-bg: rgb(39 39 42);
+}
+
+.fi-arte-mention-text {
+    display: flex;
+    flex-direction: column;
+    /* `min-width: 0` and nothing else is what lets the two lines below be cut off rather
+       than pushing the row wider than the panel. */
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.fi-arte-mention-label,
+.fi-arte-mention-hint {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fi-arte-mention-hint {
+    font-size: 0.75rem;
+    color: var(--fi-arte-mention-muted, rgb(113 113 122));
+}
+
+.fi-arte-mention-note {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--fi-arte-mention-muted, rgb(113 113 122));
+}
+
+.fi-arte-mention-menu:where(.dark, .dark *) .fi-arte-mention-avatar,
+.fi-arte-mention-menu:where(.dark, .dark *) .fi-arte-mention-hint,
+.fi-arte-mention-menu:where(.dark, .dark *) .fi-arte-mention-note {
+    --fi-arte-mention-muted: rgb(161 161 170);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2088,4 +2722,524 @@ body.fi-arte-fullscreen-lock {
     /* Long file names must wrap here rather than widen the column, which is fixed. */
     overflow-wrap: anywhere;
     font-weight: 500;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Find and replace                                                           */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A small window hanging off the body, the same kind the emoji picker is and one row tall
+ * instead of twenty. Not a box inside the field, and that is not a matter of taste:
+ * Filament lays `.fi-fo-rich-editor-main` out as a two-column row from `2xl` up, so a bar
+ * living in there becomes a column and takes half the editor on a wide screen.
+ *
+ * Its width is set in the script, because the same number decides where the corner is.
+ */
+.fi-arte-find {
+    position: fixed;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.3125rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--gray-300, #d4d4d8);
+    background-color: var(--color-white, #fff);
+    box-shadow: 0 10px 25px rgba(9, 9, 11, 0.15);
+}
+
+.fi-arte-find:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: var(--gray-900, #18181b);
+}
+
+.fi-arte-find-row {
+    display: flex;
+    align-items: center;
+    gap: 0.1875rem;
+}
+
+/* The replacing half is shown by clearing `hidden`, so the row has to beat `display: none`
+   only when it is on - which is what the attribute selector says instead of a class. */
+.fi-arte-find-row[hidden] {
+    display: none;
+}
+
+/*
+ * The one part of the bar with nothing to click, which is what makes it the part that can
+ * be grabbed - a window holding a text field cannot be dragged by its whole surface.
+ */
+.fi-arte-find-grip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.875rem;
+    height: 1.5rem;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-find-grip:active {
+    cursor: grabbing;
+}
+
+.fi-arte-find-grip svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.fi-arte-find-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.125rem 0.375rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.3125rem;
+    background-color: var(--color-white, #fff);
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: inherit;
+}
+
+.fi-arte-find-input:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: color-mix(in oklab, var(--color-white, #fff) 5%, transparent);
+}
+
+.fi-arte-find-input:focus {
+    outline: 2px solid var(--primary-500, #3b82f6);
+    outline-offset: -1px;
+}
+
+/*
+ * The counter keeps its width off the flex sizing so that stepping from "9 of 12" to
+ * "10 of 12" does not shift every button beside it.
+ */
+.fi-arte-find-count {
+    flex: 0 0 auto;
+    min-width: 3.25rem;
+    text-align: center;
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--gray-500, #71717a);
+}
+
+.fi-arte-find-count:where(.dark, .dark *) {
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-find-step,
+.fi-arte-find-toggle,
+.fi-arte-find-action {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.3125rem;
+    color: var(--gray-500, #71717a);
+    cursor: pointer;
+}
+
+.fi-arte-find-step:hover,
+.fi-arte-find-toggle:hover,
+.fi-arte-find-action:hover {
+    background-color: color-mix(in oklab, currentColor 10%, transparent);
+}
+
+.fi-arte-find-step {
+    width: 1.375rem;
+    height: 1.375rem;
+}
+
+.fi-arte-find-step svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+/*
+ * `Aa` and `ab` rather than drawings: both are the established labels for these two
+ * switches, they need no icon registry entry, and they say what they do in every language
+ * because they are not words in any of them.
+ */
+.fi-arte-find-toggle {
+    width: 1.375rem;
+    height: 1.375rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.fi-arte-find-whole-word {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.fi-arte-find-toggle-on {
+    background-color: color-mix(in oklab, var(--primary-500, #3b82f6) 15%, transparent);
+    color: var(--primary-600, #2563eb);
+}
+
+.fi-arte-find-toggle-on:where(.dark, .dark *) {
+    color: var(--primary-400, #60a5fa);
+}
+
+.fi-arte-find-action {
+    padding: 0 0.5rem;
+    height: 1.5rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    font-size: 0.6875rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.fi-arte-find-action:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+}
+
+/*
+ * Every hit is marked, and the one being looked at is marked differently: a search that
+ * highlighted all twelve the same way answers "is it in here" but never "where am I".
+ * A background rather than a border, so that nothing in the text moves as hits appear.
+ */
+.fi-arte-find-hit {
+    border-radius: 0.125rem;
+    background-color: var(--fi-arte-find-hit, rgba(250, 204, 21, 0.45));
+}
+
+.fi-arte-find-hit:where(.dark, .dark *) {
+    background-color: var(--fi-arte-find-hit, rgba(250, 204, 21, 0.3));
+}
+
+.fi-arte-find-hit-current {
+    background-color: var(--fi-arte-find-hit-current, rgba(249, 115, 22, 0.65));
+}
+
+.fi-arte-find-hit-current:where(.dark, .dark *) {
+    background-color: var(--fi-arte-find-hit-current, rgba(249, 115, 22, 0.55));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Drag handle                                                                */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The grip in the margin of the block under the mouse, and the plus beside it.
+ *
+ * Fixed rather than absolute, and that is the whole of why it needs no room in the
+ * layout: the gutter it sits in is the editor's own padding, so nothing about the field
+ * changes shape for a control that is only there while something is being hovered. A
+ * field with `maxHeight()` is its own scrolling window, which an absolutely positioned
+ * child of the box around it would not follow.
+ *
+ * It is drawn out of the flow and out of the way: no pointer events until it is shown,
+ * so a click that lands in the margin of a field nobody is hovering goes to the text.
+ */
+/*
+ * Room for it. Filament leaves twenty pixels to the left of the text and two controls need
+ * fifty, so a field that has a grip is given a wider gutter to keep it in - the attribute
+ * is written by the view only where the feature is on, which is what keeps every other
+ * editor on the page exactly as Filament drew it.
+ */
+.fi-fo-rich-editor-content[data-arte-drag-handle] {
+    /* Logical rather than left: the gutter belongs beside the start of the text, and in a
+       field written right to left that is the other side of the box. */
+    padding-inline-start: 3.25rem;
+}
+
+.fi-arte-drag-handle {
+    position: fixed;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    /* Its own size, stated: it is a sibling of the document inside `.fi-prose`, which has
+       an opinion about the height of everything that is not told otherwise. The margin is
+       that opinion too, and the element carries `fi-not-prose` for it - see the script.
+       Both are kept because a size the layout depends on should be read here rather than
+       inferred from a class somewhere else. */
+    height: 1.5rem;
+    margin: 0;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 75ms ease-out;
+}
+
+.fi-arte-drag-handle-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/*
+ * Both controls are the same shape and neither is a button anybody should notice until
+ * they are looking for it - the block is the thing on the page, and this is a handle on
+ * it.
+ */
+.fi-arte-drag-handle-grip,
+.fi-arte-drag-handle-insert {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    color: var(--gray-400, #a1a1aa);
+    background-color: transparent;
+    transition: background-color 75ms ease-out, color 75ms ease-out;
+}
+
+.fi-arte-drag-handle-grip:hover,
+.fi-arte-drag-handle-insert:hover {
+    color: var(--gray-700, #3f3f46);
+    background-color: var(--gray-100, #f4f4f5);
+}
+
+.fi-arte-drag-handle-grip:where(.dark, .dark *):hover,
+.fi-arte-drag-handle-insert:where(.dark, .dark *):hover {
+    color: var(--color-white, #fff);
+    background-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
+}
+
+.fi-arte-drag-handle-grip svg,
+.fi-arte-drag-handle-insert svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Grab, then grabbing: the one cursor pair every list of this kind has taught. */
+.fi-arte-drag-handle-grip {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.fi-arte-drag-handle-grip:active {
+    cursor: grabbing;
+}
+
+/*
+ * While a block is in the air. The text cursor over the document would say the drop is
+ * about to happen where the mouse is, and it is not - ProseMirror draws the line that
+ * says where.
+ */
+.fi-arte-dragging {
+    cursor: grabbing;
+}
+
+.fi-arte-dragging * {
+    cursor: grabbing !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Draft bar                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Offered above the document when the browser is holding a draft that says something the
+ * page does not. It is one row, it is not a notification, and it does not go away on its
+ * own: the two answers it wants are both destructive in one direction or the other, so it
+ * waits for one of them.
+ *
+ * Amber rather than red or green, because neither is true - nothing has gone wrong and
+ * nothing has succeeded. Something is being held that somebody has to decide about.
+ */
+.fi-arte-draft-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    background-color: var(--amber-50, #fffbeb);
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+}
+
+.fi-arte-draft-bar:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: color-mix(in oklab, var(--amber-400, #fbbf24) 12%, transparent);
+}
+
+.fi-arte-draft-message {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: var(--amber-900, #78350f);
+}
+
+.fi-arte-draft-message:where(.dark, .dark *) {
+    color: var(--amber-200, #fde68a);
+}
+
+/* Both answers are the same weight on purpose: neither of them is the safe one. */
+.fi-arte-draft-restore,
+.fi-arte-draft-discard {
+    flex: 0 0 auto;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.375rem;
+    background-color: var(--color-white, #fff);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    color: inherit;
+}
+
+.fi-arte-draft-restore:hover,
+.fi-arte-draft-discard:hover {
+    background-color: var(--gray-50, #fafafa);
+}
+
+.fi-arte-draft-restore:where(.dark, .dark *),
+.fi-arte-draft-discard:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
+}
+
+.fi-arte-draft-restore:where(.dark, .dark *):hover,
+.fi-arte-draft-discard:where(.dark, .dark *):hover {
+    background-color: color-mix(in oklab, var(--color-white, #fff) 18%, transparent);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Accessibility report                                                       */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The third window built on the shared floating panel, after the emoji picker and the find
+ * bar. It is taller than either because what it holds is a list somebody reads through
+ * rather than a control they aim at - and it hangs off the body for the same reason they
+ * do: inside the field it would be a column in Filament's own two-column layout.
+ */
+.fi-arte-a11y {
+    position: fixed;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    width: 20rem;
+    max-height: 24rem;
+    border: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    border-radius: 0.5rem;
+    background-color: var(--color-white, #fff);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    font-size: 0.8125rem;
+    color: var(--gray-950, #09090b);
+}
+
+.fi-arte-a11y:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+    background-color: var(--gray-900, #18181b);
+    color: var(--gray-100, #f4f4f5);
+}
+
+.fi-arte-a11y-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.375rem;
+    border-bottom: 1px solid var(--fi-arte-divider-color, rgba(9, 9, 11, 0.15));
+    cursor: move;
+    user-select: none;
+}
+
+.fi-arte-a11y-header:where(.dark, .dark *) {
+    border-color: color-mix(in oklab, var(--color-white, #fff) 15%, transparent);
+}
+
+.fi-arte-a11y-grip {
+    display: inline-flex;
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-a11y-grip svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.fi-arte-a11y-title {
+    flex: 1 1 auto;
+    margin: 0;
+    font-weight: 500;
+}
+
+.fi-arte-a11y-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-a11y-close:hover {
+    background-color: var(--gray-100, #f4f4f5);
+    color: inherit;
+}
+
+.fi-arte-a11y-close:where(.dark, .dark *):hover {
+    background-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
+}
+
+.fi-arte-a11y-close svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.fi-arte-a11y-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.25rem;
+}
+
+.fi-arte-a11y-empty {
+    margin: 0;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    color: var(--gray-500, #71717a);
+}
+
+/*
+ * One finding: what is wrong on the first line, what it is about on the second. The second
+ * line is the whole reason the rows are two lines high - a list of six rows all reading
+ * "Image without alt text" says how many there are and never which.
+ */
+.fi-arte-a11y-finding {
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+    width: 100%;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.375rem;
+    text-align: start;
+}
+
+.fi-arte-a11y-finding:hover {
+    background-color: var(--gray-50, #fafafa);
+}
+
+.fi-arte-a11y-finding:where(.dark, .dark *):hover {
+    background-color: color-mix(in oklab, var(--color-white, #fff) 8%, transparent);
+}
+
+.fi-arte-a11y-rule {
+    font-weight: 500;
+}
+
+.fi-arte-a11y-context {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--gray-500, #71717a);
+}
+
+.fi-arte-a11y-context:where(.dark, .dark *) {
+    color: var(--gray-400, #a1a1aa);
 }

@@ -82,6 +82,33 @@ class ToolbarLayout
             'headings' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::headings($editor->getHeadingLevels(), $editor->hasHeadingParagraph()),
             'lists' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::lists($editor->getListTypes()),
             'alignment' => static fn (AdvancedRichEditor $editor): object => ToolbarDropdown::alignment($editor->getAlignments()),
+            // Off, or configured down to nothing, means no trigger - the same rule the
+            // spacing and colour dropdowns follow.
+            'callouts' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasCallouts()) {
+                    return [];
+                }
+
+                $variants = $editor->getCalloutVariants();
+
+                return $variants === [] ? [] : ToolbarDropdown::callouts($variants);
+            },
+            // Off, or configured down to nothing, means no trigger. A dropdown holding only
+            // the way out of a marking nobody can apply is a door onto a wall.
+            'language' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasLanguages()) {
+                    return [];
+                }
+
+                $languages = $editor->getLanguageOptions();
+
+                return $languages === [] ? [] : ToolbarDropdown::languages($languages);
+            },
+            // A plain button name, but a token all the same: an unregistered name in a
+            // toolbar group is an exception, so the switch has to reach the layout too.
+            'characters' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasCharacters()
+                ? 'characters'
+                : [],
             // Nothing to pick from means no trigger, the same way the overflow menu and the
             // colour pickers vanish when what they open onto is empty.
             'lineHeight' => static function (AdvancedRichEditor $editor): object|array {
@@ -100,6 +127,21 @@ class ToolbarLayout
 
                 return $tools === [] ? [] : ToolbarDropdown::more($tools);
             },
+            // Nothing rather than an empty menu, and "nothing" counts a list whose every
+            // entry belongs to a feature this field switched off: searching, the check, the
+            // source view and the shortcut list are each removable, so all four can be gone
+            // while the list naming them is still as long as it ever was. A trigger opening
+            // onto nothing is worse than no trigger.
+            'tools' => static function (AdvancedRichEditor $editor): object|array {
+                $tools = $editor->getToolsMenu();
+
+                $available = array_filter(
+                    $tools,
+                    static fn (string $name): bool => array_key_exists($name, $editor->getTools()),
+                );
+
+                return $available === [] ? [] : ToolbarDropdown::tools($tools);
+            },
             'textColor' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextColor()
                 ? ToolbarColorPicker::text($editor->getTextColorsForPicker(), $editor->hasCustomColors())
                 : [],
@@ -114,9 +156,22 @@ class ToolbarLayout
             'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
                 ? 'help'
                 : [],
+            'find' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFind()
+                ? 'find'
+                : [],
+            'accessibility' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasAccessibility()
+                ? 'accessibility'
+                : [],
             'textBackground' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextBackground()
                 ? ToolbarColorPicker::background($editor->getBackgroundColors(), $editor->hasCustomColors())
                 : [],
+            // Shipped empty, so most projects never see this at all - and one with no
+            // styles gets no trigger rather than a button opening onto nothing.
+            'styles' => static function (AdvancedRichEditor $editor): object|array {
+                $styles = Styles::for($editor);
+
+                return $styles === [] ? [] : ToolbarStylePicker::make()->styles($styles);
+            },
             // Nothing to pick from means no picker: a project with no fonts of its own and
             // the generic stacks switched off would otherwise get an empty menu.
             'fontFamily' => static function (AdvancedRichEditor $editor): object|array {

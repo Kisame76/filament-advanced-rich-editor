@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor;
 
 use BladeUI\Icons\Factory as BladeIconsFactory;
+use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
@@ -31,6 +32,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
         FilamentAsset::register(
             [
                 Css::make('filament-advanced-rich-editor', __DIR__.'/../resources/dist/filament-advanced-rich-editor.css'),
+
+                // The media browser, as an Alpine component rather than a script: it is one
+                // `x-data` object and it is loaded the way Filament loads its own fields,
+                // by `x-load-src` on the element that uses it. Keeping it out of the Blade
+                // file is what lets it be tested at all.
+                AlpineComponent::make('media-picker', __DIR__.'/../resources/dist/js/media-picker.js'),
 
                 // The TipTap extensions are only pulled in once an editor actually renders a
                 // task list, so they stay out of the panel bundle for every other page.
@@ -61,6 +68,27 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/text-direction', __DIR__.'/../resources/dist/js/text-direction.js')
                     ->loadedOnRequest(),
 
+                // Two keyboard shortcuts and nothing else. It is asked for by every field
+                // rather than by a configured few, because the keys it repairs are bound by
+                // Filament's own build on every field.
+                Js::make('advanced-rich-editor/alignment', __DIR__.'/../resources/dist/js/alignment.js')
+                    ->loadedOnRequest(),
+
+                // The language a passage is written in, and what a list is told about
+                // itself. Both are schema only - a mark and a set of global attributes -
+                // so a field that offers neither loads neither.
+                Js::make('advanced-rich-editor/language', __DIR__.'/../resources/dist/js/language.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/list-properties', __DIR__.'/../resources/dist/js/list-properties.js')
+                    ->loadedOnRequest(),
+
+                // The project's own named styles. Both halves only ever carry the key: the
+                // classes belong to the front end's design system and are added in PHP.
+                Js::make('advanced-rich-editor/block-style', __DIR__.'/../resources/dist/js/block-style.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/style-class', __DIR__.'/../resources/dist/js/style-class.js')
+                    ->loadedOnRequest(),
+
                 // The attributes a link and a heading carry beyond what Filament declares.
                 Js::make('advanced-rich-editor/link-attributes', __DIR__.'/../resources/dist/js/link-attributes.js')
                     ->loadedOnRequest(),
@@ -70,7 +98,23 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/slash-menu', __DIR__.'/../resources/dist/js/slash-menu.js')
                     ->loadedOnRequest(),
 
+                // The grip reads the slash menu's own settings to find the character that
+                // opens it, so the two are related at runtime and registered apart: a field
+                // may well have one and not the other.
+                Js::make('advanced-rich-editor/drag-handle', __DIR__.'/../resources/dist/js/drag-handle.js')
+                    ->loadedOnRequest(),
+
+                // Replaces Filament's own mention extension rather than joining it - the two
+                // carry the same name, and Filament keeps the last one it is handed.
+                Js::make('advanced-rich-editor/mention', __DIR__.'/../resources/dist/js/mention.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/embed', __DIR__.'/../resources/dist/js/embed.js')
+                    ->loadedOnRequest(),
+
+                // The note, tip, warning and danger boxes. Loaded only by fields that offer
+                // at least one of them.
+                Js::make('advanced-rich-editor/callout', __DIR__.'/../resources/dist/js/callout.js')
                     ->loadedOnRequest(),
 
                 Js::make('advanced-rich-editor/code-block', __DIR__.'/../resources/dist/js/code-block.js')
@@ -82,6 +126,31 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/character-count', __DIR__.'/../resources/dist/js/character-count.js')
                     ->loadedOnRequest(),
 
+                // Nothing it does reaches the application: the draft it keeps lives in the
+                // browser's own storage and is offered back on the next opening.
+                Js::make('advanced-rich-editor/autosave', __DIR__.'/../resources/dist/js/autosave.js')
+                    ->loadedOnRequest(),
+
+                // The bar imports the panel itself, warmed as soon as the extension loads.
+                // Registered so it is published and served next to the extension - the
+                // import resolves against the extension's own URL, which is what keeps the
+                // two together wherever the assets ended up.
+                Js::make('advanced-rich-editor/find-replace', __DIR__.'/../resources/dist/js/find-replace.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/floating-panel', __DIR__.'/../resources/dist/js/floating-panel.js')
+                    ->loadedOnRequest(),
+
+                // The report is the third window built on that panel, and it imports it the
+                // same way - warmed as soon as the extension loads, so the first press of
+                // the button opens rather than waits.
+                Js::make('advanced-rich-editor/accessibility', __DIR__.'/../resources/dist/js/accessibility.js')
+                    ->loadedOnRequest(),
+
+                // Nothing is drawn and nothing is stored: the file decides what a paste is
+                // made of, before ProseMirror parses it.
+                Js::make('advanced-rich-editor/paste-cleanup', __DIR__.'/../resources/dist/js/paste-cleanup.js')
+                    ->loadedOnRequest(),
+
                 // The picker imports the list itself, the first time it opens. The file is
                 // registered so it is published and served next to the extension - the
                 // import resolves against the extension's own URL, which is what keeps the
@@ -89,6 +158,16 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/emoji', __DIR__.'/../resources/dist/js/emoji.js')
                     ->loadedOnRequest(),
                 Js::make('advanced-rich-editor/emoji-data', __DIR__.'/../resources/dist/js/emoji-data.js')
+                    ->loadedOnRequest(),
+
+                // The special characters picker, the same way, and its list too. The popup
+                // both pickers are drawn in is a third file, imported by whichever of them
+                // loads - registered here so it is published and served beside them.
+                Js::make('advanced-rich-editor/characters', __DIR__.'/../resources/dist/js/characters.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/character-data', __DIR__.'/../resources/dist/js/character-data.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/glyph-picker', __DIR__.'/../resources/dist/js/glyph-picker.js')
                     ->loadedOnRequest(),
             ],
             'kisame76/filament-advanced-rich-editor',

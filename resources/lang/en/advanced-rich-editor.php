@@ -21,6 +21,10 @@ return [
             'orderedList' => 'ol, numbered',
             'taskList' => 'todo, checkbox, checklist',
             'blockquote' => 'quote, citation',
+            'calloutNote' => 'note, info, infobox, callout, admonition',
+            'calloutTip' => 'tip, hint, suggestion, callout',
+            'calloutWarning' => 'warning, caution, attention, callout',
+            'calloutDanger' => 'danger, error, critical, callout',
             'codeBlock' => 'code, pre, snippet',
             'horizontalRule' => 'hr, divider, separator, rule',
             'details' => 'accordion, collapse, toggle',
@@ -29,9 +33,21 @@ return [
             'table' => 'grid, rows, columns',
             'attachFiles' => 'file, upload, attachment',
             'emoji' => 'smiley, icon',
+            'characters' => 'symbol, special character, dash, arrow, currency, accent',
             'customBlocks' => 'block, component',
             'mergeTags' => 'tag, variable, placeholder',
         ],
+    ],
+    /*
+     * The kinds of callout. The key is the variant's own name, so a project that adds one
+     * translates it by adding a key here; one without a translation is titled from its
+     * name.
+     */
+    'callouts' => [
+        'note' => 'Note',
+        'tip' => 'Tip',
+        'warning' => 'Warning',
+        'danger' => 'Danger',
     ],
     'tools' => [
         'image' => 'Image',
@@ -70,7 +86,53 @@ return [
             ],
         ],
         'task_list' => 'Task list',
+        'callouts' => 'Callout',
+        'language' => 'Language',
+        'language_none' => 'Page language',
+        'list_properties' => [
+            'bullet' => 'List properties',
+            'ordered' => 'List properties',
+            'marker' => 'Marker',
+            'marker_default' => 'Default',
+            'start' => 'Start at',
+            'reversed' => 'Count backwards',
+            'markers' => [
+                // Named by an example rather than by a name: "a, b, c" says what the
+                // choice does and "Lower alpha" says what somebody called it.
+                'ordered' => [
+                    '1' => '1, 2, 3',
+                    'a' => 'a, b, c',
+                    'A' => 'A, B, C',
+                    'i' => 'i, ii, iii',
+                    'I' => 'I, II, III',
+                ],
+                'bullet' => [
+                    'disc' => 'Disc',
+                    'circle' => 'Circle',
+                    'square' => 'Square',
+                ],
+            ],
+        ],
+        'characters' => [
+            'label' => 'Special character',
+            'search' => 'Search characters...',
+            'empty' => 'No matching character',
+            'empty_recent' => 'Characters you pick appear here.',
+            'close' => 'Close',
+            'groups' => [
+                'recent' => 'Recent',
+                'punctuation' => 'Punctuation',
+                'currency' => 'Currency',
+                'math' => 'Mathematics',
+                'arrows' => 'Arrows',
+                'symbols' => 'Symbols',
+                'latin' => 'Latin letters',
+                'greek' => 'Greek letters',
+            ],
+        ],
         'heading_level' => 'Heading :level',
+        'styles' => 'Style',
+        'styles_clear' => 'None',
         'font_family' => 'Font',
         'font_family_clear' => 'Default',
         'font_size' => [
@@ -162,6 +224,23 @@ return [
         'headings' => 'Headings',
         'lists' => 'Lists',
         'more' => 'More',
+        'tools_menu' => 'Tools',
+        'find' => [
+            'label' => 'Find and replace',
+            'find' => 'Find',
+            'replace' => 'Replace with',
+            'previous' => 'Previous match',
+            'next' => 'Next match',
+            'replace_one' => 'Replace',
+            'replace_all' => 'Replace all',
+            'close' => 'Close',
+            'match_case' => 'Match case',
+            'whole_word' => 'Whole words only',
+            'no_results' => 'No matches',
+            // Both numbers sit in one sentence, because where they sit in it is a question
+            // about the language and not one the browser should be answering.
+            'count' => ':current of :total',
+        ],
         'source_code' => [
             'label' => 'Source code',
             'heading' => 'Source code',
@@ -200,10 +279,50 @@ return [
         'close' => 'Close',
         'editing' => [
             'line_break' => 'Line break without a new paragraph',
+            'paste_plain' => 'Paste as plain text',
             'indent_list' => 'Indent list item',
             'outdent_list' => 'Outdent list item',
             'next_cell' => 'Next table cell',
+            'find' => 'Find',
+            'find_replace' => 'Find and replace',
         ],
+    ],
+
+    'accessibility' => [
+        'title' => 'Accessibility check',
+        'close' => 'Close',
+        'empty' => 'Nothing to report.',
+        'ratio' => ':ratio of the :needed needed',
+        'rules' => [
+            'missing_alt' => 'Image without alt text',
+            'empty_link' => 'Link with no text',
+            'weak_link_text' => 'Link text says nothing',
+            'skipped_heading' => 'Heading level skipped',
+            'table_without_header' => 'Table without a header row',
+            'weak_contrast' => 'Text colour too weak to read',
+        ],
+        // A link's whole text has to be one of these, so what belongs here is what people
+        // write as the entire text of a link and nothing longer.
+        'weak_link_phrases' => [
+            'here', 'click here', 'click', 'this', 'this link', 'link', 'read more',
+            'more', 'learn more', 'find out more', 'see more', 'details', 'go', 'download',
+        ],
+    ],
+
+    'autosave' => [
+        'found' => 'An unsaved draft from :time was found in this browser.',
+        'restore' => 'Restore it',
+        'discard' => 'Discard it',
+    ],
+
+    'drag_handle' => [
+        'drag' => 'Drag to move this block, click to select it',
+        'insert' => 'Add a block below',
+    ],
+
+    'styles' => [
+        'block' => 'Block',
+        'inline' => 'Text',
     ],
 
     'fonts' => [

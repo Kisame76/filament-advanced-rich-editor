@@ -1,12 +1,98 @@
 # Filament Advanced Rich Editor — documentation
 
-Everything the package does, in one file, installation included. The short version lives in
-the [README](../README.md).
+Everything the package does, in one file, installation included. The short version is the
+[README](../README.md).
+
+## What you get that the stock `RichEditor` does not
+
+`AdvancedRichEditor` extends Filament v5's `Filament\Forms\Components\RichEditor`, so
+everything you already call — `->disableToolbarButtons()`, `->customBlocks()`,
+`->mergeTags()`, `->fileAttachmentsDisk()`, `->mentions()` — keeps working. This is what is
+on top of it, checked against the current Filament v5 release:
+
+| | Filament v5 `RichEditor` | This package |
+| --- | --- | --- |
+| **Toolbar** | A fixed default row. Groups and dropdowns exist, but each one is assembled by hand | [Tokens](#rearranging-the-toolbar) that expand into whole groups, [dividers](#dividers), [two overflow menus](#the-tools-menu), a [pinned corner](#pinned-buttons), [start, centre, end or spread across the width](#toolbar-alignment), [sticky while scrolling](#sticky-toolbar), and [one config file](#configuration) for every field in the project |
+| **Your own toolbar entries** | `->tools()` registers a tool, and you place it by hand in every toolbar array that wants it | [A token of your own](#custom-tokens) that expands wherever it is named, and [replaces a built-in one](#custom-tools) when it takes its key — `headings` defined in your config *is* the headings dropdown |
+| **Headings** | All six exist; the default row offers `h2` and `h3`, and every level is a separate button | [One dropdown](#heading-levels) of the levels *this* field allows, with the plain paragraph in front of them as the way back out |
+| **Lists** | Bullets and numbers | [Task lists](#lists-and-task-lists) too, plus [markers, a starting number and counting backwards](#lists-markers-numbering-and-direction) |
+| **Block layout** | Four separate alignment buttons, three of them in the default row | [One alignment dropdown](#alignment) showing the alignment the caret is in, and [line spacing](#line-spacing) beside it |
+| **Writing direction** | — | [`dir` on the block the caret sits in](#text-direction), so a Hebrew paragraph inside a German article reads the right way round — registered on every field, and named `ltr` / `rtl` when you want the buttons |
+| **Character look** | `textColor` with an optional free picker, `highlight`, `small`, `lead` | + [a background colour with a palette of its own](#colours), [font size](#font-size), [your design system's own named styles](#styles), [a typeface picker](#fonts) |
+| **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser), [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
+| **Sizing a picture** | `->resizableImages()`, off by default, and the drag always keeps the ratio | [On by default, with the pixel size beside the pointer](#images) — a ratio lock you can open, quarter turns, a panel to type the two numbers into, and a download |
+| **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window |
+| **Video** | — | [Paste a YouTube or Vimeo link](#video-embeds) and get a player, timestamp included, through the cookie-free host |
+| **Code** | A code block with no language | [A language picker on the block](#code-blocks), and syntax colours rendered in PHP |
+| **Callouts** | — | [Note, tip, warning and danger](#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
+| **Finding text** | The browser's `Ctrl+F` — which finds, and stops there | [Find and replace inside the field](#find-and-replace) — every hit marked at once, whole words and case optional, and replacing all of them is one undo |
+| **Reaching a tool** | Aim at the bar | [Type `/`](#slash-menu) for the commands *this* field offers, or use [the grip in the margin](#drag-handle) to move a block and the plus to start one |
+| **Formatting what you selected** | `->floatingToolbars()` exists; the only bar Filament ships is the one over a table cell | [A bar over the selected text](#toolbar-over-a-selection) carrying the styles, the marks, the link and both colour pickers — taking the same tokens the main toolbar does |
+| **Pasting from Word** | What Word wrote, minus what the sanitiser strips on save | [Cleaned on the way in](#pasting-from-word-and-google-docs): the list Word writes as twelve paragraphs is a list again, and somebody else's fonts, sizes and colours stay behind |
+| **Accessibility** | — | [A check](#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read — and [`lang` on a passage](#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
+| **Closing the tab** | The text is gone | [A draft kept in the browser](#drafts-in-the-browser), offered back the next time the field is opened, and a warning before the tab closes |
+| **Seeing the HTML** | — | [The document in Filament's own code editor](#source-code) |
+| **How long it is** | `minLength()` / `maxLength()`, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
+| **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
+| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji) and [special characters](#special-characters) |
+| **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
+| **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
+
+Everything is off, on or replaceable per field, and the defaults live in one config file.
+
+## Contents
+
+**Getting started** — [Requirements](#requirements) · [Installation](#installation) ·
+[Raise Livewire's nesting limit](#raise-livewires-nesting-limit) · [Usage](#usage)
+
+**[The toolbar](#the-toolbar)** — [The default toolbar](#the-default-toolbar) ·
+[Rearranging it](#rearranging-the-toolbar) · [Dividers](#dividers) · [Dropdowns](#dropdowns) ·
+[Custom tokens](#custom-tokens) · [Custom tools](#custom-tools) ·
+[Toolbar alignment](#toolbar-alignment) · [Pinned buttons](#pinned-buttons) ·
+[The tools menu](#the-tools-menu) · [The more menu](#the-more-menu) ·
+[Sticky toolbar](#sticky-toolbar) · [Toolbar over a selection](#toolbar-over-a-selection) ·
+[Floating toolbars](#floating-toolbars) · [Maximum height](#maximum-height) ·
+[Fullscreen](#fullscreen) · [Help](#help)
+
+**[Blocks](#blocks)** — [Heading levels](#heading-levels) ·
+[Lists and task lists](#lists-and-task-lists) ·
+[List markers, numbering and direction](#lists-markers-numbering-and-direction) ·
+[Callouts](#callouts) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
+[Text direction](#text-direction) · [Code blocks](#code-blocks)
+
+**[Characters](#characters)** — [Styles](#styles) · [Fonts](#fonts) ·
+[Font size](#font-size) · [Colours](#colours) ·
+[Language of a passage](#language-of-a-passage) · [Emoji](#emoji) ·
+[Special characters](#special-characters)
+
+**[Media and links](#media-and-links)** — [Images](#images) ·
+[Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
+[Links](#links) · [Video embeds](#video-embeds) ·
+[Anchors in the editor](#anchors-in-the-editor)
+
+**[Typing instead of aiming](#typing-instead-of-aiming)** — [Slash menu](#slash-menu) ·
+[Drag handle](#drag-handle) · [Find and replace](#find-and-replace) ·
+[Pasting from Word and Google Docs](#pasting-from-word-and-google-docs)
+
+**[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
+[Drafts in the browser](#drafts-in-the-browser) · [Character count](#character-count) ·
+[Required, and what counts as empty](#required-and-what-counts-as-empty) ·
+[Source code](#source-code)
+
+**[Rendering](#rendering)** — [Table column widths](#table-column-widths) ·
+[Anchors](#anchors) · [Table of contents](#table-of-contents) · [Mentions](#mentions) ·
+[Markdown](#markdown)
+
+**Project-wide** — [Configuration](#configuration) · [What ships on](#what-ships-on) ·
+[Everything, in one call](#everything-in-one-call) · [Icons](#icons) ·
+[Translations](#translations) · [Theming](#theming) ·
+[How it works / caveats](#how-it-works--caveats) · [What's next](#whats-next) ·
+[Found a bug? Got an idea?](#found-a-bug-got-an-idea)
 
 ## Requirements
 
 - PHP 8.2+
-- Filament v5
+- Filament v5.7+
 
 ## Installation
 
@@ -41,7 +127,11 @@ php artisan livewire:publish --config
 ```
 
 ```php
-'max_nesting_depth' => 32,   // 10 is Livewire's default and is not enough
+// config/livewire.php
+'payload' => [
+    // …
+    'max_nesting_depth' => 32,   // 10 is Livewire's default and is not enough
+],
 ```
 
 Change that one line rather than pasting a whole `payload` block — a published `payload`
@@ -64,6 +154,8 @@ AdvancedRichEditor::make('content')
     ->columnSpanFull();
 ```
 
+## The toolbar
+
 ### The default toolbar
 
 Out of the box the field renders the layout from `config/filament-advanced-rich-editor.php`:
@@ -72,31 +164,55 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
 [
     ['undo', 'redo'],
     'divider',
-    ['headings', 'fontFamily', 'fontSize'],
+    ['headings', 'styles', 'fontSize'],
     'divider',
-    ['bold', 'italic', 'underline', 'strike', 'textColor', 'textBackground'],
+    ['bold', 'italic', 'underline', 'link', 'textColor', 'textBackground'],
     'divider',
     ['alignment', 'lineHeight'],
     'divider',
-    ['lists', 'link', 'image', 'table', 'blockquote', 'codeBlock'],
+    ['lists', 'image', 'embed', 'table', 'callouts'],
     'divider',
     ['more'],
     'pin',
-    ['sourceCode', 'fullscreen', 'help'],
+    ['tools', 'fullscreen'],
 ]
 ```
 
 Each nested array is one visually grouped cluster, and the groups answer one question each:
-what came before, what the text *is* (its block type, its typeface, its size), how the
-characters look, how the block is laid out, what to put into the document, how to view it.
-Left to right that is also the order the decisions are made in — you pick a heading before
-you pick a font, and you emphasise a word before you decide how the paragraph sits.
+what came before, what the text *is* (its block type, its size), how the characters look,
+how the block is laid out, what to put into the document, how to view it. Left to right that
+is also the order the decisions are made in — you pick a heading before you pick a size, and
+you emphasise a word before you decide how the paragraph sits.
+
+**Four things are registered but deliberately not in the shipped layout.** The typeface picker
+(`fontFamily`) is one: choosing a font in an article is the front end's business, not the
+author's, and this package strips `font-family` out of a paste on exactly that reasoning —
+a bar that offers the picker invites somebody to do by hand what the paste cleanup exists to
+undo. Where a project genuinely needs it, name the token. The `styles` dropdown is the
+sanctioned way to reach a theme's typography, because it carries the theme's own names.
+
+Striking out is the second, and it is nowhere in the shipped layout at all — not on the bar,
+not in the overflow menu, not in the bubble. It is registered, so `'strike'` anywhere in any
+of those three lists brings it back; it simply is not one of the eight or nine things a
+default toolbar should spend a row on.
+
+The quote is the third. It sits in the `more` menu rather than beside the table, because a
+document that needs one usually needs one — a quote is a thing you reach for occasionally,
+not a thing you reach for while writing. The callout dropdown took the place it had, and
+that is the trade being made: a note, a warning and a tip come up far more often than a
+pull quote does.
+
+The language of a passage is the fourth, and it is nowhere at all — not on the bar, not in
+the overflow menu, not in the bubble. Most documents never quote a foreign phrase, and a bar
+should not carry a control for something most of its readers will never do. A project that
+does want it names `'language'` in `text_toolbar_buttons`, which is where it belongs; see
+[Language of a passage](#language-of-a-passage).
 
 The two block dropdowns are apart on purpose. Alignment and line spacing shape a paragraph,
-so they share a group; a list is a thing you *make*, which is why it sits with the link, the
-image, the table, the quote and the code block rather than with the alignment. Those five
-all insert something, and that is what groups them rather than whether they happen to be a
-mark or a node.
+so they share a group; a list is a thing you *make*, which is why it sits with the image, the
+table and the callout rather than with the alignment. All four put something into the
+document, and that is what groups them rather than whether they happen to be a mark or a
+node.
 
 The last group sits behind `'pin'` — see [Pinned buttons](#pinned-buttons). Those three are
 about the *editor* rather than about the text, so they keep a corner of the bar to
@@ -104,13 +220,25 @@ themselves instead of moving with everything else. The overflow menu is not one 
 what it holds are tools for the text, so it stays with the aligned groups and ends them.
 
 The tools most documents never need do not get a button of their own: `superscript`,
-`subscript`, inline `code`, `clearFormatting`, `horizontalRule` and `details` sit in the
-`'more'` dropdown at the end, together with this package's own `emoji` picker and the two
-direction buttons. Every other Filament tool - `highlight`, `small`, `lead`, `attachFiles`,
+`subscript`, inline `code`, `codeBlock`, `blockquote`, `clearFormatting`, `horizontalRule`
+and `details` sit in the `'more'` dropdown at the end, together with this package's own
+`emoji` and `characters` pickers. Every other Filament tool - `highlight`, `small`, `lead`, `attachFiles`,
 `mergeTags`, `customBlocks` and the table editing ones - is registered too, so naming it
 anywhere in the array, or in the `more` list, brings it into the bar.
 
-Change the config to change every editor in the project at once.
+The key is `toolbar` in `config/filament-advanced-rich-editor.php`. Change it to change
+every editor in the project at once; per field, `->toolbarButtons([...])` replaces it
+outright and Filament's own `->disableToolbarButtons([...])` subtracts from it.
+
+Four of the tools named above are registered but not shipped on the bar. None of them is
+unavailable - each is one token away:
+
+```php
+AdvancedRichEditor::make('content')
+    ->moreTools([..., 'fontFamily', 'strike'])        // the typeface picker, striking out
+    ->textToolbarButtons([..., 'language']);          // the language of a passage
+// the quote ships inside the `more` menu already
+```
 
 ### Rearranging the toolbar
 
@@ -152,16 +280,19 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 
 ### Dropdowns
 
-Five tokens build a dropdown for you from the field's own configuration:
+Seven tokens build a dropdown for you from the field's own configuration:
 
 - `'headings'` — one entry per configured heading level
 - `'lists'` — one entry per configured list type, including the task list when it is enabled
 - `'alignment'` — one entry per configured alignment, see [Alignment](#alignment)
 - `'lineHeight'` — one entry per configured spacing, see [Line spacing](#line-spacing)
+- `'callouts'` — one entry per configured kind of callout, see [Callouts](#callouts)
+- `'language'` — one entry per configured language, see [Language of a passage](#language-of-a-passage)
 - `'more'` — one entry per tool in the `more` list, see [The more menu](#the-more-menu)
 
-All five render with a label next to the icon. `'headings'`, `'lists'` and `'alignment'`
-mirror the icon of whatever is active in the current selection on their trigger; `'more'`
+All seven render with a label next to the icon. `'headings'`, `'lists'`, `'alignment'`
+and `'callouts'` mirror the icon of whatever is active in the current selection on their
+trigger; `'language'` keeps its globe, because every entry carries the same one; `'more'`
 keeps its three dots, because an overflow menu that hides its own handle is one you cannot
 find your way back to, and `'lineHeight'` keeps its own icon because its options are
 numbers and there is nothing to swap it for. Both still highlight while one of their tools
@@ -187,6 +318,18 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 `ToolbarDropdown::make()` takes the trigger label first and the button names second; the
 names are resolved against the editor's registered tools, so an unknown or disabled button
 is simply dropped.
+
+Every one of them opens upwards when there is no room below, and caps itself to the room
+it has when neither side can hold it whole. That is not cosmetic: the editor's content box
+scrolls its own overflow, so a menu opening low in the field is cut off by the field — and
+the bar over a selection makes that the normal case, since it hangs below the text it
+belongs to. A higher `z-index` would not help, because the menu is clipped by geometry
+rather than by paint order.
+
+The cap matters as much as the turn. A field a few hundred pixels tall with a selection in
+the middle of it has less than half of that above the bar and less than half below, which a
+long list outgrows either way — so the menu takes the roomier side and scrolls inside what
+is there.
 
 ### Custom tokens
 
@@ -238,6 +381,485 @@ Tools that need a TipTap extension belong in a `RichContentPlugin` — see Filam
 [rich content plugin docs](https://filamentphp.com/docs/5.x/forms/rich-editor) and this
 package's `TaskListPlugin` for a worked example.
 
+### Toolbar alignment
+
+The groups are centred on the bar. Filament's own editor is left aligned; change it per
+field or project-wide through `toolbar_alignment`:
+
+```php
+AdvancedRichEditor::make('content')
+    ->toolbarAlignment('start');            // 'start' | 'center' | 'end' | 'between'
+    // ->toolbarAlignment(Alignment::End);  // Filament's enum works too
+```
+
+### Pinned buttons
+
+`'pin'` is not a thing on the bar but a place in it: everything after it is pushed to the
+far end of the toolbar instead of travelling with the aligned groups. The shipped bar pins
+`['tools', 'fullscreen']` — the tools menu and the fullscreen switch, with the source view,
+find, the accessibility check and the help dialog one click inside the menu. They are
+controls for the editor, not for the text, and they should stay in the same corner whatever
+the rest of the bar does.
+
+```php
+->toolbarButtons([
+    ['bold', 'italic'],
+    'pin',
+    ['fullscreen', 'help'],   // hard against the far edge
+])
+```
+
+The centred groups stay centred **on the whole bar**, not on what is left of it, so pinning
+does not nudge the toolbar sideways. There is nothing to configure: the pinned buttons take
+the edge the aligned groups are not pushed against — the end normally, and the start when
+the toolbar itself is aligned to the end, because that bar has already taken the end for
+itself.
+
+The marker may sit anywhere, including inside a group, and it is dropped either way; a
+second one has nothing left to split and goes the same way. Each half collapses its own
+dividers, so a rule left leading or trailing by the split disappears rather than floating
+in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one row.
+
+### The tools menu
+
+`'tools'` is a second overflow for the other half of a toolbar: what a field *does* rather
+than what it writes - searching, the accessibility check, the source view, the shortcut
+list.
+
+What the menu holds is `tools_menu` in the config file, shipped as
+`['find', 'accessibility', 'sourceCode', 'help']`. Per field, `->toolsMenu(['find', 'help'])`
+replaces that list; an empty list drops the button altogether.
+
+It is the shipped corner: `['tools', 'fullscreen']`, with the menu holding
+`['find', 'accessibility', 'sourceCode', 'help']`.
+
+```php
+// A project that would rather have the buttons names them individually.
+->toolbarButtons([
+    // ...
+    'pin',
+    ['find', 'accessibility', 'sourceCode', 'fullscreen', 'help'],
+]);
+```
+
+It is named rather than being a second set of three dots, and that is the whole reason it
+can exist. Two menus both called "More" on one bar are two doors with the same sign and
+different rooms behind them; a menu called Tools is a different kind of thing, and a reader
+has to be told which once rather than guess every time.
+
+Shipped that way the corner never changes shape. The accessibility check and the source
+view are both off by default and drop out of the menu while they are; switching either on
+puts it *in* the menu rather than adding a third and fourth icon beside it, and the preview,
+statistics, focus mode and export tools still to come go the same way.
+
+The cost is that finding is one click deeper on a field that has switched nothing on -
+`Ctrl+F` is unaffected, and the help dialog lists it.
+
+An empty menu is dropped rather than drawn, and emptiness counts what survived rather than
+what was asked for: every tool in the list belongs to a feature that can be switched off, so
+all four can be gone while the list naming them is as long as it ever was.
+
+### The more menu
+
+The `'more'` token renders the overflow dropdown at the end of the toolbar: the tools that
+earn a place in the editor but not a button of their own.
+
+```php
+AdvancedRichEditor::make('content')
+    ->moreTools([
+        'subscript', 'superscript', 'code', 'codeBlock', 'clearFormatting', 'horizontalRule', 'details',
+        'emoji',
+    ]);
+```
+
+That is also the default, and it lives in `config('filament-advanced-rich-editor.more')`.
+Any Filament tool name is valid; an unknown one is dropped while resolving, exactly as it is
+inside every other dropdown. An empty list removes the dropdown along with its trigger:
+
+```php
+AdvancedRichEditor::make('content')->moreTools([]);
+```
+
+Build another one anywhere with `ToolbarDropdown::more([...])`, or keep any dropdown's
+trigger from following the caret with `->staticIcon()`.
+
+The last entry is this package's own: the [emoji picker](#emoji), which has a switch of its
+own. The two [direction](#text-direction) buttons are registered but not listed - name them
+where you want them.
+
+### Sticky toolbar
+
+The toolbar is pinned by default. `offset` is any CSS length and should match the height of
+whatever sits above the form — the panel topbar in a standard Filament panel:
+
+```php
+AdvancedRichEditor::make('content')
+    ->stickyToolbar()                  // default: config('filament-advanced-rich-editor.sticky.enabled')
+    ->stickyToolbarOffset('4rem');     // default: config('filament-advanced-rich-editor.sticky.offset')
+
+AdvancedRichEditor::make('excerpt')
+    ->stickyToolbar(false);            // short field, nothing to pin
+```
+
+### Toolbar over a selection
+
+Select text and a small bar appears over it: the project's own styles, bold, italic,
+underline, link, colour and the highlighter. Filament ships one of these for a selected image
+and one for a table cell; this is the third, and the one people reach for most.
+
+It offers the same buttons in the same order as the group at the top of the field, which is
+why the link sits with the marks in both places rather than between the image and the table.
+A link is an annotation on selected text, the same as bold; two bars that offer the same
+things in a different order are two things to learn instead of one.
+
+```php
+AdvancedRichEditor::make('comment')->textToolbar(false);              // no bar
+AdvancedRichEditor::make('content')->textToolbarButtons(['bold', 'link']);
+```
+
+It takes the same tokens the main toolbar does, so `'styles'` and `'textColor'` mean the
+same thing in both, and a feature switched off on the field takes its button out of here too
+rather than leaving a dead one behind. An empty list takes the bar away, and so does
+`text_toolbar => false` in the config.
+
+Any dropdown in the bar — the styles picker, the two colour pickers — opens upwards when
+there is no room below it. The bar hangs under the text it belongs to, so near the foot of a
+document a menu would otherwise be cut off by the editor's own scrolling content box.
+
+The bar is keyed `'paragraph'` rather than `'text'`, which is not a naming choice: Filament's
+JavaScript treats that one key as a special case and shows its toolbar on a non-empty
+selection inside a paragraph, where every other key waits for a node to be active. A key
+called anything else would be drawn and never shown.
+
+### Floating toolbars
+
+A floating toolbar is a bar that shows itself while the caret is somewhere particular and
+takes itself away on the way out. Filament shows one while `editor.isActive(<the key>)` is
+true, so the key is a node or mark name and the bar is scoped to it for free. Filament ships
+one, over a table cell. This package ships three more.
+
+| Key | Shows while | Holds |
+| --- | --- | --- |
+| `paragraph` | text is selected | [the selection bar](#toolbar-over-a-selection) — styles, marks, link, both colour pickers |
+| `image` | an image is selected | the aspect lock, the size panel, the two quarter turns, the alt and caption panel, download, delete |
+| `bulletList` / `orderedList` | the caret is in a list | [the marker, start number and reverse panel](#lists-markers-numbering-and-direction) |
+
+All three assemble themselves from what the field has switched on: no
+[`->imageToolbar()`](#images), no image bar; no [`->listProperties()`](#lists-markers-numbering-and-direction),
+no list bubbles; no [`->textToolbar()`](#toolbar-over-a-selection), no selection bar. Leave
+them alone and you never touch this API.
+
+To change what one of them holds, replace it with Filament's own `->floatingToolbars()`,
+keyed the same way. The entries are the ordinary toolbar tokens plus four objects that exist
+only here, because these controls are panels rather than buttons and have no token name:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarListPanel;
+
+AdvancedRichEditor::make('content')
+    ->floatingToolbars([
+        'image' => [
+            ToolbarImageLock::make(),      // the aspect ratio lock
+            ToolbarImagePanel::size(),     // width and height, with Apply
+            'imageRotateLeft',
+            'imageRotateRight',
+            ToolbarDivider::make(),
+            ToolbarImagePanel::alt(),      // alt text and caption
+            'imageDelete',                 // 'imageDownload' dropped
+        ],
+        'paragraph' => ['bold', 'italic', 'link'],
+        'bulletList' => [ToolbarListPanel::bullet()],
+        'orderedList' => [ToolbarListPanel::ordered()],
+    ]);
+```
+
+`->floatingToolbars()` replaces the shipped set outright rather than merging into it, so a
+key you leave out is a bar you lose. The shipped set is built in
+`AdvancedRichEditor::getDefaultFloatingToolbars()` if you want to read it before replacing
+it.
+
+Two things to know before you rebuild the image bar. `ToolbarImageLock` and
+`ToolbarImagePanel::size()` write the very attributes a resize drag commits, so they mean
+nothing on a field where [resizing is off](#images) — the shipped bar leaves both out in that
+case. And with text selected inside a list, Filament prefers the `paragraph` bar over the
+list one, which is right: somebody who has selected words wants to format them.
+
+### Maximum height
+
+A long document pushes everything below it off the screen. `maxHeight()` caps the field and
+lets it scroll inside itself instead:
+
+```php
+AdvancedRichEditor::make('content')
+    ->maxHeight('400px');              // default: config('filament-advanced-rich-editor.max_height')
+
+AdvancedRichEditor::make('content')->maxHeight(400);    // a bare number is pixels
+AdvancedRichEditor::make('content')->maxHeight(null);   // grow freely, against a configured height
+```
+
+Any CSS length. A bare number is read as pixels, because `max-height: 400` is not a length
+any browser accepts and the field would keep growing with nothing to show for the call.
+
+Only the text box is capped, so **a capped field turns its own sticky toolbar off**: the bar
+sits above the box that scrolls and stays in view without being pinned to anything. Pinning
+it to the viewport as well would peel it off the field as the page scrolls past. Fullscreen
+wins over both — the overlay already fills the window, and a 400px box inside it would
+leave most of the screen empty.
+
+### Fullscreen
+
+The last button expands the editor over the window, and Escape leaves again.
+
+```php
+AdvancedRichEditor::make('content')->fullscreen(false);   // default: config('...fullscreen')
+```
+
+It is a fixed overlay, not the browser's Fullscreen API: that promotes one element into
+the top layer, and Filament renders its modals at the end of the body, so the file upload
+dialog would be invisible while the editor was expanded. The overlay deliberately sits
+below Filament's modal layer, so those dialogs still work. While expanded the editor body
+is the scroll container, and a sticky toolbar pins to it rather than to the page.
+
+### Help
+
+`'help'` opens a dialog listing the keyboard shortcuts the field actually answers to. It
+ships inside the tools menu (`tools_menu`), one click behind the wrench in the pinned corner;
+name `'help'` in `toolbar` to give it a button of its own.
+
+```php
+AdvancedRichEditor::make('content')->help(false);   // default: config('...help')
+```
+
+The list is built from the field's own configuration, not from a fixed table: it names the
+heading levels that field offers, leaves the task list out where the task list is off, and
+mentions the table keys only where there is a table tool. Every shortcut in it was read out
+of the editor build Filament ships, or out of the extension in this package that binds it -
+a list that names keys nobody bound is worse than no list.
+
+Keys are drawn as caps and named by the machine reading them: ⌘⌥⇧ on a Mac, Ctrl/Alt/Shift
+everywhere else.
+
+Two of them are repaired rather than reported. TipTap's `TextAlign` binds `Ctrl+Shift+L`
+and `Ctrl+Shift+R` to the alignments `left` and `right`, Filament configures the extension
+with `start` and `end` so that right-to-left content behaves, and `setTextAlign` answers an
+alignment it was not configured with by doing nothing - which also hands the key back to
+the browser, where `Ctrl+Shift+R` is a hard reload with the draft still in the field. This
+package rebinds those two to `start` and `end`. Centring and justifying are TipTap's own
+and always worked, since `center` and `justify` are spelled the same on both lists.
+
+The heading rows are the one place the list is narrower than the editor. TipTap registers
+`Ctrl+Alt+1` through `Ctrl+Alt+6` whatever the field offers, so a field that stops at four
+still writes an `h5` for `Ctrl+Alt+5` - one no button can take back. The list names the
+levels the field has rather than advertising that.
+
+Some of what TipTap binds collides with the browser, and nothing in a page can win those.
+On Windows and Linux `Ctrl+Shift+J` (justify), `Ctrl+Shift+E` (centre) and `Ctrl+Shift+S`
+(strikethrough) are developer-tools shortcuts in Chrome or Firefox and open a panel instead.
+On German, Polish and other AltGr layouts, `AltGr` is `Ctrl+Alt`, so the paragraph, heading
+and code block keys sit on top of `{`, `[`, `]`, `}`, `²` and `³`. Both are upstream
+defaults; the toolbar, the slash menu and the dropdowns are the way round them.
+
+Add a second tab with something to tell the people writing in the field:
+
+```php
+AdvancedRichEditor::make('content')
+    ->helpMore('Product names are never translated. Ask the editorial team before publishing.');
+```
+
+Without a note the dialog stays one plain list - a tab bar over a single tab is furniture.
+A plain string is escaped and keeps its line breaks; pass an `Htmlable` for markup, which is
+trusted, so build it in code rather than out of anything a user typed. The tab's own label
+is the second argument, and `help_more` in the config sets a note for every field at once.
+
+## Blocks
+
+### Heading levels
+
+The dropdown lists the plain paragraph in front of the levels, so it reads as a choice of
+block rather than a row of toggles, and there is an obvious way back out of a heading.
+Picking the level a block already has also returns it to a paragraph, so a block is never
+left without a type. Drop the entry with `->headingParagraph(false)` or the
+`heading_paragraph` config key.
+
+The six heading tools are relabelled to "Heading 1" … "Heading 6" (Filament labels `h1`
+"Title", which reads wrong next to the other levels in a dropdown). Override the wording
+through the `tools.heading_level` translation key.
+
+```php
+AdvancedRichEditor::make('content')
+    ->headingLevels([2, 3, 4]);   // default: config('...heading_levels')
+```
+
+The levels drive both the `'headings'` dropdown and which of the `h1`–`h6` buttons are
+available. Only 1 to 6 are valid — anything else throws a `LogicException` at build time
+rather than silently rendering a broken editor.
+
+### Lists and task lists
+
+```php
+AdvancedRichEditor::make('content')
+    ->listTypes(['bulletList', 'orderedList', 'taskList'])
+    ->taskList();                      // default: config('filament-advanced-rich-editor.task_list')
+```
+
+The task list adds checkbox items that stay checkable in the editor and are saved as
+`<ul data-type="taskList">` in the content. Its TipTap extensions are registered as
+`loadedOnRequest()` assets, so nothing extra is downloaded on pages without a task list.
+`->taskList(false)` unregisters the `taskList` tool, so the entry disappears from the
+`'lists'` dropdown on its own and the same `listTypes()` config works for fields with and
+without it.
+
+Both the browser extension and the PHP renderer stamp the `fi-arte-task-list` /
+`fi-arte-task-item` classes onto the saved markup, so the same stylesheet covers the editor,
+Filament text entries and your own front end. The package CSS is registered with Filament and
+therefore loads in the panel only — copy those rules into your front end stylesheet if you
+render the content outside Filament.
+
+The checkbox sits on the optical centre of the item's first line at any text size. A
+stylesheet can only size it against the list item's own font, so the editor's node view
+measures the real first line - including an inline font size applied to the text - and
+hands the result to CSS as `--fi-arte-task-line`. Outside the editor the stylesheet falls
+back to the line box, which is correct for content that carries no inline sizes.
+
+The saved markup carries no `<input type="checkbox">`. Filament sanitises rich content before
+it reaches a page, and its sanitiser removes `input` elements as well as the `data-checked`
+attribute, which would take the tick state with them. The state is therefore also written as a
+`fi-arte-task-item-checked` class — `class` survives sanitisation — and the checkbox itself is
+drawn in CSS. Inside the editor a real checkbox is rendered by the node view, so ticking an
+item works as usual.
+
+### Lists: markers, numbering and direction
+
+```php
+AdvancedRichEditor::make('content')
+    ->listProperties();                // default: config('…list_properties')
+```
+
+TinyMCE's `advlist`, and in every longer document needed eventually: which marker a list
+draws, which number it starts counting at, and whether it counts backwards.
+
+The panel offers *Default* and then the markers that differ from it — `a, b, c`, `A, B, C`,
+`i, ii, iii`, `I, II, III` for ordered lists; circle and square for bullet ones. The ones a
+browser already draws unasked, `1` and `disc`, are not offered: a button for them beside
+*Default* would be two buttons that draw the same list. They are still accepted, so a
+document that already carries `type="disc"` keeps it rather than having it stripped on the
+next save, and the panel shows *Default* as the one that is on.
+
+The controls are a panel in the bubble that appears while the caret is in a list, not a
+button on the bar. They mean nothing anywhere else in a document, and a bar already carrying
+five dropdowns has no room to say so permanently. Select text inside a list and you get the
+text bubble instead, which is right: somebody who has selected words wants to format them.
+
+All three ride in the attributes HTML already has for them, and all three are on the
+sanitiser's safe list:
+
+```html
+<ol type="a" start="3" reversed style="list-style-type: lower-alpha;">
+```
+
+**The marker is written twice, and both are load-bearing.** The attribute is what both
+halves of this package parse and what a bare browser honours. The inline `list-style-type`
+is what survives a stylesheet that sets one — and Filament's own prose styles do, so a list
+marked `type="a"` would otherwise still be drawn with numbers. It is the same reasoning the
+[embed wrapper](#video-embeds) carries its aspect ratio inline for: the page a document ends
+up on is not this package's, and `style` is what travels there.
+
+The marker is also read back *out* of that CSS, which is what makes a list pasted from Word
+or Google Docs arrive numbered the way it looked: those write the style and not the
+attribute.
+
+Case matters here and is kept — `a` and `A` are different alphabets, `i` and `I` different
+numerals — which is the one place this package does not fold case. `start="1"` is never
+written: it would be an attribute saying exactly what its absence says.
+
+`->listProperties(false)` declares the schema on neither side, so a stored list keeps its
+markup in the database and loses it on the next save.
+
+### Callouts
+
+**Shipped on**, with one dropdown on the toolbar beside the quote.
+
+```php
+AdvancedRichEditor::make('content')
+    ->callouts()                                          // default: config('…callouts.enabled')
+    ->calloutVariants(['note', 'tip', 'warning', 'danger']);
+```
+
+A callout is a paragraph pulled out of the flow and drawn as something the reader is meant
+to stop at — the note, tip, warning and danger boxes every documentation site has. It holds
+blocks rather than text, so it can carry a list or a second paragraph, which is the
+difference between an infobox and a coloured sentence.
+
+The four kinds are one node with the kind as an attribute rather than four nodes. Turning a
+note into a warning is therefore a change of colour rather than a delete and a rewrite, and
+the toolbar entry for the kind you are already in takes the box off again.
+
+Saved content looks like this:
+
+```html
+<div class="fi-arte-callout fi-arte-callout-warning" data-type="callout">
+    <p>Do not do this in production.</p>
+</div>
+```
+
+`data-type` says it is a callout and the class says which kind. Those are the two attributes
+Filament's sanitiser keeps on every element, which is why the kind rides in a class — a
+`data-variant` would be gone from every rendered page while still sitting in the database.
+
+**Reaching it.** The `'callouts'` token puts one dropdown on the bar with an entry per kind,
+and the same kinds are listed in the slash menu under *Style*. In the editor typing
+`:::warning ` at the start of a line makes one too, which is the spelling MkDocs, Docusaurus
+and GitHub's alerts all use.
+
+**Kinds of your own.** `calloutVariants()` decides which kinds are offered and in what order
+— that order is what the dropdown and the slash menu read in. A name is a lowercase word,
+optionally hyphenated; anything else is dropped rather than escaped, because a variant
+becomes part of a CSS class and part of a button's JavaScript handler.
+
+Naming one the package does not ship works: the tool, the menu entry and the class are all
+built from the name. It gets its name in title case for a label, the family's icon, and the
+neutral grey box the stylesheet draws for a kind it has no colour for. Give it its own by
+adding a translation, an icon and a rule:
+
+```php
+// config/filament-advanced-rich-editor.php
+'callouts' => ['enabled' => true, 'variants' => ['note', 'warning', 'legal-notice']],
+'icons' => ['callout_legal_notice' => 'heroicon-o-scale'],
+```
+
+```php
+// lang/vendor/filament-advanced-rich-editor/en/advanced-rich-editor.php
+'callouts' => ['legal-notice' => 'Legal notice'],
+```
+
+```css
+.fi-arte-callout-legal-notice {
+    --fi-arte-callout-accent: #7c3aed;
+    --fi-arte-callout-wash: rgba(124, 58, 237, 0.07);
+    --fi-arte-callout-icon: url("data:image/svg+xml,…");
+}
+```
+
+Those three custom properties are the whole colour: the accent draws the rule down the side
+and the icon, the wash sits behind the text, and the icon is painted as a mask so nothing has
+to be an element in the markup. The shipped kinds set them from Filament's own registered
+palette (`--info-*`, `--success-*`, `--warning-*`, `--danger-*`), so a panel with its own
+colours gets its own note blue.
+
+Both halves stamp the same classes onto the saved markup, so one stylesheet covers the
+editor, Filament text entries and your own front end. The package CSS is registered with
+Filament and therefore loads in the panel only — copy those rules into your front end
+stylesheet if you render the content outside Filament.
+
+`->callouts(false)` unregisters the tools and does not load the extension, so the trigger
+disappears from the bar on its own and the editor's JSON stays free of callout nodes.
+`AdvancedRichContentRenderer` declares the node either way: a callout somebody wrote is one
+that belongs on the page, whether or not this render was told the field had them switched
+on.
+
 ### Alignment
 
 The four alignment buttons live in one dropdown whose trigger shows the alignment the
@@ -250,6 +872,13 @@ right-to-left content keeps working; the wording is translatable.
 AdvancedRichEditor::make('content')
     ->alignments(['alignStart', 'alignCenter', 'alignEnd']);   // default: config('...alignments')
 ```
+
+All four keyboard shortcuts work - `Ctrl+Shift+L`, `E`, `R` and `J`. Two of them only do
+because this package rebinds them: TipTap binds `L` and `R` to the alignments `left` and
+`right`, which Filament's editor is not configured with, so both keys did nothing and
+`Ctrl+Shift+R` reached the browser as a hard reload. The repair is registered on every
+field, whatever the field's own `alignments()` is, because the keys are bound by Filament's
+build either way. See [Help](#help).
 
 ### Line spacing
 
@@ -278,104 +907,6 @@ one its button carries.
 Paragraphs, headings, quotes and list items carry a spacing. Turning the dropdown off drops
 the extension with it, so a field that has none stops declaring the attribute — and content
 that already carries one loses it on the next save, the same way the text direction does.
-
-### Toolbar alignment
-
-The groups are centred on the bar. Filament's own editor is left aligned; change it per
-field or project-wide through `toolbar_alignment`:
-
-```php
-AdvancedRichEditor::make('content')
-    ->toolbarAlignment('start');            // 'start' | 'center' | 'end' | 'between'
-    // ->toolbarAlignment(Alignment::End);  // Filament's enum works too
-```
-
-### Pinned buttons
-
-`'pin'` is not a thing on the bar but a place in it: everything after it is pushed to the
-far end of the toolbar instead of travelling with the aligned groups. The source view, the
-fullscreen switch and the help dialog live there by default — they are controls for the
-editor, not for the text, and they should stay in the same corner whatever the rest of the
-bar does.
-
-```php
-->toolbarButtons([
-    ['bold', 'italic'],
-    'pin',
-    ['fullscreen', 'help'],   // hard against the far edge
-])
-```
-
-The centred groups stay centred **on the whole bar**, not on what is left of it, so pinning
-does not nudge the toolbar sideways. There is nothing to configure: the pinned buttons take
-the edge the aligned groups are not pushed against — the end normally, and the start when
-the toolbar itself is aligned to the end, because that bar has already taken the end for
-itself.
-
-The marker may sit anywhere, including inside a group, and it is dropped either way; a
-second one has nothing left to split and goes the same way. Each half collapses its own
-dividers, so a rule left leading or trailing by the split disappears rather than floating
-in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one row.
-
-### The more menu
-
-The `'more'` token renders the overflow dropdown at the end of the toolbar: the tools that
-earn a place in the editor but not a button of their own.
-
-```php
-AdvancedRichEditor::make('content')
-    ->moreTools([
-        'subscript', 'superscript', 'code', 'clearFormatting', 'horizontalRule', 'details',
-        'emoji',
-    ]);
-```
-
-That is also the default, and it lives in `config('filament-advanced-rich-editor.more')`.
-Any Filament tool name is valid; an unknown one is dropped while resolving, exactly as it is
-inside every other dropdown. An empty list removes the dropdown along with its trigger:
-
-```php
-AdvancedRichEditor::make('content')->moreTools([]);
-```
-
-Build another one anywhere with `ToolbarDropdown::more([...])`, or keep any dropdown's
-trigger from following the caret with `->staticIcon()`.
-
-The last entry is this package's own: the [emoji picker](#emoji), which has a switch of its
-own. The two [direction](#text-direction) buttons are registered but not listed - name them
-where you want them.
-
-### Emoji
-
-`'emoji'` opens a picker with the full Unicode emoji list - 1906 of them, searchable by
-their Unicode names.
-
-The tabs follow the grouping every phone keyboard uses rather than Unicode's own: what
-Unicode files under *Smileys & Emotion* and *People & Body* is one tab here, because
-someone looking for a face does not know which of the two it landed in. The first tab is
-the emoji picked most recently, kept in the browser's own storage - it belongs to the
-person, not to the record, and the same handful get reached for across every form in the
-panel. Its icons are drawn ones from the `icons` registry (`emoji_recent`, `emoji_smileys`,
-… ) rather than a representative emoji, so they read as chrome and can be swapped like
-every other icon.
-
-```php
-AdvancedRichEditor::make('content')->emoji(false);   // default: config('...emoji')
-```
-
-An emoji is inserted as a plain Unicode character, so nothing about it is markup: it needs
-no extension on the PHP side, survives the sanitiser and `RichContentRenderer` like any
-other letter, and switching the picker off later leaves every emoji already written where
-it is.
-
-The picker opens under the line being written, not over it, and stays open until it is
-dismissed: picking one emoji is rarely the whole job. Its header closes it and doubles as a
-drag handle, Escape closes it, and so does a click anywhere outside it - except inside the
-editor, where a click is how the caret gets moved to the next spot an emoji belongs in.
-
-The list is a second asset, imported by the picker the first time it opens - an editor
-nobody clicks that button in never loads 60 KB of emoji. The names come from Unicode's own
-`emoji-test.txt` (see `resources/js/emoji-data.js`), skin tone variants left out.
 
 ### Text direction
 
@@ -460,6 +991,14 @@ should be made to carry. Without it the call throws with the command to install 
 composer require phiki/phiki
 ```
 
+To ask before it throws — a shared package, a Blade view that wants a graceful fallback:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\CodeHighlighter;
+
+CodeHighlighter::isAvailable();   // is phiki/phiki installed
+```
+
 A block that declares no language is left alone — guessing the language is guessing — and
 so is a language nothing knows about. The code itself is never touched; only spans are
 added around it.
@@ -490,472 +1029,124 @@ project's idea of dark mode rather than this package's:
 Any [Phiki theme name](https://phiki.dev) works, and the defaults live in
 `code_block.theme` and `code_block.themes`.
 
-### Video embeds
+## Characters
 
-The `embed` tool takes a link and puts a video in the document. Paste the link from the
-address bar or the share button — every shape either of them produces is understood:
+### Styles
 
-```
-https://www.youtube.com/watch?v=ID          https://vimeo.com/ID
-https://youtu.be/ID?t=90                    https://player.vimeo.com/video/ID
-https://www.youtube.com/shorts/ID           https://www.youtube.com/embed/ID?start=45
-```
+Named styles from your own design system, offered as a dropdown. This is the thing a
+Filament editor can do that a generic one cannot: the classes belong to your front end, so
+an editor gets at the design system without anyone opening the source dialog.
 
-The timestamp in a link shared "from 1:30" is kept, in all three spellings (`t=90`,
-`t=1m30s`, `start=45`). What is stored is what the video **is** — a provider, an id, a
-timestamp — and the embed URL is built from that on the way out. Storing the URL instead
-would mean trusting whatever the document held: a watch link, which no browser will frame,
-or a host this package has no business pointing an iframe at.
-
-**Pasting a video link on an empty line turns it into a video.** The same link pasted into
-the middle of a sentence stays a link, because there it is a link somebody is writing.
-
-```php
-AdvancedRichEditor::make('content')
-    ->embeds(false);   // default: config('filament-advanced-rich-editor.embed.enabled')
-```
-
-Turning it off removes the button and the script. Videos already in stored content are
-still rendered — a field that stops offering something has no business deleting what was
-written while it did.
-
-**The editor does not play the video.** It draws a card naming what will be there. Ten
-embeds in one document would otherwise be ten players loading from YouTube, each with its
-own requests and its own cookie, in a screen where nobody is watching anything — and an
-iframe swallows every click, so the block could not be selected, dragged or deleted like
-the rest of the document.
-
-#### The sanitiser
-
-Filament renders rich content through `Str::sanitizeHtml()`, and Symfony's safe element
-list has no `<iframe>` in it. That is the right default and it also removes every embed. So
-this package allows the element back — and only ever together with a restriction:
+Shipped empty — an editor offering styles nobody designed is worse than one offering none.
 
 ```php
 // config/filament-advanced-rich-editor.php
-'embed' => [
-    'sanitizer' => true,                       // allow <iframe> back at all
-    'allowed_hosts' => [
-        'youtube-nocookie.com',
-        'youtube.com',
-        'vimeo.com',
-    ],
+'styles' => [
+    'lead'   => ['label' => 'Lead',   'class' => 'text-lg text-slate-600', 'scope' => 'block'],
+    'kicker' => ['label' => 'Kicker', 'class' => 'uppercase tracking-wide', 'scope' => 'inline'],
 ],
 ```
 
-An iframe whose host is not on the list loses its `src` on the way to the page. The node
-goes further and refuses to build the element at all, so what reaches the sanitiser is
-already an embed rather than an iframe — the sanitiser is the second line, for markup that
-arrived some other way. A database is not written only by this editor.
-
-Subdomains of a listed host count (`player.vimeo.com` for `vimeo.com`); a host that merely
-*ends* in one does not — `youtube.com.attacker.test` is a domain anybody can register.
-
-`'sanitizer' => false` leaves the application's sanitiser alone. Embeds are then still
-stored and edited, and stripped from every rendered page — which is a coherent choice only
-if something else in the project renders them.
-
-> **Living with another package.** Symfony chains every sanitiser registered for the same
-> element and attribute, and each one may only narrow what the last returned. Two packages
-> that both allowlist `iframe src` therefore end up with the intersection of their lists,
-> and each other's embeds vanish. If something else in your project embeds iframes, add its
-> hosts to `allowed_hosts` rather than expecting both to work side by side.
-
-#### Privacy
-
-YouTube is embedded through `youtube-nocookie.com` by default: embedding a video should not
-decide on its own to put a tracking cookie on the reader's machine. The frame is also given
-`referrerpolicy="strict-origin-when-cross-origin"` and `loading="lazy"`, and its `allow`
-list is short — fullscreen and picture-in-picture, no camera and no microphone.
-
-```php
-'embed' => ['youtube_nocookie' => false],   // for a project with a reason to
-```
-
-#### Shape and titles
-
-The wrapper carries the aspect ratio in its own `style`, and the frame fills it — so a
-video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in the dialog.
-
-A title is optional and worth setting: a screen reader announces it instead of "video".
-
-**The rendered embed needs no stylesheet of yours.** The aspect ratio and the frame's size
-are written into the markup as inline styles, because this package's stylesheet is loaded
-into the admin panel and the page the content ends up on is somebody else's - an embed
-arriving there with only a class on it is a 300×150 box in the corner. `.fi-arte-embed` is
-still on the wrapper for styling beyond that.
-
-### Slash menu
-
-Typing `/` on an empty line, or after a space, opens a searchable list of the commands the
-field offers. It is the toolbar reached by typing instead of by aiming — which is worth
-having precisely because this package's toolbar has an overflow dropdown: the tools nobody
-could find are the ones a search is for.
+Then put `'styles'` in the toolbar, or in `more`. Per field:
 
 ```php
 AdvancedRichEditor::make('content')
-    ->slashMenu(false)                   // default: config('...slash.enabled')
-    ->slashChar(';')                     // default: config('...slash.char')
-    ->slashGroups([                      // default: config('...slash.groups')
-        'style' => ['paragraph', 'headings'],
-        'insert' => ['image'],
-    ]);
+    ->styles(['note' => ['label' => 'Note', 'class' => 'rounded bg-amber-50 p-4']]);
+
+AdvancedRichEditor::make('comment')->styles([]);   // no styles on this field
 ```
 
-Everything below can be set project-wide in the config file and overruled on the field that
-wants something else — a short summary field may offer three commands where the article body
-offers sixteen. Every setter takes a closure too, so a menu can depend on the record or the
-current user.
+**Two scopes, because there are two mechanisms.** A `block` style is an attribute on the
+paragraph or heading the caret sits in; an `inline` style is a mark on the selected text.
+`scope` defaults to `block`, which is the common case by a distance. A block entry may name
+`'types' => ['heading']` to restrict where it applies; the default is every block that can
+also carry a text direction. A style that cannot apply where the caret is stays in the menu,
+dimmed — a list that changes length as the caret moves is a list nobody can aim at.
 
-↑ and ↓ move, Enter or Tab picks, Escape closes — for the word being typed rather than for
-good, so the next `/` opens it again.
+**One style at a time, per scope.** Picking a second replaces the first, the way a heading
+level does. A style that wants two of your classes together is one entry holding both.
 
-A row carries an icon and a name and nothing else. A keyboard shortcut in a third column
-makes every row as wide as its widest entry, and the panel then covers the text being
-written — which is the one thing a menu opened mid-sentence must not do. The shortcuts live
-in the [help dialog](#help), where they are looked up on purpose.
-
-**The list is derived, not declared.** Every entry is a tool the field actually registered,
-carrying that tool's own label, icon and handler — picking one evaluates the same string
-the toolbar button runs. A command and its button therefore cannot come apart: there is
-only one of them, and the menu is a different way to press it. Switch the task list off and
-it leaves the menu with it; offer only `h2` and `h3` and those are the only headings listed;
-name a tool in the config that this field does not have and it is dropped, exactly as it is
-inside a toolbar dropdown.
-
-Merge tags and custom blocks are a special case: Filament registers both tools whether or
-not anything was configured for them, so the menu offers them only once the field has some.
-A picker over an empty list is not a command.
-
-**Two groups, split by the question each command answers.** *Style* changes what the block
-already there **is** — a heading, a list, a quote. *Insert* is what **arrives** — an image,
-a table, a rule. Grouping by node type instead would put the horizontal rule next to the
-blockquote, which is a fact about the schema rather than about what anyone is doing.
-Uploading is not a group of its own, the way it is in some editors: one entry does not need
-a heading over it.
-
-**Only blocks and things you insert.** The menu opens where the caret sits with nothing
-selected, and `/bold` there would mark nothing at all — an entry that does nothing is worse
-than a missing one. Inline formatting keeps to the toolbar, where there is a selection to
-apply it to.
-
-The group keys are also the translation keys their headings are read from, so a new group
-needs a `slash.groups.<key>` entry in your language files. `'headings'` expands to the levels
-the field offers:
-
-```php
-// config/filament-advanced-rich-editor.php
-'slash' => [
-    'enabled' => true,
-    'char' => '/',
-    'groups' => [
-        'style' => ['paragraph', 'headings', 'bulletList', 'orderedList', 'taskList',
-                    'blockquote', 'codeBlock'],
-        'insert' => ['image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
-                     'customBlocks', 'mergeTags'],
-    ],
-],
-```
-
-A group left with nothing in it does not appear, and a menu left with no groups does not
-open — the data attribute carrying it is not even written.
-
-**Searching** matches the label, the tool name and a list of aliases, with a command whose
-name *starts* with what was typed ranked above one that merely contains it: `/co` means the
-code block far more often than it means "table of columns". The aliases are translated, so
-`/liste` finds the bullet list in a German panel and `/ul` finds it in any:
-
-```php
-// resources/lang/de/advanced-rich-editor.php
-'slash' => ['aliases' => ['bulletList' => 'ul, liste, aufzählung, punkte']],
-```
-
-A slash only opens the menu at the start of a block or after a space, so `and/or` stays a
-word somebody is writing. Code blocks are left alone entirely — a slash there is nearly
-always code.
-
-The panel is drawn on `document.body` rather than inside the editor, because a field with
-[`maxHeight()`](#maximum-height) scrolls and a menu clipped by that box would be unusable on
-the last line. Style it through `.fi-arte-slash` and the classes under it.
-
-### Links
-
-The `link` dialog asks for the attributes a link in a published document carries, not only
-the ones a link in a form does:
-
-| Field | Attribute |
-| --- | --- |
-| URL | `href` |
-| Opens in | `target` — same window, new window, parent frame, top frame |
-| Relationship | `rel` — checkboxes for `nofollow`, `noopener`, `noreferrer`, `sponsored`, `ugc`, plus a field for the rest |
-| Referrer policy | `referrerpolicy` — the eight the specification defines |
-| Language of the linked page | `hreflang` |
-| Anchor | `id`, so something can link to this spot in the text |
-
-`rel` is checkboxes and `referrerpolicy` a select rather than the free text fields the
-obvious implementation reaches for. Both are closed vocabularies, and a typo in either
-produces an attribute that is silently inert — worse than a missing one, because the author
-believes it is doing something. `rel` itself is an open list, which is what the field beside
-the checkboxes is for: `me`, `alternate`, `license` and anything else valid go there, and
-the two halves are merged into one attribute with each value appearing once.
-
-**A link that opens in a new window is given `rel="noopener noreferrer"` whether or not
-anyone ticked them.** `target="_blank"` on its own hands the opened page a handle on the
-window that opened it, which it can navigate somewhere else while the reader is looking at
-the new tab. Nothing further down the stack prevents that, and nobody ticking "new window"
-is thinking about it.
-
-```php
-AdvancedRichEditor::make('content')
-    ->linkAttributes(false);   // default: config('filament-advanced-rich-editor.link.attributes')
-```
-
-Turning it off falls back to Filament's own dialog — a URL and a checkbox — and to
-Filament's own link mark. Note that this is a heavier switch than hiding a button: the
-extra attributes are part of the schema, and content is re-parsed on every hydration and
-again on every save, so a field that stops declaring them drops them on the next save in
-documents that already carry them.
-
-**Why the mark is replaced rather than extended.** Filament declares `href`, `target`,
-`rel` and `class`; the parser keeps only what something declares, so anything else is
-dropped. Two extensions of the same name are both applied, and a second link mark
-alongside Filament's renders `<a><a>text</a></a>`. This package therefore swaps Filament's
-mark out by name — in its own renderer and in its own field, carrying the protocol allow
-list across — rather than rebinding `Tiptap\Marks\Link` in the container, which would
-change every other package's links too.
-
-Everything the dialog writes survives Filament's sanitiser: `rel`, `target`, `hreflang`,
-`referrerpolicy` and `id` all reach the page as written.
-
-### Anchors in the editor
-
-An `id` typed into a heading through the [source code view](#source-code) is kept. TipTap's
-heading declares `level` and nothing else, so without this half the anchor is dropped the
-moment the document is parsed — and the link pointing at it stops working on the next save,
-with nothing to say it happened.
+#### What gets stored
 
 ```html
-<h2 id="preise">Preise</h2>
+<p data-style="lead" class="text-lg text-slate-600">…</p>
 ```
 
-An id that could not be linked to — one with a space or a quote in it — is dropped rather
-than stored. It would survive the sanitiser and still not be a fragment any browser jumps
-to. The same rule applies to the anchor on a link.
+Both, and both are needed. The classes are what the page uses; the key is what the next
+parse reads. Editing a style's class list in the config therefore updates documents that
+already exist, instead of leaving them on the old classes until a save quietly dropped them.
+`data-style` is not on Filament's sanitiser allow list, so it reaches the database and not
+the reader — which is exactly the split that is wanted. Content that arrives carrying only
+the classes, pasted out of a rendered page, is recognised by them.
 
-Anchors this package generates while rendering are a separate thing and need no
-configuration in the editor; see [Anchors](#anchors).
+#### Seeing a style in the editor
 
-### Source code
+**The editor cannot show you what a style looks like, and neither can this package.** A
+style is a set of *your* classes, and an admin panel has never loaded your front end's
+stylesheet — `text-lg` and `bg-amber-50` mean nothing in there. So the editor's markup
+carries the key rather than the classes:
 
-`'sourceCode'` opens the document as HTML, in Filament's own code editor, next to the
-fullscreen button.
+```html
+<p data-style="lead">…</p>
+```
+
+The dropdown names the style and shows a checkmark, and that is the whole of the feedback
+you get out of the box. Two ways to get more.
+
+**Style the keys in your panel theme.** This is the real answer: precise, scoped to the
+editor, and it makes the editor look like the page. Six lines, once:
+
+```css
+/* resources/css/filament/admin/theme.css */
+.fi-fo-rich-editor-content [data-style="lead"]   { font-size: 1.125rem; color: #475569; }
+.fi-fo-rich-editor-content [data-style="kicker"] { text-transform: uppercase; letter-spacing: .05em; }
+.fi-fo-rich-editor-content [data-style="note"]   { border-radius: .5rem; background: #fffbeb; padding: 1rem; }
+```
+
+Write one rule per style you configured, using the same declarations your front end's
+classes produce. Nothing else is needed — the attribute is already in the markup.
+
+**Or switch on the neutral marking** while you have not written those rules yet:
 
 ```php
-AdvancedRichEditor::make('content')->sourceCode(false);   // default: config('...source_code')
+AdvancedRichEditor::make('content')->stylePreview();   // default: config('...style_preview')
 ```
 
-Both directions go through the field's own TipTap schema rather than being passed along
-untouched, and that is the point of it:
+Styled text then gets a rule down the side of a block and a dotted line under a run of text.
+It says that a style is set, never what it looks like — a stopgap, and your own
+`[data-style]` rules override it, so leaving it on while you write them costs nothing.
 
-- **Opening** shows the markup as it is stored, not as the browser happened to serialise it.
-  Every plugin the field carries is in that schema, so a rotation, a background colour or a
-  direction is there to see.
-- **Applying** hands the markup to the same schema before it reaches the editor. Anything it
-  cannot represent is gone at that moment - the same thing that happens to pasted markup,
-  but visibly, and before the record is written rather than silently on the next save.
+Why the package does not simply do this for you: inventing an appearance for content it
+knows nothing about is how an editor ends up lying about the page. The list of styles ships
+empty for the same reason.
 
-Which also means the source view is not a way to store markup the editor does not support.
-Filament sanitises rich content on the way out anyway; this simply makes the boundary
-visible.
+#### Class names
 
-The markup is laid out for reading on the way in - every block on its own line, indented by
-nesting - and compacted again on the way out. That costs nothing, because the parser drops
-whitespace between block tags; inline content is never broken, since the whitespace between
-inline elements is part of the sentence, and anything inside a `<pre>` is copied through
-exactly as written. A single long paragraph still arrives as a single long line, wrapped by
-the code editor: that one is the document's own doing, not the layout's.
-
-### Fullscreen
-
-The last button expands the editor over the window, and Escape leaves again.
-
-```php
-AdvancedRichEditor::make('content')->fullscreen(false);   // default: config('...fullscreen')
-```
-
-It is a fixed overlay, not the browser's Fullscreen API: that promotes one element into
-the top layer, and Filament renders its modals at the end of the body, so the file upload
-dialog would be invisible while the editor was expanded. The overlay deliberately sits
-below Filament's modal layer, so those dialogs still work. While expanded the editor body
-is the scroll container, and a sticky toolbar pins to it rather than to the page.
-
-### Help
-
-`'help'` sits at the end of the toolbar and opens a dialog listing the keyboard shortcuts
-the field answers to.
-
-```php
-AdvancedRichEditor::make('content')->help(false);   // default: config('...help')
-```
-
-The list is built from the field's own configuration, not from a fixed table: it names the
-heading levels that field offers, leaves the task list out where the task list is off, and
-mentions the table keys only where there is a table tool. Every shortcut in it was read out
-of the editor build Filament ships - a list that names keys nobody bound is worse than no
-list.
-
-Keys are drawn as caps and named by the machine reading them: ⌘⌥⇧ on a Mac, Ctrl/Alt/Shift
-everywhere else.
-
-Add a second tab with something to tell the people writing in the field:
-
-```php
-AdvancedRichEditor::make('content')
-    ->helpMore('Product names are never translated. Ask the editorial team before publishing.');
-```
-
-Without a note the dialog stays one plain list - a tab bar over a single tab is furniture.
-A plain string is escaped and keeps its line breaks; pass an `Htmlable` for markup, which is
-trusted, so build it in code rather than out of anything a user typed. The tab's own label
-is the second argument, and `help_more` in the config sets a note for every field at once.
-
-### Sticky toolbar
-
-The toolbar is pinned by default. `offset` is any CSS length and should match the height of
-whatever sits above the form — the panel topbar in a standard Filament panel:
-
-```php
-AdvancedRichEditor::make('content')
-    ->stickyToolbar()                  // default: config('filament-advanced-rich-editor.sticky.enabled')
-    ->stickyToolbarOffset('4rem');     // default: config('filament-advanced-rich-editor.sticky.offset')
-
-AdvancedRichEditor::make('excerpt')
-    ->stickyToolbar(false);            // short field, nothing to pin
-```
-
-### Maximum height
-
-A long document pushes everything below it off the screen. `maxHeight()` caps the field and
-lets it scroll inside itself instead:
-
-```php
-AdvancedRichEditor::make('content')
-    ->maxHeight('400px');              // default: config('filament-advanced-rich-editor.max_height')
-
-AdvancedRichEditor::make('content')->maxHeight(400);    // a bare number is pixels
-AdvancedRichEditor::make('content')->maxHeight(null);   // grow freely, against a configured height
-```
-
-Any CSS length. A bare number is read as pixels, because `max-height: 400` is not a length
-any browser accepts and the field would keep growing with nothing to show for the call.
-
-Only the text box is capped, so **a capped field turns its own sticky toolbar off**: the bar
-sits above the box that scrolls and stays in view without being pinned to anything. Pinning
-it to the viewport as well would peel it off the field as the page scrolls past. Fullscreen
-wins over both — the overlay already fills the window, and a 400px box inside it would
-leave most of the screen empty.
-
-### Heading levels
-
-The dropdown lists the plain paragraph in front of the levels, so it reads as a choice of
-block rather than a row of toggles, and there is an obvious way back out of a heading.
-Picking the level a block already has also returns it to a paragraph, so a block is never
-left without a type. Drop the entry with `->headingParagraph(false)` or the
-`heading_paragraph` config key.
-
-The six heading tools are relabelled to "Heading 1" … "Heading 6" (Filament labels `h1`
-"Title", which reads wrong next to the other levels in a dropdown). Override the wording
-through the `tools.heading_level` translation key.
-
-```php
-AdvancedRichEditor::make('content')
-    ->headingLevels([2, 3, 4]);   // default: config('...heading_levels')
-```
-
-The levels drive both the `'headings'` dropdown and which of the `h1`–`h6` buttons are
-available. Only 1 to 6 are valid — anything else throws a `LogicException` at build time
-rather than silently rendering a broken editor.
-
-### Lists and task lists
-
-```php
-AdvancedRichEditor::make('content')
-    ->listTypes(['bulletList', 'orderedList', 'taskList'])
-    ->taskList();                      // default: config('filament-advanced-rich-editor.task_list')
-```
-
-The task list adds checkbox items that stay checkable in the editor and are saved as
-`<ul data-type="taskList">` in the content. Its TipTap extensions are registered as
-`loadedOnRequest()` assets, so nothing extra is downloaded on pages without a task list.
-`->taskList(false)` unregisters the `taskList` tool, so the entry disappears from the
-`'lists'` dropdown on its own and the same `listTypes()` config works for fields with and
-without it.
-
-Both the browser extension and the PHP renderer stamp the `fi-arte-task-list` /
-`fi-arte-task-item` classes onto the saved markup, so the same stylesheet covers the editor,
-Filament text entries and your own front end. The package CSS is registered with Filament and
-therefore loads in the panel only — copy those rules into your front end stylesheet if you
-render the content outside Filament.
-
-The checkbox sits on the optical centre of the item's first line at any text size. A
-stylesheet can only size it against the list item's own font, so the editor's node view
-measures the real first line - including an inline font size applied to the text - and
-hands the result to CSS as `--fi-arte-task-line`. Outside the editor the stylesheet falls
-back to the line box, which is correct for content that carries no inline sizes.
-
-The saved markup carries no `<input type="checkbox">`. Filament sanitises rich content before
-it reaches a page, and its sanitiser removes `input` elements as well as the `data-checked`
-attribute, which would take the tick state with them. The state is therefore also written as a
-`fi-arte-task-item-checked` class — `class` survives sanitisation — and the checkbox itself is
-drawn in CSS. Inside the editor a real checkbox is rendered by the node view, so ticking an
-item works as usual.
-
-### Colours
-
-Two swatch dropdowns sit next to the other inline marks: `textColor` paints the letters,
-`textBackground` paints behind them. Both offer the palette, a way back to no colour, and
-a free colour picker.
-
-```php
-AdvancedRichEditor::make('content')
-    ->textColors(['brand' => TextColor::make('Brand', '#0ea5e9', darkColor: '#38bdf8')])
-    ->backgroundColors(['#fef08a' => 'Yellow', '#bbf7d0' => 'Green'])
-    ->customColors(false)          // drop the free colour picker
-    ->textColor(false)             // drop the text colour dropdown entirely
-    ->textBackground(false);       // and the background one
-```
-
-The text palette is stored by name, and each entry carries a light and a dark value - that
-is what keeps a colour readable in both themes, since the document holds only the name.
-The package ships twelve: three neutrals and nine hues, in `colors.text_palette`:
-
-```php
-'text_palette' => [
-    'ink' => ['label' => 'Ink', 'color' => '#18181b', 'dark' => '#f4f4f5'],
-    // …
-],
-```
-
-Filament's own default is not used, because it lists all 26 Tailwind hues and nine of them
-are near-identical greys and browns - fine in the labelled select it was built for, poor as
-a grid of swatches. Configuring `->textColors([...])` on the field (or on the model's rich
-content attribute) still takes over completely.
-
-A colour chosen through the free picker is stored as given and therefore looks identical in
-dark mode - a property of hand-picked colours, not a bug.
-
-The background is this package's own mark. Filament registers TipTap's highlight without
-colour support, and its own colourless mark is added to the renderer unconditionally, so
-replacing it by name would nest another `<mark>` on every save. A separate mark name
-sidesteps that entirely, and Filament's plain `highlight` tool keeps working alongside it.
-Colours are run through Filament's CSS colour sanitiser before they reach the `style`
-attribute.
+Anything a class can be, including Tailwind's colons, slashes, brackets and leading hyphens.
+An entry with no label, no classes, an unknown scope, or characters that could not appear in
+a class attribute at all is left out of the list — visibly absent rather than quietly
+rendered as nonsense. The value is escaped on its way into the attribute either way.
 
 ### Fonts
 
 The `fontFamily` token is a dropdown of typefaces, and every entry in it is one the project
 can actually draw. Nothing is fetched from anywhere - no CDN, no Google Fonts, no network at
 all.
+
+**The token is in no shipped list** - not the `toolbar`, not `more`, not `tools_menu`. That
+is deliberate (see [The default toolbar](#the-default-toolbar)), but it means configuring the
+directory below gets you nothing on its own. Put the token somewhere first:
+
+```php
+AdvancedRichEditor::make('content')
+    ->toolbarButtons([['headings', 'fontFamily'], 'divider', ['bold', 'italic']]);
+
+// or leave the shipped bar alone and drop it into the overflow menu:
+AdvancedRichEditor::make('content')->moreTools(['fontFamily']);
+```
+
+`fonts.enabled` (shipped `true`) is the project-wide switch, and `->fontPicker(false)`
+removes both the dropdown and the mark that stores the choice.
 
 Fonts are found rather than declared. Point the config at the directory where the project
 keeps its own font files and every file in it is offered:
@@ -1022,36 +1213,168 @@ starting value. `default` is only used when that measurement fails.
 writes or parses a size. The size is written into the `style` attribute, which is what
 Filament's sanitiser keeps, so it survives to the rendered page.
 
-### Character count
+### Colours
 
-A quiet line under the editor saying how long the text is. It is on by default and needs no
-setup:
+Two swatch dropdowns sit next to the other inline marks: `textColor` paints the letters,
+`textBackground` paints behind them. Both offer the palette, a way back to no colour, and
+a free colour picker.
 
 ```php
-AdvancedRichEditor::make('content')->characterCount(false);   // default: config('...character_count.enabled')
+use Filament\Forms\Components\RichEditor\TextColor;
+
+AdvancedRichEditor::make('content')
+    ->textColors(['brand' => TextColor::make('Brand', '#0ea5e9', darkColor: '#38bdf8')])
+    ->backgroundColors(['#fef08a' => 'Yellow', '#bbf7d0' => 'Green'])
+    ->customColors(false)          // drop the free colour picker
+    ->textColor(false)             // drop the text colour dropdown entirely
+    ->textBackground(false);       // and the background one
 ```
 
-With a `maxLength()` on the field it counts towards it - `1,234 / 2,000 characters` - and
-turns amber at 90% and red past it. For a target with no rule behind it, set the limit
-directly:
+Project-wide, the same five live under `colors`: `colors.text`, `colors.background` and
+`colors.custom` are the three switches (all shipped `true`), and `colors.text_palette` and
+`colors.background_palette` hold the swatches.
+
+The text palette is stored by name, and each entry carries a light and a dark value - that
+is what keeps a colour readable in both themes, since the document holds only the name.
+The package ships twelve: three neutrals and nine hues, in `colors.text_palette`:
+
+```php
+'text_palette' => [
+    'ink' => ['label' => 'Ink', 'color' => '#18181b', 'dark' => '#f4f4f5'],
+    // …
+],
+```
+
+Filament's own default is not used, because it lists all 26 Tailwind hues and nine of them
+are near-identical greys and browns - fine in the labelled select it was built for, poor as
+a grid of swatches. Configuring `->textColors([...])` on the field (or on the model's rich
+content attribute) still takes over completely.
+
+A colour chosen through the free picker is stored as given and therefore looks identical in
+dark mode - a property of hand-picked colours, not a bug.
+
+The background is this package's own mark. Filament registers TipTap's highlight without
+colour support, and its own colourless mark is added to the renderer unconditionally, so
+replacing it by name would nest another `<mark>` on every save. A separate mark name
+sidesteps that entirely, and Filament's plain `highlight` tool keeps working alongside it.
+Colours are run through Filament's CSS colour sanitiser before they reach the `style`
+attribute.
+
+### Language of a passage
+
+```php
+// config/filament-advanced-rich-editor.php — the dropdown is not in the shipped layout,
+// so naming the token is what puts it there.
+'text_toolbar_buttons' => [
+    'styles', 'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground',
+    'language',
+],
+```
 
 ```php
 AdvancedRichEditor::make('content')
-    ->characterCountLimit(160)      // shown, never enforced
-    ->characterCountWords();        // adds "218 words ·" in front
+    ->languages()                                     // default: config('…languages.enabled')
+    ->languageOptions(['fr' => 'Français', 'la']);    // either way round
 ```
 
-**The number is the one Filament validates.** That is the whole point of it, and it is not
-free: `maxLength` on a rich editor is measured server side with
-`Str::length($tiptapEditor->getText())`, and that serialiser escapes the text - a single `&`
-counts as the five characters of `&amp;` - and separates every nesting level with a blank
-line, so a list item costs two of them. A counter reading the text off the screen would show
-a smaller number than the one a save is rejected over. This one mirrors those rules, in PHP
-for the first render and in the browser for every keystroke after it.
+Marks a phrase as being written in another language, as `<span lang="fr">`. WCAG 3.1.2 asks
+for it and a screen reader needs it: without it a French title inside a German paragraph is
+read out in German.
 
-The editor announces its counts as a DOM event and the line listens - nothing is polled, no
-view is replaced, and two editors on a page keep their numbers apart. Turning the counter
-off also drops the script that does the counting.
+**A mark, not an attribute on the block** — and that is the whole feature. The requirement is
+about a *passage*, which is usually a phrase inside a sentence, and a `lang` on the paragraph
+cannot say "these three words are French". `lang` is on the sanitiser's safe list, exactly
+like `dir`, so nothing has to be allowed in your application's sanitiser config.
+
+**It is registered but not shipped on any bar.** Most documents never quote a foreign
+phrase, and a bar should not carry a control for something most of its readers will never
+do — the same bargain the typeface picker and striking out make. Where it belongs once a
+project wants it is the [bar over a selection](#toolbar-over-a-selection), because marking a
+passage starts with selecting one; the `'language'` token works in the main `toolbar` array
+too, and per field through `->textToolbarButtons([...])`.
+
+Its first entry takes the marking off again — a list offering only languages has no way back
+to the language of the page, which is what most of a document is written in.
+
+The mark itself is declared whether or not a button is: a passage somebody marked elsewhere
+survives a save on a field that offers no way to have marked it.
+
+`languageOptions()` takes either `['fr' => 'Français']` or `['fr']`. A code is its own worst
+label but is still better than nothing, and a project adding one language should not have to
+look up how that language spells its own name. The shipped labels are endonyms on purpose: a
+language is best named in itself, which is the name somebody picking it out of a list
+recognises.
+
+Codes are lowercased throughout — `lang` is case-insensitive by specification, and kept apart
+`fr-CA` and `fr-ca` would be two languages with a document stored under one spelling lighting
+up no button for the other. A code that could not be a language tag is dropped rather than
+escaped, because it travels into a tool name and into a button's JavaScript.
+
+`->languages(false)` unregisters the tools and does not load the extension.
+`AdvancedRichContentRenderer` declares the mark either way: a passage somebody marked as
+French is one a screen reader should still read in French, whatever this render was told.
+
+### Emoji
+
+`'emoji'` opens a picker with the full Unicode emoji list - 1906 of them, searchable by
+their Unicode names.
+
+The tabs follow the grouping every phone keyboard uses rather than Unicode's own: what
+Unicode files under *Smileys & Emotion* and *People & Body* is one tab here, because
+someone looking for a face does not know which of the two it landed in. The first tab is
+the emoji picked most recently, kept in the browser's own storage - it belongs to the
+person, not to the record, and the same handful get reached for across every form in the
+panel. Its icons are drawn ones from the `icons` registry (`emoji_recent`, `emoji_smileys`,
+… ) rather than a representative emoji, so they read as chrome and can be swapped like
+every other icon.
+
+```php
+AdvancedRichEditor::make('content')->emoji(false);   // default: config('...emoji')
+```
+
+An emoji is inserted as a plain Unicode character, so nothing about it is markup: it needs
+no extension on the PHP side, survives the sanitiser and `RichContentRenderer` like any
+other letter, and switching the picker off later leaves every emoji already written where
+it is.
+
+The picker opens under the line being written, not over it, and stays open until it is
+dismissed: picking one emoji is rarely the whole job. Its header closes it and doubles as a
+drag handle, Escape closes it, and so does a click anywhere outside it - except inside the
+editor, where a click is how the caret gets moved to the next spot an emoji belongs in.
+
+The list is a second asset, imported by the picker the first time it opens - an editor
+nobody clicks that button in never loads 60 KB of emoji. The names come from Unicode's own
+`emoji-test.txt` (see `resources/js/emoji-data.js`), skin tone variants left out.
+
+### Special characters
+
+```php
+AdvancedRichEditor::make('content')
+    ->characters();                    // default: config('…characters')
+```
+
+Dashes, typographic quotation marks, currencies, mathematics, arrows, marks, and the
+accented and Greek letters a keyboard cannot reach — about 265 of them across seven tabs,
+searchable by name, with the ones you picked last kept in a tab of their own.
+
+It is the emoji picker's twin and shares its popup, so only one of the two is ever open.
+Both sit in the `'more'` menu, because they do the same job: a character the keyboard cannot
+type. Both are also in the slash menu.
+
+Nothing about it touches the schema. A dash is a character, so it is inserted as plain text
+and travels through the sanitiser, the save and `RichContentRenderer` like any other letter
+— which is why switching the picker off later leaves every character already written exactly
+where it is.
+
+The list is a separate file, fetched the first time the picker opens, so an editor nobody
+clicks that button in never pays for it. Names are English throughout, the same as the emoji
+list: a Unicode name is an English name.
+
+One entry is invisible and is drawn as `␣` — the non-breaking space, which German typography
+needs several times a page ("10 %", "Nr. 5", "S. 12"). A blank button is one nobody can aim
+at.
+
+## Media and links
 
 ### Images
 
@@ -1440,6 +1763,775 @@ AdvancedRichEditor::make('content')->spatieMediaLibrary(),
 AdvancedRichEditor::make('summary')->spatieMediaLibrary(),   // same collection, separate images
 ```
 
+### Links
+
+The `link` dialog asks for the attributes a link in a published document carries, not only
+the ones a link in a form does:
+
+| Field | Attribute |
+| --- | --- |
+| URL | `href` |
+| Opens in | `target` — same window, new window, parent frame, top frame |
+| Relationship | `rel` — checkboxes for `nofollow`, `noopener`, `noreferrer`, `sponsored`, `ugc`, plus a field for the rest |
+| Referrer policy | `referrerpolicy` — the eight the specification defines |
+| Language of the linked page | `hreflang` |
+| Anchor | `id`, so something can link to this spot in the text |
+
+`rel` is checkboxes and `referrerpolicy` a select rather than the free text fields the
+obvious implementation reaches for. Both are closed vocabularies, and a typo in either
+produces an attribute that is silently inert — worse than a missing one, because the author
+believes it is doing something. `rel` itself is an open list, which is what the field beside
+the checkboxes is for: `me`, `alternate`, `license` and anything else valid go there, and
+the two halves are merged into one attribute with each value appearing once.
+
+**A link that opens in a new window is given `rel="noopener noreferrer"` whether or not
+anyone ticked them.** `target="_blank"` on its own hands the opened page a handle on the
+window that opened it, which it can navigate somewhere else while the reader is looking at
+the new tab. Nothing further down the stack prevents that, and nobody ticking "new window"
+is thinking about it.
+
+```php
+AdvancedRichEditor::make('content')
+    ->linkAttributes(false);   // default: config('filament-advanced-rich-editor.link.attributes')
+```
+
+Turning it off falls back to Filament's own dialog — a URL and a checkbox — and to
+Filament's own link mark. Note that this is a heavier switch than hiding a button: the
+extra attributes are part of the schema, and content is re-parsed on every hydration and
+again on every save, so a field that stops declaring them drops them on the next save in
+documents that already carry them.
+
+**Why the mark is replaced rather than extended.** Filament declares `href`, `target`,
+`rel` and `class`; the parser keeps only what something declares, so anything else is
+dropped. Two extensions of the same name are both applied, and a second link mark
+alongside Filament's renders `<a><a>text</a></a>`. This package therefore swaps Filament's
+mark out by name — in its own renderer and in its own field, carrying the protocol allow
+list across — rather than rebinding `Tiptap\Marks\Link` in the container, which would
+change every other package's links too.
+
+Everything the dialog writes survives Filament's sanitiser: `rel`, `target`, `hreflang`,
+`referrerpolicy` and `id` all reach the page as written.
+
+### Video embeds
+
+The `embed` tool takes a link and puts a video in the document. Paste the link from the
+address bar or the share button — every shape either of them produces is understood:
+
+```
+https://www.youtube.com/watch?v=ID          https://vimeo.com/ID
+https://youtu.be/ID?t=90                    https://player.vimeo.com/video/ID
+https://www.youtube.com/shorts/ID           https://www.youtube.com/embed/ID?start=45
+```
+
+The timestamp in a link shared "from 1:30" is kept, in all three spellings (`t=90`,
+`t=1m30s`, `start=45`). What is stored is what the video **is** — a provider, an id, a
+timestamp — and the embed URL is built from that on the way out. Storing the URL instead
+would mean trusting whatever the document held: a watch link, which no browser will frame,
+or a host this package has no business pointing an iframe at.
+
+**Pasting a video link on an empty line turns it into a video.** The same link pasted into
+the middle of a sentence stays a link, because there it is a link somebody is writing.
+
+```php
+AdvancedRichEditor::make('content')
+    ->embeds(false);   // default: config('filament-advanced-rich-editor.embed.enabled')
+```
+
+Turning it off removes the button and the script. Videos already in stored content are
+still rendered — a field that stops offering something has no business deleting what was
+written while it did.
+
+**The editor does not play the video.** It draws a card naming what will be there. Ten
+embeds in one document would otherwise be ten players loading from YouTube, each with its
+own requests and its own cookie, in a screen where nobody is watching anything — and an
+iframe swallows every click, so the block could not be selected, dragged or deleted like
+the rest of the document.
+
+#### The sanitiser
+
+Filament renders rich content through `Str::sanitizeHtml()`, and Symfony's safe element
+list has no `<iframe>` in it. That is the right default and it also removes every embed. So
+this package allows the element back — and only ever together with a restriction:
+
+```php
+// config/filament-advanced-rich-editor.php
+'embed' => [
+    'sanitizer' => true,                       // allow <iframe> back at all
+    'allowed_hosts' => [
+        'youtube-nocookie.com',
+        'youtube.com',
+        'vimeo.com',
+    ],
+],
+```
+
+An iframe whose host is not on the list loses its `src` on the way to the page. The node
+goes further and refuses to build the element at all, so what reaches the sanitiser is
+already an embed rather than an iframe — the sanitiser is the second line, for markup that
+arrived some other way. A database is not written only by this editor.
+
+Subdomains of a listed host count (`player.vimeo.com` for `vimeo.com`); a host that merely
+*ends* in one does not — `youtube.com.attacker.test` is a domain anybody can register.
+
+`'sanitizer' => false` leaves the application's sanitiser alone. Embeds are then still
+stored and edited, and stripped from every rendered page — which is a coherent choice only
+if something else in the project renders them.
+
+> **Living with another package.** Symfony chains every sanitiser registered for the same
+> element and attribute, and each one may only narrow what the last returned. Two packages
+> that both allowlist `iframe src` therefore end up with the intersection of their lists,
+> and each other's embeds vanish. If something else in your project embeds iframes, add its
+> hosts to `allowed_hosts` rather than expecting both to work side by side.
+
+#### Privacy
+
+YouTube is embedded through `youtube-nocookie.com` by default: embedding a video should not
+decide on its own to put a tracking cookie on the reader's machine. The frame is also given
+`referrerpolicy="strict-origin-when-cross-origin"` and `loading="lazy"`, and its `allow`
+list is short — fullscreen and picture-in-picture, no camera and no microphone.
+
+```php
+'embed' => ['youtube_nocookie' => false],   // for a project with a reason to
+```
+
+#### Shape and titles
+
+The wrapper carries the aspect ratio in its own `style`, and the frame fills it — so a
+video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in the dialog.
+
+A title is optional and worth setting: a screen reader announces it instead of "video".
+
+**The rendered embed needs no stylesheet of yours.** The aspect ratio and the frame's size
+are written into the markup as inline styles, because this package's stylesheet is loaded
+into the admin panel and the page the content ends up on is somebody else's - an embed
+arriving there with only a class on it is a 300×150 box in the corner. `.fi-arte-embed` is
+still on the wrapper for styling beyond that.
+
+### Anchors in the editor
+
+An `id` typed into a heading through the [source code view](#source-code) is kept. TipTap's
+heading declares `level` and nothing else, so without this half the anchor is dropped the
+moment the document is parsed — and the link pointing at it stops working on the next save,
+with nothing to say it happened.
+
+```html
+<h2 id="preise">Preise</h2>
+```
+
+An id that could not be linked to — one with a space or a quote in it — is dropped rather
+than stored. It would survive the sanitiser and still not be a fragment any browser jumps
+to. The same rule applies to the anchor on a link.
+
+Anchors this package generates while rendering are a separate thing and need no
+configuration in the editor; see [Anchors](#anchors).
+
+## Typing instead of aiming
+
+### Slash menu
+
+Typing `/` on an empty line, or after a space, opens a searchable list of the commands the
+field offers. It is the toolbar reached by typing instead of by aiming — which is worth
+having precisely because this package's toolbar has an overflow dropdown: the tools nobody
+could find are the ones a search is for.
+
+```php
+AdvancedRichEditor::make('content')
+    ->slashMenu(false)                   // default: config('...slash.enabled')
+    ->slashChar(';')                     // default: config('...slash.char')
+    ->slashGroups([                      // default: config('...slash.groups')
+        'style' => ['paragraph', 'headings'],
+        'insert' => ['image'],
+    ]);
+```
+
+Everything below can be set project-wide in the config file and overruled on the field that
+wants something else — a short summary field may offer three commands where the article body
+offers sixteen. Every setter takes a closure too, so a menu can depend on the record or the
+current user.
+
+↑ and ↓ move, Enter or Tab picks, Escape closes — for the word being typed rather than for
+good, so the next `/` opens it again.
+
+A row carries an icon and a name and nothing else. A keyboard shortcut in a third column
+makes every row as wide as its widest entry, and the panel then covers the text being
+written — which is the one thing a menu opened mid-sentence must not do. The shortcuts live
+in the [help dialog](#help), where they are looked up on purpose.
+
+**The list is derived, not declared.** Every entry is a tool the field actually registered,
+carrying that tool's own label, icon and handler — picking one evaluates the same string
+the toolbar button runs. A command and its button therefore cannot come apart: there is
+only one of them, and the menu is a different way to press it. Switch the task list off and
+it leaves the menu with it; offer only `h2` and `h3` and those are the only headings listed;
+name a tool in the config that this field does not have and it is dropped, exactly as it is
+inside a toolbar dropdown.
+
+Merge tags and custom blocks are a special case: Filament registers both tools whether or
+not anything was configured for them, so the menu offers them only once the field has some.
+A picker over an empty list is not a command.
+
+**Two groups, split by the question each command answers.** *Style* changes what the block
+already there **is** — a heading, a list, a quote. *Insert* is what **arrives** — an image,
+a table, a rule. Grouping by node type instead would put the horizontal rule next to the
+blockquote, which is a fact about the schema rather than about what anyone is doing.
+Uploading is not a group of its own, the way it is in some editors: one entry does not need
+a heading over it.
+
+**Only blocks and things you insert.** The menu opens where the caret sits with nothing
+selected, and `/bold` there would mark nothing at all — an entry that does nothing is worse
+than a missing one. Inline formatting keeps to the toolbar, where there is a selection to
+apply it to.
+
+The group keys are also the translation keys their headings are read from, so a new group
+needs a `slash.groups.<key>` entry in your language files. `'headings'` expands to the levels
+the field offers:
+
+```php
+// config/filament-advanced-rich-editor.php
+'slash' => [
+    'enabled' => true,
+    'char' => '/',
+    'groups' => [
+        'style' => ['paragraph', 'headings', 'bulletList', 'orderedList', 'taskList',
+                    'blockquote', 'codeBlock'],
+        'insert' => ['image', 'attachFiles', 'table', 'horizontalRule', 'details', 'emoji',
+                     'customBlocks', 'mergeTags'],
+    ],
+],
+```
+
+A group left with nothing in it does not appear, and a menu left with no groups does not
+open — the data attribute carrying it is not even written.
+
+**Searching** matches the label, the tool name and a list of aliases, with a command whose
+name *starts* with what was typed ranked above one that merely contains it: `/co` means the
+code block far more often than it means "table of columns". The aliases are translated, so
+`/liste` finds the bullet list in a German panel and `/ul` finds it in any:
+
+```php
+// resources/lang/de/advanced-rich-editor.php
+'slash' => ['aliases' => ['bulletList' => 'ul, liste, aufzählung, punkte']],
+```
+
+A slash only opens the menu at the start of a block or after a space, so `and/or` stays a
+word somebody is writing. Code blocks are left alone entirely — a slash there is nearly
+always code.
+
+The panel is drawn on `document.body` rather than inside the editor, because a field with
+[`maxHeight()`](#maximum-height) scrolls and a menu clipped by that box would be unusable on
+the last line. Style it through `.fi-arte-slash` and the classes under it.
+
+### Drag handle
+
+**Shipped on.** Hovering a block puts two controls in the margin to its left: a grip to move
+the block, and a plus to start a new one under it.
+
+```php
+AdvancedRichEditor::make('content')
+    ->dragHandle(false)          // default: config('...drag_handle.enabled')
+    ->dragHandleInsert(false);   // the plus only: config('...drag_handle.insert')
+```
+
+Dragging the grip moves the block. Where it may land is ProseMirror's answer rather than
+this package's - it draws the line saying where, it refuses a place a node may not go, and
+the move is one step in the undo chain. Clicking the grip selects the block instead, which
+is what puts the floating toolbar on it.
+
+The plus starts a new block under the one being hovered and opens the slash menu on top of
+it, so what the button offers is everything that could go there rather than a paragraph. It
+does that by typing the slash character into the new block, which is the same event as
+somebody pressing the key - down to the query it starts with and to backspacing out of it
+closing the menu again. On a block that is already an empty paragraph it uses that one
+rather than making a second. Where the slash menu is switched off it makes the empty block
+and stops, which is the whole of what it can honestly do without a list to offer.
+
+Only the top level of the document gets a handle, so the grip on a list takes the list
+rather than the item under the mouse. Grabbing a single item out of a list is the thing
+people ask for next and it is deliberately not here: a list item is a node that may only
+live inside a list, so dropping one into a paragraph is a question ProseMirror answers with
+"nowhere" - the honest version of that feature is a drag that refuses more often than it
+works.
+
+**A field with a handle has a wider left margin.** The controls sit in the editor's own
+padding, and Filament leaves twenty pixels there where two of them need fifty, so the
+stylesheet widens it for fields carrying the handle and for no others. That is the price of
+the feature and it is worth knowing before switching it on: an editor without the grip is
+laid out exactly as Filament lays it out.
+
+Nothing about any of this is stored. Rearranging a document changes the order of what is in
+it and leaves no trace of how, so turning the handle off later changes nothing that was ever
+written with it.
+
+### Find and replace
+
+`'find'` opens a bar inside the field, and so does `Ctrl+F` while the caret is in the
+editor. Every hit is marked in the text, the one being looked at is marked differently, and
+the counter says which of how many.
+
+```php
+AdvancedRichEditor::make('content')->find(false);   // default: config('...find')
+```
+
+The bar is a small window, one row tall, opening in the top right corner of the field and
+draggable by the grip on its left - the same kind of window the emoji picker is. It hangs
+off the body rather than sitting inside the field, which is not a matter of taste: Filament
+lays the editor's body out as a two-column row from `2xl` up, so a bar living in there
+becomes a column and takes half the editor on a wide screen.
+
+It carries the query, a counter, two switches, the way through the hits and the way out.
+
+Two keys open it, and each stands for one of its two states rather than for a change to
+whichever it is in:
+
+| Key | What it opens |
+|---|---|
+| `Ctrl+F` | the window with the replacing row put away |
+| `Ctrl+Alt+F`, or `Ctrl+H` on Windows and Linux | the same window with the replacing row out |
+
+Pressed again they repeat themselves, and that is deliberate: the usual reason for pressing
+`Ctrl+F` a second time is that something else is selected now, so the second press picks
+that up the way the first one did. Only the button in the bar shows and hides the replacing
+row, because that is the one place it is a thing to be toggled.
+
+`Ctrl+H` is bound alongside `Ctrl+Alt+F` for the muscle memory Word and Google Docs built,
+and it never arrives on a Mac - `Cmd+H` hides the application before the page sees it, which
+is the same reason VS Code settled on `Cmd+Alt+F`. The shortcut list in the help dialog
+names `Ctrl+Alt+F`, since that is the one of the two that is true on every platform.
+
+Enter steps to the next hit and Shift+Enter to the previous one, Escape closes the window
+and puts the cursor back in the text. A click anywhere outside closes it too - except in the
+editor, where clicking is how the next place to search from gets chosen.
+
+Two switches narrow the search: `Aa` minds upper and lower case, and `ab` matches whole
+words only - and whole words are counted in letters rather than in ASCII, so `Mü` does not
+match inside `Müller`. What is typed is text and never a pattern: searching for `a.b` finds
+those three characters.
+
+A hit may run through formatting. `he<strong>ll</strong>o` is three text nodes in the
+document and one word on the page, so the search runs on the text laid end to end rather
+than on the tree - and a hit never runs across a block boundary, an image or a line break,
+because a paragraph ending in `hello` followed by one starting with `world` is not the
+phrase `hello world`.
+
+Replacing every hit is one step in the undo chain rather than one per hit, and the cursor is
+never moved while the bar is open: the hit is scrolled to, not selected, so what is being
+typed in the bar keeps the focus.
+
+Nothing about any of this is stored. A search marks no document and a replacement is
+ordinary text by the time it is saved, so turning the feature off later leaves everything
+written with it exactly as it is - it only takes the button and the keys away.
+
+### Pasting from Word and Google Docs
+
+A paste is cleaned on the way in. Nothing is stored about it, there is no button for it and
+nothing says it happened - what arrives in the document is what the paste was worth.
+
+```php
+AdvancedRichEditor::make('content')
+    ->pasteCleanup(false)                          // default: config('...paste.cleanup')
+    ->pasteKeepStyles(['text-align', 'color']);    // default: config('...paste.keep_styles')
+                                                   // shipped: ['text-align', 'aspect-ratio']
+```
+
+Word does not put a paragraph on the clipboard. It puts a paragraph, the stylesheet it was
+drawn with, a handful of tags no browser has heard of, and a list that is not a list.
+Google Docs is tidier and worse: every run of text is a `<span>` carrying eleven
+declarations, one of which is the only place its bold lives.
+
+What survives is the document: headings, paragraphs, lists, tables, links, images, video
+embeds, bold, italic, underline, struck-out text, superscript and subscript, and the
+alignment. What does not is the typography - the fonts, the sizes, the colours, the line
+heights and the margins of a document that was written somewhere else.
+
+Two style properties are kept, because both of them are structure wearing a style attribute
+rather than typography: `text-align`, and the `aspect-ratio` an embed is drawn at. An
+element that *is* its `src` - a frame, a video, an audio player - keeps it for the same
+reason: this package's embed reads the video off the frame inside it and drops the node
+when it cannot, so an embed whose `src` had been stripped would come back as nothing at
+all. Which frames are allowed to stand is not decided here: the schema takes only a frame
+inside an embed whose host it recognises, and the sanitiser narrows it again on the way out.
+
+That last part is a deliberate opinion rather than a shortcut. This package parses
+`font-family`, `font-size`, `color`, `background-color` and `line-height` into marks of its
+own, so a declaration left standing is not cosmetic noise that the next save drops: it is
+Calibri 11pt in black, in the document, for good, in a design system that never asked for
+it. A project that wants a paste to arrive wearing its colours names the properties in
+`pasteKeepStyles()`, and naming one also takes it out of the promotion below - keeping
+`font-weight` means wanting the style, not a `<strong>` and a style.
+
+**Word's lists are rebuilt.** A bulleted list in a Word paste is a run of paragraphs, each
+carrying `mso-list` in its style and drawing its own bullet as text in a span. Twelve
+paragraphs starting with a dot is what every editor without a paste filter shows, and it
+cannot be fixed later - by then the list is gone. The run is put back together here, nested
+by the level in the style, and whether a level is bulleted or numbered is read off the
+marker: a number always brings its `.` or `)` along, which is what keeps Word's second-level
+bullet - the letter `o` in Courier - from turning into a lettered list. A list continued
+after an interruption keeps counting from where it was.
+
+**The meaning that only lives in a style attribute is turned into tags first.** Bold in
+Google Docs is `font-weight:700` and nothing else, so the styles become `<strong>`, `<em>`,
+`<u>`, `<s>`, `<sup>` and `<sub>` before anything is dropped. Strip first and the paste
+arrives correct in structure and flat in meaning, which is the one failure mode nobody
+notices until the article is published. The `<b style="font-weight:normal">` that Google
+Docs wraps a whole selection in - a tag meaning bold and a style meaning it is not - goes
+the other way and is unwrapped.
+
+**A stylesheet that came along is removed rather than kept.** ProseMirror walks into an
+element it has no rule for and keeps the text it finds, so a `<style>` block in a paste
+arrives in the document as three hundred words of CSS. So do `<o:p>`, `<xml>`, the VML
+shapes and Word's conditional comments, along with the empty paragraphs Word leaves between
+everything and the runs of non-breaking spaces it indents with. A single non-breaking space
+is a decision somebody made and stays.
+
+**What a browser puts in front of a paste is looked past.** Chrome hands over
+`<meta charset='utf-8'>` and then the markup, so every question this asks about what the
+paste starts with is asked of the string without it - otherwise a loose run of table rows,
+which has to be handed on untouched because an HTML parser throws it away rather than keeps
+it, would be flattened into the text of its cells.
+
+**Ids are kept where somebody chose them.** `id` on a heading is an anchor in this package,
+so dropping them all would cost a paste from a page it rendered the anchors it was written
+with - and keeping them all plants Word's `_Toc496` in the document. The generated ones go
+by name: `_Toc`, `_Ref`, `_Hlk`, `_GoBack`, `docs-internal-guid`. `data-*` is never dropped,
+which is the other half of the same round trip: a mention, an anchor and a named style are
+`data-*` and nothing else, so content copied out of a rendered page comes back as itself.
+
+**A copy from another editor is left exactly as it is.** It carries ProseMirror's own
+`data-pm-slice`, it is already the shape the document wants, and a field that quietly took
+the colours off content on its way to the field beside it would be worse than one that kept
+Word's fonts. The same goes for a fragment that is not a whole element - loose table rows,
+which an HTML parser throws away rather than keeps.
+
+The cleaning happens before ProseMirror parses the markup, which is also why a drag and drop
+of the same content is cleaned the same way, and why images in a Word paste still reach
+Filament's uploader: it hands its rebuilt markup back through the same door.
+
+Turning it off changes the next paste and no document already written with it.
+
+#### Pasting as plain text
+
+`Ctrl+Shift+V` takes the text and none of the markup - no headings, no lists, no links, no
+emphasis, whatever was on the clipboard. It is the way out of a paste that arrived wearing
+more than it should, and it is bound in the help dialog's shortcut list alongside everything
+else the editor answers to.
+
+Nothing in this package binds it, which is why it works whether or not a field cleans its
+pastes. Chrome, Edge and Firefox read `Ctrl+Shift+V` (`Cmd+Shift+V`) as paste-and-match-style
+and hand over the plain half of the clipboard on their own, and ProseMirror's own paste
+handler takes the text half whenever Shift is held - so the markup is dropped twice over.
+Line breaks in the text become paragraphs, the way they do in every editor built on
+ProseMirror.
+
+Safari is the exception, and the shortcut list does not say so. WebKit maps no command to
+`Cmd+Shift+V` - its paste-and-match-style is `Cmd+Alt+Shift+V` - so nothing is pasted at
+all there. The row keeps the key that is right on every other browser rather than naming
+one that is wrong on all of them; Safari users have the Edit menu, which spells its own
+key out.
+
+There is no menu entry for it and there is not going to be one. A button cannot paste: it
+would have to read the clipboard itself through `navigator.clipboard.readText()`, which
+needs a permission Chrome prompts for, Safari confirms with its own dialog and Firefox does
+not give a page at all - a button that silently does nothing on one browser in three is
+worse than no button.
+
+## Getting it right
+
+### Accessibility check
+
+**Shipped off.** Switch it on and `'accessibility'` opens a panel listing what is wrong with
+the document, with every row selecting the thing it is about.
+
+```php
+AdvancedRichEditor::make('content')
+    ->accessibility()                                 // default: config('...accessibility.enabled'), false
+    ->accessibilityRules(['missing_alt', 'empty_link']);
+```
+
+Off is the default for two reasons, and the second is the real one. It is a review tool
+rather than a way of writing, so it belongs on the bar of the fields a project decided it
+belongs on. And the contrast rule is measured against a page this package has to be told the
+colour of: shipped on, every project whose pages are not white would be handed findings that
+are wrong - which is the surest way to teach somebody to stop reading a panel.
+
+The shipped place for it is the tools menu, not the bar: `tools_menu` is
+`['find', 'accessibility', 'sourceCode', 'help']`, and that place fills itself in as soon as
+the check is switched on. A project that has published the config file therefore needs to
+change nothing to see the button. Naming `'accessibility'` in `toolbar` instead gives it a
+button of its own on the bar.
+
+The whole of it in the published config:
+
+```php
+'accessibility' => [
+    'enabled' => false,
+    'rules' => [
+        'missing_alt', 'empty_link', 'weak_link_text',
+        'skipped_heading', 'table_without_header', 'weak_contrast',
+    ],
+    'background' => '#ffffff',   // the colour the contrast rule measures against
+    'text' => '#18181b',
+    'threshold' => 4.5,          // WCAG AA for ordinary text
+    'large_threshold' => 3.0,    // headings, and 24px and up
+],
+```
+
+Six questions, and they are six because they are the ones a person writing an article can
+answer and nobody downstream can. A stylesheet cannot invent alt text and a renderer cannot
+decide what a link should have said.
+
+| Rule | What it finds |
+|---|---|
+| `missing_alt` | an image with no alt text |
+| `empty_link` | a link with nothing in it |
+| `weak_link_text` | a link whose whole text is "click here" or the like |
+| `skipped_heading` | a heading level jumped over, such as `h2` followed by `h4` |
+| `table_without_header` | a table whose first row is ordinary cells |
+| `weak_contrast` | a set text colour that cannot be read on the page it is going to |
+
+**Heading levels are only checked for jumps, never for where the document starts.** An
+article whose page already carries the `<h1>` starts at two, and one rendered inside a card
+may reasonably start at three. What no document can defend is two, then four.
+
+**A weak link text has to be the whole text, not part of it.** "Click here for the report"
+says what it is and is left alone; "click here" on its own does not. The phrases come from
+the translation files, because "click here" is a fact about English rather than about the
+web - and `accessibility.weak_link_phrases` adds a project's own to the shipped list rather
+than replacing it.
+
+**Contrast is the one rule with an assumption in it, and it is stated rather than hidden.**
+The editor cannot know what colour the page will be, because that belongs to the front end.
+A colour is measured against `accessibility.background` - white unless a project says
+otherwise - or against the text background where one was set on the same words, and it has
+to reach `accessibility.threshold`, which is 4.5, WCAG AA for ordinary text. Headings of the
+first two levels and text of 24px and up are held to `large_threshold` instead, which is 3,
+the same standard's easier level for large text. The finding says the number it got and the
+number it needed, because "not enough" is not something anybody can act on.
+
+Only the light half of the palette is checked. A document rendered in both a light and a
+dark theme is two questions, and answering one of them twice would be a panel listing
+everything twice.
+
+The panel rechecks itself as the document changes, so a finding disappears when it is fixed
+rather than when the panel is opened again. Nothing about any of it is stored: a check marks
+no document, and a picture that was given alt text is an ordinary picture by the time it is
+saved.
+
+### Drafts in the browser
+
+**Shipped on.** A draft of what is being written is kept in the browser's own storage, offered back the next
+time the same field on the same record is opened, and dropped as soon as the document on
+screen says the same thing.
+
+```php
+AdvancedRichEditor::make('content')
+    ->autosave(false)              // default: config('...autosave.enabled')
+    ->autosaveWarnOnLeave(false);  // the "leave site?" question only
+```
+
+This is not a save. Nothing about it reaches the application, nothing about it is a record,
+and a draft that is never restored is never anything. It exists for the moment a submit
+comes back as an expired session, as a validation error on a field nobody can see, or as
+the 500 that [Raise Livewire's nesting limit](#raise-livewires-nesting-limit) explains how
+to cause - where the reply is not the saved record but a page that has forgotten the
+article.
+
+Three parts, and they are three because they fail at three different moments:
+
+| When | What happens |
+|---|---|
+| While typing | the document is written to the browser's storage, once typing stops for `autosave.debounce` |
+| On opening | a bar above the document offers a draft that says something the page does not |
+| On leaving | the browser's own "leave site?" question, for an editor with changes the server has not been told about |
+
+**The draft is found again by its field, its record and its page.** The key is a hash of the
+Livewire component, the model, the record's key and the path to the field within the form,
+plus the path of the page in the browser - PHP knows the first four and cannot reliably know
+the last, because to Livewire every request looks like the same endpoint. Nothing in the key
+is in the clear: it is a key in storage that anything on the origin can read, so what it says
+is that two drafts are different rather than what either of them is about.
+
+**Restoring is an ordinary edit.** It is a ProseMirror transaction rather than a call into
+TipTap, which is what makes the restored document reach the state the form submits - and it
+is one step in the undo chain, so restoring can be taken back with `Ctrl+Z`.
+
+**A draft is dropped as soon as it is stale**: when the document on screen says the same
+thing, when the form is submitted, when it is discarded, and when it is older than
+`autosave.ttl`. Expired drafts belonging to this package are swept whenever a field opens,
+because the tab that wrote one is usually the tab that is never coming back.
+
+> **This is content in a browser's storage.** It sits on whatever machine somebody was
+> working on and it outlives the session that wrote it - a day by default, `autosave.ttl`
+> otherwise. A field holding something that should not sit there switches this off with
+> `->autosave(false)`, and a project that wants none of it anywhere sets
+> `autosave.enabled` to false.
+
+Where the browser has no storage to offer - a private window, storage switched off, a
+third-party iframe - the field is the field it was before: no draft, no bar, no question on
+the way out.
+
+### Character count
+
+A quiet line under the editor saying how long the text is. It is on by default and needs no
+setup:
+
+```php
+AdvancedRichEditor::make('content')->characterCount(false);   // default: config('...character_count.enabled')
+```
+
+With a `maxLength()` on the field it counts towards it - `1,234 / 2,000 characters` - and
+turns amber at 90% and red past it. For a target with no rule behind it, set the limit
+directly:
+
+```php
+AdvancedRichEditor::make('content')
+    ->characterCountLimit(160)      // shown, never enforced
+    ->characterCountWords();        // adds "218 words ·" in front
+```
+
+**The number is the one Filament validates.** That is the whole point of it, and it is not
+free: `maxLength` on a rich editor is measured server side with
+`Str::length($tiptapEditor->getText())`, and that serialiser escapes the text - a single `&`
+counts as the five characters of `&amp;` - and separates every nesting level with a blank
+line, so a list item costs two of them. A counter reading the text off the screen would show
+a smaller number than the one a save is rejected over. This one mirrors those rules, in PHP
+for the first render and in the browser for every keystroke after it.
+
+The editor announces its counts as a DOM event and the line listens - nothing is polled, no
+view is replaced, and two editors on a page keep their numbers apart. Turning the counter
+off also drops the script that does the counting.
+
+The counter's numbers are available without the counter:
+
+```php
+$field->measureCharacterCount($post->content);   // ['characters' => 812, 'words' => 137]
+```
+
+Deliberately the same counting rule Filament's `maxLength` validation uses, so a reading-time
+estimate, an excerpt check or a table column agrees with the number the author was shown
+while writing.
+
+### Required, and what counts as empty
+
+An empty editor is not an empty value. TipTap keeps at least one paragraph in the document
+at all times, so a field nobody typed into reaches the validator as
+`['type' => 'doc', 'content' => [['type' => 'paragraph']]]` — an array Laravel's `required`
+is perfectly happy with. Filament rejects that exact shape; press return once and the
+document has two empty paragraphs, which it does not.
+
+This package answers the question once, for every shape state arrives in:
+
+```php
+AdvancedRichEditor::make('content')->required();
+```
+
+A document counts as **empty** when it holds nothing but paragraphs, line breaks and
+whitespace — ordinary spaces, and the non-breaking ones a paste from Word leaves behind.
+Everything else is content: a list, a heading, a horizontal rule, an image, a table, a
+custom block, and any node a project or another package adds.
+
+That direction is deliberate. A list of nodes that count as content would need extending
+every time a node is added, and the day one was forgotten it would throw away somebody's
+work. Stated this way an unknown node counts as content, so the worst this can do is let an
+empty-looking document through — visible, and reported — rather than reject a document that
+had something in it.
+
+The same question is available on the field, which is what a custom rule or an observer
+wants:
+
+```php
+$field->hasContent($state);   // markup, a document, or null - all three
+```
+
+`$field->hasContent($state)` answers the same question but needs a field instance. Where you
+only have the column — an observer, a custom validation rule, a queued job — the rule is a
+static:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
+
+DocumentContent::isBlank($post->content);   // true for a document of empty paragraphs
+```
+
+It treats non-breaking spaces, zero-width spaces and byte order marks as blank, which is what
+makes it agree with what the author sees rather than with `strlen()`.
+
+#### Storing nothing instead of `<p></p>`
+
+By default an empty document is stored as `<p></p>`, exactly as Filament stores it. That is
+noise in a nullable column, and it is why `@if($post->content)` is true for a post with no
+content. To store nothing instead:
+
+```php
+AdvancedRichEditor::make('content')->nullWhenEmpty();   // default: config('...null_when_empty')
+```
+
+It is off by default, and that is a decision about your database rather than a preference: a
+column that is `NOT NULL` without a default takes `<p></p>` and refuses a null, so turning
+this on for everyone would break a save that works today. Turn it on per field, or once in
+the config file when you know your columns.
+
+Emptiness means the same thing here as it does above, and `json()` fields get the same
+answer even though what they store is a document rather than markup.
+
+#### Hydrating an empty column
+
+A `text NOT NULL DEFAULT ''` column is ordinary, and Filament's cast only guards against
+null - an empty string went to TipTap's DOM parser, which reached for a `<body>` that was
+never built and threw `DOMParser::getDocumentBody(): Return value must be of type
+DOMElement, null returned` out of a form that was only being rendered. This package treats a
+blank string as no content, so such a record opens on an empty editor like any other.
+
+### Source code
+
+`'sourceCode'` opens the document as HTML, in Filament's own code editor, next to the
+fullscreen button. **Off by default:**
+
+```php
+AdvancedRichEditor::make('content')->sourceCode();        // default: config('...source_code')
+```
+
+It hands an editor a way past every control the toolbar stands for — whoever types into that
+box writes whatever the schema will accept, and the toolbar stops being the answer to what a
+document may contain. Worth having where the people using it know HTML, not worth giving to
+everybody who installs the package. The token stays in the shipped toolbar and resolves to
+nothing while this is off, so turning it on needs no toolbar surgery.
+
+Both directions go through the field's own TipTap schema rather than being passed along
+untouched, and that is the point of it:
+
+- **Opening** shows the markup as it is stored, not as the browser happened to serialise it.
+  Every plugin the field carries is in that schema, so a rotation, a background colour or a
+  direction is there to see.
+- **Applying** hands the markup to the same schema before it reaches the editor. Anything it
+  cannot represent is gone at that moment - the same thing that happens to pasted markup,
+  but visibly, and before the record is written rather than silently on the next save.
+
+Which also means the source view is not a way to store markup the editor does not support.
+Filament sanitises rich content on the way out anyway; this simply makes the boundary
+visible.
+
+The markup is laid out for reading on the way in - every block on its own line, indented by
+nesting - and compacted again on the way out. That costs nothing, because the parser drops
+whitespace between block tags; inline content is never broken, since the whitespace between
+inline elements is part of the sentence, and anything inside a `<pre>` is copied through
+exactly as written. A single long paragraph still arrives as a single long line, wrapped by
+the code editor: that one is the document's own doing, not the layout's.
+
+#### Normalising HTML from somewhere else
+
+The source dialog does not hand TipTap whatever was typed into it: markup is round-tripped
+through *that field's own* schema first, so what is stored is what the field would have
+written itself. The same pass is public, and is what an importer or a seeder wants:
+
+```php
+$field = AdvancedRichEditor::make('content')->headingLevels([2, 3]);
+
+$field->normaliseSourceHtml($legacyPost->body);
+// an <h1> becomes a paragraph, unknown tags are dropped, the rest is schema-clean
+```
+
+It obeys everything the field was configured with, which is the point: HTML normalised
+against a field that allows `h2` and `h3` cannot come back carrying an `h1`.
+
 ## Rendering
 
 Everything above is about the editor. This part is about the page the content ends up on.
@@ -1471,6 +2563,51 @@ It also renders an empty record as an empty string. Filament's own renderer walk
 document without first checking that there is one, and a rich content column is null until
 somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this
 one returns `''`. The same goes for `toText()`.
+
+### Table column widths
+
+A column somebody dragged wider stays wider on the page. Filament configures TipTap's table
+with `resizable: true`, so dragging already worked and the width was already kept in the
+document — it just never reached the reader. `ueberdosis/tiptap-php` writes it as
+`data-colwidth` on the cell, which is neither on the sanitiser's allow list nor anything a
+browser does something with: CSS cannot read an attribute value as a width. The editor
+looked right, the page did not, and nothing said so.
+
+The renderer now turns those widths into the `<colgroup>` ProseMirror itself draws while
+resizing, and `colgroup`, `col` and `style` all survive the sanitiser:
+
+```html
+<table style="table-layout: fixed;">
+    <colgroup><col style="width: 220px;" /><col /></colgroup>
+    ...
+```
+
+Three things are worth knowing:
+
+- **The widths are read off the first row**, which is where ProseMirror reads them too. A
+  width sitting only on a later row is not one the editor is showing either.
+- **`table-layout: fixed` comes with the widths and only with them.** Without it a column
+  width is a suggestion the browser drops as soon as the text is wider. A table nobody
+  resized is left exactly as it was — forcing a fixed layout on it would make every column
+  equally wide, which is a change to content that was fine.
+- **The styles are inline**, like the ones a caption gets, because the page this lands on
+  has never loaded this package's stylesheet.
+
+Nothing about what is stored changes, and the editor's own round trip is untouched.
+
+Both passes are plain callables on a string of HTML, usable on markup you did not render
+through `AdvancedRichContentRenderer` — a cached HTML column, a feed, another renderer:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ImageCaptions;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TableColumnWidths;
+
+$html = (new TableColumnWidths)->apply($html);   // data-colwidth -> <colgroup>
+$html = (new ImageCaptions)->apply($html);       // data-caption -> <figure><figcaption>
+```
+
+Each returns the string untouched when the attribute it looks for is absent, so running both
+over arbitrary HTML is safe.
 
 ### Anchors
 
@@ -1581,8 +2718,7 @@ opened two levels for it would be describing the markup rather than the document
 ### Mentions
 
 Mentions are Filament's own feature — `RichEditor::mentions()`, the `@` menu, more than one
-trigger — and this package changes nothing about the editor half. Configure the field the
-way Filament documents it:
+trigger — and a field configured the way Filament documents it works here unchanged:
 
 ```php
 use Filament\Forms\Components\RichEditor\MentionProvider;
@@ -1615,6 +2751,61 @@ AdvancedRichContentRenderer::make($article->content)
 ```
 
 What this package adds on top:
+
+**A menu with a row worth reading.** Filament draws a suggestion as one line of text: the
+name, and nothing else. Five people called Müller are five identical rows. This package's
+menu has room for the picture somebody is recognised by and a line under the name — a role,
+a team, an email address — which is what tells them apart:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionRow;
+
+AdvancedRichEditor::make('content')
+    ->mentions([
+        MentionProvider::make('@')
+            ->getSearchResultsUsing(fn (string $search): array => User::query()
+                ->where('name', 'like', "%{$search}%")
+                ->limit(10)
+                ->get()
+                ->map(fn (User $user): MentionRow => MentionRow::make($user->id, $user->name)
+                    ->avatar($user->avatar_url)
+                    ->hint($user->job_title))
+                ->all()),
+    ]);
+```
+
+`MentionProvider` here is this package's own, extending Filament's: `getLabelsUsing()`,
+`url()`, `extraAttributes()` and the messages are its methods, called by its code. A row
+without an avatar is drawn with the initials of the name rather than a gap, and a row
+without a hint is drawn as one line.
+
+A trigger whose whole list is known up front is handed over with `rows()` instead, and the
+browser filters it without a request per keystroke — the name and the second line both:
+
+```php
+MentionProvider::make('#')
+    ->rows(fn (): array => Team::query()
+        ->get()
+        ->map(fn (Team $team): MentionRow => MentionRow::make($team->id, $team->name)
+            ->avatar($team->logo_url)
+            ->hint($team->department))
+        ->all())
+```
+
+A row may also be a plain array — `['id' => 7, 'label' => 'Ada', 'hint' => 'Mathematician']` —
+so a query that already selects the right columns needs no mapping.
+
+The menu is on by default and can be switched off per field with `->mentionMenu(false)` or
+for the whole project with the `mentions.menu` config key, in which case Filament's own menu
+opens instead. Nothing about what is stored changes either way: the same node, the same
+`data-id`, the same markup on the page.
+
+Two things are worth knowing about how this is done. The extension carries Filament's own
+name and therefore *replaces* it — that is the only seam Filament offers, because its
+suggestion is built into ProseMirror plugins while the editor is constructed. And it is only
+loaded on a field that was actually given providers, so a field without mentions keeps
+Filament's node untouched.
 
 **A class to style.** Filament renders a mention as `data-type` and `data-id` and nothing
 else, which on a page is indistinguishable from any other span. It cannot render more:
@@ -1661,6 +2852,22 @@ hook that had to be handed the same providers as the field would be one more pla
 two to drift apart. This reads what the document itself carries; whoever wants the record
 now has the id to look it up with.
 
+#### The markup before the sanitiser
+
+`toHtml()` runs Filament's sanitiser over the result. The captions, the table column widths
+and the code highlighting are applied *before* that, inside `toUnsafeHtml()` — which is
+public, and is the hook for anyone who needs the markup as this package writes it:
+
+```php
+$html = AdvancedRichContentRenderer::make($article->content)
+    ->anchorHeadings()
+    ->toUnsafeHtml();          // no sanitiser has run over this
+```
+
+The name is the warning: nothing has been cleaned. Use it when you are running your own
+purifier, or rendering into a mail template or a PDF pass that sanitises for itself. For a
+web page, use `toHtml()`.
+
 ### Markdown
 
 ```php
@@ -1702,6 +2909,59 @@ AdvancedRichContentRenderer::make($article->content)
 
 ## Configuration
 
+### What ships on
+
+Every feature below is on or off before you configure anything. The config key sets it for
+the whole project; the method sets it for one field and wins.
+
+| Ships **off** | Config key | Per field |
+| --- | --- | --- |
+| Accessibility check | `accessibility.enabled` | `->accessibility()` |
+| Source view | `source_code` | `->sourceCode()` |
+| Marking styled text in the editor | `style_preview` | `->stylePreview()` |
+| `null` in the column for an empty document | `null_when_empty` | `->nullWhenEmpty()` |
+| Named styles (the list ships empty, so the dropdown is absent) | `styles` | `->styles([...])` |
+| A height cap (`null`) | `max_height` | `->maxHeight('400px')` |
+
+| Ships **on** | Config key | Per field |
+| --- | --- | --- |
+| Drafts in the browser | `autosave.enabled` | `->autosave(false)` |
+| Drag handle | `drag_handle.enabled` | `->dragHandle(false)` |
+| Slash menu | `slash.enabled` | `->slashMenu(false)` |
+| Video embeds | `embed.enabled` | `->embeds(false)` |
+| Callouts | `callouts.enabled` | `->callouts(false)` |
+| Language of a passage | `languages.enabled` | `->languages(false)` |
+| Task lists | `task_list` | `->taskList(false)` |
+| List markers, start and reverse | `list_properties` | `->listProperties(false)` |
+| Media browser | `media_library.enabled` | `->mediaLibrary(false)` |
+| Character count | `character_count.enabled` | `->characterCount(false)` |
+| Font size | `font_size.enabled` | `->fontSize(false)` |
+| Typeface picker *(on, but its token is on no bar — see [Fonts](#fonts))* | `fonts.enabled` | `->fontPicker(false)` |
+| Text and background colours, and the free picker | `colors.text`, `colors.background`, `colors.custom` | `->textColor(false)`, `->textBackground(false)`, `->customColors(false)` |
+| Emoji | `emoji` | `->emoji(false)` |
+| Special characters | `characters` | `->characters(false)` |
+| Find and replace | `find` | `->find(false)` |
+| Help dialog | `help` | `->help(false)` |
+| Fullscreen | `fullscreen` | `->fullscreen(false)` |
+| Text direction | `text_direction` | `->textDirection(false)` |
+| Line spacing | `line_height.enabled` | `->lineHeight(false)` |
+| Sticky toolbar | `sticky.enabled` | `->stickyToolbar(false)` |
+| Bar over a selection | `text_toolbar` | `->textToolbar(false)` |
+| Image toolbar | `images.toolbar` | `->imageToolbar(false)` |
+| Image resizing | `images.resizable` | Filament's `->resizableImages(false)` |
+| Link `rel` / `referrerpolicy` / `hreflang` | `link.attributes` | `->linkAttributes(false)` |
+| Paste cleanup | `paste.cleanup` | `->pasteCleanup(false)` |
+| Mention menu rows | `mentions.menu` | `->mentionMenu(false)` |
+| Paragraph entry in the headings dropdown | `heading_paragraph` | `->headingParagraph(false)` |
+| Toolbar alignment, shipped `'center'` | `toolbar_alignment` | `->toolbarAlignment('start')` |
+
+Four tools are registered but on no shipped bar — the typeface picker (`fontFamily`),
+striking out (`strike`), the language of a passage (`language`) and the writing direction
+(`ltr` / `rtl`). They are one token away; see
+[The default toolbar](#the-default-toolbar).
+
+### Everything, in one call
+
 ```php
 AdvancedRichEditor::make('content')
     ->toolbarButtons([...])                        // full toolbar layout
@@ -1713,10 +2973,20 @@ AdvancedRichEditor::make('content')
     ->slashGroups(['insert' => ['image']])         // what that menu offers, and in what groups
     ->slashChar('/')                               // the character that opens it
     ->embeds(true)                                 // the video button, and the paste handler
+    ->pasteCleanup(true)                           // clean a paste from Word and Google Docs
+    ->dragHandle(true)                             // the grip and the plus in the margin
+    ->autosave(true)                               // keep a draft in the browser's storage
+    ->accessibility()                              // the check, and the panel it reports in (off by default)
     ->codeBlockLanguages(['php' => 'PHP'])         // the language picker on a code block
     ->headingLevels([1, 2, 3, 4])                  // levels offered by the headings dropdown
     ->listTypes(['bulletList', 'orderedList', 'taskList'])
     ->taskList(true)                               // checkbox task lists
+    ->callouts(true)                               // note, tip, warning and danger boxes
+    ->calloutVariants(['note', 'warning'])         // which kinds, and in what order
+    ->languages(true)                              // mark a passage as another language
+    ->languageOptions(['fr' => 'Français'])        // which languages, and in what order
+    ->listProperties(true)                         // list marker, start number, direction
+    ->characters(true)                             // the special characters picker
     ->spatieMediaLibrary('rich-editor');           // opt into media library attachments
 ```
 
@@ -1807,6 +3077,13 @@ theme:
 .fi-arte-toolbar-pinned { /* the half pinned to an edge */ }
 .fi-arte-task-list { /* <ul data-type="taskList"> */ }
 .fi-arte-task-item { /* a single checkbox item */ }
+.fi-arte-callout   { /* <div data-type="callout">, see Callouts */ }
+.fi-arte-callout-note, .fi-arte-callout-tip,
+.fi-arte-callout-warning, .fi-arte-callout-danger {
+  /* one kind of callout: --fi-arte-callout-accent, --wash and --icon */
+}
+.fi-arte-characters-popup { /* the special characters picker, twinned with the emoji one */ }
+.fi-arte-list-panel-menu  { /* the panel in the bubble a list opens */ }
 ```
 
 Two classes are written into rendered content rather than into the editor, so this package's
@@ -1873,15 +3150,21 @@ sense that there is nothing left to build.
   for a picture you just dropped in. This is the next big one, and it is deliberately not
   rushed: it has to work with whichever provider a project already pays for, and it has to
   be switched off by default. Coming in a later release.
-- **A richer mention menu.** Filament's own mention rows are a label and nothing else. Avatars
-  and a second line of context are the obvious next step, and the rendering half of it is
-  already here.
-- **Tests for the media browser's front end.** Roughly seven hundred lines of Alpine with no
-  automated coverage. Everything else in the package is tested; this is the gap that bothers
-  me most.
 
 Nothing here is a promise with a date on it. If one of them is what you need, say so and it
 moves up.
+
+Done since this list was written:
+
+- ~~**Finding and replacing.**~~ A bar inside the field, opened by the button or by
+  `Ctrl+F`, marking every hit and stepping through them. See
+  [Find and replace](#find-and-replace).
+- ~~**A richer mention menu.**~~ Rows carry a picture and a line of context now, and a row
+  without a picture is drawn with the initials of the name. See
+  [Mentions](#mentions).
+- ~~**Tests for the media browser's front end.**~~ The browser moved out of the Blade
+  attribute it was written in and into `resources/js/media-picker.js`, where fifty tests
+  cover paging, folders, filtering, the details panel, uploads and drag and drop.
 
 ## Found a bug? Got an idea?
 

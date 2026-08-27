@@ -25,8 +25,13 @@ const STYLE_HOOKS = [
     'fi-arte-font-picker',
     'fi-arte-font-size',
     'fi-arte-image-panel',
+    'fi-arte-list-panel',
     // A toolbar button, drawn by Filament's own `fi-fo-rich-editor-tool`.
     'fi-arte-fullscreen-toggle',
+    // A second class on the find bar's own row, which `fi-arte-find-row` already styles.
+    // It marks the replacing half so a project can reach it, and so the row can be shown
+    // and hidden by name.
+    'fi-arte-find-replacing',
     // A second class on an input that `fi-arte-image-panel-input` already styles.
     'fi-arte-image-panel-input-text',
     // Written into rendered content rather than into the editor: the anchor marker on a

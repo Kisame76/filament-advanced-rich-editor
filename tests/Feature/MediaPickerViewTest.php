@@ -86,12 +86,14 @@ it('uses Filament\'s own controls rather than lookalikes', function (): void {
         ->toContain('fi-dropdown');
 });
 
-it('remembers which layout was last used', function (): void {
-    // Browsing in tiles or in a list is a habit, not a setting, so it is remembered in the
-    // browser rather than asked again every time the dialog opens.
+it('loads the component the grid is made of', function (): void {
+    // The behaviour lives in `resources/js/media-picker.js` and reaches the page the way
+    // Filament's own fields do. A view that named the wrong component, or forgot to load it
+    // at all, would render an element Alpine cannot start - an empty dialog and no error.
     expect(renderPicker())
-        ->toContain('arte-media-view')
-        ->toContain('localStorage');
+        ->toContain('x-load-src')
+        ->toContain('components/media-picker.js')
+        ->toContain('arteMediaPicker(');
 });
 
 it('makes the library itself the dropzone', function (): void {
@@ -101,26 +103,18 @@ it('makes the library itself the dropzone', function (): void {
 
     expect($html)
         ->toContain('onDrop($event)')
-        ->toContain('onDragOver($event)')
-        // And the drop is handed to Filament's own upload widget rather than uploaded
-        // separately, so a dropped picture and a chosen one travel one path.
-        ->toContain('addFiles(files)')
-        ->toContain('fi-arte-media-uploader');
-});
+        ->toContain('onDragOver($event)');
 
-it('shows what was just uploaded, and selects it', function (): void {
-    // An upload is handed to the editor as it arrives rather than kept in this dialog, so the
-    // grid has nothing to mirror - it asks again and the new picture is in the answer, with a
-    // selection following it because that is what somebody expects after dropping a file.
-    expect(renderPicker())
-        ->toContain("pond.on('processfile'")
-        ->toContain('selectNewest');
+    // What happens to the dropped files afterwards is asserted in
+    // `tests/js/media-picker.test.js`, and the upload field they are handed to belongs to the
+    // dialog rather than to this view - `MediaLibraryFieldTest` watches that it keeps the
+    // class the grid finds it by.
 });
 
 it('opens in the layout it was told to', function (): void {
     // Tiles by default, because picking a picture is done by looking at pictures.
-    expect(renderPicker())->toContain('list: false')
-        ->and(renderPicker(isListView: true))->toContain('list: true');
+    expect(renderPicker())->toContain('listView: false')
+        ->and(renderPicker(isListView: true))->toContain('listView: true');
 });
 
 it('asks for the details of one picture rather than of the grid', function (): void {

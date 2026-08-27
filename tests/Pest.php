@@ -8,6 +8,8 @@ use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Schema;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarColorPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
@@ -15,6 +17,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFontPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFontSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFullscreen;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarStylePicker;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
 use Tiptap\Core\Extension;
@@ -34,12 +37,35 @@ function testSchema(): Schema
 }
 
 /**
+ * The styles a project declared, for the tests that work on them.
+ *
+ * @param  array<string, mixed>  $styles
+ */
+function withStyles(array $styles): void
+{
+    config()->set('filament-advanced-rich-editor.styles', $styles);
+}
+
+/**
  * A field bound to a fresh container. Every call gets its own schema, because the root
  * container is memoised on the component the first time it is asked for.
  */
 function editor(string $name = 'content'): AdvancedRichEditor
 {
     return AdvancedRichEditor::make($name)->container(testSchema());
+}
+
+/**
+ * The plugins a field registered, by class name.
+ *
+ * Every feature that is a `RichContentPlugin` asks the same question of a field - is it
+ * registered, and is it gone when the switch is off - so the question is asked once here.
+ *
+ * @return array<int, string>
+ */
+function pluginNames(AdvancedRichEditor $editor): array
+{
+    return array_map(static fn (object $plugin): string => $plugin::class, $editor->getPlugins());
 }
 
 /**
@@ -55,6 +81,7 @@ function toolbarItemName(mixed $item): string
         $item instanceof ToolbarPin => 'pin',
         $item instanceof ToolbarFontSize => 'fontSize',
         $item instanceof ToolbarFontPicker => 'fontFamily',
+        $item instanceof ToolbarStylePicker => 'styles',
         $item instanceof ToolbarFullscreen => 'fullscreen',
         $item instanceof ToolbarColorPicker => $item->getName(),
         // Dropdowns are matched before their parent class, which they extend.
@@ -99,6 +126,49 @@ function toolbarShape(AdvancedRichEditor $editor): array
 function moreShape(?AdvancedRichEditor $editor = null): string
 {
     return 'dropdown:'.implode(',', ($editor ?? editor())->getMoreTools());
+}
+
+/**
+ * What `toolbarShape()` calls the callout dropdown, on the same reasoning as `moreShape()`:
+ * a layout test cares that the trigger is on the bar, and which kinds are behind it is
+ * `CalloutTest`'s business.
+ */
+function calloutsShape(?AdvancedRichEditor $editor = null): string
+{
+    $editor ??= editor();
+
+    return 'dropdown:'.implode(',', array_map(
+        Callouts::toolName(...),
+        $editor->getCalloutVariants(),
+    ));
+}
+
+/**
+ * What `toolbarShape()` calls the language dropdown. Same reasoning as `calloutsShape()`:
+ * a layout test cares that the trigger is in the bubble, and which languages are behind it
+ * is `LanguageTest`'s business.
+ */
+function languagesShape(?AdvancedRichEditor $editor = null): string
+{
+    $editor ??= editor();
+
+    return 'dropdown:'.implode(',', [
+        Languages::CLEAR,
+        ...array_map(
+            static fn (array $language): string => Languages::toolName($language['code']),
+            $editor->getLanguageOptions(),
+        ),
+    ]);
+}
+
+/**
+ * What `toolbarShape()` calls the tools menu, the same way `moreShape()` names the overflow:
+ * by what it was configured with rather than by what survived resolving, since a tool that
+ * is switched off is dropped when the dropdown renders and not when it is named.
+ */
+function toolsShape(?AdvancedRichEditor $editor = null): string
+{
+    return 'dropdown:'.implode(',', ($editor ?? editor())->getToolsMenu());
 }
 
 /**

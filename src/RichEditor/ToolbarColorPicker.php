@@ -16,6 +16,7 @@ use Filament\Support\Concerns\HasIcon;
 use function Filament\Support\generate_icon_html;
 
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensAwayFromTheEdge;
 
 /**
  * A dropdown of colour swatches for the selection.
@@ -28,6 +29,8 @@ use Illuminate\Support\Js;
  */
 class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
 {
+    use OpensAwayFromTheEdge;
+
     public const MODE_TEXT = 'text';
 
     public const MODE_BACKGROUND = 'background';
@@ -170,6 +173,7 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
 
         $xData = <<<JS
             {
+                {$this->menuPositioning()}
                 open: false,
                 current: null,
                 colors: {$this->encodeColors($colors)},
@@ -243,7 +247,8 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
                 x-bind:aria-expanded="open"
                 aria-label="<?= e($label) ?>"
                 x-tooltip="{ content: <?= Js::from($label)->toHtml() ?>, theme: $store.theme }"
-                x-on:click="open = ! open"
+                x-ref="trigger"
+                x-on:click="open = ! open; open && positionMenu()"
                 class="fi-fo-rich-editor-tool fi-fo-rich-editor-dropdown-tool-trigger"
             >
                 <span class="fi-arte-color-preview">
@@ -263,6 +268,8 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
                 x-show="open"
                 x-cloak
                 role="menu"
+                x-ref="menu"
+                x-bind:class="{ [menuUpClass]: dropUp }"
                 class="fi-fo-rich-editor-dropdown-tool-menu fi-arte-color-menu"
             >
                 <div class="fi-arte-color-grid">

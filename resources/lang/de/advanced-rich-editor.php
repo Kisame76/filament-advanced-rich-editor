@@ -21,6 +21,10 @@ return [
             'orderedList' => 'ol, nummeriert, nummerierung',
             'taskList' => 'todo, aufgaben, checkliste, haken',
             'blockquote' => 'zitat',
+            'calloutNote' => 'hinweis, info, infobox, kasten, callout',
+            'calloutTip' => 'tipp, ratschlag, kasten, callout',
+            'calloutWarning' => 'warnung, achtung, vorsicht, kasten, callout',
+            'calloutDanger' => 'gefahr, fehler, kritisch, kasten, callout',
             'codeBlock' => 'code, quelltext',
             'horizontalRule' => 'hr, trenner, linie',
             'details' => 'akkordeon, aufklappen, ausklappen',
@@ -29,9 +33,21 @@ return [
             'table' => 'tabelle, raster, spalten',
             'attachFiles' => 'datei, anhang, hochladen',
             'emoji' => 'smiley, symbol',
+            'characters' => 'sonderzeichen, zeichen, strich, pfeil, währung, akzent',
             'customBlocks' => 'block, baustein',
             'mergeTags' => 'platzhalter, variable',
         ],
+    ],
+    /*
+     * Die Arten von Infobox. Der Schlüssel ist der Name der Variante: wer eine eigene
+     * hinzufügt, übersetzt sie mit einem Eintrag hier; ohne Übersetzung wird der Name
+     * selbst als Beschriftung verwendet.
+     */
+    'callouts' => [
+        'note' => 'Hinweis',
+        'tip' => 'Tipp',
+        'warning' => 'Warnung',
+        'danger' => 'Gefahr',
     ],
     'tools' => [
         'image' => 'Bild',
@@ -70,7 +86,53 @@ return [
             ],
         ],
         'task_list' => 'Aufgabenliste',
+        'callouts' => 'Infobox',
+        'language' => 'Sprache',
+        'language_none' => 'Sprache der Seite',
+        'list_properties' => [
+            'bullet' => 'Listeneigenschaften',
+            'ordered' => 'Listeneigenschaften',
+            'marker' => 'Aufzählungszeichen',
+            'marker_default' => 'Standard',
+            'start' => 'Beginnt bei',
+            'reversed' => 'Rückwärts zählen',
+            'markers' => [
+                // Mit einem Beispiel benannt statt mit einem Namen: „a, b, c" sagt, was
+                // die Wahl bewirkt, „Kleinbuchstaben" sagt, wie jemand sie genannt hat.
+                'ordered' => [
+                    '1' => '1, 2, 3',
+                    'a' => 'a, b, c',
+                    'A' => 'A, B, C',
+                    'i' => 'i, ii, iii',
+                    'I' => 'I, II, III',
+                ],
+                'bullet' => [
+                    'disc' => 'Punkt',
+                    'circle' => 'Kreis',
+                    'square' => 'Quadrat',
+                ],
+            ],
+        ],
+        'characters' => [
+            'label' => 'Sonderzeichen',
+            'search' => 'Zeichen suchen...',
+            'empty' => 'Kein passendes Zeichen',
+            'empty_recent' => 'Zeichen, die du auswählst, erscheinen hier.',
+            'close' => 'Schließen',
+            'groups' => [
+                'recent' => 'Zuletzt',
+                'punctuation' => 'Interpunktion',
+                'currency' => 'Währung',
+                'math' => 'Mathematik',
+                'arrows' => 'Pfeile',
+                'symbols' => 'Symbole',
+                'latin' => 'Lateinische Buchstaben',
+                'greek' => 'Griechische Buchstaben',
+            ],
+        ],
         'heading_level' => 'Überschrift :level',
+        'styles' => 'Stil',
+        'styles_clear' => 'Keiner',
         'font_family' => 'Schriftart',
         'font_family_clear' => 'Standard',
         'font_size' => [
@@ -162,6 +224,21 @@ return [
         'headings' => 'Überschriften',
         'lists' => 'Listen',
         'more' => 'Mehr',
+        'tools_menu' => 'Werkzeuge',
+        'find' => [
+            'label' => 'Suchen und Ersetzen',
+            'find' => 'Suchen',
+            'replace' => 'Ersetzen durch',
+            'previous' => 'Vorheriger Treffer',
+            'next' => 'Nächster Treffer',
+            'replace_one' => 'Ersetzen',
+            'replace_all' => 'Alle ersetzen',
+            'close' => 'Schließen',
+            'match_case' => 'Groß- und Kleinschreibung',
+            'whole_word' => 'Nur ganze Wörter',
+            'no_results' => 'Keine Treffer',
+            'count' => ':current von :total',
+        ],
         'source_code' => [
             'label' => 'Quellcode',
             'heading' => 'Quellcode',
@@ -200,10 +277,51 @@ return [
         'close' => 'Schließen',
         'editing' => [
             'line_break' => 'Zeilenumbruch ohne neuen Absatz',
+            'paste_plain' => 'Als reinen Text einfügen',
             'indent_list' => 'Listenpunkt einrücken',
             'outdent_list' => 'Listenpunkt ausrücken',
+            'find' => 'Suchen',
+            'find_replace' => 'Suchen und Ersetzen',
             'next_cell' => 'Nächste Tabellenzelle',
         ],
+    ],
+
+    'accessibility' => [
+        'title' => 'Barrierefreiheit prüfen',
+        'close' => 'Schließen',
+        'empty' => 'Nichts zu beanstanden.',
+        'ratio' => ':ratio von :needed nötig',
+        'rules' => [
+            'missing_alt' => 'Bild ohne Alternativtext',
+            'empty_link' => 'Link ohne Text',
+            'weak_link_text' => 'Linktext sagt nichts',
+            'skipped_heading' => 'Überschriftenebene übersprungen',
+            'table_without_header' => 'Tabelle ohne Kopfzeile',
+            'weak_contrast' => 'Textfarbe zu schwach zum Lesen',
+        ],
+        // Der ganze Linktext muss einer davon sein, hier gehört also hinein, was Leute als
+        // vollständigen Text eines Links schreiben, und nichts Längeres.
+        'weak_link_phrases' => [
+            'hier', 'hier klicken', 'klicken', 'klick hier', 'dies', 'dieser link', 'link',
+            'mehr', 'mehr erfahren', 'weiterlesen', 'weitere informationen', 'details',
+            'los', 'download', 'herunterladen',
+        ],
+    ],
+
+    'autosave' => [
+        'found' => 'In diesem Browser liegt ein ungespeicherter Entwurf von :time.',
+        'restore' => 'Wiederherstellen',
+        'discard' => 'Verwerfen',
+    ],
+
+    'drag_handle' => [
+        'drag' => 'Ziehen verschiebt diesen Block, Klicken wählt ihn aus',
+        'insert' => 'Block darunter einfügen',
+    ],
+
+    'styles' => [
+        'block' => 'Absatz',
+        'inline' => 'Text',
     ],
 
     'fonts' => [

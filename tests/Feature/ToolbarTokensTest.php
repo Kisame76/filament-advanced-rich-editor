@@ -9,7 +9,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 
 it('exposes the built-in tokens', function (): void {
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'lineHeight', 'more', 'textColor', 'fullscreen', 'sourceCode', 'help', 'textBackground', 'fontFamily', 'fontSize']);
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize']);
 });
 
 it('resolves tokens at any nesting depth', function (): void {
@@ -34,7 +34,7 @@ it('registers extra tokens from the config file', function (): void {
 
     $toolbar = editor('body')->toolbarButtons([['inline', 'link']])->getToolbarButtons();
 
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'lineHeight', 'more', 'textColor', 'fullscreen', 'sourceCode', 'help', 'textBackground', 'fontFamily', 'fontSize', 'inline'])
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize', 'inline'])
         ->and($toolbar[0][0])->toBeInstanceOf(ToolbarDropdown::class)
         // The token closure is evaluated through the field, so it can read its configuration.
         ->and($toolbar[0][0]->getName())->toBe('body inline')
@@ -82,4 +82,41 @@ it('does not resolve tokens produced by another token', function (): void {
     expect(toolbarShape(editor()->toolbarButtons([['loop']])))->toBe([
         ['loop', 'bold'],
     ]);
+});
+
+it('offers a second overflow that is named rather than a second set of dots', function (): void {
+    // Two menus both called "More" on one bar are two doors with the same sign and
+    // different rooms behind them. This one says what is in it.
+    $editor = editor()->accessibility()->sourceCode()->toolbarButtons([['tools', 'fullscreen']]);
+
+    expect(toolbarShape($editor))->toBe([['dropdown:find,accessibility,sourceCode,help', 'fullscreen']])
+        ->and(toolbarItem($editor, 'dropdown:find,accessibility,sourceCode,help')->getName())->toBe('Tools');
+});
+
+it('is the shipped corner, so it keeps its shape as that family grows', function (): void {
+    // Switching the check or the source view on puts them in the menu rather than beside it,
+    // and the preview, statistics and export tools still to come go the same way.
+    expect(array_slice(toolbarShape(editor()), -1))->toBe([[toolsShape(), 'fullscreen']])
+        ->and(resolvedButtonNames(toolbarItem(editor(), toolsShape())))->toBe(['find', 'help'])
+        ->and(resolvedButtonNames(toolbarItem(editor()->accessibility()->sourceCode(), toolsShape())))
+        ->toBe(['find', 'accessibility', 'sourceCode', 'help']);
+});
+
+it('goes away when every tool in it is switched off', function (): void {
+    // The list naming them is as long as it ever was, so emptiness has to be counted in
+    // what survived rather than in what was asked for.
+    $editor = editor()->find(false)->help(false);
+
+    expect(array_merge(...toolbarShape($editor)))->not->toContain(toolsShape());
+});
+
+it('drops the menu rather than opening one onto nothing', function (): void {
+    expect(toolbarShape(editor()->toolsMenu([])->toolbarButtons([['tools', 'fullscreen']])))
+        ->toBe([['fullscreen']]);
+});
+
+it('reads the menu out of the config file', function (): void {
+    config()->set('filament-advanced-rich-editor.tools_menu', ['help']);
+
+    expect(editor()->getToolsMenu())->toBe(['help']);
 });

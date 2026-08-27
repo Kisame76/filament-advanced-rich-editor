@@ -10,6 +10,7 @@ use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensAwayFromTheEdge;
 
 /**
  * The toolbar's font size: a number, and a menu of the sizes anyone actually picks.
@@ -27,6 +28,7 @@ class ToolbarFontSize extends ViewComponent implements HasEmbeddedView
 {
     use HasExtraAttributes;
     use HasName;
+    use OpensAwayFromTheEdge;
 
     protected int|Closure $min = 8;
 
@@ -170,6 +172,7 @@ class ToolbarFontSize extends ViewComponent implements HasEmbeddedView
         $xData = <<<JS
             {
                 size: {$this->getDefaultSize()},
+                {$this->menuPositioning()}
                 open: false,
                 // Whether a size was chosen, as opposed to inherited. The menu marks what
                 // was picked, and picking `Default` is a choice too - one that a number
@@ -308,7 +311,8 @@ class ToolbarFontSize extends ViewComponent implements HasEmbeddedView
                     aria-label="<?= e($label) ?>"
                     x-tooltip="{ content: <?= Js::from($label)->toHtml() ?>, theme: $store.theme }"
                     x-on:mousedown.prevent
-                    x-on:click.stop="open = ! open"
+                    x-ref="trigger"
+                    x-on:click.stop="open = ! open; open && positionMenu()"
                     class="fi-arte-font-size-toggle"
                 >
                     <svg
@@ -338,6 +342,8 @@ class ToolbarFontSize extends ViewComponent implements HasEmbeddedView
                 x-cloak
                 role="menu"
                 x-on:mousedown.prevent
+                x-ref="menu"
+                x-bind:class="{ [menuUpClass]: dropUp }"
                 class="fi-fo-rich-editor-dropdown-tool-menu fi-arte-font-size-menu"
             >
                 <button
