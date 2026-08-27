@@ -171,6 +171,15 @@ return [
         'image_float_left' => 'Links umfließen',
         'image_float_right' => 'Rechts umfließen',
         'image_float_center' => 'Zentrieren',
+        'image_decorative' => 'Dekoratives Bild',
+
+        'image_link' => [
+            'label' => 'Bild verlinken',
+            'heading' => 'Wohin dieses Bild zeigt',
+            'href' => 'Adresse',
+            'href_help' => 'Eine vollständige Adresse oder eine innerhalb dieser Seite, etwa /artikel/7. Leer lassen entfernt den Link.',
+            'new_tab' => 'In neuem Tab öffnen',
+        ],
         'image_rotate_left' => 'Nach links drehen',
         'image_rotate_right' => 'Nach rechts drehen',
         'media_library' => [

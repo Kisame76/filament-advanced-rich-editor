@@ -23,7 +23,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageCaption;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageDecorative;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageFloat;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageLink;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageRotate;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
@@ -419,6 +421,12 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // `ImageResizePlugin`, so a plain render of a stored document dropped it.
             app(ImageRotate::class),
             app(ImageFloat::class),
+            // And a picture that says it carries nothing has to keep saying so: an empty
+            // `alt` that lost its role is indistinguishable from a description somebody
+            // forgot, and that is precisely what the accessibility check has to report.
+            app(ImageDecorative::class),
+            // And an address a picture points at is one it should still point at.
+            app(ImageLink::class),
             // The same again, six times over. Every one of these used to arrive only with
             // the plugin that puts its button on the bar, so a plain render of a stored
             // document dropped it without a word: a task list came back as an ordinary
@@ -578,6 +586,15 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         // Unconditional, like the attribute it reads: an image that carries a caption is one
         // whose caption belongs on the page, and nothing has to ask for that.
         $html = (new ImageCaptions)->apply($html);
+
+        // After the captions, and that order is the point: the link belongs around the
+        // picture inside a `<figure>` rather than around the figure, because a caption is
+        // text about the picture rather than part of what is being linked.
+        $html = (new LinkedImages)->apply($html);
+
+        // Same again: the empty description that belongs beside `role="presentation"` is one
+        // no schema can write, because a blank attribute value is dropped on the way out.
+        $html = (new DecorativeImages)->apply($html);
 
         // Same reasoning: a width somebody dragged a column to is a width that belongs on
         // the page, and the attribute it is stored in means nothing to a browser.

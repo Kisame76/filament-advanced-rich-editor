@@ -71,6 +71,16 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/image-float', __DIR__.'/../resources/dist/js/image-float.js')
                     ->loadedOnRequest(),
 
+                // Whether a picture carries anything worth describing. Same shape as the
+                // one above it, and loaded on the same terms.
+                Js::make('advanced-rich-editor/image-decorative', __DIR__.'/../resources/dist/js/image-decorative.js')
+                    ->loadedOnRequest(),
+
+                // Where a picture points. Schema only - the anchor is built when the page
+                // is rendered, so there is no command to ship with it.
+                Js::make('advanced-rich-editor/image-link', __DIR__.'/../resources/dist/js/image-link.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/text-background', __DIR__.'/../resources/dist/js/text-background.js')
                     ->loadedOnRequest(),
 

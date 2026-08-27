@@ -171,6 +171,15 @@ return [
         'image_float_left' => 'Float left',
         'image_float_right' => 'Float right',
         'image_float_center' => 'Centre',
+        'image_decorative' => 'Decorative image',
+
+        'image_link' => [
+            'label' => 'Link image',
+            'heading' => 'Where this picture points',
+            'href' => 'Address',
+            'href_help' => 'A full address, or one inside this site such as /articles/7. Leave empty to remove the link.',
+            'new_tab' => 'Open in a new tab',
+        ],
         'image_rotate_left' => 'Rotate left',
         'image_rotate_right' => 'Rotate right',
         'media_library' => [

@@ -149,6 +149,10 @@ class Icons
             'image_float_left' => 'arte-image-left',
             'image_float_center' => 'arte-image-center',
             'image_float_right' => 'arte-image-right',
+            // An eye with a line through it: the picture is there, and there is nothing
+            // in it to be told about.
+            'image_decorative' => 'heroicon-o-eye-slash',
+            'image_link' => 'heroicon-o-link',
             'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
             'image_size' => 'heroicon-o-arrows-pointing-out',
             'image_download' => 'heroicon-o-arrow-down-tray',

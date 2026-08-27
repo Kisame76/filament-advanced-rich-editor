@@ -54,7 +54,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageDecorativePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
@@ -258,6 +260,10 @@ class AdvancedRichEditor extends RichEditor
 
     protected bool|Closure|null $hasImageDimensions = null;
 
+    protected bool|Closure|null $hasImageDecorative = null;
+
+    protected bool|Closure|null $hasImageLink = null;
+
     protected string|Closure|false|null $imageLoading = null;
 
     /**
@@ -359,6 +365,17 @@ class AdvancedRichEditor extends RichEditor
                     ->icon(Icons::get('image_float_'.$placement)),
                 ['left', 'center', 'right'],
             ),
+
+            // Active state spelled out for the same reason the placements need it:
+            // Filament asks `editor.isActive(<tool name>)`, which only ever recognises a
+            // node or a mark, and this is a global attribute on the image node.
+            RichEditorTool::make('imageDecorative')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_decorative'))
+                ->jsHandler('$getEditor()?.commands.toggleImageDecorative()')
+                ->activeJsExpression(
+                    'editorUpdatedAt && $getEditor()?.state?.doc?.nodeAt($getEditor()?.state?.selection?.from)?.attrs?.decorative === true',
+                )
+                ->icon(Icons::get('image_decorative')),
 
             RichEditorTool::make('imageRotateLeft')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_rotate_left'))
@@ -494,6 +511,18 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasImageFloat()
                 ? [ImageFloatPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasImageDecorative()
+                ? [ImageDecorativePlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasImageLink()
+                ? [ImageLinkPlugin::make()]
                 : [],
         );
 
@@ -2433,6 +2462,20 @@ class AdvancedRichEditor extends RichEditor
         }
 
         $buttons[] = ToolbarImagePanel::alt();
+
+        // Beside the alt text, because it is the same question answered the other way
+        // round: this one has nothing to say, and saying so deliberately is what keeps it
+        // off the accessibility check's list of descriptions somebody forgot.
+        if ($this->hasImageDecorative()) {
+            $buttons[] = 'imageDecorative';
+        }
+
+        // With the description and the mark, because all three are about what the picture
+        // means rather than where it sits.
+        if ($this->hasImageLink()) {
+            $buttons[] = 'imageLink';
+        }
+
         $buttons[] = 'imageDownload';
         $buttons[] = 'imageDelete';
 
@@ -2571,6 +2614,53 @@ class AdvancedRichEditor extends RichEditor
     {
         return (bool) ($this->evaluate($this->hasImageFloat)
             ?? config('filament-advanced-rich-editor.images.float', true));
+    }
+
+    /**
+     * Whether a picture may be given an address to point at.
+     *
+     * Rendered as an `<a>` around the picture, and around the picture inside a `<figure>`
+     * where there is a caption: a caption is text about the picture rather than part of what
+     * is being linked.
+     */
+    public function imageLink(bool|Closure $condition = true): static
+    {
+        $this->hasImageLink = $condition;
+
+        return $this;
+    }
+
+    public function hasImageLink(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageLink)
+            ?? config('filament-advanced-rich-editor.images.link', true));
+    }
+
+    /**
+     * Whether a picture may be marked as carrying nothing worth describing.
+     *
+     * A divider, a texture, a flourish beside a heading the words already say. Such a
+     * picture wants an empty `alt` and `role="presentation"` together, and the pair is what
+     * makes it different from a description somebody forgot - which is the thing the
+     * accessibility check cannot tell apart on its own.
+     *
+     * Off, and the reason is that sentence: the whole of what the mark buys is a check that
+     * stops reporting a deliberate empty `alt`, and that check ships off too. A field that
+     * has not switched the check on gains a button whose meaning is not on its face and
+     * whose effect nobody will see - on a bar that already carries thirteen. Switch this on
+     * with the check, which is the only place it pays.
+     */
+    public function imageDecorative(bool|Closure $condition = true): static
+    {
+        $this->hasImageDecorative = $condition;
+
+        return $this;
+    }
+
+    public function hasImageDecorative(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageDecorative)
+            ?? config('filament-advanced-rich-editor.images.decorative', false));
     }
 
     /**

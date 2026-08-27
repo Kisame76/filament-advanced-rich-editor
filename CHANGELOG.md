@@ -6,6 +6,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- The image link dialog could close having written nothing. The editor selection can arrive
+  described as text rather than as a node, and `updateAttributes` then finds no picture; the
+  media dialog has carried the correction for this at the same call site for some time, and
+  the link dialog now does too
+
 - `getImageLoading()` handed back whatever string the config held rather than one of the two
   hints it documents, leaving the whitelist to whichever caller remembered it
 
@@ -29,6 +34,38 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the largest contentful paint rather than helping it, which is usually the number somebody
   switching it on wants to improve. `->imageLoading(false)` keeps one field eager where a
   project turned it on everywhere, the same pair of answers `->cached(false)` gives
+
+- A picture that carries nothing worth describing: a divider, a texture, a flourish beside a
+  heading the words already say. The button writes an empty `alt` together with
+  `role="presentation"`, and the pair is the whole point - an empty `alt` on its own is
+  indistinguishable from a description somebody forgot, which is exactly what the
+  accessibility check has to report as a fault. The check knows about the mark and stops
+  reporting it, because reporting a decision is how a check teaches people to switch it off.
+  Turning it on clears the alt text, since a description and "there is nothing to describe"
+  cannot both be true; turning it off leaves the empty alt rather than inventing one. The
+  empty `alt` is written by a pass over the rendered markup rather than by the schema:
+  `tiptap-php` drops any attribute whose value is blank, which is right for every other
+  attribute and exactly wrong for this one - an `alt` of nothing is not the absence of an
+  `alt`.
+  Off unless asked for, and that is the considered answer rather than caution: the whole
+  of what the mark buys is a check that stops reporting a deliberate empty `alt`, and
+  that check ships off as well - so on an ordinary field it would be a fourteenth button
+  on the image bar whose effect nobody ever sees. Switch it on beside `->accessibility()`,
+  which is the only place it pays. Per field: `->imageDecorative()`; project-wide:
+  `images.decorative`
+
+- Where a picture points: an address and whether it opens in a new tab, rendered as an `<a>`
+  around it. With a caption the anchor goes around the picture inside the `<figure>` rather
+  than around the pair - a caption is text about the picture rather than part of what is
+  being linked, and an anchor wrapping the `<figcaption>` makes those words a click target
+  nobody aimed at. `rel="noopener noreferrer"` is written with a new tab whether or not
+  anybody asked, the same reasoning the text link dialog applies. What may be written is
+  `http`, `https`, `mailto`, `tel` and any address with no scheme at all, since `/articles/7`
+  is the commonest thing anybody types here; the colon is looked for after the first slash,
+  so `/a:b` stays a path. Anything else is dropped rather than escaped, and the check runs in
+  the browser and again in PHP because a document can be edited in the source view without
+  ever passing the dialog. A picture already inside a link is left alone. Per field:
+  `->imageLink(false)`; project-wide: `images.link`
 
 ## 1.3.1 - 2026-08-27
 

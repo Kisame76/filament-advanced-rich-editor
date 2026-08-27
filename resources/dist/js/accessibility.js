@@ -240,7 +240,12 @@ export function findingsFor(subjects, options = {}) {
     for (const subject of subjects) {
         switch (subject.kind) {
             case 'image':
-                if (enabled.has('missing_alt') && ! String(subject.alt ?? '').trim()) {
+                // A picture marked as carrying nothing is a decision, not an omission. It
+                // reaches here with the same empty alt as one somebody forgot to describe,
+                // and the only thing telling them apart is that somebody said so - which is
+                // exactly why the mark exists. Reporting a decision is how a check teaches
+                // people to switch it off.
+                if (enabled.has('missing_alt') && subject.decorative !== true && ! String(subject.alt ?? '').trim()) {
                     findings.push(finding('missing_alt', subject, subject.src ?? ''))
                 }
 
@@ -335,7 +340,15 @@ export function subjectsOf(doc) {
         const to = pos + node.nodeSize
 
         if (node.type.name === 'image') {
-            subjects.push({ kind: 'image', from, to, node: true, alt: node.attrs.alt, src: node.attrs.src })
+            subjects.push({
+                kind: 'image',
+                from,
+                to,
+                node: true,
+                alt: node.attrs.alt,
+                src: node.attrs.src,
+                decorative: node.attrs.decorative === true,
+            })
 
             return false
         }

@@ -156,6 +156,19 @@ describe('the six rules', () => {
         expect(findingsFor([subject('image', { alt: 'A cat asleep on a keyboard' })])).toEqual([])
     })
 
+    it('says nothing about a picture that was marked as carrying nothing', () => {
+        // The whole point of the mark. An empty alt on its own is indistinguishable from a
+        // description somebody forgot, which is why it is reported; an empty alt beside
+        // `role="presentation"` is a decision, and reporting a decision is how a check
+        // teaches people to switch it off.
+        expect(findingsFor([subject('image', { alt: '', decorative: true, src: 'divider.png' })])).toEqual([])
+        expect(findingsFor([subject('image', { alt: '   ', decorative: true })])).toEqual([])
+    })
+
+    it('still asks for a description where the mark was taken off', () => {
+        expect(rules(findingsFor([subject('image', { alt: '', decorative: false })]))).toEqual(['missing_alt'])
+    })
+
     it('finds a link with nothing in it, and calls it that rather than weak', () => {
         // A link with no text also says nothing about where it goes, and one finding is the
         // useful number.
