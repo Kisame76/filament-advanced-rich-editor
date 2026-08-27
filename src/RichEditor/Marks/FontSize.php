@@ -17,7 +17,8 @@ use Tiptap\Utils\HTML;
  * exactly until the record is reopened.
  *
  * The size lives in the inline `style` attribute because Filament's HTML sanitiser allows
- * `style` but not arbitrary data attributes.
+ * `style` but not arbitrary data attributes. That is also why it is whitelisted rather than
+ * trusted - see `sanitise()`.
  */
 class FontSize extends Mark
 {
@@ -68,9 +69,9 @@ class FontSize extends Mark
                         $size = $attributes->size ?? null;
                     }
 
-                    return filled($size)
-                        ? ['style' => 'font-size: '.$size]
-                        : [];
+                    $size = static::sanitise($size);
+
+                    return $size === null ? [] : ['style' => 'font-size: '.$size];
                 },
             ],
         ];
@@ -109,8 +110,36 @@ class FontSize extends Mark
             return null;
         }
 
-        $size = trim($matches[1]);
+        return static::sanitise($matches[1]);
+    }
 
-        return blank($size) ? null : $size;
+    /**
+     * A size, or nothing.
+     *
+     * Security: the value ends up inside a `style` attribute, which Filament's HTML
+     * sanitiser lets through untouched, and it does not only arrive through the parser
+     * above - the document the browser submits carries it verbatim into `setContent()`. A
+     * value like `1px; position: fixed; inset: 0` would otherwise escape the declaration it
+     * was written into and put an overlay over the page. Every sibling that writes into
+     * `style` guards it the same way: the typeface through `ToolbarFontPicker::sanitise()`,
+     * the highlight through its own colour check, the spacing and the rotation through
+     * their own patterns.
+     *
+     * The pattern is Filament's own, the one `ImageExtension` uses on a width and a height:
+     * a number and an optional CSS length unit, and nothing that could carry a second
+     * declaration. A size that is not one is dropped rather than escaped - there is no
+     * correct escaping for "this was meant to be a length".
+     */
+    public static function sanitise(mixed $size): ?string
+    {
+        if (blank($size) || (! is_string($size) && ! is_int($size) && ! is_float($size))) {
+            return null;
+        }
+
+        $size = trim((string) $size);
+
+        return preg_match('/^\d+(?:\.\d+)?(?:%|px|em|rem|vw|vh|vmin|vmax|pt|pc|cm|mm|in|ch|ex)?$/i', $size) === 1
+            ? $size
+            : null;
     }
 }

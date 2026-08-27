@@ -320,6 +320,36 @@
     color: var(--prose-color, var(--gray-300, #d4d4d8));
 }
 
+/*
+ * The control on a view page where somebody may tick a box.
+ *
+ * A button rather than the label the renderer draws, because on that page it does
+ * something and the thing that does it has to be reachable with a keyboard. The rules are
+ * a reset plus the two states a button owes anyone using it: a pointer that says it can be
+ * pressed, and a focus ring.
+ */
+.fi-arte-task-item-tickable {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: 0.25rem;
+}
+
+.fi-arte-task-item-tickable:focus-visible {
+    outline: 2px solid var(--primary-600, #2563eb);
+    outline-offset: 2px;
+}
+
+.fi-arte-task-item-tickable:disabled {
+    cursor: progress;
+}
+
+.fi-arte-task-item-tickable:hover > .fi-arte-task-item-box {
+    border-color: var(--primary-600, #2563eb);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Callouts                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -1136,6 +1166,66 @@ body.fi-arte-fullscreen-lock {
  */
 .fi-arte [data-resize-wrapper] > img[style*='rotate('] {
     max-width: none;
+}
+
+/*
+ * A floated picture, inside the editor.
+ *
+ * The float is written on the `<img>`, because that is where it has to end up in the
+ * stored markup - but inside the editor the picture is not what is laid out. Filament
+ * draws an image through a resize node view: the picture sits in a resize wrapper, and
+ * that wrapper sits in an `inline-flex` box which is the thing the paragraph actually
+ * lays out. Floating either of the inner two moves nothing, so the outer one is floated -
+ * `:has(> [data-resize-wrapper] …)` names exactly it, since `>` inside `:has()` matches
+ * only the element the wrapper is a direct child of.
+ *
+ * Matched on the style the extension wrote rather than on a class: a class would have to
+ * survive the sanitiser to be worth writing, and this one never leaves the editor.
+ *
+ * The gap is drawn here too, from the property the field writes the configured value onto.
+ * The stored markup carries its own copy, written in PHP - which is the half a save
+ * renders from, and the only half a page ever sees.
+ */
+.fi-arte :has(> [data-resize-wrapper] img[style*='float: left']) {
+    float: left;
+    margin-inline-end: var(--fi-arte-image-float-gap, 1rem);
+    margin-block-end: var(--fi-arte-image-float-gap, 1rem);
+}
+
+.fi-arte :has(> [data-resize-wrapper] img[style*='float: right']) {
+    float: right;
+    margin-inline-start: var(--fi-arte-image-float-gap, 1rem);
+    margin-block-end: var(--fi-arte-image-float-gap, 1rem);
+}
+
+/*
+ * Centred, which is not a float and cannot be one: CSS has no way to run text down both
+ * sides of a block. A block with automatic margins is what every editor means by it, and
+ * `fit-content` is what keeps that block the width of the picture rather than the width of
+ * the line - without it the automatic margins have nothing to share out.
+ */
+.fi-arte :has(> [data-resize-wrapper] img[style*='margin-inline: auto']) {
+    /*
+     * `!important` on this one line, and it is load-bearing: the node view writes
+     * `display: inline-flex` as an inline style on this element, which no ordinary rule
+     * outranks. The float rules above need nothing of the sort - `float` is not in that
+     * inline style.
+     */
+    display: block !important;
+    inline-size: fit-content;
+    margin-inline: auto;
+}
+
+/*
+ * The paragraph a floated picture sits in collapses to nothing, so without this the
+ * following block starts at the top of the picture rather than beside it - which is right
+ * on a page and wrong in an editor, where a caret has to be reachable. The float is
+ * cleared at the end of the document instead.
+ */
+.fi-arte .fi-fo-rich-editor-content::after {
+    content: '';
+    display: block;
+    clear: both;
 }
 
 /* The unlocked state is the notable one, so it is the one that gets the accent. */
@@ -2239,6 +2329,35 @@ body.fi-arte-fullscreen-lock {
     --fi-arte-code-border: rgb(63 63 70);
     --fi-arte-code-bg: rgb(24 24 27 / 0.85);
     --fi-arte-code-text: rgb(212 212 216);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Highlighted code, in a dark panel                                          */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * `highlightCode(themes: [...])` writes both themes into the same markup — the light one
+ * as ordinary colours, the dark one as custom properties — and leaves the swap to the
+ * project, because which switch counts is the project's idea of dark mode.
+ *
+ * Inside a Filament panel that question has one answer, and it is `.dark`. This stylesheet
+ * is registered with Filament and loads nowhere else, so the swap can be shipped here
+ * rather than asked for. A front end that renders the same content still writes its own
+ * three lines — the documentation says so, and this rule cannot reach it.
+ *
+ * Only a block that carries both themes is touched: `phiki-themes` is the class Phiki adds
+ * when it was given a pair, and a block with a single theme has no dark colour to swap to.
+ */
+.phiki-themes:where(.dark, .dark *),
+.phiki-themes:where(.dark, .dark *) code,
+.phiki-themes:where(.dark, .dark *) span {
+    /*
+     * `!important`, and it is load-bearing rather than lazy: every token carries its light
+     * colour as an inline style, which no ordinary rule outranks. The same line is in the
+     * documentation for the front-end half, for the same reason.
+     */
+    color: var(--phiki-dark-color) !important;
+    background-color: var(--phiki-dark-background-color) !important;
 }
 
 /* -------------------------------------------------------------------------- */

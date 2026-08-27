@@ -45,6 +45,10 @@ const STYLE_HOOKS = [
     // It exists because nothing else on that page identifies a mention - the sanitiser
     // removes every attribute a mention carries except `data-id` and `data-type`.
     'fi-arte-mention',
+    // The wrapper of the infolist entry. What draws the document inside it is Filament's
+    // own `fi-prose`, the same class the editor uses; this one is here so a project can
+    // reach the entry from its theme without reaching every rendered document.
+    'fi-arte-entry',
 ];
 
 /**

@@ -2,6 +2,161 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.3.0 - 2026-08-27
+
+### Added
+
+- Checkboxes that can be ticked on a view page, with the tick written straight away:
+  `AdvancedRichEntry::make('content')->tickableTasks(...)`. Off unless asked for, and asked
+  for with a question rather than a switch - a view page is shown to people who may only
+  look, and this package does not know your policies. The callback is handed the record and
+  is asked again when the click comes back, because the button was drawn for somebody who
+  may write and a request is not a button. Only the one attribute is assigned, so the update
+  Eloquent sends is the one column, and the document is edited where it lies rather than
+  rebuilt through the editor - a round trip through the schema would rewrite every node on
+  the way past. The item is addressed by its position in document order, which is the order
+  it was drawn in; an index naming no item writes nothing rather than a guess. The buttons
+  are added after the sanitiser, which is the opposite of every other pass here and is the
+  point: a `wire:click` is not on its allow list. The control becomes a `<button>` with
+  `aria-pressed` rather than the label the renderer draws, because on a page where the box
+  does something the thing that does it has to be reachable with a keyboard. The items are
+  found by the attribute the parser itself keys on rather than by a class, and the count is
+  checked against the stored document before a single button is drawn - a merge tag or a
+  custom block renders markup of its own, past the sanitiser, and an `li` in it shaped like
+  a task item would shift every index after it. A shifted index does not fail loudly, it
+  ticks the neighbour, so disagreement leaves the boxes as they were
+
+- Where a picture sits: three buttons on the image toolbar - left, centre, right. Left and
+  right let the text run past it, which is the oldest thing anybody has ever asked an editor
+  for and the last piece of laying a picture out that was missing; the size, the rotation and
+  the caption were all already there. Centre is not a float and cannot be one - CSS has no
+  way to run text down both sides of a block - so it is what every editor means by centre:
+  the picture on its own line, in the middle, with the text above and below. Pressing the
+  placement a picture already has takes it off, so three buttons cover four states; the
+  callouts already work that way. The button of the current placement is drawn active, and
+  that had to be spelled out: Filament decides active by asking `editor.isActive(<the tool's
+  name>)`, which only ever recognises a node or a mark, and a placement is a global attribute
+  on the image node. The placement rides in the inline `style` like the rotation does,
+  because that is what survives the sanitiser, and it is whitelisted to three words before it
+  is written - nothing in the stack validates CSS. The gap beside a floated picture is
+  written with it, since the page a document lands on has not loaded this package's
+  stylesheet and a bare float has the words against the frame; `images.float_gap` sets it,
+  and null writes the bare `float` for a project that would rather draw the gap itself. A
+  captioned picture moves its placement out to the `<figure>`, because placing a picture
+  inside a block places it within the block rather than placing the block. Inside the editor
+  the node view's outer box is placed instead of the picture, which is the element a
+  paragraph actually lays out. Per field: `->imageFloat()`; project-wide: `images.float`
+
+- An excerpt: `AdvancedRichContentRenderer::toExcerpt()`, the first few lines of a document
+  for a meta description, a teaser or a card. The length is the length of the text and the
+  marker is added on top, the way `Str::limit()` counts, because a second convention for the
+  same thing is one to look up every time. The cut falls on a word boundary, and nothing is
+  appended where the text already ends in a full stop - `Der erste Satz.…` is two marks
+  doing one job, and the cut lands there more often than it looks, since it backs up to the
+  last space and the word before a space is regularly the last of a sentence. The cutting
+  itself is `Excerpt::from()`, a plain function on a string, usable on text this package did
+  not produce. Defaults under the `excerpt` config key; per call: `->toExcerpt(200, ' …')`
+
+- `<x-arte-content :content="$article->content" class="prose" />`: the document on a page as
+  one tag, instead of three lines of renderer assembly in every template - and instead of
+  the mistake those three lines invite, which is reaching for `toUnsafeHtml()` because the
+  name of the safe one is longer. It draws a `<div>` around the document and hands it your
+  attributes; `:tag` draws something else or nothing at all. The props follow the renderer,
+  and `:renderer` takes one you built yourself for anything they do not cover
+
+- `AdvancedRichEntry` and `AdvancedRichColumn`, for the view page and the table. The
+  alternative is `TextEntry::make('body')->html()`, which prints the markup as it lies in
+  the column - so a picture whose `src` is an attachment id renders broken, a mention
+  renders as an empty span and a custom block renders as nothing. Those are resolved by the
+  renderer and by nothing else. Both read what the record already declares about the
+  attribute where it implements Filament's `HasRichContent` - its plugins, its merge tags,
+  its mention providers, the disk its pictures are on - and anything set on the entry or the
+  column wins over that. The column's default is the excerpt rather than the markup, because
+  a row is one line high: plain text, so everything `TextColumn` does with plain text still
+  works, with `->excerptLength()` to change it and Filament's own `->html()` to render the
+  document instead. Both need `filament/infolists` or `filament/tables`, which are `suggest`
+  rather than dependencies
+
+- A render cache: `->cached()`, off unless asked for. The key is the content *and* the
+  configuration - the same article rendered with anchors, with a different code theme or
+  with another set of named styles is another page, and a key built from the content alone
+  would hand one of them the other's markup. The fingerprint covers the extension list as
+  the objects themselves, so a node a project's own plugin contributes is part of it too.
+  Markup, plain text and Markdown are kept apart, and Markdown per set of converter options.
+  Two things it cannot see, both named in the documentation: what a closure closes over, and
+  what a mention provider will answer - `->cacheKey()` is the way to say so. Where the
+  markup can hold a temporary URL, the lifetime is capped at the life of those URLs, since a
+  page cached for a day would spend the rest of it showing broken pictures. Defaults under
+  the `render_cache` config key
+
+### Fixed
+
+- A highlighted code block no longer loses half its syntax inside prose styles. The colour
+  was written once, on the `<pre>`, and everything inside took it by inheritance - which
+  loses to any rule naming `code` directly. Filament's own prose styles do exactly that
+  (`.fi-prose code { color: var(--prose-code-color) }`), and so does Tailwind's typography
+  plugin. In a dark panel that drew white text over the light theme's white background, so
+  every token the theme gives no colour of its own - the brackets, the commas, the spaces -
+  disappeared while the coloured ones stayed. It reads as a highlighter that swallowed the
+  punctuation. The `<code>` now carries `color: inherit`, which beats a stylesheet and still
+  follows the `<pre>` when a project swaps a pair of themes over
+
+- Inside a Filament panel, a code block given a pair of themes now swaps to the dark one on
+  its own. The swap was documented and left to the project, which is right for a front end
+  and wrong for the one place where "dark mode" has a single meaning: the package stylesheet
+  is registered with Filament and loads nowhere else, so it ships the rule
+
+- Seven things stopped disappearing from a plain render of a stored document, and it was one
+  bug found seven times: an extension arrived only with the plugin that puts its button on
+  the toolbar, so `AdvancedRichContentRenderer::make($article->content)->toHtml()` - the call
+  every front end makes - dropped it without a word. A task list came back as an ordinary
+  bullet list with every tick gone; a font size, a typeface, a line height, a highlight, a
+  writing direction and an image rotation were simply not there. The page just looked plainer
+  than the editor did, and nothing said why. All seven are declared unconditionally now, on
+  the reasoning this renderer already states four times over for the anchors, the embeds, the
+  callouts and the captions. A field's own plugins still win where they are handed over -
+  they carry that field's configuration. `RenderCompletenessTest` is the guard: a feature
+  added without a line in the renderer fails it
+
+- A font size can no longer carry a second CSS declaration out of the document and onto the
+  page. The size was interpolated into a `style` attribute with no check at all, and it does
+  not only arrive through the parser - the document the browser submits carries it verbatim
+  into the PHP editor. A size of `1px; position: fixed; inset: 0` rendered as exactly that,
+  and Filament's sanitiser passes `style` through untouched, so it became an overlay over
+  the page. It is whitelisted now to a number and an optional CSS length unit, which is the
+  pattern Filament's own `ImageExtension` uses on a width and a height - and the guard every
+  sibling that writes into `style` already had: the typeface, the highlight, the spacing and
+  the rotation
+
+- A named style stays on a block the picker was narrowed away from. The browser half
+  declares the style attribute over all five block types; this half declared it only over
+  the ones the configured styles happened to name, so a project that narrowed a style to
+  paragraphs lost it the moment somebody styled a paragraph and then turned it into a
+  heading - the editor kept it on screen and the save threw it away. Narrowing says where
+  the picker may offer a style, not that the same words stop being a lead once they are a
+  heading. Which classes count is unchanged: a class the project never declared is still
+  dropped
+
+- A turned picture stays turned on a plain render of a stored document. The rotation
+  attribute was only declared where `ImageResizePlugin` was handed to the renderer, so
+  rendering an article without naming the plugin quietly straightened every turned picture
+  in it. `AdvancedRichContentRenderer` declares it unconditionally now, on the same
+  reasoning as the anchors, the embeds and the callouts: a renderer that has to be told is
+  one that drops it the day somebody forgets to say so
+
+- `toText()` no longer breaks a sentence apart at a link, a bold word or a mention. TipTap's
+  text serialiser puts its block separator between *any* two children rather than between
+  blocks, so `<p>Hallo <strong>Welt</strong>!</p>` came back as three lines, two of them one
+  word long - the shape a search index and an excerpt both fall over. Adjacent pieces of
+  text are joined into one before serialising, which is what the mention pass already did
+  for the sentences it touched
+
+- `toText()` spells entities out instead of handing back the escaped text the serialiser
+  produces. Escaping is right on the way into markup and wrong in the one method that
+  promises there is none: an index holding `Tom &amp; Jerry` does not answer a search for
+  Tom & Jerry, and a meta description built on it says the entity out loud. Whoever prints
+  the result is printing text, and escaping text for a page is `{{ }}`'s job
+
 ## 1.2.0 - 2026-08-27
 
 ### Added

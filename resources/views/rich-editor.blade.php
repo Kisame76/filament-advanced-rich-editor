@@ -62,6 +62,9 @@
     $toolbarPinSide = $getToolbarPinSide();
     $stickyToolbarOffset = $getStickyToolbarOffset();
     $maxHeight = $getMaxHeight();
+    // Read here so both halves write the same number: PHP puts the gap into the stored
+    // markup, and the JS extension reads this property off the element it is inside.
+    $imageFloatGap = $hasImageFloat() ? $getImageFloatGap() : null;
     $slashMenu = $getSlashMenuForJs();
     $mentionMenu = $getMentionMenuForJs();
     $embedSettings = $getEmbedSettingsForJs();
@@ -81,7 +84,10 @@
         :attributes="
             \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
                 ->class(['fi-fo-rich-editor', 'fi-arte', 'fi-arte-max-height' => filled($maxHeight)])
-                ->style(['--fi-arte-max-height: ' . $maxHeight => filled($maxHeight)])
+                ->style([
+                    '--fi-arte-max-height: ' . $maxHeight => filled($maxHeight),
+                    '--fi-arte-image-float-gap: ' . $imageFloatGap => filled($imageFloatGap),
+                ])
         "
     >
         <div

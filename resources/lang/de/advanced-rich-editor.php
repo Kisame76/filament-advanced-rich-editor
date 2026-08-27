@@ -168,6 +168,9 @@ return [
         ],
         'image_download' => 'Bild herunterladen',
         'image_delete' => 'Bild löschen',
+        'image_float_left' => 'Links umfließen',
+        'image_float_right' => 'Rechts umfließen',
+        'image_float_center' => 'Zentrieren',
         'image_rotate_left' => 'Nach links drehen',
         'image_rotate_right' => 'Nach rechts drehen',
         'media_library' => [

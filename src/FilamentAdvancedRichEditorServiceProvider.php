@@ -10,6 +10,7 @@ use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
+use Kisame76\FilamentAdvancedRichEditor\View\Components\Content;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
@@ -24,7 +25,10 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
             ->name(static::$name)
             ->hasConfigFile()
             ->hasTranslations()
-            ->hasViews();
+            ->hasViews()
+            // `<x-arte-content :content="$post->body" />`. The prefix is the one the CSS
+            // classes already use, so a project only ever learns the one abbreviation.
+            ->hasViewComponents('arte', Content::class);
     }
 
     public function packageBooted(): void
@@ -60,6 +64,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                     ->loadedOnRequest(),
 
                 Js::make('advanced-rich-editor/image-caption', __DIR__.'/../resources/dist/js/image-caption.js')
+                    ->loadedOnRequest(),
+
+                // The side a picture sits on. Schema and one command, so a field that does
+                // not offer it loads nothing.
+                Js::make('advanced-rich-editor/image-float', __DIR__.'/../resources/dist/js/image-float.js')
                     ->loadedOnRequest(),
 
                 Js::make('advanced-rich-editor/text-background', __DIR__.'/../resources/dist/js/text-background.js')

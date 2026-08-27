@@ -845,11 +845,26 @@ return [
     | node and is kept in the saved markup. `toolbar` is the strip over a selected
     | image: aspect ratio lock, size and alt text panels, rotation, download, delete.
     | Per field: `->resizableImages()`.
+    |
+    | `float` puts the two side buttons on that strip, which let the text run past the
+    | picture instead of starting below it. Pressing the side a picture is already on
+    | takes the float off again, so two buttons cover three states. Per field:
+    | `->imageFloat()`.
+    |
+    | `float_gap` is the space written between the picture and the text beside it, as a
+    | CSS length. It travels in the stored markup, because the page a document ends up on
+    | has not loaded this package's stylesheet and a floated picture with no gap has the
+    | text touching it. Set it to null to write the bare `float` and draw the gap in your
+    | own stylesheet.
     */
     'images' => [
         'resizable' => true,
 
         'toolbar' => true,
+
+        'float' => true,
+
+        'float_gap' => '1rem',
     ],
 
     /*
@@ -1057,6 +1072,9 @@ return [
         // The toolbar over a selected image.
         'image_rotate_left' => 'arte-rotate-ccw',
         'image_rotate_right' => 'arte-rotate-cw',
+        'image_float_left' => 'arte-image-left',
+        'image_float_center' => 'arte-image-center',
+        'image_float_right' => 'arte-image-right',
         'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
         'image_size' => 'heroicon-o-arrows-pointing-out',
         'image_download' => 'heroicon-o-arrow-down-tray',
@@ -1092,6 +1110,50 @@ return [
         'symbol' => '#',
         'class' => 'fi-arte-anchor',
         'language' => null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Render cache
+    |--------------------------------------------------------------------------
+    | Defaults for `AdvancedRichContentRenderer::cached()`, which is off unless a render
+    | asks for it. Turning a document into HTML is a parse, a walk and a sanitiser pass,
+    | and an article printed to a thousand readers pays for all of it a thousand times.
+    |
+    |   'ttl'     how long a rendered document is kept, in seconds. null keeps it until
+    |             something clears the store. Capped automatically where the markup holds
+    |             temporary URLs, which expire sooner than any of this.
+    |   'store'   which cache store to use. null is the application's default.
+    |   'prefix'  what every key starts with, so a store can be swept by pattern.
+    |
+    | The key covers the content and the renderer's configuration — but not what a closure
+    | closes over, and not what a mention provider will answer. Per render: `->cached()`,
+    | `->cacheKey()`.
+    */
+    'render_cache' => [
+        'ttl' => 86400,
+        'store' => null,
+        'prefix' => 'arte.render',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Excerpt
+    |--------------------------------------------------------------------------
+    | Defaults for `AdvancedRichContentRenderer::toExcerpt()`, the teaser it builds out
+    | of a stored document — for a meta description, a card, a search result.
+    |
+    |   'characters'  how long the text may be. The ellipsis is added on top of it, the
+    |                 way `Str::limit()` counts. 160 is what a search engine shows of a
+    |                 meta description before it stops.
+    |   'end'         what marks the cut. Nothing is appended where the text already
+    |                 ends in a full stop, so the two marks never meet.
+    |
+    | The cut falls on a word boundary. Per call: `->toExcerpt(200, ' …')`.
+    */
+    'excerpt' => [
+        'characters' => 160,
+        'end' => '…',
     ],
 
     /*

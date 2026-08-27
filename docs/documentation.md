@@ -66,6 +66,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Special characters](#special-characters)
 
 **[Media and links](#media-and-links)** — [Images](#images) ·
+[Where a picture sits](#where-a-picture-sits) ·
 [Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
 [Links](#links) · [Video embeds](#video-embeds) ·
 [Anchors in the editor](#anchors-in-the-editor)
@@ -81,7 +82,9 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 
 **[Rendering](#rendering)** — [Table column widths](#table-column-widths) ·
 [Anchors](#anchors) · [Table of contents](#table-of-contents) · [Mentions](#mentions) ·
-[Markdown](#markdown)
+[Markdown](#markdown) · [Excerpts](#excerpts) · [Blade component](#blade-component) ·
+[On a view page](#on-a-view-page) · [Ticking a box there](#ticking-a-box-on-the-view-page) · [In a table](#in-a-table) ·
+[Caching a render](#caching-a-render)
 
 **Project-wide** — [Configuration](#configuration) · [What ships on](#what-ships-on) ·
 [Everything, in one call](#everything-in-one-call) · [Icons](#icons) ·
@@ -1015,8 +1018,13 @@ AdvancedRichContentRenderer::make($article->content)
     ->toHtml();
 ```
 
-That needs three lines in your own stylesheet to swap them, because the switch is your
-project's idea of dark mode rather than this package's:
+**Inside a Filament panel there is nothing to do.** The package stylesheet is registered
+with Filament and loads there and nowhere else, so it ships the swap itself — inside a panel
+"dark mode" has exactly one meaning, and it is `.dark`. A code block in an
+`AdvancedRichEntry` or a rich content text entry follows the panel on its own.
+
+On your own front end it needs three lines, because there the switch is your project's idea
+of dark mode rather than this package's:
 
 ```css
 .dark .phiki-themes,
@@ -1024,6 +1032,17 @@ project's idea of dark mode rather than this package's:
     color: var(--phiki-dark-color) !important;
     background-color: var(--phiki-dark-background-color) !important;
 }
+```
+
+**Say `color-scheme` on the page, whether or not you swap anything.** A page that declares
+no dark styling at all is one the browser darkens on its own — Chrome's auto dark mode —
+and the inversion remaps inherited text colours while leaving the highlighter's inline
+`background-color` alone. What that looks like is a white code block on a black page with
+every *uncoloured* token gone: the brackets, the commas, the spaces. The tokens the theme
+does colour stay put, which makes it read like the highlighter dropped half the syntax:
+
+```css
+:root { color-scheme: light dark; }   /* or `light` on a page that has no dark mode */
 ```
 
 Any [Phiki theme name](https://phiki.dev) works, and the defaults live in
@@ -1458,6 +1477,64 @@ lives in `images.resizable`, and a field always wins:
 ```php
 AdvancedRichEditor::make('content')->resizableImages(false);
 ```
+
+#### Where a picture sits
+
+Three buttons on the image toolbar — left, centre, right. Left and right let the text run
+past the picture instead of starting below it, the oldest thing anybody has ever asked an
+editor for and the last piece of laying a picture out that this package did not have; the
+size, the rotation and the caption were all already there.
+
+**Centre is not a float, and cannot be.** CSS has no way to run text down both sides of a
+block, so centre is what every editor means by it: the picture on its own line, in the
+middle, with the text above and below. It is written as a block with automatic margins.
+
+Pressing the placement a picture already has takes it off again, so three buttons cover four
+states. It is the idiom the callouts already use: the button that put something there is the
+one that takes it away. The button of the current placement is drawn as active — spelled out
+rather than left to Filament, which decides that by asking `editor.isActive(<the tool's
+name>)` and therefore only ever recognises a node or a mark. A placement is neither; it is a
+global attribute on the image node.
+
+```php
+AdvancedRichEditor::make('content')->imageFloat();        // on by default
+AdvancedRichEditor::make('content')->imageFloat(false);   // no buttons, and the extension is not loaded
+```
+
+**The placement rides in the inline `style`**, which is what survives Filament's sanitiser —
+the same road the rotation takes, and the reason both are whitelisted before they are
+written: nothing in the stack validates CSS. The gap beside a floated picture is written
+with it:
+
+```html
+<img src="/cat.jpg" style="float: left; margin-inline-end: 1rem; margin-block-end: 1rem;">
+<img src="/cat.jpg" style="display: block; margin-inline: auto;">
+```
+
+The gap travels in the markup because the page a document lands on has not loaded this
+package's stylesheet, and a floated picture with no gap has the words against the frame.
+It is `images.float_gap` in the config, and a project that would rather draw it itself sets
+that to null and gets the bare `float`. Logical properties, so a picture inside a
+right-to-left passage gets its gap on the correct side.
+
+**A caption moves the placement outwards.** A captioned image is wrapped in a `<figure>`,
+which is a block — and placing a picture inside a block places it within the block rather
+than placing the block. A float reads as a caption sitting in a column of its own with the
+text refusing to come near it; a centred picture is centred inside a figure that is still
+hard left. The placement and its gap move to the figure; everything that describes the
+picture stays on it.
+
+**In the editor it is the node view that moves.** Filament draws an image through a resize
+node view: the picture sits in a wrapper, and that wrapper sits in an `inline-flex` box
+which is what the paragraph lays out. Placing either inner element moves nothing, so the
+package stylesheet places the outer one, matched on the style the extension wrote. Centring
+it needs one `!important`, because that `display: inline-flex` is an inline style and no
+ordinary rule outranks one. All of this is the editor's business only — a page sees the
+`<img>` and needs no rule of yours.
+
+There is a second way to centre an image: the alignment dropdown centres the paragraph it
+sits in, which centres an inline picture with it. The button here is the one that works
+whatever that paragraph says, and it is where somebody laying out a picture looks.
 
 #### Captions
 
@@ -2559,6 +2636,15 @@ line says so:
 AdvancedRichContentRenderer::bind();
 ```
 
+**It declares everything this package can write, whether or not you name a plugin.** A
+renderer that has to be told is one that drops it the day somebody forgets to say so, and
+that is not hypothetical: task lists, font sizes, typefaces, line heights, highlights,
+writing directions and image rotations all used to arrive only with the plugin that puts
+their button on the toolbar, so a plain `AdvancedRichContentRenderer::make($article->content)
+->toHtml()` quietly rendered a task list as an ordinary bullet list with every tick gone.
+Passing the plugins still matters where a field configures them — a plugin's instance
+carries that configuration and wins — but nothing is lost by leaving them out.
+
 It also renders an empty record as an empty string. Filament's own renderer walks the
 document without first checking that there is one, and a rich content column is null until
 somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this
@@ -2906,6 +2992,209 @@ AdvancedRichContentRenderer::make($article->content)
     ->plugins([TaskListPlugin::make()])              // so task items parse at all
     ->toMarkdown(['header_style' => 'setext']);      // overrules the default
 ```
+
+### Excerpts
+
+The first few lines of a document, for a meta description, a teaser or a card:
+
+```php
+AdvancedRichContentRenderer::make($article->content)->toExcerpt();          // 160 characters
+AdvancedRichContentRenderer::make($article->content)->toExcerpt(200, ' …'); // and your own marker
+```
+
+The length is the length of the **text**; the marker is added on top of it, the way
+`Str::limit()` counts. The cut falls on a word boundary, and nothing is appended where the
+text already ends in a full stop — `Der erste Satz.…` is two marks doing one job. Defaults
+live under `excerpt` in the config.
+
+The text it cuts is `toText()`, which means mentions read the way they were typed and merge
+tags carry the values they hold now. Two things had to be repaired in that method to make an
+excerpt out of it, and both apply to `toText()` itself:
+
+- **A sentence is one line again.** TipTap's text serialiser puts its block separator
+  between *any* two children, not between blocks — so `<p>Hallo <strong>Welt</strong>!</p>`
+  came back as three lines, two of them one word long. Anything that indexed or excerpted a
+  document with a link or a bold word in it got that shape.
+- **Entities are spelled out.** The serialiser escapes every text node it walks, which is
+  right on the way into markup and wrong in the one method that promises there is none. A
+  search index holding `Tom &amp; Jerry` does not answer a search for Tom & Jerry.
+
+The cutting itself is a plain function on a string, usable on text this package did not
+produce:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Excerpt;
+
+Excerpt::from($text, 160);
+```
+
+### Blade component
+
+One tag instead of three lines of renderer assembly in every template that prints a
+document:
+
+```blade
+<x-arte-content :content="$article->content" class="prose" />
+```
+
+It draws a `<div>` around the document and passes your attributes to it. `:tag="'article'"`
+draws something else, `:tag="null"` prints the document on its own. What it prints has been
+through the sanitiser — it calls `toHtml()`, which is the point of having the component at
+all: `toUnsafeHtml()` is the shorter name and the wrong one.
+
+The props follow the renderer:
+
+```blade
+<x-arte-content
+    :content="$article->content"
+    anchors                       {{-- or :anchors="[2, 3]" --}}
+    highlight                     {{-- or highlight="github-dark" --}}
+    :styles="$styles"
+    :link-attributes="false"
+    :merge-tags="['name' => $user->name]"
+    :mentions="$providers"
+    disk="s3"
+    visibility="private"
+    :cache="3600"
+/>
+```
+
+Anything not in that list goes through a renderer you build yourself, which the component
+then applies its own props on top of:
+
+```blade
+<x-arte-content :renderer="$renderer" :content="$article->content" />
+```
+
+### On a view page
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Infolists\Components\AdvancedRichEntry;
+
+AdvancedRichEntry::make('content')
+    ->anchorHeadings()
+    ->highlightCode()
+    ->columnSpanFull()
+```
+
+The alternative is `TextEntry::make('content')->html()`, and it is wrong in the way that
+costs an afternoon: it prints the markup as it lies in the column, so a picture whose `src`
+is a file attachment id renders broken, a mention renders as an empty span, and a custom
+block renders as nothing at all. Those are resolved by the renderer and by nothing else.
+
+Where the record declares the attribute — Filament's `HasRichContent` — the entry starts
+from what the model already says about it: its plugins, its merge tags, its mention
+providers, the disk its pictures are on. Anything set on the entry wins over that; the model
+describes the field, the entry describes one place it is shown.
+
+The document is drawn in `fi-prose`, Filament's own class for rich content — the same one
+the editor draws it in, so the view page and the form agree.
+
+`filament/infolists` is not a dependency of this package; the class needs it and says so in
+`suggest`.
+
+#### Ticking a box on the view page
+
+A view page is for reading, so the checkboxes on one are drawn and not offered. Where they
+should be offered, say so — and say who may:
+
+```php
+AdvancedRichEntry::make('content')
+    ->tickableTasks(fn (Article $record): bool => auth()->user()->can('update', $record))
+```
+
+Off unless asked for, and asked for with a question rather than a switch. A view page is
+shown to people who may only look, and this package does not know your policies. The
+callback is handed the record, and it is asked **again** when the click comes back: the
+button was drawn for somebody who may write, and a request is not a button.
+
+A click writes straight away. Only that one attribute is assigned, so the update Eloquent
+sends is the one column — and the document is edited where it lies rather than rebuilt
+through the editor, because a round trip through the schema would rewrite every node on the
+way past and a click on a checkbox has no business touching the paragraph beside it. Model
+events and timestamps behave as they do for any other save; the record did change.
+
+The item is addressed by its position in document order, which is the order it was drawn in.
+An index naming no item — a document that changed between the drawing and the click — writes
+nothing rather than a guess.
+
+Two mechanics worth knowing:
+
+- **The buttons are added after the sanitiser**, which is the opposite of every other pass in
+  this package and is the point: what they carry is a `wire:click`, and the sanitiser's allow
+  list would take it off again. Nothing user-written goes in — the only values interpolated
+  are an integer and the schema component's own key.
+- **The control becomes a `<button>`**, not the label the renderer draws. On a page where the
+  box does something, the thing that does it has to be reachable with a keyboard. It carries
+  `aria-pressed` and disables itself while its own round trip is in flight.
+- **The count is checked before anything is drawn.** A merge tag or a custom block renders
+  markup of its own, past the sanitiser, and an `li` in it shaped like a task item would
+  shift every index after it — which does not fail loudly, it ticks the neighbour. Where the
+  markup and the stored document disagree about how many task items there are, the boxes are
+  left as they were.
+
+### In a table
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Tables\Columns\AdvancedRichColumn;
+
+AdvancedRichColumn::make('content')
+    ->excerptLength(80)
+    ->searchable()
+```
+
+A row is one line high, so the default is the **excerpt** and not the markup — plain text,
+which also means the column keeps everything `TextColumn` does with plain text: the tooltip,
+the line clamp, the copy button. `->excerptLength(null)` hands back the whole text for a
+column that would rather clamp it with CSS; never calling it takes the configured length.
+
+`->html()` renders the document instead, for the tables where that is genuinely wanted.
+
+It reads the model's declaration exactly as the entry does, and takes the same configuration
+methods. `filament/tables` is likewise a `suggest` rather than a dependency.
+
+### Caching a render
+
+Turning a document into HTML is a parse, a walk over every node and a pass through the
+sanitiser. An article printed to a thousand readers pays for all of it a thousand times:
+
+```php
+AdvancedRichContentRenderer::make($article->content)->cached()->toHtml();
+AdvancedRichContentRenderer::make($article->content)->cached(3600, 'redis')->toHtml();
+```
+
+Off unless asked for, because a cache nobody asked for is a stale page nobody can explain.
+The same call exists on the entry, the column and the Blade component.
+
+**The key is the content and the configuration.** The same article rendered with anchors,
+with a different code theme or with another set of named styles is another page, and a key
+built from the content alone would hand one of them the other's markup. The fingerprint
+covers the document, the extension list — including the ones a project's own plugins
+contribute — the anchors, the styles, the colours, the protocols, the disk and the
+visibility. Markup, plain text and Markdown are kept apart, and Markdown is kept apart per
+set of converter options.
+
+Two things it cannot see:
+
+- **What a closure closes over.** A merge tag whose value comes from a variable, or a node
+  processor built around one, prints the same key for two different pages. Closures are
+  fingerprinted by the file and line they are written at.
+- **What a mention provider will answer.** Labels are looked up when the page is drawn,
+  which is the whole point of them, and a cached page holds the ones from last time.
+
+Either is a reason to name the key yourself — which is usually shorter to compute anyway:
+
+```php
+->cacheKey($article->getKey().'-'.$article->updated_at->timestamp)
+```
+
+**Temporary URLs cap the lifetime.** An attachment on a private disk is rendered as a
+temporary URL that expires — half an hour by default — so a page cached for a day would
+spend the rest of it showing broken pictures. Where the render can produce one, the lifetime
+is capped at `filament.temporary_file_url_expiry_minutes`. A render with a file attachment
+provider is exempt: the provider decides what a URL is, and Spatie's are ordinary ones.
+
+Defaults live under `render_cache` in the config.
 
 ## Configuration
 

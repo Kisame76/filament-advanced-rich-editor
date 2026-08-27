@@ -21,6 +21,7 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Js;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
@@ -52,6 +53,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
@@ -69,6 +71,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts\RichEditorStateCast;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageFloat;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
@@ -250,6 +253,8 @@ class AdvancedRichEditor extends RichEditor
 
     protected bool|Closure|null $hasImageToolbar = null;
 
+    protected bool|Closure|null $hasImageFloat = null;
+
     /**
      * @var array<string, string> | Closure | null
      */
@@ -327,6 +332,28 @@ class AdvancedRichEditor extends RichEditor
                 // changed - only what the dialog behind it asks for.
                 ->icon(Heroicon::Link)
                 ->iconAlias('forms:components.rich-editor.toolbar.link'),
+
+            // Where a picture sits. Pressing the placement it already has takes it off, so
+            // three buttons cover four states - the idiom the callouts already use.
+            //
+            // The active state is spelled out rather than left to Filament, which asks
+            // `editor.isActive(<the tool's name>)` and therefore only ever recognises a
+            // node or a mark. A placement is neither: it is a global attribute on the
+            // image node. So the expression reads the node under the selection, the same
+            // way the command that writes it does - `getAttributes()` answers for the
+            // selection, and the selection is a plain caret again the moment anything
+            // focuses away from the picture.
+            ...array_map(
+                static fn (string $placement): RichEditorTool => RichEditorTool::make('imageFloat'.ucfirst($placement))
+                    ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_float_'.$placement))
+                    ->jsHandler('$getEditor()?.commands.setImageFloat('.Js::from($placement)->toHtml().')')
+                    ->activeJsExpression(
+                        'editorUpdatedAt && $getEditor()?.state?.doc?.nodeAt($getEditor()?.state?.selection?.from)?.attrs?.float === '
+                        .Js::from($placement)->toHtml(),
+                    )
+                    ->icon(Icons::get('image_float_'.$placement)),
+                ['left', 'center', 'right'],
+            ),
 
             RichEditorTool::make('imageRotateLeft')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_rotate_left'))
@@ -454,6 +481,14 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasResizableImages()
                 ? [ImageResizePlugin::make()]
+                : [],
+        );
+
+        // Registered on its own switch rather than on the resizing one: a field may let a
+        // picture be floated without letting it be dragged to a new size.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasImageFloat()
+                ? [ImageFloatPlugin::make()]
                 : [],
         );
 
@@ -2383,6 +2418,15 @@ class AdvancedRichEditor extends RichEditor
             $buttons[] = ToolbarDivider::make();
         }
 
+        // Before the alt text, and beside the rotations: both are about where the picture
+        // sits rather than about what it says.
+        if ($this->hasImageFloat()) {
+            $buttons[] = 'imageFloatLeft';
+            $buttons[] = 'imageFloatCenter';
+            $buttons[] = 'imageFloatRight';
+            $buttons[] = ToolbarDivider::make();
+        }
+
         $buttons[] = ToolbarImagePanel::alt();
         $buttons[] = 'imageDownload';
         $buttons[] = 'imageDelete';
@@ -2502,6 +2546,39 @@ class AdvancedRichEditor extends RichEditor
     {
         return (bool) ($this->evaluate($this->hasImageToolbar)
             ?? config('filament-advanced-rich-editor.images.toolbar', true));
+    }
+
+    /**
+     * Whether the text may run past a picture instead of starting below it.
+     *
+     * The oldest thing anybody has ever asked an editor for, and the one piece of laying a
+     * picture out that this package did not have: the size, the rotation and the caption
+     * were all already there.
+     */
+    public function imageFloat(bool|Closure $condition = true): static
+    {
+        $this->hasImageFloat = $condition;
+
+        return $this;
+    }
+
+    public function hasImageFloat(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageFloat)
+            ?? config('filament-advanced-rich-editor.images.float', true));
+    }
+
+    /**
+     * The gap written beside a floated picture, as a CSS length, or null where the project
+     * would rather draw it itself.
+     *
+     * Read here as well as in `ImageFloat` so the editor and the page write the same
+     * number: this one reaches the editor as a custom property on the field, the other
+     * lands in the stored markup.
+     */
+    public function getImageFloatGap(): ?string
+    {
+        return ImageFloat::gap();
     }
 
     /**

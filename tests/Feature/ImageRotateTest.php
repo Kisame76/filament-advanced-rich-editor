@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
@@ -18,9 +19,21 @@ it('keeps a rotation across the php round trip', function () use ($render): void
 });
 
 it('loses the rotation without the plugin, which is why the extension exists', function (): void {
+    // Filament's own renderer, which has never heard of the attribute.
     $html = '<p><img src="/a.png" style="transform: rotate(90deg)"></p>';
 
     expect(RichContentRenderer::make($html)->toHtml())->not->toContain('rotate');
+});
+
+it('keeps the rotation on a plain render of a stored document', function (): void {
+    // This package's renderer declares the extension whether or not it was handed the
+    // plugin: a picture somebody turned is one that should still be turned, and a renderer
+    // that has to be told is one that drops it the day somebody forgets to say so. It used
+    // to arrive only with `ImageResizePlugin`, so rendering an article without naming the
+    // plugin quietly straightened every turned picture in it.
+    $html = '<p><img src="/a.png" width="300" height="200" style="transform: rotate(90deg)"></p>';
+
+    expect(AdvancedRichContentRenderer::make($html)->toHtml())->toContain('rotate(90deg)');
 });
 
 it('makes the layout box match the turned picture', function () use ($render): void {

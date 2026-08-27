@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarFontSize;
 
@@ -96,3 +98,45 @@ it('loses the size without the plugin, which is why it exists', function (): voi
 
     expect(RichContentRenderer::make($html)->toHtml())->not->toContain('font-size: 24px');
 });
+
+it('refuses a size that could carry a second declaration', function (): void {
+    // The value ends up in a `style` attribute the sanitiser lets through untouched, and it
+    // does not only arrive through the parser: the document the browser submits carries it
+    // verbatim into `setContent()`. Without the guard this rendered
+    // `style="font-size: 1px; position: fixed; inset: 0"` - an overlay over the page.
+    $document = [
+        'type' => 'doc',
+        'content' => [[
+            'type' => 'paragraph',
+            'content' => [[
+                'type' => 'text',
+                'text' => 'Harmlos',
+                'marks' => [[
+                    'type' => 'fontSize',
+                    'attrs' => ['size' => '1px; position: fixed; inset: 0; z-index: 9999'],
+                ]],
+            ]],
+        ]],
+    ];
+
+    $html = AdvancedRichContentRenderer::make($document)->toHtml();
+
+    expect($html)->not->toContain('position')
+        ->and($html)->not->toContain('inset')
+        ->and($html)->toBe('<p><span>Harmlos</span></p>');
+});
+
+it('keeps the sizes anybody actually writes', function (string $size): void {
+    expect(FontSize::sanitise($size))->toBe($size);
+})->with(['16px', '1.5rem', '120%', '12pt', '2em', '18']);
+
+it('drops what is not a length', function (string $size): void {
+    expect(FontSize::sanitise($size))->toBeNull();
+})->with([
+    '1px; position: fixed',
+    'calc(1px + 2px)',
+    'xx-large',
+    'expression(alert(1))',
+    'var(--x)',
+    '-4px',
+]);

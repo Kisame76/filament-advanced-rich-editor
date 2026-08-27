@@ -66,6 +66,33 @@ it('carries a second theme for dark mode when it is given two', function (): voi
         ->toContain('phiki-themes');
 });
 
+it('puts the block colour on the code element as well as the pre', function (): void {
+    // The highlighter writes the colour once, on the `<pre>`, and everything inside takes
+    // it by inheritance - which loses to any rule naming `code` directly. Filament's own
+    // prose styles do exactly that, and so does Tailwind's typography plugin: in a dark
+    // panel the tokens the theme gives no colour of their own are drawn white on the light
+    // theme's white background, and the brackets and commas disappear while the coloured
+    // tokens stay.
+    $html = AdvancedRichContentRenderer::make('<pre><code class="language-php">echo 1;</code></pre>')
+        ->highlightCode()
+        ->toHtml();
+
+    expect($html)->toContain('<code style="color: inherit;"');
+});
+
+it('lets the code element follow the pre rather than pinning a colour to it', function (): void {
+    // `inherit` and not the colour itself: a project swapping a pair of themes over swaps
+    // it on the `<pre>`, and a second copy of the light colour further in would survive
+    // that swap and undo it.
+    $html = AdvancedRichContentRenderer::make('<pre><code class="language-php">echo 1;</code></pre>')
+        ->highlightCode(themes: ['light' => 'github-light', 'dark' => 'github-dark'])
+        ->toHtml();
+
+    preg_match('/<code style="([^"]*)"/', $html, $matches);
+
+    expect($matches[1] ?? '')->toBe('color: inherit;');
+});
+
 it('leaves everything that is not code alone', function (): void {
     $stored = '<h2>Title</h2><p>Body <code>inline</code></p><pre><code class="language-php">echo 1;</code></pre>';
 

@@ -23,4 +23,5 @@ Heroicons without standing out:
 > AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 > CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-`line-spacing.svg` and `task-list.svg` are drawn for this package and carry its licence.
+`line-spacing.svg`, `task-list.svg`, `image-left.svg`, `image-center.svg` and
+`image-right.svg` are drawn for this package and carry its licence.
