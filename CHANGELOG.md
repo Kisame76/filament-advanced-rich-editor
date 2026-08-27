@@ -2,6 +2,19 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.3.1 - 2026-08-27
+
+### Fixed
+
+- This package's own test suite passes again on the oldest dependencies it supports. Two
+  assertions in the image float tests pinned `width: 200px`, and Filament writes that width
+  with its unit on current releases and without one on `filament/forms` v5.7.0 - so two
+  tests about where a picture sits failed over a spelling that says nothing about it. They
+  read the number now rather than the way it is written, which is the decision the helper
+  beside them already made when it sorts declarations instead of matching a string. Nothing
+  that ships changed: `1.3.0` renders exactly what this does, and only a
+  `composer update --prefer-lowest` against these tests ever saw the difference
+
 ## 1.3.0 - 2026-08-27
 
 ### Added
