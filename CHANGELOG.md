@@ -6,6 +6,20 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- Clicking from the alt text into the caption closed the whole panel. Both fields wrote to
+  the document on every blur, and writing is what closes the panel: the transaction makes the
+  floating toolbar re-evaluate, the toolbar is rebuilt, and the panel inside it comes back
+  closed. Fine when somebody is finished, wrong the moment they move from one field to the
+  next. A blur now only writes when focus is actually leaving the panel - `relatedTarget`
+  answers that - so moving between fields writes nothing and clicking away writes once. The
+  size panel beside it never had the problem because it writes on its own button; this is the
+  same rule stated for a panel that has no button, and it lives in the shell both are built
+  on so the next panel with two fields inherits it.
+  Found alongside it and fixed too: the write asked the editor where the picture was at the
+  moment it ran, and by then the answer could be wrong - focusing a field collapses the node
+  selection to a caret. The panel now remembers which picture it was opened on, which is what
+  the method beside it already did for reading
+
 - A picture that was both marked decorative and given a link produced a link with no
   accessible name: the mark tells a screen reader to skip the picture, the picture is the
   whole of the link, and what is announced is "link" and nothing else. Each half is right on

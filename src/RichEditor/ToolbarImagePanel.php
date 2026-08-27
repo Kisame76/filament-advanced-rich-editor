@@ -107,8 +107,27 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
                 {$this->menuPositioning()}
                 open: false,
             {$members}
+                // Where the picture is, frozen while the panel is open.
+                //
+                // `commit()` reads this to decide *where* to write, and by the time it runs
+                // the live selection is no longer the picture: focusing a field collapses
+                // the node selection to a caret, which is the same thing `image()` below
+                // guards against when it reads. Asking the selection at that point writes
+                // the alt text at wherever the caret ended up - and the picture, no longer
+                // selected, takes the floating toolbar and this panel down with it. Which
+                // is what clicking from the alt field into the caption field did.
+                anchored: null,
                 position() {
-                    return \$getEditor()?.state?.selection?.from
+                    return this.anchored ?? \$getEditor()?.state?.selection?.from
+                },
+                // Re-taken on every tick while the panel is closed, so it holds the picture
+                // the toolbar is currently on. Opening the panel freezes it.
+                anchor() {
+                    const from = \$getEditor()?.state?.selection?.from
+
+                    this.anchored = \$getEditor()?.state?.doc?.nodeAt(from)?.type.name === 'image'
+                        ? from
+                        : null
                 },
                 node() {
                     const editor = \$getEditor()
@@ -128,11 +147,40 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
                     // as soon as anything focuses away from the image.
                     return this.node()?.attrs ?? {}
                 },
+                // Writing to the document is what closes this panel: the transaction makes
+                // the floating toolbar re-evaluate, the toolbar is rebuilt, and the panel
+                // inside it comes back closed. Which is fine when somebody is finished and
+                // wrong the moment they move from one field to the next - clicking from the
+                // alt text into the caption wrote, and the panel vanished under the pointer.
+                //
+                // `relatedTarget` on a blur is the element about to take focus, so this asks
+                // the only question that matters: is focus still inside this panel? Moving
+                // between fields writes nothing; leaving it altogether writes once. The size
+                // panel beside this one never had the problem because it writes on its own
+                // button rather than on blur - this is the same rule stated for a panel that
+                // has no button.
+                commitOnLeaving(event) {
+                    if (this.\$root.contains(event.relatedTarget)) {
+                        return
+                    }
+
+                    // The shell is shared, and only a panel that writes on blur has this.
+                    if (typeof this.commit === 'function') {
+                        this.commit()
+                    }
+                },
                 update(attributes) {
                     const editor = \$getEditor()
                     const position = this.position()
 
                     if (! editor || position === undefined) {
+                        return
+                    }
+
+                    // Nothing to write to. The picture was deleted, or the document moved
+                    // under the open panel; writing anyway would put an alt text on whatever
+                    // node happens to sit at that position now.
+                    if (editor.state.doc.nodeAt(position)?.type.name !== 'image') {
                         return
                     }
 
@@ -149,7 +197,7 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
                 // Re-read only while the panel is closed. The tick fires on every editor
                 // transaction, and a panel that keeps re-reading would overwrite what is
                 // being typed into it. Opening it reads once, deliberately.
-                'x-effect' => 'editorUpdatedAt && ! open && read()',
+                'x-effect' => 'editorUpdatedAt && ! open && (anchor(), read())',
                 'x-on:click.outside' => 'open = false',
                 'x-on:arte-image-lock.window' => "'locked' in this ? locked = ! \$event.detail.unlocked : null",
                 'x-on:keydown.escape.prevent.stop' => 'open = false',
@@ -212,8 +260,7 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
                 type="text"
                 x-ref="first"
                 x-model="alt"
-                x-on:change="commit()"
-                x-on:blur="commit()"
+                x-on:blur="commitOnLeaving($event)"
                 x-on:keydown.enter.prevent.stop="commit(); open = false"
                 class="fi-arte-image-panel-input fi-arte-image-panel-input-text"
             />
@@ -227,8 +274,7 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
             <input
                 type="text"
                 x-model="caption"
-                x-on:change="commit()"
-                x-on:blur="commit()"
+                x-on:blur="commitOnLeaving($event)"
                 x-on:keydown.enter.prevent.stop="commit(); open = false"
                 class="fi-arte-image-panel-input fi-arte-image-panel-input-text"
             />
