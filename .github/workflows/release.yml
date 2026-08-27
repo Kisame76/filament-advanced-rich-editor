@@ -1,0 +1,107 @@
+name: release
+
+# Pushing the tag is the whole release. The release object and the notes inside it are
+# built here, out of the CHANGELOG section carrying the same version - so a tag nobody
+# wrote up cannot become a release at all, and a release cannot be forgotten once the tag
+# is out. Both halves went out of step once: the tag reached Packagist, where it is the
+# only thing that counts, while the releases page still showed the version before it.
+on:
+  push:
+    tags: ['v*']
+
+# The default token is read-only, and creating a release is a write.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    name: publish
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Every tag, because whether this one is the newest is decided against the rest
+          # of them further down.
+          fetch-depth: 0
+
+      - name: Read the changelog section for this tag
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+
+          # The version is compared as a whole word rather than matched as a pattern: it is
+          # full of dots, and a pattern would let 1.3.0 answer for 1;3!0. The section runs
+          # to the next `## `, which is the heading of the version before it.
+          awk -v want="$version" '
+            /^## / {
+              if (found) { exit }
+              split($0, heading, " ")
+              if (heading[2] == want) { found = 1 }
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > notes.md
+
+          # Asked before the trimming below and asked about characters rather than bytes:
+          # what a missing section leaves here is a run of blank lines, and the trimming
+          # turns that into the single newline that makes a file look non-empty to `-s`.
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section for ${version}. Write it up, then tag." >&2
+            exit 1
+          fi
+
+          # Blank lines top and bottom, left by the headings on either side.
+          sed -i -e '/./,$!d' notes.md
+          printf '%s\n' "$(cat notes.md)" > notes.md
+
+          echo "Release notes for ${version}:"
+          cat notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+
+          # Anything with a suffix is a pre-release: v1.4.0-beta.1, never v1.4.0.
+          case "$tag" in
+            *-*) prerelease='--prerelease' ;;
+            *)   prerelease='' ;;
+          esac
+
+          # Only the highest released version is marked latest. Tagging a fix on an older
+          # line - v1.2.1 once v1.3.0 is out - would otherwise take the badge off the newer
+          # one, since gh decides for itself when it is not told.
+          #
+          # A pre-release never takes it, whatever it sorts as. `v1.4.0-beta.1` ranks above
+          # `v1.3.1` here, so the version test alone would hand the badge to a beta and send
+          # everyone who reads that page to it.
+          #
+          # Told twice over, because the two subcommands do not take the same answer:
+          # `create` documents `--latest=false`, `edit` only documents the bare flag, so
+          # editing a release that should not be latest says nothing and leaves it alone.
+          # `|| true` because grep says "no match" with an exit code, and under pipefail
+          # that would end the job rather than answer the question. No match is an answer:
+          # it means every tag so far is a pre-release, and none of them is latest.
+          highest_release="$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+(\.[0-9]+)*$' | head -n 1 || true)"
+
+          if [ -z "$prerelease" ] && [ "$highest_release" = "$tag" ]; then
+            create_latest='--latest'
+            edit_latest='--latest'
+          else
+            create_latest='--latest=false'
+            edit_latest=''
+          fi
+
+          # Re-running the workflow on a tag that already has a release rewrites its notes
+          # rather than failing, so a fixed-up CHANGELOG can be published a second time.
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release edit "$tag" --notes-file notes.md --verify-tag $edit_latest
+          else
+            gh release create "$tag" --title "$tag" --notes-file notes.md --verify-tag $create_latest $prerelease
+          fi
