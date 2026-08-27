@@ -21,6 +21,18 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   and wrong for the one place where "dark mode" has a single meaning: the package stylesheet
   is registered with Filament and loads nowhere else, so it ships the rule
 
+- Seven things stopped disappearing from a plain render of a stored document, and it was one
+  bug found seven times: an extension arrived only with the plugin that puts its button on
+  the toolbar, so `AdvancedRichContentRenderer::make($article->content)->toHtml()` - the call
+  every front end makes - dropped it without a word. A task list came back as an ordinary
+  bullet list with every tick gone; a font size, a typeface, a line height, a highlight, a
+  writing direction and an image rotation were simply not there. The page just looked plainer
+  than the editor did, and nothing said why. All seven are declared unconditionally now, on
+  the reasoning this renderer already states four times over for the anchors, the embeds, the
+  callouts and the captions. A field's own plugins still win where they are handed over -
+  they carry that field's configuration. `RenderCompletenessTest` is the guard: a feature
+  added without a line in the renderer fails it
+
 - A named style stays on a block the picker was narrowed away from. The browser half
   declares the style attribute over all five block types; this half declared it only over
   the ones the configured styles happened to name, so a project that narrowed a style to
@@ -29,6 +41,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the picker may offer a style, not that the same words stop being a lead once they are a
   heading. Which classes count is unchanged: a class the project never declared is still
   dropped
+
+- A turned picture stays turned on a plain render of a stored document. The rotation
+  attribute was only declared where `ImageResizePlugin` was handed to the renderer, so
+  rendering an article without naming the plugin quietly straightened every turned picture
+  in it. `AdvancedRichContentRenderer` declares it unconditionally now, on the same
+  reasoning as the anchors, the embeds and the callouts: a renderer that has to be told is
+  one that drops it the day somebody forgets to say so
 
 ## 1.2.0 - 2026-08-27
 

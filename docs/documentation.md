@@ -2575,6 +2575,15 @@ line says so:
 AdvancedRichContentRenderer::bind();
 ```
 
+**It declares everything this package can write, whether or not you name a plugin.** A
+renderer that has to be told is one that drops it the day somebody forgets to say so, and
+that is not hypothetical: task lists, font sizes, typefaces, line heights, highlights,
+writing directions and image rotations all used to arrive only with the plugin that puts
+their button on the toolbar, so a plain `AdvancedRichContentRenderer::make($article->content)
+->toHtml()` quietly rendered a task list as an ordinary bullet list with every tick gone.
+Passing the plugins still matters where a field configures them — a plugin's instance
+carries that configuration and wins — but nothing is lost by leaving them out.
+
 It also renders an empty record as an empty string. Filament's own renderer walks the
 document without first checking that there is one, and a rich content column is null until
 somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this

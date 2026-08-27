@@ -8,21 +8,29 @@ use BackedEnum;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontFamily;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Language;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageCaption;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageRotate;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\TextDirection;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
 use Tiptap\Core\Extension;
 use Tiptap\Editor;
 use Tiptap\Marks\Link as BaseLink;
+use Tiptap\Nodes\TaskList;
 
 /**
  * Filament's renderer with the output this package adds on top.
@@ -216,6 +224,27 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // whether or not this render was told the field had callouts switched on.
             app(Callout::class),
             app(ImageCaption::class),
+            // And again, for the reason above it: a picture somebody turned is one that
+            // should still be turned, and one somebody set the text to run past is one the
+            // text should still run past - whether or not this render was told the field
+            // offered the buttons. The rotation used to arrive only with
+            // `ImageResizePlugin`, so a plain render of a stored document dropped it.
+            app(ImageRotate::class),
+            // The same again, six times over. Every one of these used to arrive only with
+            // the plugin that puts its button on the bar, so a plain render of a stored
+            // document dropped it without a word: a task list came back as an ordinary
+            // bullet list with every tick gone, and a size, a typeface, a line height, a
+            // highlight and a writing direction simply were not there. The rule this class
+            // states four times above holds for them too - a renderer that has to be told
+            // is one that drops it the day somebody forgets to say so - and none of them
+            // takes any configuration, so declaring them costs a line each.
+            app(TaskList::class, ['options' => ['HTMLAttributes' => ['class' => 'fi-arte-task-list']]]),
+            app(TaskItem::class, ['options' => ['HTMLAttributes' => ['class' => 'fi-arte-task-item']]]),
+            app(FontSize::class),
+            app(FontFamily::class),
+            app(LineHeight::class),
+            app(TextBackground::class),
+            app(TextDirection::class),
             // And again: a passage somebody marked as French is one a screen reader should
             // still read in French, and a list somebody set to start at twelve is one that
             // should still start at twelve - whether or not this render was told the field
