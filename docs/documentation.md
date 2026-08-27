@@ -3026,6 +3026,44 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Excerpt;
 Excerpt::from($text, 160);
 ```
 
+### Blade component
+
+One tag instead of three lines of renderer assembly in every template that prints a
+document:
+
+```blade
+<x-arte-content :content="$article->content" class="prose" />
+```
+
+It draws a `<div>` around the document and passes your attributes to it. `:tag="'article'"`
+draws something else, `:tag="null"` prints the document on its own. What it prints has been
+through the sanitiser — it calls `toHtml()`, which is the point of having the component at
+all: `toUnsafeHtml()` is the shorter name and the wrong one.
+
+The props follow the renderer:
+
+```blade
+<x-arte-content
+    :content="$article->content"
+    anchors                       {{-- or :anchors="[2, 3]" --}}
+    highlight                     {{-- or highlight="github-dark" --}}
+    :styles="$styles"
+    :link-attributes="false"
+    :merge-tags="['name' => $user->name]"
+    :mentions="$providers"
+    disk="s3"
+    visibility="private"
+    :cache="3600"
+/>
+```
+
+Anything not in that list goes through a renderer you build yourself, which the component
+then applies its own props on top of:
+
+```blade
+<x-arte-content :renderer="$renderer" :content="$article->content" />
+```
+
 ### Caching a render
 
 Turning a document into HTML is a parse, a walk over every node and a pass through the

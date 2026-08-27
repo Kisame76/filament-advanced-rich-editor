@@ -139,6 +139,13 @@ AdvancedRichContentRenderer::make($article->content)
     ->toHtml();
 ```
 
+And on the three places that are not a form — a page, a view page, a table — without
+assembling a renderer in each of them:
+
+```blade
+<x-arte-content :content="$article->content" class="prose" />
+```
+
 **[Read the full documentation](https://github.com/Kisame76/filament-advanced-rich-editor/blob/main/docs/documentation.md)** for every option: the toolbar tokens and dropdowns,
 the media browser, the slash menu, video embeds, code blocks, mentions, the table of contents,
 Markdown export and the config file.

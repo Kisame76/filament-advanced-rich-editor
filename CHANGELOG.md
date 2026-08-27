@@ -37,6 +37,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   itself is `Excerpt::from()`, a plain function on a string, usable on text this package did
   not produce. Defaults under the `excerpt` config key; per call: `->toExcerpt(200, ' …')`
 
+- `<x-arte-content :content="$article->content" class="prose" />`: the document on a page as
+  one tag, instead of three lines of renderer assembly in every template - and instead of
+  the mistake those three lines invite, which is reaching for `toUnsafeHtml()` because the
+  name of the safe one is longer. It draws a `<div>` around the document and hands it your
+  attributes; `:tag` draws something else or nothing at all. The props follow the renderer,
+  and `:renderer` takes one you built yourself for anything they do not cover
+
 - A render cache: `->cached()`, off unless asked for. The key is the content *and* the
   configuration - the same article rendered with anchors, with a different code theme or
   with another set of named styles is another page, and a key built from the content alone
