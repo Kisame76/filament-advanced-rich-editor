@@ -33,6 +33,16 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   they carry that field's configuration. `RenderCompletenessTest` is the guard: a feature
   added without a line in the renderer fails it
 
+- A font size can no longer carry a second CSS declaration out of the document and onto the
+  page. The size was interpolated into a `style` attribute with no check at all, and it does
+  not only arrive through the parser - the document the browser submits carries it verbatim
+  into the PHP editor. A size of `1px; position: fixed; inset: 0` rendered as exactly that,
+  and Filament's sanitiser passes `style` through untouched, so it became an overlay over
+  the page. It is whitelisted now to a number and an optional CSS length unit, which is the
+  pattern Filament's own `ImageExtension` uses on a width and a height - and the guard every
+  sibling that writes into `style` already had: the typeface, the highlight, the spacing and
+  the rotation
+
 - A named style stays on a block the picker was narrowed away from. The browser half
   declares the style attribute over all five block types; this half declared it only over
   the ones the configured styles happened to name, so a project that narrowed a style to
