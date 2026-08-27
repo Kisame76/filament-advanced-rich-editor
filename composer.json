@@ -1,6 +1,6 @@
 {
   "name": "kisame76/filament-advanced-rich-editor",
-  "description": "A drop-in Filament v5 RichEditor with a configurable toolbar, a media browser, task lists, a slash menu, video embeds, rendered mentions and Spatie Media Library attachments.",
+  "description": "A drop-in Filament v5 RichEditor with a toolbar you arrange yourself, plus callouts, a media browser, find and replace, an accessibility check, drafts in the browser, a slash menu and Spatie Media Library attachments.",
   "keywords": [
     "filament",
     "filamentphp",
