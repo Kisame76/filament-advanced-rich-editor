@@ -35,6 +35,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ImageAttributes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
@@ -254,6 +255,10 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasImageToolbar = null;
 
     protected bool|Closure|null $hasImageFloat = null;
+
+    protected bool|Closure|null $hasImageDimensions = null;
+
+    protected string|Closure|false|null $imageLoading = null;
 
     /**
      * @var array<string, string> | Closure | null
@@ -2566,6 +2571,71 @@ class AdvancedRichEditor extends RichEditor
     {
         return (bool) ($this->evaluate($this->hasImageFloat)
             ?? config('filament-advanced-rich-editor.images.float', true));
+    }
+
+    /**
+     * Whether an inserted picture is given the size it was measured at.
+     *
+     * On by default, because the point of it is a browser that leaves the right hole for a
+     * picture it has not got yet - without which the article below jumps when it arrives.
+     *
+     * The catch is worth knowing before turning it off is considered: Filament renders
+     * `width` as an inline `style` as well as an attribute, and this package's own resizing
+     * drags the same pair, so the measured size is also the displayed size. A page with the
+     * usual `img { max-width: 100%; height: auto }` handles that and gains the aspect ratio
+     * for nothing; a page that caps the width and lets the height stand gets a squashed
+     * picture. Turn this off rather than find that out on the front page.
+     */
+    public function imageDimensions(bool|Closure $condition = true): static
+    {
+        $this->hasImageDimensions = $condition;
+
+        return $this;
+    }
+
+    public function hasImageDimensions(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageDimensions)
+            ?? config('filament-advanced-rich-editor.images.dimensions', true));
+    }
+
+    /**
+     * The loading hint written onto an inserted picture: `lazy`, `eager`, or nothing.
+     *
+     * Nothing by default, and that is the considered answer rather than the timid one. A
+     * field does not know where on a page its pictures land, and `lazy` on the one above the
+     * fold delays the very thing it is usually reached for - that picture is generally the
+     * largest contentful paint, and telling the browser to wait for it makes the number it
+     * is measured by worse. A project that knows its layout says so, per field or in the
+     * config; the measured size above is what earns the bulk of the same prize anyway.
+     *
+     * `false` is the way to say none where the project set one, and null is the way back to
+     * whatever the project said - the same two answers `->cached(false)` gives the renderer.
+     * Without the first there would be no way to keep a teaser field eager on a project that
+     * turned lazy loading on everywhere.
+     */
+    public function imageLoading(string|Closure|false|null $loading): static
+    {
+        $this->imageLoading = $loading;
+
+        return $this;
+    }
+
+    public function getImageLoading(): ?string
+    {
+        $loading = $this->evaluate($this->imageLoading);
+
+        if ($loading === false) {
+            return null;
+        }
+
+        $loading ??= config('filament-advanced-rich-editor.images.loading');
+
+        // Whitelisted here rather than left to whoever writes it down. This is public and
+        // says it answers with one of the two hints a browser knows; a typo in the config -
+        // `lasy`, or `auto`, which is not a value `loading` has - would otherwise be handed
+        // out as though it were one, and every caller would need the same list to be safe.
+        return ImageAttributes::loadingHint(is_string($loading) ? $loading : null);
     }
 
     /**

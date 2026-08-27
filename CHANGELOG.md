@@ -2,6 +2,34 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- `getImageLoading()` handed back whatever string the config held rather than one of the two
+  hints it documents, leaving the whitelist to whichever caller remembered it
+
+### Added
+
+- The size a picture was measured at, written onto it as it is inserted, so a browser knows
+  the shape before it has the file and the article below stops jumping when it arrives. The
+  measuring already happened for the media browser's own listing; what was missing was the
+  one step between. One thing to know: Filament renders `width` as an inline `style` as well
+  as an attribute - the pair this package's resizing drags - so the measured size is also the
+  displayed size. Pages carrying the usual `img { max-width: 100%; height: auto }` gain the
+  aspect ratio for nothing, and inside a Filament panel that rule is already part of the
+  preflight; a page that caps the width and lets the height stand should turn this off. Both
+  numbers are written or neither, since half a pair says nothing about the shape and a lone
+  width is a picture squashed to a strip. A file the measuring could not read is inserted
+  without them. Per field: `->imageDimensions(false)`; project-wide: `images.dimensions`
+
+- `loading` on an inserted picture, off unless asked for: `->imageLoading('lazy')` or the
+  `images.loading` key. Off is the considered answer rather than the timid one - a field
+  cannot know where on a page its pictures land, and `lazy` on the one above the fold delays
+  the largest contentful paint rather than helping it, which is usually the number somebody
+  switching it on wants to improve. `->imageLoading(false)` keeps one field eager where a
+  project turned it on everywhere, the same pair of answers `->cached(false)` gives
+
 ## 1.3.1 - 2026-08-27
 
 ### Fixed

@@ -856,6 +856,22 @@ return [
     | has not loaded this package's stylesheet and a floated picture with no gap has the
     | text touching it. Set it to null to write the bare `float` and draw the gap in your
     | own stylesheet.
+    |
+    | `dimensions` writes the size a picture was measured at on upload onto the picture as
+    | it is inserted, so a browser leaves the right hole for it and the article below stops
+    | jumping when it arrives. Per field: `->imageDimensions()`.
+    |
+    | It is on by default and there is one thing to know before it is left that way:
+    | Filament renders `width` as an inline `style` as well as an attribute — the pair this
+    | package's own resizing drags — so the measured size is also the displayed size. Pages
+    | carrying the usual `img { max-width: 100%; height: auto }` gain the aspect ratio for
+    | nothing. A page that caps the width and lets the height stand gets a squashed picture,
+    | and should turn this off.
+    |
+    | `loading` is the hint written onto an inserted picture: 'lazy', 'eager' or null for
+    | none. Null on purpose — a field cannot know where on a page its pictures land, and
+    | 'lazy' on the one above the fold delays the largest contentful paint rather than
+    | helping it. Per field: `->imageLoading('lazy')`.
     */
     'images' => [
         'resizable' => true,
@@ -865,6 +881,10 @@ return [
         'float' => true,
 
         'float_gap' => '1rem',
+
+        'dimensions' => true,
+
+        'loading' => null,
     ],
 
     /*
