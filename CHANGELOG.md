@@ -16,6 +16,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   punctuation. The `<code>` now carries `color: inherit`, which beats a stylesheet and still
   follows the `<pre>` when a project swaps a pair of themes over
 
+- Inside a Filament panel, a code block given a pair of themes now swaps to the dark one on
+  its own. The swap was documented and left to the project, which is right for a front end
+  and wrong for the one place where "dark mode" has a single meaning: the package stylesheet
+  is registered with Filament and loads nowhere else, so it ships the rule
+
 ## 1.2.0 - 2026-08-27
 
 ### Added

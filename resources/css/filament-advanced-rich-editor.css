@@ -2242,6 +2242,35 @@ body.fi-arte-fullscreen-lock {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Highlighted code, in a dark panel                                          */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * `highlightCode(themes: [...])` writes both themes into the same markup — the light one
+ * as ordinary colours, the dark one as custom properties — and leaves the swap to the
+ * project, because which switch counts is the project's idea of dark mode.
+ *
+ * Inside a Filament panel that question has one answer, and it is `.dark`. This stylesheet
+ * is registered with Filament and loads nowhere else, so the swap can be shipped here
+ * rather than asked for. A front end that renders the same content still writes its own
+ * three lines — the documentation says so, and this rule cannot reach it.
+ *
+ * Only a block that carries both themes is touched: `phiki-themes` is the class Phiki adds
+ * when it was given a pair, and a block with a single theme has no dark colour to swap to.
+ */
+.phiki-themes:where(.dark, .dark *),
+.phiki-themes:where(.dark, .dark *) code,
+.phiki-themes:where(.dark, .dark *) span {
+    /*
+     * `!important`, and it is load-bearing rather than lazy: every token carries its light
+     * colour as an inline style, which no ordinary rule outranks. The same line is in the
+     * documentation for the front-end half, for the same reason.
+     */
+    color: var(--phiki-dark-color) !important;
+    background-color: var(--phiki-dark-background-color) !important;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Image captions                                                             */
 /* -------------------------------------------------------------------------- */
 

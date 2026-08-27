@@ -1015,8 +1015,13 @@ AdvancedRichContentRenderer::make($article->content)
     ->toHtml();
 ```
 
-That needs three lines in your own stylesheet to swap them, because the switch is your
-project's idea of dark mode rather than this package's:
+**Inside a Filament panel there is nothing to do.** The package stylesheet is registered
+with Filament and loads there and nowhere else, so it ships the swap itself — inside a panel
+"dark mode" has exactly one meaning, and it is `.dark`. A code block in an
+`AdvancedRichEntry` or a rich content text entry follows the panel on its own.
+
+On your own front end it needs three lines, because there the switch is your project's idea
+of dark mode rather than this package's:
 
 ```css
 .dark .phiki-themes,
@@ -1024,6 +1029,17 @@ project's idea of dark mode rather than this package's:
     color: var(--phiki-dark-color) !important;
     background-color: var(--phiki-dark-background-color) !important;
 }
+```
+
+**Say `color-scheme` on the page, whether or not you swap anything.** A page that declares
+no dark styling at all is one the browser darkens on its own — Chrome's auto dark mode —
+and the inversion remaps inherited text colours while leaving the highlighter's inline
+`background-color` alone. What that looks like is a white code block on a black page with
+every *uncoloured* token gone: the brackets, the commas, the spaces. The tokens the theme
+does colour stay put, which makes it read like the highlighter dropped half the syntax:
+
+```css
+:root { color-scheme: light dark; }   /* or `light` on a page that has no dark mode */
 ```
 
 Any [Phiki theme name](https://phiki.dev) works, and the defaults live in
