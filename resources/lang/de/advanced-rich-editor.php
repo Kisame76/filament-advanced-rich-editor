@@ -171,6 +171,15 @@ return [
         'image_float_left' => 'Links umfließen',
         'image_float_right' => 'Rechts umfließen',
         'image_float_center' => 'Zentrieren',
+        'image_decorative' => 'Dekoratives Bild',
+
+        'image_link' => [
+            'label' => 'Bild verlinken',
+            'heading' => 'Wohin dieses Bild zeigt',
+            'href' => 'Adresse',
+            'href_help' => 'Eine vollständige Adresse oder eine innerhalb dieser Seite, etwa /artikel/7. Leer lassen entfernt den Link.',
+            'new_tab' => 'In neuem Tab öffnen',
+        ],
         'image_rotate_left' => 'Nach links drehen',
         'image_rotate_right' => 'Nach rechts drehen',
         'media_library' => [
@@ -296,6 +305,7 @@ return [
         'ratio' => ':ratio von :needed nötig',
         'rules' => [
             'missing_alt' => 'Bild ohne Alternativtext',
+            'decorative_link' => 'Verlinktes Bild ohne Beschriftung',
             'empty_link' => 'Link ohne Text',
             'weak_link_text' => 'Linktext sagt nichts',
             'skipped_heading' => 'Überschriftenebene übersprungen',

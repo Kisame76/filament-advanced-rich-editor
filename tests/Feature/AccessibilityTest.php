@@ -50,7 +50,7 @@ it('hands over everything the browser cannot decide for itself', function (): vo
         // The second assumption, and the one that lets a chosen background be measured at
         // all: what the page writes in where nobody chose a colour.
         ->and($settings['text'])->toBe('#18181b')
-        ->and($settings['labels']['rules'])->toHaveCount(6)
+        ->and($settings['labels']['rules'])->toHaveCount(7)
         ->and($settings['labels']['rules']['missing_alt'])->toBe('Image without alt text')
         // Two numbers in one string, because the second is what makes the first mean
         // anything - and where they sit in it is a question about the language.

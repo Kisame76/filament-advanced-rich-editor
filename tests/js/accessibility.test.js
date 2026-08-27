@@ -147,13 +147,44 @@ describe('putting runs back together', () => {
     })
 })
 
-describe('the six rules', () => {
+describe('the seven rules', () => {
     const rules = (findings) => findings.map((found) => found.rule)
 
     it('finds a picture nobody described', () => {
         expect(rules(findingsFor([subject('image', { alt: '', src: 'cat.png' })]))).toEqual(['missing_alt'])
         expect(rules(findingsFor([subject('image', { alt: '   ' })]))).toEqual(['missing_alt'])
         expect(findingsFor([subject('image', { alt: 'A cat asleep on a keyboard' })])).toEqual([])
+    })
+
+    it('says nothing about a picture that was marked as carrying nothing', () => {
+        // The whole point of the mark. An empty alt on its own is indistinguishable from a
+        // description somebody forgot, which is why it is reported; an empty alt beside
+        // `role="presentation"` is a decision, and reporting a decision is how a check
+        // teaches people to switch it off.
+        expect(findingsFor([subject('image', { alt: '', decorative: true, src: 'divider.png' })])).toEqual([])
+        expect(findingsFor([subject('image', { alt: '   ', decorative: true })])).toEqual([])
+    })
+
+    it('still asks for a description where the mark was taken off', () => {
+        expect(rules(findingsFor([subject('image', { alt: '', decorative: false })]))).toEqual(['missing_alt'])
+    })
+
+    it('reports a link whose only content is a picture that says nothing', () => {
+        // The mark tells a screen reader to skip the picture, and the picture is the whole
+        // of the link - so the link is announced with no name at all. Each half is right on
+        // its own, which is exactly why nothing else catches the pair.
+        expect(rules(findingsFor([subject('image', { alt: '', decorative: true, href: '/somewhere' })])))
+            .toEqual(['decorative_link'])
+    })
+
+    it('leaves a linked picture alone once it has a description', () => {
+        // The alt text is what names the link, so there is nothing left to report.
+        expect(findingsFor([subject('image', { alt: 'Eine Katze', decorative: false, href: '/somewhere' })]))
+            .toEqual([])
+    })
+
+    it('says nothing about a decorative picture that is not a link', () => {
+        expect(findingsFor([subject('image', { alt: '', decorative: true })])).toEqual([])
     })
 
     it('finds a link with nothing in it, and calls it that rather than weak', () => {
@@ -251,8 +282,8 @@ describe('the six rules', () => {
 })
 
 describe('which rules are asked', () => {
-    it('asks all six unless a project says otherwise', () => {
-        expect(RULES).toHaveLength(6)
+    it('asks all seven unless a project says otherwise', () => {
+        expect(RULES).toHaveLength(7)
     })
 
     it('leaves out what a project left out', () => {

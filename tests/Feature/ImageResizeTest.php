@@ -28,9 +28,12 @@ it('offers the whole image toolbar on a selected image', function (): void {
         ->and($toolbars['image'][8])->toBeInstanceOf(ToolbarDivider::class)
         ->and($toolbars['image'][9])->toBeInstanceOf(ToolbarImagePanel::class)
         ->and($toolbars['image'][9]->getMode())->toBe(ToolbarImagePanel::MODE_ALT)
-        ->and($toolbars['image'][10])->toBe('imageDownload')
-        ->and($toolbars['image'][11])->toBe('imageDelete')
-        ->and(editor()->getTools())->toHaveKeys(['imageRotateLeft', 'imageRotateRight', 'imageFloatLeft', 'imageFloatCenter', 'imageFloatRight', 'imageDownload', 'imageDelete'])
+        // The decorative mark is not here: it ships off, because the accessibility check it
+        // exists to keep quiet ships off as well.
+        ->and($toolbars['image'][10])->toBe('imageLink')
+        ->and($toolbars['image'][11])->toBe('imageDownload')
+        ->and($toolbars['image'][12])->toBe('imageDelete')
+        ->and(editor()->getTools())->toHaveKeys(['imageRotateLeft', 'imageRotateRight', 'imageFloatLeft', 'imageFloatCenter', 'imageFloatRight', 'imageDecorative', 'imageLink', 'imageDownload', 'imageDelete'])
         // Filament's own table toolbar has to survive the addition.
         ->and($toolbars)->toHaveKey('table');
 });
@@ -47,7 +50,7 @@ it('keeps only the size independent controls when resizing is off', function ():
         ->and($buttons[3])->toBeInstanceOf(ToolbarDivider::class)
         ->and($buttons[4])->toBeInstanceOf(ToolbarImagePanel::class)
         ->and($buttons[4]->getMode())->toBe(ToolbarImagePanel::MODE_ALT)
-        ->and(array_slice($buttons, 5))->toBe(['imageDownload', 'imageDelete']);
+        ->and(array_slice($buttons, 5))->toBe(['imageLink', 'imageDownload', 'imageDelete']);
 });
 
 it('drops the image toolbar entirely when asked', function (): void {

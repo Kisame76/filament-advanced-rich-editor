@@ -31,6 +31,7 @@
 /** Every rule, in the order a report reads best in: the picture, the links, the structure. */
 export const RULES = [
     'missing_alt',
+    'decorative_link',
     'empty_link',
     'weak_link_text',
     'skipped_heading',
@@ -240,8 +241,22 @@ export function findingsFor(subjects, options = {}) {
     for (const subject of subjects) {
         switch (subject.kind) {
             case 'image':
-                if (enabled.has('missing_alt') && ! String(subject.alt ?? '').trim()) {
+                // A picture marked as carrying nothing is a decision, not an omission. It
+                // reaches here with the same empty alt as one somebody forgot to describe,
+                // and the only thing telling them apart is that somebody said so - which is
+                // exactly why the mark exists. Reporting a decision is how a check teaches
+                // people to switch it off.
+                if (enabled.has('missing_alt') && subject.decorative !== true && ! String(subject.alt ?? '').trim()) {
                     findings.push(finding('missing_alt', subject, subject.src ?? ''))
+                }
+
+                // A marked picture that is also a link. Each half is right on its own, which
+                // is why nothing else catches the pair: the mark tells a screen reader to
+                // skip the picture, the picture is the whole of the link, and what is
+                // announced is "link" and nothing else. The alt text is what would name it,
+                // and the mark is a promise that there is none.
+                if (enabled.has('decorative_link') && subject.decorative === true && String(subject.href ?? '').trim()) {
+                    findings.push(finding('decorative_link', subject, subject.href))
                 }
 
                 break
@@ -335,7 +350,16 @@ export function subjectsOf(doc) {
         const to = pos + node.nodeSize
 
         if (node.type.name === 'image') {
-            subjects.push({ kind: 'image', from, to, node: true, alt: node.attrs.alt, src: node.attrs.src })
+            subjects.push({
+                kind: 'image',
+                from,
+                to,
+                node: true,
+                alt: node.attrs.alt,
+                src: node.attrs.src,
+                decorative: node.attrs.decorative === true,
+                href: node.attrs.href ?? null,
+            })
 
             return false
         }

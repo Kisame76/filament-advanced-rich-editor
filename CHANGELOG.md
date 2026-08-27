@@ -2,6 +2,130 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.4.0 - 2026-08-27
+
+### Fixed
+
+- Clicking from the alt text into the caption closed the whole panel. Both fields wrote to
+  the document on every blur, and writing is what closes the panel: the transaction makes the
+  floating toolbar re-evaluate, the toolbar is rebuilt, and the panel inside it comes back
+  closed. Fine when somebody is finished, wrong the moment they move from one field to the
+  next. A blur now only writes when focus is actually leaving the panel - `relatedTarget`
+  answers that - so moving between fields writes nothing and clicking away writes once. The
+  size panel beside it never had the problem because it writes on its own button; this is the
+  same rule stated for a panel that has no button, and it lives in the shell both are built
+  on so the next panel with two fields inherits it.
+  Found alongside it and fixed too: the write asked the editor where the picture was at the
+  moment it ran, and by then the answer could be wrong - focusing a field collapses the node
+  selection to a caret. The panel now remembers which picture it was opened on, which is what
+  the method beside it already did for reading
+
+- The bar over selected text was drawn on top of the bar over a selected picture. Filament
+  decides per toolbar whether to show, and the two answers disagree about a picture selected
+  inside a paragraph: the text bubble asks only whether the selection is non-empty and sits
+  in a paragraph, and a selected picture answers yes to both. The bubble now stays out of the
+  way while a node is selected - which is the general rule rather than a rule about pictures,
+  since a node selection is not a text selection and bold, italic and a link have nothing to
+  say about one
+
+- A floating toolbar was cut off at the bottom of a field that had `maxHeight()` set. The cap
+  was on the box Filament puts those toolbars in, which made it a scrolling ancestor of them,
+  and a scrolling ancestor clips what its children position outside it. The cap sits on the
+  document one element in now: the text still scrolls inside the field, and the bar over a
+  picture near the foot of it can reach past the border. Raising `z-index` does not help with
+  this and never did - clipping by a scrolling ancestor is geometry, not paint order
+
+- A picture that was both marked decorative and given a link produced a link with no
+  accessible name: the mark tells a screen reader to skip the picture, the picture is the
+  whole of the link, and what is announced is "link" and nothing else. Each half is right on
+  its own, which is why nothing caught the pair - least of all the accessibility check, whose
+  alt text rule had just been taught to stay quiet about marked pictures. It is now the
+  seventh rule, `decorative_link`
+
+- A plugin that was both registered with `extendWith()` and handed to a render ran its
+  `TransformsRenderedHtml` pass twice, wrapping whatever it wraps inside a second copy of
+  itself. The plugin list is deduplicated by class now, the render's own copy winning, which
+  is what the method always claimed to do
+
+- The image link dialog could close having written nothing. The editor selection can arrive
+  described as text rather than as a node, and `updateAttributes` then finds no picture; the
+  media dialog has carried the correction for this at the same call site for some time, and
+  the link dialog now does too
+
+- `getImageLoading()` handed back whatever string the config held rather than one of the two
+  hints it documents, leaving the whitelist to whichever caller remembered it
+
+### Added
+
+- The size a picture was measured at, written onto it as it is inserted, so a browser knows
+  the shape before it has the file and the article below stops jumping when it arrives. The
+  measuring already happened for the media browser's own listing; what was missing was the
+  one step between. One thing to know: Filament renders `width` as an inline `style` as well
+  as an attribute - the pair this package's resizing drags - so the measured size is also the
+  displayed size. Pages carrying the usual `img { max-width: 100%; height: auto }` gain the
+  aspect ratio for nothing, and inside a Filament panel that rule is already part of the
+  preflight; a page that caps the width and lets the height stand should turn this off. Both
+  numbers are written or neither, since half a pair says nothing about the shape and a lone
+  width is a picture squashed to a strip. A file the measuring could not read is inserted
+  without them. Per field: `->imageDimensions(false)`; project-wide: `images.dimensions`
+
+- `loading` on an inserted picture, off unless asked for: `->imageLoading('lazy')` or the
+  `images.loading` key. Off is the considered answer rather than the timid one - a field
+  cannot know where on a page its pictures land, and `lazy` on the one above the fold delays
+  the largest contentful paint rather than helping it, which is usually the number somebody
+  switching it on wants to improve. `->imageLoading(false)` keeps one field eager where a
+  project turned it on everywhere, the same pair of answers `->cached(false)` gives
+
+- A picture that carries nothing worth describing: a divider, a texture, a flourish beside a
+  heading the words already say. The button writes an empty `alt` together with
+  `role="presentation"`, and the pair is the whole point - an empty `alt` on its own is
+  indistinguishable from a description somebody forgot, which is exactly what the
+  accessibility check has to report as a fault. The check knows about the mark and stops
+  reporting it, because reporting a decision is how a check teaches people to switch it off.
+  Turning it on clears the alt text, since a description and "there is nothing to describe"
+  cannot both be true; turning it off leaves the empty alt rather than inventing one. The
+  empty `alt` is written by a pass over the rendered markup rather than by the schema:
+  `tiptap-php` drops any attribute whose value is blank, which is right for every other
+  attribute and exactly wrong for this one - an `alt` of nothing is not the absence of an
+  `alt`.
+  Off unless asked for, and that is the considered answer rather than caution: the whole
+  of what the mark buys is a check that stops reporting a deliberate empty `alt`, and
+  that check ships off as well - so on an ordinary field it would be a fourteenth button
+  on the image bar whose effect nobody ever sees. Switch it on beside `->accessibility()`,
+  which is the only place it pays. Per field: `->imageDecorative()`; project-wide:
+  `images.decorative`
+
+- Where a picture points: an address and whether it opens in a new tab, rendered as an `<a>`
+  around it. With a caption the anchor goes around the picture inside the `<figure>` rather
+  than around the pair - a caption is text about the picture rather than part of what is
+  being linked, and an anchor wrapping the `<figcaption>` makes those words a click target
+  nobody aimed at. `rel="noopener noreferrer"` is written with a new tab whether or not
+  anybody asked, the same reasoning the text link dialog applies. What may be written is
+  `http`, `https`, `mailto`, `tel` and any address with no scheme at all, since `/articles/7`
+  is the commonest thing anybody types here; the colon is looked for after the first slash,
+  so `/a:b` stays a path. Anything else is dropped rather than escaped, and the check runs in
+  the browser and again in PHP because a document can be edited in the source view without
+  ever passing the dialog. A picture already inside a link is left alone. Per field:
+  `->imageLink(false)`; project-wide: `images.link`
+
+- A seam for packages that add a node of their own:
+  `AdvancedRichContentRenderer::extendWith(MyPlugin::make())`, once from a service provider,
+  and every render declares it. The editor half was already open and is Filament's - a
+  `RichContentPlugin` handed to a field gets its extensions and its tools - but the call this
+  package is built around is `make($content)->toHtml()` with nothing else said, and a node
+  that only survives when somebody remembers to name its plugin is a node that disappears
+  from the page the day somebody forgets. That is the bug this package found seven times in
+  itself. Registering the same plugin twice registers it once, because service providers run
+  in an order nobody controls, and a render handed its own copy keeps that one
+
+- `TransformsRenderedHtml`, for the half a schema cannot do. An attribute comes out the other
+  side as an attribute; what it cannot become is a `<figure>` around a picture or an `<a>`
+  around it. This package needs that four times over and did it privately; a plugin
+  implementing the interface now gets the same pass, after this package's own and after the
+  code highlighting, and still before the sanitiser. Registered plugins are part of the
+  render cache key as well - one that only transforms markup declares no extension, and the
+  extension list the fingerprint was built from could not see it
+
 ## 1.3.1 - 2026-08-27
 
 ### Fixed

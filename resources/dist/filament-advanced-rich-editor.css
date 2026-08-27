@@ -995,8 +995,20 @@
  * form down the page. Only the content box is capped, so the toolbar stays above the text
  * without being pinned to anything - which is why the field turns the sticky toolbar off
  * for itself when a height is set.
+ *
+ * The cap sits on the document rather than on the box around it, and that is not a detail.
+ * Filament puts the floating toolbars - the one over a selection, the one over a picture -
+ * inside `.fi-fo-rich-editor-content`, beside the document rather than inside it. Capping
+ * that box makes it a scrolling ancestor of those toolbars, and a scrolling ancestor clips
+ * what its children position outside it: the bar over a picture near the foot of the field
+ * gets cut off at the border, or wedged against it.
+ *
+ * `z-index` has nothing to say about that. Clipping by a scrolling ancestor is geometry, and
+ * paint order does not enter into it - the same thing the note on the upward-opening menus
+ * further up says. Moving the cap one element in is what actually lets a toolbar leave the
+ * field: the document scrolls, the box around it does not, and nothing clips.
  */
-.fi-fo-rich-editor.fi-arte-max-height .fi-fo-rich-editor-content {
+.fi-fo-rich-editor.fi-arte-max-height .fi-fo-rich-editor-content > .tiptap {
     max-height: var(--fi-arte-max-height);
     overflow-y: auto;
 }
@@ -1005,7 +1017,7 @@
  * Fullscreen is a height of its own and wins: the overlay already fills the window, and a
  * 400px box inside it would leave most of the screen empty.
  */
-.fi-arte-fullscreen.fi-arte-max-height .fi-fo-rich-editor-content {
+.fi-arte-fullscreen.fi-arte-max-height .fi-fo-rich-editor-content > .tiptap {
     max-height: none;
 }
 
@@ -3361,4 +3373,30 @@ body.fi-arte-fullscreen-lock {
 
 .fi-arte-a11y-context:where(.dark, .dark *) {
     color: var(--gray-400, #a1a1aa);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Two floating toolbars at once                                              */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The text bubble stays out of the way while a node is selected.
+ *
+ * Filament decides which floating toolbar to show per toolbar, and the two answers disagree
+ * on a selected picture: the text bubble asks whether the selection is non-empty and sits in
+ * a paragraph, and a picture selected inside a paragraph answers yes to both. So the bubble
+ * for formatting words is drawn over the bar for laying out the picture, on top of the
+ * buttons somebody is reaching for - which is what a resize drag ends in.
+ *
+ * The rule this settles is not about pictures: a node selection is not a text selection, and
+ * a bar offering bold, italic and a link has nothing to say about one. `.ProseMirror-
+ * selectednode` is ProseMirror's own mark for exactly that state, so this covers a selected
+ * embed or callout as well, and leaves a caret or a stretch of selected text alone.
+ *
+ * Written here rather than worked around in JavaScript because the decision belongs to
+ * Filament's `shouldShow`, which this package cannot reach: what is left is saying that the
+ * loser of the argument is not painted.
+ */
+.fi-arte .fi-fo-rich-editor-content:has(.ProseMirror-selectednode) [x-ref='floatingToolbar::paragraph'] {
+    display: none;
 }

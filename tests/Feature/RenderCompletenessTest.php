@@ -48,6 +48,8 @@ it('keeps what was written when nobody named a plugin', function (string $stored
         'rotate(90deg)',
     ],
     'a floated picture' => ['<p><img src="/a.png" style="float: left" /></p>', 'float: left'],
+    'a picture marked decorative' => ['<p><img src="/a.png" alt="" role="presentation" /></p>', 'role="presentation"'],
+    'a linked picture' => ['<p><img src="/a.png" data-href="/somewhere" /></p>', '<a href="/somewhere">'],
     'a caption' => ['<p><img src="/a.png" data-caption="Untertitel" /></p>', '<figcaption>Untertitel</figcaption>'],
     'a video' => [
         '<div data-type="embed" style="aspect-ratio: 16 / 9"><iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe></div>',

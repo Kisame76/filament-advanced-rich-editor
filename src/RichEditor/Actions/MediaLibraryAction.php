@@ -11,6 +11,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Support\Enums\Width;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\MediaPicker;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ImageAttributes;
 
 /**
  * The image dialog, with the pictures that are already on the server in it.
@@ -84,8 +85,10 @@ class MediaLibraryAction
                     ->maxLength(1000),
             ])
             ->action(function (array $arguments, array $data, AdvancedRichEditor $component): void {
-                $id = null;
-                $src = null;
+                // The whole item rather than its two identifying fields: what it was
+                // measured at on upload rides along with it, and that is what keeps the
+                // article below a picture from jumping when the picture arrives.
+                $item = null;
 
                 // One list and one selection. An upload became a pending attachment the moment
                 // it arrived, so it is picked by id exactly like a picture from the library -
@@ -93,11 +96,6 @@ class MediaLibraryAction
                 // the field is the only thing that decides what it may point at.
                 if (filled($data['media'] ?? null)) {
                     $item = $component->findMediaItem($data['media']);
-
-                    if ($item !== null) {
-                        $id = $item['id'];
-                        $src = $item['url'];
-                    }
                 }
 
                 // Somebody uploaded a picture and nothing ended up selected. The grid normally
@@ -105,14 +103,12 @@ class MediaLibraryAction
                 // and inserting nothing after a deliberate upload is the one outcome that reads
                 // as the dialog being broken. The newest pending attachment is what just
                 // arrived, and it is resolved through the field like everything else.
-                if ($id === null && filled($data['file'] ?? null)) {
-                    $arrived = $component->getPendingMediaItems()[0] ?? null;
-
-                    if ($arrived !== null) {
-                        $id = $arrived['id'];
-                        $src = $arrived['url'];
-                    }
+                if ($item === null && filled($data['file'] ?? null)) {
+                    $item = $component->getPendingMediaItems()[0] ?? null;
                 }
+
+                $id = $item['id'] ?? null;
+                $src = $item['url'] ?? null;
 
                 $alt = filled($data['alt'] ?? null) ? $data['alt'] : null;
 
@@ -152,7 +148,16 @@ class MediaLibraryAction
                     [
                         EditorCommand::make('insertContent', arguments: [[
                             'type' => 'image',
-                            'attrs' => ['alt' => $alt, 'id' => $id, 'src' => $src],
+                            // Only here, and deliberately not on the update above: that one
+                            // runs when the dialog was opened to correct an alt text, and the
+                            // size it would write is the file's rather than the one somebody
+                            // dragged the picture to.
+                            'attrs' => ImageAttributes::forInsert(
+                                item: $item ?? [],
+                                alt: $alt,
+                                loading: $component->getImageLoading(),
+                                withDimensions: $component->hasImageDimensions(),
+                            ),
                         ]]),
                     ],
                     editorSelection: $arguments['editorSelection'],

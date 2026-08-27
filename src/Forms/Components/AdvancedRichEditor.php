@@ -35,6 +35,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ImageAttributes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
@@ -53,7 +54,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageDecorativePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
@@ -255,6 +258,14 @@ class AdvancedRichEditor extends RichEditor
 
     protected bool|Closure|null $hasImageFloat = null;
 
+    protected bool|Closure|null $hasImageDimensions = null;
+
+    protected bool|Closure|null $hasImageDecorative = null;
+
+    protected bool|Closure|null $hasImageLink = null;
+
+    protected string|Closure|false|null $imageLoading = null;
+
     /**
      * @var array<string, string> | Closure | null
      */
@@ -354,6 +365,17 @@ class AdvancedRichEditor extends RichEditor
                     ->icon(Icons::get('image_float_'.$placement)),
                 ['left', 'center', 'right'],
             ),
+
+            // Active state spelled out for the same reason the placements need it:
+            // Filament asks `editor.isActive(<tool name>)`, which only ever recognises a
+            // node or a mark, and this is a global attribute on the image node.
+            RichEditorTool::make('imageDecorative')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_decorative'))
+                ->jsHandler('$getEditor()?.commands.toggleImageDecorative()')
+                ->activeJsExpression(
+                    'editorUpdatedAt && $getEditor()?.state?.doc?.nodeAt($getEditor()?.state?.selection?.from)?.attrs?.decorative === true',
+                )
+                ->icon(Icons::get('image_decorative')),
 
             RichEditorTool::make('imageRotateLeft')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_rotate_left'))
@@ -489,6 +511,18 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasImageFloat()
                 ? [ImageFloatPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasImageDecorative()
+                ? [ImageDecorativePlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasImageLink()
+                ? [ImageLinkPlugin::make()]
                 : [],
         );
 
@@ -2428,6 +2462,20 @@ class AdvancedRichEditor extends RichEditor
         }
 
         $buttons[] = ToolbarImagePanel::alt();
+
+        // Beside the alt text, because it is the same question answered the other way
+        // round: this one has nothing to say, and saying so deliberately is what keeps it
+        // off the accessibility check's list of descriptions somebody forgot.
+        if ($this->hasImageDecorative()) {
+            $buttons[] = 'imageDecorative';
+        }
+
+        // With the description and the mark, because all three are about what the picture
+        // means rather than where it sits.
+        if ($this->hasImageLink()) {
+            $buttons[] = 'imageLink';
+        }
+
         $buttons[] = 'imageDownload';
         $buttons[] = 'imageDelete';
 
@@ -2566,6 +2614,118 @@ class AdvancedRichEditor extends RichEditor
     {
         return (bool) ($this->evaluate($this->hasImageFloat)
             ?? config('filament-advanced-rich-editor.images.float', true));
+    }
+
+    /**
+     * Whether a picture may be given an address to point at.
+     *
+     * Rendered as an `<a>` around the picture, and around the picture inside a `<figure>`
+     * where there is a caption: a caption is text about the picture rather than part of what
+     * is being linked.
+     */
+    public function imageLink(bool|Closure $condition = true): static
+    {
+        $this->hasImageLink = $condition;
+
+        return $this;
+    }
+
+    public function hasImageLink(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageLink)
+            ?? config('filament-advanced-rich-editor.images.link', true));
+    }
+
+    /**
+     * Whether a picture may be marked as carrying nothing worth describing.
+     *
+     * A divider, a texture, a flourish beside a heading the words already say. Such a
+     * picture wants an empty `alt` and `role="presentation"` together, and the pair is what
+     * makes it different from a description somebody forgot - which is the thing the
+     * accessibility check cannot tell apart on its own.
+     *
+     * Off, and the reason is that sentence: the whole of what the mark buys is a check that
+     * stops reporting a deliberate empty `alt`, and that check ships off too. A field that
+     * has not switched the check on gains a button whose meaning is not on its face and
+     * whose effect nobody will see - on a bar that already carries thirteen. Switch this on
+     * with the check, which is the only place it pays.
+     */
+    public function imageDecorative(bool|Closure $condition = true): static
+    {
+        $this->hasImageDecorative = $condition;
+
+        return $this;
+    }
+
+    public function hasImageDecorative(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageDecorative)
+            ?? config('filament-advanced-rich-editor.images.decorative', false));
+    }
+
+    /**
+     * Whether an inserted picture is given the size it was measured at.
+     *
+     * On by default, because the point of it is a browser that leaves the right hole for a
+     * picture it has not got yet - without which the article below jumps when it arrives.
+     *
+     * The catch is worth knowing before turning it off is considered: Filament renders
+     * `width` as an inline `style` as well as an attribute, and this package's own resizing
+     * drags the same pair, so the measured size is also the displayed size. A page with the
+     * usual `img { max-width: 100%; height: auto }` handles that and gains the aspect ratio
+     * for nothing; a page that caps the width and lets the height stand gets a squashed
+     * picture. Turn this off rather than find that out on the front page.
+     */
+    public function imageDimensions(bool|Closure $condition = true): static
+    {
+        $this->hasImageDimensions = $condition;
+
+        return $this;
+    }
+
+    public function hasImageDimensions(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageDimensions)
+            ?? config('filament-advanced-rich-editor.images.dimensions', true));
+    }
+
+    /**
+     * The loading hint written onto an inserted picture: `lazy`, `eager`, or nothing.
+     *
+     * Nothing by default, and that is the considered answer rather than the timid one. A
+     * field does not know where on a page its pictures land, and `lazy` on the one above the
+     * fold delays the very thing it is usually reached for - that picture is generally the
+     * largest contentful paint, and telling the browser to wait for it makes the number it
+     * is measured by worse. A project that knows its layout says so, per field or in the
+     * config; the measured size above is what earns the bulk of the same prize anyway.
+     *
+     * `false` is the way to say none where the project set one, and null is the way back to
+     * whatever the project said - the same two answers `->cached(false)` gives the renderer.
+     * Without the first there would be no way to keep a teaser field eager on a project that
+     * turned lazy loading on everywhere.
+     */
+    public function imageLoading(string|Closure|false|null $loading): static
+    {
+        $this->imageLoading = $loading;
+
+        return $this;
+    }
+
+    public function getImageLoading(): ?string
+    {
+        $loading = $this->evaluate($this->imageLoading);
+
+        if ($loading === false) {
+            return null;
+        }
+
+        $loading ??= config('filament-advanced-rich-editor.images.loading');
+
+        // Whitelisted here rather than left to whoever writes it down. This is public and
+        // says it answers with one of the two hints a browser knows; a typo in the config -
+        // `lasy`, or `auto`, which is not a value `loading` has - would otherwise be handed
+        // out as though it were one, and every caller would need the same list to be safe.
+        return ImageAttributes::loadingHint(is_string($loading) ? $loading : null);
     }
 
     /**

@@ -197,6 +197,7 @@ return [
         'enabled' => false,
         'rules' => [
             'missing_alt',
+            'decorative_link',
             'empty_link',
             'weak_link_text',
             'skipped_heading',
@@ -856,6 +857,39 @@ return [
     | has not loaded this package's stylesheet and a floated picture with no gap has the
     | text touching it. Set it to null to write the bare `float` and draw the gap in your
     | own stylesheet.
+    |
+    | `decorative` puts a switch on the image bar for a picture that carries nothing worth
+    | describing — a divider, a texture, a flourish. It writes an empty `alt` together with
+    | `role="presentation"`, and the pair is the point: an empty `alt` on its own is what a
+    | checker has to report as a description somebody forgot.
+    |
+    | Off, because that sentence is the whole of what it buys, and the checker it buys it
+    | from ships off as well. Switch it on beside `accessibility.enabled`, which is where it
+    | pays; on a field without the check it is a button whose effect nobody ever sees. Note
+    | that a field with this off does not know the attribute, so a picture marked elsewhere
+    | loses the mark when that field saves — the same bargain every switch here makes.
+    | Per field: `->imageDecorative()`.
+    |
+    | `link` lets a picture be given an address to point at, rendered as an `<a>` around it
+    | — and around the picture inside a `<figure>` where there is a caption, since a caption
+    | is text about the picture rather than part of what is being linked. Per field:
+    | `->imageLink()`.
+    |
+    | `dimensions` writes the size a picture was measured at on upload onto the picture as
+    | it is inserted, so a browser leaves the right hole for it and the article below stops
+    | jumping when it arrives. Per field: `->imageDimensions()`.
+    |
+    | It is on by default and there is one thing to know before it is left that way:
+    | Filament renders `width` as an inline `style` as well as an attribute — the pair this
+    | package's own resizing drags — so the measured size is also the displayed size. Pages
+    | carrying the usual `img { max-width: 100%; height: auto }` gain the aspect ratio for
+    | nothing. A page that caps the width and lets the height stand gets a squashed picture,
+    | and should turn this off.
+    |
+    | `loading` is the hint written onto an inserted picture: 'lazy', 'eager' or null for
+    | none. Null on purpose — a field cannot know where on a page its pictures land, and
+    | 'lazy' on the one above the fold delays the largest contentful paint rather than
+    | helping it. Per field: `->imageLoading('lazy')`.
     */
     'images' => [
         'resizable' => true,
@@ -865,6 +899,14 @@ return [
         'float' => true,
 
         'float_gap' => '1rem',
+
+        'decorative' => false,
+
+        'link' => true,
+
+        'dimensions' => true,
+
+        'loading' => null,
     ],
 
     /*
@@ -1075,6 +1117,10 @@ return [
         'image_float_left' => 'arte-image-left',
         'image_float_center' => 'arte-image-center',
         'image_float_right' => 'arte-image-right',
+
+        'image_decorative' => 'heroicon-o-eye-slash',
+
+        'image_link' => 'heroicon-o-link',
         'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
         'image_size' => 'heroicon-o-arrows-pointing-out',
         'image_download' => 'heroicon-o-arrow-down-tray',
