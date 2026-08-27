@@ -47,6 +47,7 @@ checked against the current Filament v5 release:
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](docs/documentation.md#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
 | **Editor chrome** | — | [Fullscreen](docs/documentation.md#fullscreen), [a maximum height](docs/documentation.md#maximum-height), [a shortcut list](docs/documentation.md#help), [emoji](docs/documentation.md#emoji) and [special characters](docs/documentation.md#special-characters) |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](docs/documentation.md#anchors), [a table of contents](docs/documentation.md#table-of-contents) from the same slug pass, [column widths that reach the page](docs/documentation.md#table-column-widths), [Markdown](docs/documentation.md#markdown) with the checkboxes intact, and [an excerpt](docs/documentation.md#excerpts) for the meta description — plus the two repairs that made one possible, a sentence that stops breaking apart at a link and entities that are spelled out |
+| **Showing it outside the form** | Assemble a renderer by hand in every template, entry and column | [`<x-arte-content>`](docs/documentation.md#blade-component) for a page, [`AdvancedRichEntry`](docs/documentation.md#on-a-view-page) for a view page and [`AdvancedRichColumn`](docs/documentation.md#in-a-table) for a table — each reading what the model already declares about the attribute, and [a cache](docs/documentation.md#caching-a-render) keyed on the content *and* the configuration |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](docs/documentation.md#floating-toolbars), [normalising imported HTML through the field's own schema](docs/documentation.md#source-code), [the character and word counts as numbers](docs/documentation.md#character-count), [asking a stored document whether it is blank](docs/documentation.md#required-and-what-counts-as-empty), and [swapping any icon](docs/documentation.md#icons) or [translating any label](docs/documentation.md#translations). The [contents list](docs/documentation.md#contents) is the whole of it |
 
 Everything is off, on or replaceable per field, and the defaults live in one config file. The
@@ -144,6 +145,14 @@ assembling a renderer in each of them:
 
 ```blade
 <x-arte-content :content="$article->content" class="prose" />
+```
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Infolists\Components\AdvancedRichEntry;
+use Kisame76\FilamentAdvancedRichEditor\Tables\Columns\AdvancedRichColumn;
+
+AdvancedRichEntry::make('content')->anchorHeadings()->columnSpanFull();
+AdvancedRichColumn::make('content')->excerptLength(80)->searchable();
 ```
 
 **[Read the full documentation](https://github.com/Kisame76/filament-advanced-rich-editor/blob/main/docs/documentation.md)** for every option: the toolbar tokens and dropdowns,

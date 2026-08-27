@@ -320,6 +320,36 @@
     color: var(--prose-color, var(--gray-300, #d4d4d8));
 }
 
+/*
+ * The control on a view page where somebody may tick a box.
+ *
+ * A button rather than the label the renderer draws, because on that page it does
+ * something and the thing that does it has to be reachable with a keyboard. The rules are
+ * a reset plus the two states a button owes anyone using it: a pointer that says it can be
+ * pressed, and a focus ring.
+ */
+.fi-arte-task-item-tickable {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: 0.25rem;
+}
+
+.fi-arte-task-item-tickable:focus-visible {
+    outline: 2px solid var(--primary-600, #2563eb);
+    outline-offset: 2px;
+}
+
+.fi-arte-task-item-tickable:disabled {
+    cursor: progress;
+}
+
+.fi-arte-task-item-tickable:hover > .fi-arte-task-item-box {
+    border-color: var(--primary-600, #2563eb);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Callouts                                                                   */
 /* -------------------------------------------------------------------------- */

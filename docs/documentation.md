@@ -82,7 +82,9 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 
 **[Rendering](#rendering)** — [Table column widths](#table-column-widths) ·
 [Anchors](#anchors) · [Table of contents](#table-of-contents) · [Mentions](#mentions) ·
-[Markdown](#markdown)
+[Markdown](#markdown) · [Excerpts](#excerpts) · [Blade component](#blade-component) ·
+[On a view page](#on-a-view-page) · [Ticking a box there](#ticking-a-box-on-the-view-page) · [In a table](#in-a-table) ·
+[Caching a render](#caching-a-render)
 
 **Project-wide** — [Configuration](#configuration) · [What ships on](#what-ships-on) ·
 [Everything, in one call](#everything-in-one-call) · [Icons](#icons) ·
@@ -3063,6 +3065,93 @@ then applies its own props on top of:
 ```blade
 <x-arte-content :renderer="$renderer" :content="$article->content" />
 ```
+
+### On a view page
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Infolists\Components\AdvancedRichEntry;
+
+AdvancedRichEntry::make('content')
+    ->anchorHeadings()
+    ->highlightCode()
+    ->columnSpanFull()
+```
+
+The alternative is `TextEntry::make('content')->html()`, and it is wrong in the way that
+costs an afternoon: it prints the markup as it lies in the column, so a picture whose `src`
+is a file attachment id renders broken, a mention renders as an empty span, and a custom
+block renders as nothing at all. Those are resolved by the renderer and by nothing else.
+
+Where the record declares the attribute — Filament's `HasRichContent` — the entry starts
+from what the model already says about it: its plugins, its merge tags, its mention
+providers, the disk its pictures are on. Anything set on the entry wins over that; the model
+describes the field, the entry describes one place it is shown.
+
+The document is drawn in `fi-prose`, Filament's own class for rich content — the same one
+the editor draws it in, so the view page and the form agree.
+
+`filament/infolists` is not a dependency of this package; the class needs it and says so in
+`suggest`.
+
+#### Ticking a box on the view page
+
+A view page is for reading, so the checkboxes on one are drawn and not offered. Where they
+should be offered, say so — and say who may:
+
+```php
+AdvancedRichEntry::make('content')
+    ->tickableTasks(fn (Article $record): bool => auth()->user()->can('update', $record))
+```
+
+Off unless asked for, and asked for with a question rather than a switch. A view page is
+shown to people who may only look, and this package does not know your policies. The
+callback is handed the record, and it is asked **again** when the click comes back: the
+button was drawn for somebody who may write, and a request is not a button.
+
+A click writes straight away. Only that one attribute is assigned, so the update Eloquent
+sends is the one column — and the document is edited where it lies rather than rebuilt
+through the editor, because a round trip through the schema would rewrite every node on the
+way past and a click on a checkbox has no business touching the paragraph beside it. Model
+events and timestamps behave as they do for any other save; the record did change.
+
+The item is addressed by its position in document order, which is the order it was drawn in.
+An index naming no item — a document that changed between the drawing and the click — writes
+nothing rather than a guess.
+
+Two mechanics worth knowing:
+
+- **The buttons are added after the sanitiser**, which is the opposite of every other pass in
+  this package and is the point: what they carry is a `wire:click`, and the sanitiser's allow
+  list would take it off again. Nothing user-written goes in — the only values interpolated
+  are an integer and the schema component's own key.
+- **The control becomes a `<button>`**, not the label the renderer draws. On a page where the
+  box does something, the thing that does it has to be reachable with a keyboard. It carries
+  `aria-pressed` and disables itself while its own round trip is in flight.
+- **The count is checked before anything is drawn.** A merge tag or a custom block renders
+  markup of its own, past the sanitiser, and an `li` in it shaped like a task item would
+  shift every index after it — which does not fail loudly, it ticks the neighbour. Where the
+  markup and the stored document disagree about how many task items there are, the boxes are
+  left as they were.
+
+### In a table
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Tables\Columns\AdvancedRichColumn;
+
+AdvancedRichColumn::make('content')
+    ->excerptLength(80)
+    ->searchable()
+```
+
+A row is one line high, so the default is the **excerpt** and not the markup — plain text,
+which also means the column keeps everything `TextColumn` does with plain text: the tooltip,
+the line clamp, the copy button. `->excerptLength(null)` hands back the whole text for a
+column that would rather clamp it with CSS; never calling it takes the configured length.
+
+`->html()` renders the document instead, for the tables where that is genuinely wanted.
+
+It reads the model's declaration exactly as the entry does, and takes the same configuration
+methods. `filament/tables` is likewise a `suggest` rather than a dependency.
 
 ### Caching a render
 

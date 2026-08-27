@@ -51,6 +51,8 @@
     "spatie/laravel-medialibrary": "^11.0"
   },
   "suggest": {
+    "filament/infolists": "Required for AdvancedRichEntry, which renders stored content on a view page (^5.7).",
+    "filament/tables": "Required for AdvancedRichColumn, which renders stored content in a table cell (^5.7).",
     "spatie/laravel-medialibrary": "Required to store editor image attachments in a media library collection (^11.0).",
     "league/html-to-markdown": "Required to render stored rich content as Markdown with `AdvancedRichContentRenderer::toMarkdown()` (^5.1).",
     "phiki/phiki": "Required to colour code blocks when rendering stored content with `AdvancedRichContentRenderer::highlightCode()` (^2.2)."

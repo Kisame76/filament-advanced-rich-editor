@@ -6,6 +6,26 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- Checkboxes that can be ticked on a view page, with the tick written straight away:
+  `AdvancedRichEntry::make('content')->tickableTasks(...)`. Off unless asked for, and asked
+  for with a question rather than a switch - a view page is shown to people who may only
+  look, and this package does not know your policies. The callback is handed the record and
+  is asked again when the click comes back, because the button was drawn for somebody who
+  may write and a request is not a button. Only the one attribute is assigned, so the update
+  Eloquent sends is the one column, and the document is edited where it lies rather than
+  rebuilt through the editor - a round trip through the schema would rewrite every node on
+  the way past. The item is addressed by its position in document order, which is the order
+  it was drawn in; an index naming no item writes nothing rather than a guess. The buttons
+  are added after the sanitiser, which is the opposite of every other pass here and is the
+  point: a `wire:click` is not on its allow list. The control becomes a `<button>` with
+  `aria-pressed` rather than the label the renderer draws, because on a page where the box
+  does something the thing that does it has to be reachable with a keyboard. The items are
+  found by the attribute the parser itself keys on rather than by a class, and the count is
+  checked against the stored document before a single button is drawn - a merge tag or a
+  custom block renders markup of its own, past the sanitiser, and an `li` in it shaped like
+  a task item would shift every index after it. A shifted index does not fail loudly, it
+  ticks the neighbour, so disagreement leaves the boxes as they were
+
 - Where a picture sits: three buttons on the image toolbar - left, centre, right. Left and
   right let the text run past it, which is the oldest thing anybody has ever asked an editor
   for and the last piece of laying a picture out that was missing; the size, the rotation and
@@ -43,6 +63,19 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   name of the safe one is longer. It draws a `<div>` around the document and hands it your
   attributes; `:tag` draws something else or nothing at all. The props follow the renderer,
   and `:renderer` takes one you built yourself for anything they do not cover
+
+- `AdvancedRichEntry` and `AdvancedRichColumn`, for the view page and the table. The
+  alternative is `TextEntry::make('body')->html()`, which prints the markup as it lies in
+  the column - so a picture whose `src` is an attachment id renders broken, a mention
+  renders as an empty span and a custom block renders as nothing. Those are resolved by the
+  renderer and by nothing else. Both read what the record already declares about the
+  attribute where it implements Filament's `HasRichContent` - its plugins, its merge tags,
+  its mention providers, the disk its pictures are on - and anything set on the entry or the
+  column wins over that. The column's default is the excerpt rather than the markup, because
+  a row is one line high: plain text, so everything `TextColumn` does with plain text still
+  works, with `->excerptLength()` to change it and Filament's own `->html()` to render the
+  document instead. Both need `filament/infolists` or `filament/tables`, which are `suggest`
+  rather than dependencies
 
 - A render cache: `->cached()`, off unless asked for. The key is the content *and* the
   configuration - the same article rendered with anchors, with a different code theme or
