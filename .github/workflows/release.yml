@@ -9,6 +9,17 @@ on:
   push:
     tags: ['v*']
 
+  # Run by hand against a tag that is already out. Tags here are protected against deletion
+  # and rewriting - which is right, a version somebody has installed must keep meaning what
+  # it meant - so re-pushing one to rebuild its release is not a thing that can happen. This
+  # is the way back when a release is deleted by accident or its notes come out wrong, and
+  # it is how the workflow gets tried without waiting for the next version.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The existing tag to build the release from, e.g. v1.3.1
+        required: true
+
 # The default token is read-only, and creating a release is a write.
 permissions:
   contents: write
@@ -20,10 +31,18 @@ jobs:
 
     name: publish
 
+    # One name for the tag whichever way the job started: the ref that was pushed, or the
+    # one typed into the form.
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # The tag itself, so the notes are read out of the CHANGELOG as it stood when the
+          # version went out rather than as it stands now.
+          ref: ${{ inputs.tag || github.ref_name }}
           # Every tag, because whether this one is the newest is decided against the rest
           # of them further down.
           fetch-depth: 0
@@ -31,7 +50,7 @@ jobs:
       - name: Read the changelog section for this tag
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
 
           # The version is compared as a whole word rather than matched as a pattern: it is
           # full of dots, and a pattern would let 1.3.0 answer for 1;3!0. The section runs
@@ -66,7 +85,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          tag="$GITHUB_REF_NAME"
+          tag="$TAG"
 
           # Anything with a suffix is a pre-release: v1.4.0-beta.1, never v1.4.0.
           case "$tag" in
