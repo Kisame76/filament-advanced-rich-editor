@@ -3026,6 +3026,49 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Excerpt;
 Excerpt::from($text, 160);
 ```
 
+### Caching a render
+
+Turning a document into HTML is a parse, a walk over every node and a pass through the
+sanitiser. An article printed to a thousand readers pays for all of it a thousand times:
+
+```php
+AdvancedRichContentRenderer::make($article->content)->cached()->toHtml();
+AdvancedRichContentRenderer::make($article->content)->cached(3600, 'redis')->toHtml();
+```
+
+Off unless asked for, because a cache nobody asked for is a stale page nobody can explain.
+The same call exists on the entry, the column and the Blade component.
+
+**The key is the content and the configuration.** The same article rendered with anchors,
+with a different code theme or with another set of named styles is another page, and a key
+built from the content alone would hand one of them the other's markup. The fingerprint
+covers the document, the extension list — including the ones a project's own plugins
+contribute — the anchors, the styles, the colours, the protocols, the disk and the
+visibility. Markup, plain text and Markdown are kept apart, and Markdown is kept apart per
+set of converter options.
+
+Two things it cannot see:
+
+- **What a closure closes over.** A merge tag whose value comes from a variable, or a node
+  processor built around one, prints the same key for two different pages. Closures are
+  fingerprinted by the file and line they are written at.
+- **What a mention provider will answer.** Labels are looked up when the page is drawn,
+  which is the whole point of them, and a cached page holds the ones from last time.
+
+Either is a reason to name the key yourself — which is usually shorter to compute anyway:
+
+```php
+->cacheKey($article->getKey().'-'.$article->updated_at->timestamp)
+```
+
+**Temporary URLs cap the lifetime.** An attachment on a private disk is rendered as a
+temporary URL that expires — half an hour by default — so a page cached for a day would
+spend the rest of it showing broken pictures. Where the render can produce one, the lifetime
+is capped at `filament.temporary_file_url_expiry_minutes`. A render with a file attachment
+provider is exempt: the provider decides what a URL is, and Spatie's are ordinary ones.
+
+Defaults live under `render_cache` in the config.
+
 ## Configuration
 
 ### What ships on

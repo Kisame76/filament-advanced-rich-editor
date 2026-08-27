@@ -135,6 +135,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 
 AdvancedRichContentRenderer::make($article->content)
     ->anchorHeadings()
+    ->cached()
     ->toHtml();
 ```
 

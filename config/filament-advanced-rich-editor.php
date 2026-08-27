@@ -1114,6 +1114,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Render cache
+    |--------------------------------------------------------------------------
+    | Defaults for `AdvancedRichContentRenderer::cached()`, which is off unless a render
+    | asks for it. Turning a document into HTML is a parse, a walk and a sanitiser pass,
+    | and an article printed to a thousand readers pays for all of it a thousand times.
+    |
+    |   'ttl'     how long a rendered document is kept, in seconds. null keeps it until
+    |             something clears the store. Capped automatically where the markup holds
+    |             temporary URLs, which expire sooner than any of this.
+    |   'store'   which cache store to use. null is the application's default.
+    |   'prefix'  what every key starts with, so a store can be swept by pattern.
+    |
+    | The key covers the content and the renderer's configuration — but not what a closure
+    | closes over, and not what a mention provider will answer. Per render: `->cached()`,
+    | `->cacheKey()`.
+    */
+    'render_cache' => [
+        'ttl' => 86400,
+        'store' => null,
+        'prefix' => 'arte.render',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Excerpt
     |--------------------------------------------------------------------------
     | Defaults for `AdvancedRichContentRenderer::toExcerpt()`, the teaser it builds out

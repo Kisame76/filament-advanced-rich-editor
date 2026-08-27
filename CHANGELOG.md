@@ -37,6 +37,18 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   itself is `Excerpt::from()`, a plain function on a string, usable on text this package did
   not produce. Defaults under the `excerpt` config key; per call: `->toExcerpt(200, ' …')`
 
+- A render cache: `->cached()`, off unless asked for. The key is the content *and* the
+  configuration - the same article rendered with anchors, with a different code theme or
+  with another set of named styles is another page, and a key built from the content alone
+  would hand one of them the other's markup. The fingerprint covers the extension list as
+  the objects themselves, so a node a project's own plugin contributes is part of it too.
+  Markup, plain text and Markdown are kept apart, and Markdown per set of converter options.
+  Two things it cannot see, both named in the documentation: what a closure closes over, and
+  what a mention provider will answer - `->cacheKey()` is the way to say so. Where the
+  markup can hold a temporary URL, the lifetime is capped at the life of those URLs, since a
+  page cached for a day would spend the rest of it showing broken pictures. Defaults under
+  the `render_cache` config key
+
 ### Fixed
 
 - A highlighted code block no longer loses half its syntax inside prose styles. The colour

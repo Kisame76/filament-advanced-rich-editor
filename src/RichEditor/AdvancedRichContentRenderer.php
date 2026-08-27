@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
 use BackedEnum;
+use Closure;
+use DateInterval;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
+use Illuminate\Support\Facades\Cache;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontFamily;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
@@ -68,6 +71,26 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     protected bool $hasLinkAttributes = true;
 
     protected ?CodeHighlighter $codeHighlighter = null;
+
+    /**
+     * What `highlightCode()` was told, kept beside the highlighter it built.
+     *
+     * The highlighter holds it too, and holds it privately - which is right for a
+     * collaborator and wrong for the render cache, whose whole job is to tell two
+     * configurations apart. Two lines of the same colour are one page; two different
+     * themes are two.
+     *
+     * @var array{0: string|BackedEnum|null, 1: array<string, string|BackedEnum>|null}|null
+     */
+    protected ?array $codeThemes = null;
+
+    protected bool $isCached = false;
+
+    protected int|DateInterval|null $cacheTtl = null;
+
+    protected ?string $cacheStore = null;
+
+    protected string|Closure|null $cacheKey = null;
 
     /**
      * What this package asks the converter for on top of its own defaults.
@@ -141,12 +164,176 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      */
     public function highlightCode(string|BackedEnum|null $theme = null, ?array $themes = null): static
     {
-        $this->codeHighlighter = new CodeHighlighter(
+        $this->codeThemes = [
             $theme ?? config('filament-advanced-rich-editor.code_block.theme', 'github-light'),
             $themes ?? config('filament-advanced-rich-editor.code_block.themes'),
-        );
+        ];
+
+        $this->codeHighlighter = new CodeHighlighter(...$this->codeThemes);
 
         return $this;
+    }
+
+    /**
+     * Keeps the rendered markup, so the next page does not build it again.
+     *
+     * Turning a TipTap document into HTML is a parse, a walk over every node and a pass
+     * through the sanitiser, and a page that prints the same article to a thousand readers
+     * does all of it a thousand times. Off by default, because a cache nobody asked for is
+     * a stale page nobody can explain.
+     *
+     * The key is the content AND the configuration: the same article rendered with anchors,
+     * with a different code theme or with another set of named styles is another page, and
+     * a key built from the content alone would hand one of them the other's markup. See
+     * `Fingerprint` for how that is worked out, and for the two things it cannot see:
+     *
+     *  - what a closure closes over. A merge tag whose value comes from a variable, or a
+     *    node processor built around one, prints the same key for two different pages.
+     *  - what a mention provider will answer. Labels are looked up when the page is drawn,
+     *    which is the whole point of them, and a cached page holds the ones from last time.
+     *
+     * Either of those is a reason to pass `->cacheKey()` a key that says what changed, or
+     * to leave the cache off for that render.
+     *
+     * `$ttl` is seconds; null takes the configured lifetime, and false turns a cache that
+     * was switched on back off. Where content holds private attachments the lifetime is
+     * capped at the life of the temporary URLs in it - see `getRenderCacheTtl()`.
+     */
+    public function cached(bool|int|DateInterval|null $ttl = null, ?string $store = null): static
+    {
+        if ($ttl === false) {
+            $this->isCached = false;
+
+            return $this;
+        }
+
+        $this->isCached = true;
+        $this->cacheTtl = ($ttl === true) ? null : $ttl;
+        $this->cacheStore = $store ?? $this->cacheStore;
+
+        return $this;
+    }
+
+    /**
+     * The key this render is remembered under, in place of the one worked out from the
+     * configuration.
+     *
+     * For the two cases the fingerprint cannot see - a closure that closes over something,
+     * a provider that answers differently over time - and for the ordinary case of a record
+     * that already knows when it last changed:
+     * `->cacheKey($post->getKey().'-'.$post->updated_at->timestamp)` is shorter to compute
+     * and easier to reason about than any hash of the document.
+     *
+     * Passing null puts the fingerprint back.
+     */
+    public function cacheKey(string|Closure|null $key): static
+    {
+        $this->cacheKey = $key;
+
+        return $this;
+    }
+
+    /**
+     * How long this render may be kept.
+     *
+     * Capped where the markup can hold a temporary URL, which is what Filament hands back
+     * for an attachment on a private disk. Those expire - half an hour by default - and a
+     * page cached for a day would spend the rest of it showing broken pictures. A render
+     * with an attachment provider is exempt: the provider decides what a URL is, and
+     * Spatie's are ordinary ones.
+     */
+    public function getRenderCacheTtl(): int|DateInterval|null
+    {
+        $ttl = $this->cacheTtl ?? config('filament-advanced-rich-editor.render_cache.ttl');
+
+        $expiry = $this->hasTemporaryAttachmentUrls()
+            ? (int) config('filament.temporary_file_url_expiry_minutes', 30) * 60
+            : null;
+
+        if ($expiry === null) {
+            return $ttl;
+        }
+
+        return is_int($ttl) ? min($ttl, $expiry) : $expiry;
+    }
+
+    /**
+     * The key one flavour of this render is remembered under.
+     *
+     * The flavour is part of it because the same document is asked for as markup, as plain
+     * text and as Markdown, and those are three answers rather than one.
+     */
+    public function getRenderCacheKey(string $variant): string
+    {
+        $key = value($this->cacheKey) ?? $this->getRenderFingerprint();
+
+        return implode('.', [
+            (string) config('filament-advanced-rich-editor.render_cache.prefix', 'arte.render'),
+            $variant,
+            $key,
+        ]);
+    }
+
+    /**
+     * Everything about this renderer that a reader would notice, as one string.
+     *
+     * The extensions are in it as themselves rather than as the switches that produced
+     * them: a plugin a project wrote contributes nodes this class has never heard of, and
+     * asking the list what is in it is the only way to notice.
+     */
+    public function getRenderFingerprint(): string
+    {
+        return Fingerprint::of([
+            'content' => $this->content,
+            'extensions' => $this->getTipTapPhpExtensions(),
+            'anchors' => [$this->anchorLevels, $this->anchorPosition->value, $this->anchorSymbol, $this->anchorClass],
+            'styles' => $this->styles,
+            'linkAttributes' => $this->hasLinkAttributes,
+            'code' => $this->codeThemes,
+            'disk' => $this->fileAttachmentsDiskName,
+            'visibility' => $this->fileAttachmentsVisibility,
+            'attachments' => $this->getFileAttachmentProvider(),
+            'mergeTags' => $this->mergeTags,
+            'customBlocks' => $this->customBlocks,
+            'mentions' => $this->mentionProviders,
+            'colors' => $this->textColors,
+            'protocols' => $this->linkProtocols,
+            'processors' => $this->nodeProcessors,
+            'plugins' => $this->plugins,
+        ]);
+    }
+
+    /**
+     * Whether the markup this render produces can hold a URL that expires.
+     */
+    protected function hasTemporaryAttachmentUrls(): bool
+    {
+        if ($this->getFileAttachmentProvider() !== null) {
+            return false;
+        }
+
+        $disk = $this->fileAttachmentsDiskName ?? config('filament.default_filesystem_disk');
+
+        // Filament's own rule, read the same way it reads it.
+        return ($this->fileAttachmentsVisibility ?? ($disk === 'public' ? 'public' : 'private')) === 'private';
+    }
+
+    /**
+     * @param  Closure(): string  $render
+     */
+    protected function remember(string $variant, Closure $render): string
+    {
+        if (! $this->isCached) {
+            return $render();
+        }
+
+        $store = Cache::store($this->cacheStore ?? config('filament-advanced-rich-editor.render_cache.store'));
+        $key = $this->getRenderCacheKey($variant);
+        $ttl = $this->getRenderCacheTtl();
+
+        return $ttl === null
+            ? $store->rememberForever($key, $render)
+            : $store->remember($key, $ttl, $render);
     }
 
     /**
@@ -356,10 +543,24 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             );
         }
 
-        $converter = new HtmlConverter([...static::MARKDOWN_OPTIONS, ...$options]);
-        $converter->getEnvironment()->addConverter(new TaskItemConverter);
+        return $this->remember('markdown.'.Fingerprint::of($options), function () use ($options): string {
+            $converter = new HtmlConverter([...static::MARKDOWN_OPTIONS, ...$options]);
+            $converter->getEnvironment()->addConverter(new TaskItemConverter);
 
-        return trim($converter->convert($this->toUnsafeHtml()));
+            return trim($converter->convert($this->toUnsafeHtml()));
+        });
+    }
+
+    /**
+     * The sanitised markup, out of the cache where this render was told to keep one.
+     *
+     * Wrapped here rather than around `toUnsafeHtml()`: what is worth keeping is the
+     * finished page, and the unsafe half is a step on the way to it that `toMarkdown()`
+     * also walks - caching both would store the same document twice.
+     */
+    public function toHtml(): string
+    {
+        return $this->remember('html', fn (): string => parent::toHtml());
     }
 
     public function toUnsafeHtml(): string
@@ -410,7 +611,8 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             return '';
         }
 
-        $editor = $this->getEditor();
+        return $this->remember('text', function (): string {
+            $editor = $this->getEditor();
 
             // In the order Filament's own `toText()` uses them, with the mention passes
             // added: resolving first, so that the text is written from what the providers
@@ -428,6 +630,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // printing text, and escaping text for a page is the page's job - `{{ }}`
             // already does it.
             return html_entity_decode($editor->getText(), ENT_QUOTES, 'UTF-8');
+        });
     }
 
     /**
