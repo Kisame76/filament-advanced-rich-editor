@@ -61,7 +61,7 @@ export default ({
         this.$watch('list', (value) => {
             try {
                 window.localStorage?.setItem('arte-media-view', value ? 'list' : 'grid')
-            } catch (error) {
+            } catch {
                 // Private browsing, or a full quota. Not remembering is survivable.
             }
         })

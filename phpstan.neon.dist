@@ -1,7 +1,18 @@
-# Larastan is pulled in through phpstan/extension-installer, so its extension.neon
-# must not be included here — doing so would register the extension twice.
+# Larastan is included by hand, and it has to be: `phpstan/extension-installer` was never
+# required, only allowed in `config.allow-plugins`. The note that used to stand here said
+# the installer pulled Larastan in and that including it would register it twice — which is
+# exactly why it was never included, and why every analysis until now ran without any
+# Laravel awareness at all. `src` and `config` were clean because half the checks were
+# absent, not because there was nothing to find.
+includes:
+    - vendor/larastan/larastan/extension.neon
+
 parameters:
     level: 6
+    # `view-string` asks a live View\Factory whether a name exists, and this package's
+    # namespace is registered by a service provider nothing here ever boots. See the file.
+    bootstrapFiles:
+        - phpstan-bootstrap.php
     paths:
         - src
         - config

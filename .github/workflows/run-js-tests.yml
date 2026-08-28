@@ -26,5 +26,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # These modules are hand-written and loaded verbatim, so there is no bundler and no
+      # compiler between a typo and the browser. Twenty-four of them have no test at all;
+      # the linter is the only thing that reads those files before an install does.
+      - name: Lint
+        run: npm run lint
+
       - name: Execute tests
         run: npm test

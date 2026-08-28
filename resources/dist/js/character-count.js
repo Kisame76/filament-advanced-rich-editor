@@ -27,7 +27,7 @@ const ESCAPES = {
 }
 
 // `htmlspecialchars($text, ENT_QUOTES, 'UTF-8')`, which is what the PHP serialiser applies.
-function escape(text) {
+function escapeHtml(text) {
     return text.replace(/[&<>"']/g, (character) => ESCAPES[character])
 }
 
@@ -37,7 +37,7 @@ function serialize(node, isEscaped) {
     }
 
     if (typeof node.text === 'string') {
-        return isEscaped ? escape(node.text) : node.text
+        return isEscaped ? escapeHtml(node.text) : node.text
     }
 
     return ''

@@ -158,7 +158,7 @@ function initials(label) {
 export function renderRow(item, isSelected) {
     const row = document.createElement('button')
     row.type = 'button'
-    row.className = 'fi-arte-mention-item' + (isSelected ? ' fi-arte-mention-item-active' : '')
+    row.className = `fi-arte-mention-item${isSelected ? ' fi-arte-mention-item-active' : ''}`
     row.setAttribute('role', 'option')
     row.setAttribute('aria-selected', isSelected ? 'true' : 'false')
 
@@ -794,7 +794,7 @@ export default () => {
                 new Plugin({
                     key: new PluginKey('arteMentionMenu'),
                     props: {
-                        handleKeyDown: (view, event) => menu.handleKeyDown(event),
+                        handleKeyDown: (_view, event) => menu.handleKeyDown(event),
                     },
                     view: (view) => {
                         setTimeout(() => hydrate(view), 0)

@@ -35,7 +35,7 @@ const WORD = '[\\p{L}\\p{N}_]'
  * escapable under the `u` flag - it rejects an escape it has no meaning for, so a wider
  * list would turn a query with a hyphen in it into a syntax error.
  */
-function escape(text) {
+function escapeRegExp(text) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
@@ -50,7 +50,7 @@ export function matchesIn(text, query, { caseSensitive = false, wholeWord = fals
         return []
     }
 
-    const body = escape(query)
+    const body = escapeRegExp(query)
 
     const pattern = new RegExp(
         wholeWord ? `(?<!${WORD})${body}(?!${WORD})` : body,

@@ -680,7 +680,7 @@ export default () => {
                 selection = found.node
                     ? NodeSelection.create(doc, found.from)
                     : TextSelection.create(doc, found.from, Math.min(found.to, doc.content.size))
-            } catch (error) {
+            } catch {
                 return this.draw()
             }
 

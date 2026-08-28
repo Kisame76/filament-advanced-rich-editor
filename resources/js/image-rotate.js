@@ -63,7 +63,7 @@ export default () => {
         const dom = view?.nodeDOM?.(position)
         const image = dom?.querySelector?.('img') ?? (dom?.tagName === 'IMG' ? dom : null)
 
-        if (!image || !image.offsetWidth || !image.offsetHeight) {
+        if (!image?.offsetWidth || !image.offsetHeight) {
             return {}
         }
 

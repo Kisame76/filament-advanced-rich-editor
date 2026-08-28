@@ -5,9 +5,12 @@
   "description": "Development tooling for the JavaScript this package ships. Nothing here is published or bundled: the editor's scripts are hand-written ES modules that Filament loads verbatim.",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.11",
     "jsdom": "^30.0.1",
     "vitest": "^4.1.11"
   }
