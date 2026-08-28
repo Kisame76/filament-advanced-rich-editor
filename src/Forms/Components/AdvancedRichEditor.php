@@ -74,6 +74,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextCasePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TypographyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts\RichEditorStateCast;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
@@ -85,6 +86,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImagePanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarListPanel;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Typography;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use LogicException;
@@ -209,6 +211,10 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasTextCase = null;
 
     protected bool|int|Closure|null $nestingCheck = null;
+
+    protected bool|Closure|null $hasTypography = null;
+
+    protected string|Closure|null $typographyLanguage = null;
 
     /**
      * @var array<int, mixed>|Closure|null
@@ -502,6 +508,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTextCase()
                 ? [TextCasePlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasTypography()
+                ? [TypographyPlugin::make()]
                 : [],
         );
 
@@ -2436,6 +2448,50 @@ class AdvancedRichEditor extends RichEditor
     public function hasTextCase(): bool
     {
         return (bool) ($this->evaluate($this->hasTextCase) ?? config('filament-advanced-rich-editor.text_case') ?? true);
+    }
+
+    /**
+     * Straight quotes becoming the ones the language uses while they are typed, plus the
+     * ellipsis and the dash. Nothing about it is stored as markup - a typographic quote is a
+     * character - so switching it off later leaves every quotation already written as it is,
+     * which is also the reason it ships off: what it writes is in the document from then on,
+     * and turning it off afterwards does not take it back out.
+     */
+    public function typography(bool|Closure $condition = true): static
+    {
+        $this->hasTypography = $condition;
+
+        return $this;
+    }
+
+    public function hasTypography(): bool
+    {
+        return (bool) ($this->evaluate($this->hasTypography) ?? config('filament-advanced-rich-editor.typography.enabled') ?? false);
+    }
+
+    /**
+     * Which language's typography this field writes. The application's locale unless the
+     * field says otherwise, which it has to be able to: a site in German may well have one
+     * field holding English copy, and the quotation marks belong to the text rather than to
+     * the panel around it.
+     */
+    public function typographyLanguage(string|Closure|null $language): static
+    {
+        $this->typographyLanguage = $language;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    public function getTypographySettingsForJs(): ?array
+    {
+        if (! $this->hasTypography()) {
+            return null;
+        }
+
+        return Typography::for($this->evaluate($this->typographyLanguage) ?? app()->getLocale());
     }
 
     /**

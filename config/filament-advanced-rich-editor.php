@@ -812,6 +812,40 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Typography while typing
+    |--------------------------------------------------------------------------
+    | Straight quotes become the ones the language uses, three dots become an ellipsis, and
+    | two hyphens become that language's dash. None of it is stored as anything but
+    | characters, so switching it off later leaves every quotation already written as it is.
+    |
+    | Which characters are right is a question about a language and not about typography in
+    | general: German opens with `„` and closes with `“` - the shape English uses to open -
+    | and sets the shorter dash. Shipped for the two languages this package is translated
+    | into; anything else falls back to the English convention, and a project whose language
+    | is not here describes it under 'languages' rather than accepting the guess.
+    |
+    | The language is the application's locale unless the field says otherwise, which it can:
+    | a German site may hold one field of English copy.
+    |
+    | Shipped OFF, unlike most of what this package adds. Everything else here gives a field
+    | something it can do; this one changes what somebody typed, and what it changes ends up
+    | in the database. The two mistakes are not the same size: switching it on costs a line
+    | of configuration, while switching it off after the fact does not un-write the quotation
+    | marks already stored. An editor may well expect a word processor's behaviour - the
+    | developer installing a rich text field does not expect it to rewrite characters.
+    |
+    | Per field: `->typography()`, `->typographyLanguage('en')`.
+    */
+    'typography' => [
+        'enabled' => false,
+        'languages' => [
+            // 'fr' => ['open' => '«', 'close' => '»', 'openSingle' => '‹',
+            //          'closeSingle' => '›', 'dash' => '—'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Livewire's nesting limit
     |--------------------------------------------------------------------------
     | The editor entangles a document, so the path to a word is the path through it: text

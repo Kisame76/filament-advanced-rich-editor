@@ -189,6 +189,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/glyph-picker', __DIR__.'/../resources/dist/js/glyph-picker.js')
                     ->loadedOnRequest(),
 
+                // Typing straight quotes and getting the ones the language uses. Same deal:
+                // characters, so no PHP half.
+                Js::make('advanced-rich-editor/typography', __DIR__.'/../resources/dist/js/typography.js')
+                    ->loadedOnRequest(),
+
                 // Changing the case of a selection. Nothing of it is stored, so it has no
                 // PHP half either.
                 Js::make('advanced-rich-editor/text-case', __DIR__.'/../resources/dist/js/text-case.js')

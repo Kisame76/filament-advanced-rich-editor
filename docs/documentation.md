@@ -2274,6 +2274,63 @@ The panel is drawn on `document.body` rather than inside the editor, because a f
 [`maxHeight()`](#maximum-height) scrolls and a menu clipped by that box would be unusable on
 the last line. Style it through `.fi-arte-slash` and the classes under it.
 
+### Typography while typing
+
+```php
+AdvancedRichEditor::make('content')
+    ->typography()                     // default: off
+    ->typographyLanguage('en');        // default: the application's locale
+```
+
+Straight quotes become the ones the language uses as they are typed, `...` becomes `…`, and
+`--` becomes that language's dash. Nothing is stored as anything but characters, so switching
+it off later leaves every quotation already written exactly as it is.
+
+**Shipped off**, unlike most of what this package adds. Everything else here gives a field
+something it can do; this one changes what somebody typed, and what it changes ends up in the
+database. The two mistakes are not the same size: switching it on costs a line, while
+switching it off afterwards does not un-write the quotation marks already stored. An editor
+may well expect a word processor's behaviour — the developer installing a rich text field does
+not expect it to rewrite characters. Switch it on per field, or under
+`config('…typography.enabled')` for all of them.
+
+**Which characters are right is a question about a language, not about typography.** German
+opens with `„` and closes with `“` — the shape English uses to *open* — and sets the shorter
+dash, `–`, where English sets `—`. An editor with one hard-coded pair writes correct English
+and wrong German. TipTap's own Typography extension is that editor, which is why reaching it
+would not have been enough even if this package could.
+
+Shipped for the two languages the package is translated into. Anything else falls back to the
+English convention, and a language you know better is described rather than guessed at:
+
+```php
+'typography' => [
+    'languages' => [
+        'fr' => ['open' => '«', 'close' => '»', 'openSingle' => '‹',
+                 'closeSingle' => '›', 'dash' => '—'],
+    ],
+],
+```
+
+The same key overrides a shipped language — German is also set with inward guillemets, and
+which of the two a house uses is not this package's decision.
+
+The language comes from `app()->getLocale()` unless the field says otherwise, which it has to
+be able to: a German site may hold one field of English copy, and the quotation marks belong
+to the text rather than to the panel around it.
+
+One case is harder than it looks, and it is the reason this reads the whole line rather than
+the character in front of the caret. German closes a single quotation with `‘` and
+apostrophises with `’` — two different characters, both following a letter. `geht's` and a
+closed quotation cannot be told apart from what precedes them. What decides is whether a
+single quotation is still open earlier in the same text. English never notices, because its
+closing single quote and its apostrophe are the same character; a rule written against English
+gets German wrong and looks fine doing it.
+
+Three things this did *not* have to solve, because the framework already does: the input rule
+runner steps aside inside `code`, never runs on a paste, and `Backspace` undoes a rule that
+just fired.
+
 ### Drag handle
 
 **Shipped on.** Hovering a block puts two controls in the margin to its left: a grip to move
