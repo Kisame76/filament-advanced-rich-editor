@@ -812,6 +812,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Livewire's nesting limit
+    |--------------------------------------------------------------------------
+    | The editor entangles a document, so the path to a word is the path through it: text
+    | inside a list item is eleven segments deep, and Livewire ships with a cap of ten. The
+    | result is a 500 on the first keystroke inside the first list, naming neither this
+    | package nor the editor.
+    |
+    | Raising the cap is an installation step - see the README. This is the check that says
+    | so before anybody types, rather than after. A number asks for that depth instead of the
+    | default; `false` switches the check off for a field that will never hold a list.
+    |
+    | Per field: `->nestingCheck(false)` or `->nestingCheck(16)`.
+    */
+    'nesting_check' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Fonts
     |--------------------------------------------------------------------------
     | The typeface dropdown. Nothing is fetched from anywhere: no CDN, no Google Fonts,

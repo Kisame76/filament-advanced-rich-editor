@@ -18,6 +18,7 @@ use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
@@ -33,6 +34,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\LivewireNesting;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ImageAttributes;
@@ -205,6 +207,8 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasCharacters = null;
 
     protected bool|Closure|null $hasTextCase = null;
+
+    protected bool|int|Closure|null $nestingCheck = null;
 
     /**
      * @var array<int, mixed>|Closure|null
@@ -2432,6 +2436,50 @@ class AdvancedRichEditor extends RichEditor
     public function hasTextCase(): bool
     {
         return (bool) ($this->evaluate($this->hasTextCase) ?? config('filament-advanced-rich-editor.text_case') ?? true);
+    }
+
+    /**
+     * The check that Livewire will let a document through at all.
+     *
+     * `false` switches it off; a number asks for that depth instead of the default. Both are
+     * a project's call to make: the guard knows what breaks, it does not know whether this
+     * particular field will ever hold a list.
+     */
+    public function nestingCheck(bool|int|Closure $condition = true): static
+    {
+        $this->nestingCheck = $condition;
+
+        return $this;
+    }
+
+    /**
+     * The depth this field insists on, or `false` where the check is off.
+     */
+    public function getRequiredNestingDepth(): int|false
+    {
+        $value = $this->evaluate($this->nestingCheck) ?? config('filament-advanced-rich-editor.nesting_check') ?? true;
+
+        if ($value === false) {
+            return false;
+        }
+
+        return $value === true ? LivewireNesting::REQUIRED : max(1, (int) $value);
+    }
+
+    /**
+     * Rendering is the last moment at which the answer is still useful: a 500 out of Livewire
+     * arrives after somebody typed, name a config key and not this field. `setUp()` would be
+     * earlier but also runs where no editor is ever drawn.
+     */
+    public function render(): View
+    {
+        $required = $this->getRequiredNestingDepth();
+
+        if ($required !== false) {
+            LivewireNesting::guard($required);
+        }
+
+        return parent::render();
     }
 
     /**

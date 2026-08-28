@@ -104,6 +104,13 @@ php artisan livewire:publish --config
 Change that one line rather than pasting a whole `payload` block — a published `payload`
 replaces the vendor one outright, and its other keys differ between Livewire releases.
 
+Since 1.5.0 the package no longer only writes this down: a field checks the effective limit
+when it renders and refuses with a message naming both numbers and this step, rather than
+letting Livewire answer the first keystroke in a list with a 500 that mentions neither the
+editor nor the setting. A field that will never hold a list can opt out with
+`->nestingCheck(false)`, and one that knows its own documents can ask for less with
+`->nestingCheck(16)`.
+
 Upgrading does not help: every release from 4.1 to 4.4.1 ships the same default. Nor is this
 package the cause — a stock Filament `RichEditor` with a plain bullet list does the same. It
 just ships the task lists, tables and details that make documents deep, so you meet it here
