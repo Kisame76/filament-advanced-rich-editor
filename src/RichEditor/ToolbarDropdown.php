@@ -9,6 +9,7 @@ use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Illuminate\Support\Js;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensAwayFromTheEdge;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextCasePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 
 /**
@@ -139,6 +140,26 @@ class ToolbarDropdown extends ToolbarButtonGroup
             ))),
         )
             ->icon(Icons::get('line_height'))
+            ->staticIcon()
+            ->textualButtons();
+    }
+
+    /**
+     * Sentence case, lower case, UPPER CASE. Textual for the same reason the spacing dropdown
+     * is: the options are read rather than aimed at. Each one still carries its drawing -
+     * Lucide's Aa, AB and ab - because that is the rare set where an icon says the whole
+     * thing, and the trigger keeps the mixed one as the sign for the family.
+     */
+    public static function textCase(?string $label = null): static
+    {
+        return static::make(
+            $label ?? __('filament-advanced-rich-editor::advanced-rich-editor.tools.text_case.label'),
+            array_values(array_filter(array_map(
+                TextCasePlugin::toolName(...),
+                TextCasePlugin::MODES,
+            ))),
+        )
+            ->icon(Icons::get('text_case'))
             ->staticIcon()
             ->textualButtons();
     }

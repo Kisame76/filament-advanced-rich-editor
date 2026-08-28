@@ -1,6 +1,7 @@
 # Icons
 
-`highlighter.svg`, `message-square-quote.svg`, `palette.svg`, `pilcrow-left.svg`,
+`case-lower.svg`, `case-sensitive.svg`, `case-upper.svg`, `highlighter.svg`,
+`message-square-quote.svg`, `palette.svg`, `pilcrow-left.svg`,
 `pilcrow-right.svg`, `rotate-ccw.svg` and `rotate-cw.svg` are from
 [Lucide](https://lucide.dev), used under the ISC licence, and
 `letter-a.svg` is Lucide's `baseline` with the baseline itself removed and the letter

@@ -147,6 +147,14 @@ return [
             'double' => 'Doppelt (2,0)',
             'value' => ':value',
         ],
+        'text_case' => [
+            'label' => 'Schreibweise ändern',
+            // Jede in der Schreibweise, die sie herstellt - die Liste zeigt damit, was sie
+            // tut, statt es zu behaupten.
+            'sentence' => 'Erster Buchstabe groß',
+            'lower' => 'kleinbuchstaben',
+            'upper' => 'GROSSBUCHSTABEN',
+        ],
         'align' => [
             'start' => 'Links',
             'center' => 'Zentriert',
@@ -292,6 +300,7 @@ return [
             'paste_plain' => 'Als reinen Text einfügen',
             'indent_list' => 'Listenpunkt einrücken',
             'outdent_list' => 'Listenpunkt ausrücken',
+            'change_case' => 'Schreibweise der Auswahl durchwechseln',
             'find' => 'Suchen',
             'find_replace' => 'Suchen und Ersetzen',
             'next_cell' => 'Nächste Tabellenzelle',

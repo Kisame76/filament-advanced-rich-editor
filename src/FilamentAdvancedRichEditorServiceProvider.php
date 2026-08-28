@@ -188,6 +188,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                     ->loadedOnRequest(),
                 Js::make('advanced-rich-editor/glyph-picker', __DIR__.'/../resources/dist/js/glyph-picker.js')
                     ->loadedOnRequest(),
+
+                // Changing the case of a selection. Nothing of it is stored, so it has no
+                // PHP half either.
+                Js::make('advanced-rich-editor/text-case', __DIR__.'/../resources/dist/js/text-case.js')
+                    ->loadedOnRequest(),
             ],
             'kisame76/filament-advanced-rich-editor',
         );

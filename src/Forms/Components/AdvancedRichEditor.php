@@ -70,6 +70,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlu
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StylesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextCasePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts\RichEditorStateCast;
@@ -202,6 +203,8 @@ class AdvancedRichEditor extends RichEditor
     protected bool|Closure|null $hasListProperties = null;
 
     protected bool|Closure|null $hasCharacters = null;
+
+    protected bool|Closure|null $hasTextCase = null;
 
     /**
      * @var array<int, mixed>|Closure|null
@@ -489,6 +492,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasCharacters()
                 ? [CharactersPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasTextCase()
+                ? [TextCasePlugin::make()]
                 : [],
         );
 
@@ -2406,6 +2415,23 @@ class AdvancedRichEditor extends RichEditor
     public function hasCharacters(): bool
     {
         return (bool) ($this->evaluate($this->hasCharacters) ?? config('filament-advanced-rich-editor.characters') ?? true);
+    }
+
+    /**
+     * Changing the case of the selection. Nothing about it is stored as markup - a raised
+     * letter is a letter - so switching it off later leaves every word already changed
+     * exactly as it is.
+     */
+    public function textCase(bool|Closure $condition = true): static
+    {
+        $this->hasTextCase = $condition;
+
+        return $this;
+    }
+
+    public function hasTextCase(): bool
+    {
+        return (bool) ($this->evaluate($this->hasTextCase) ?? config('filament-advanced-rich-editor.text_case') ?? true);
     }
 
     /**

@@ -1396,6 +1396,47 @@ One entry is invisible and is drawn as `␣` — the non-breaking space, which G
 needs several times a page ("10 %", "Nr. 5", "S. 12"). A blank button is one nobody can aim
 at.
 
+### Changing the case
+
+```php
+AdvancedRichEditor::make('content')
+    ->textCase();                      // default: config('…text_case')
+```
+
+Sentence case, lower case and UPPER CASE over the selection, plus `Shift+F3` to walk the
+three the way Word does. The cycle starts over on a different selection: pressing the key on
+a new word means "change this one", not "carry on from whatever the last one ended up as".
+
+**Nothing is shipped on the toolbar, and nothing in the overflow menu either.** Most documents
+never change the case of anything, and `'more'` is finite: a slot spent here is one not spent on
+something a writer reaches for weekly. What ships is the shortcut, and the shortcut is named in
+the help dialog so it can be found at all.
+
+Put it where you want it. Either the three names in `'more'`:
+
+```php
+'more' => [..., 'textCaseSentence', 'textCaseLower', 'textCaseUpper'],
+```
+
+or the `textCase` token, which puts them behind one trigger - on the bar, or over a selection:
+
+```php
+'text_toolbar_buttons' => ['styles', 'bold', 'italic', 'textCase', 'link'],
+```
+
+Each label is set in the case it produces, and each carries Lucide's drawing of that case -
+`Aa`, `AB`, `ab`. The two say the same thing twice on purpose: in the overflow menu the label
+does the work, on the bar the icon does.
+
+Nothing about it touches the schema - a raised letter is a letter - so switching it off later
+leaves every word already changed exactly as it is.
+
+Two things it does that a simpler version would get wrong. Each text node is written back on
+its own, with its own marks, so a bold word inside the selection stays bold and a selection
+across two paragraphs stays two paragraphs; replacing the whole range in one step would flatten
+both. And the edits are applied last first, because uppercasing `ß` yields `SS` and an edit that
+grows moves everything after it.
+
 ## Media and links
 
 ### Images

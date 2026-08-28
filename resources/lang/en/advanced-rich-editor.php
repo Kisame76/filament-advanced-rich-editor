@@ -147,6 +147,14 @@ return [
             'double' => 'Double (2.0)',
             'value' => ':value',
         ],
+        'text_case' => [
+            'label' => 'Change case',
+            // Each one is set in the case it applies, so the list says what it does without
+            // three icons that would all have to mean "the letter A, but differently".
+            'sentence' => 'Sentence case',
+            'lower' => 'lower case',
+            'upper' => 'UPPER CASE',
+        ],
         'align' => [
             'start' => 'Left',
             'center' => 'Center',
@@ -294,6 +302,7 @@ return [
             'paste_plain' => 'Paste as plain text',
             'indent_list' => 'Indent list item',
             'outdent_list' => 'Outdent list item',
+            'change_case' => 'Cycle the case of the selection',
             'next_cell' => 'Next table cell',
             'find' => 'Find',
             'find_replace' => 'Find and replace',

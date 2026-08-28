@@ -118,6 +118,13 @@ class Icons
             // The letter this package already draws, put to a second use: the Latin tab is
             // the one holding letters.
             'characters_latin' => 'arte-letter-a',
+            // Changing the case. Lucide draws the three as what they produce - Aa, AB, ab -
+            // which is the one set of drawings that tells them apart without a tooltip. The
+            // dropdown's trigger is the mixed one, because that is the family's sign.
+            'text_case' => 'arte-case-sensitive',
+            'text_case_sentence' => 'arte-case-sensitive',
+            'text_case_upper' => 'arte-case-upper',
+            'text_case_lower' => 'arte-case-lower',
             'characters_greek' => 'heroicon-o-academic-cap',
             // The emoji picker's tabs. Drawn icons, not emoji: nine coloured faces in a row
             // read as things to pick rather than as the chrome around them.

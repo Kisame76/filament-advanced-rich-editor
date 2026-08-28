@@ -109,6 +109,10 @@ class ToolbarLayout
             'characters' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasCharacters()
                 ? 'characters'
                 : [],
+            // Nothing to offer means no trigger, the same rule the spacing dropdown follows.
+            'textCase' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextCase()
+                ? ToolbarDropdown::textCase()
+                : [],
             // The same, and the one shipped name that was missing it: `embeds(false)` takes
             // the tool away, the bar kept naming it, and the view raises on a name it cannot
             // resolve. A field that switched embeds off stopped rendering altogether.

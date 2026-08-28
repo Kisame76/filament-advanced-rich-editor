@@ -795,6 +795,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Changing the case of a selection
+    |--------------------------------------------------------------------------
+    | Sentence case, lower case and UPPER CASE, plus `Shift+F3` to walk the three. Nothing
+    | about it is stored - a raised letter is a letter - so switching it off later leaves
+    | every word already changed exactly as it is.
+    |
+    | Not on the bar and not in the overflow menu: this is a tool most documents never need,
+    | and 'more' is finite. What is shipped is the shortcut and the means to place it - add
+    | the three names to 'more', or the 'textCase' token to 'toolbar' or
+    | 'text_toolbar_buttons', and it is there.
+    |
+    | Per field: `->textCase()`.
+    */
+    'text_case' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Fonts
     |--------------------------------------------------------------------------
     | The typeface dropdown. Nothing is fetched from anywhere: no CDN, no Google Fonts,
@@ -1092,6 +1109,10 @@ return [
         // The letter this package already draws, put to a second use: the Latin tab is
         // the one holding letters.
         'characters_latin' => 'arte-letter-a',
+        'text_case' => 'arte-case-sensitive',
+        'text_case_sentence' => 'arte-case-sensitive',
+        'text_case_upper' => 'arte-case-upper',
+        'text_case_lower' => 'arte-case-lower',
         'characters_greek' => 'heroicon-o-academic-cap',
 
         // The emoji picker's own tabs.
