@@ -7,6 +7,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 use BackedEnum;
 use Closure;
 use DateInterval;
+use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
@@ -157,6 +158,26 @@ trait RendersRichContent
     {
         return $this->configureRenderer(
             fn (AdvancedRichContentRenderer $renderer) => $renderer->fileAttachmentsVisibility($visibility),
+        );
+    }
+
+    /**
+     * What resolves an uploaded picture back into a URL.
+     *
+     * The disk and the visibility above only answer for attachments that are a path. An
+     * upload that went through a media library is an id, and only its provider knows what
+     * that id points at - so without this, a view page could be told everything about where
+     * the pictures live except the one thing that finds them.
+     *
+     * Usually it comes from the model, which is the better place: `setUpRichContent()` is
+     * read by every path that renders the attribute, this one only by the entry it is
+     * written on. This is for where that is not possible, or where one place shows the same
+     * attribute differently.
+     */
+    public function fileAttachmentProvider(?FileAttachmentProvider $provider): static
+    {
+        return $this->configureRenderer(
+            fn (AdvancedRichContentRenderer $renderer) => $renderer->fileAttachmentProvider($provider),
         );
     }
 

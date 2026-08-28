@@ -884,6 +884,44 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         ];
     }
 
+    /**
+     * The upstream pass, with one condition added: an attachment that resolves to nothing
+     * leaves the stored source alone.
+     *
+     * Filament assigns unconditionally - `$node->attrs->src = $this->getFileAttachmentUrl(…)`
+     * - which is right while a provider is there and destructive when one is not. Without
+     * one, every picture that came from an upload loses the `src` it was written with, and
+     * the page draws an empty box of exactly the right size, because the measurements do
+     * survive. Nothing about it looks like a configuration problem: the document is intact,
+     * the file is on the disk, the URL works if you paste it into a browser.
+     *
+     * The attachment id stays the truth wherever it can be resolved - it has to, because a
+     * private disk hands out URLs that expire. This only decides what happens when there is
+     * no answer at all, and there "keep what was written" beats "erase it". The stored
+     * source may be stale, which is the same risk every picture without an attachment id
+     * already carries; losing a good one is not a risk but a certainty.
+     */
+    protected function processFileAttachments(Editor $editor): void
+    {
+        $editor->descendants(function (object &$node): void {
+            if ($node->type !== 'image') {
+                return;
+            }
+
+            if (blank($node->attrs->id ?? null)) {
+                return;
+            }
+
+            $url = $this->getFileAttachmentUrl($node->attrs->id);
+
+            if (blank($url)) {
+                return;
+            }
+
+            $node->attrs->src = $url;
+        });
+    }
+
     protected function processNodes(Editor $editor): void
     {
         // Before the caller's own processors: theirs may want to read the anchors, and

@@ -3264,6 +3264,33 @@ from what the model already says about it: its plugins, its merge tags, its ment
 providers, the disk its pictures are on. Anything set on the entry wins over that; the model
 describes the field, the entry describes one place it is shown.
 
+> **If your uploads go through a media library, the model has to say so.** `->spatieMediaLibrary()`
+> on the field configures the *writing* half only. On the reading side an uploaded picture is
+> an attachment id, and only its provider knows what that id points at — so a view page
+> without one shows an `<img>` with its measurements and no source, which a browser draws as
+> an empty box of exactly the right size. Nothing about it looks like a misconfiguration: the
+> document is intact, the file is on the disk, the URL works if you paste it into a browser.
+>
+> Declare it once, where every reading path finds it:
+>
+> ```php
+> use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
+>
+> public function setUpRichContent(): void
+> {
+>     $this->registerRichContent('content')
+>         ->plugins([SpatieMediaLibraryPlugin::make('rich-editor')]);
+> }
+> ```
+>
+> Where that is not possible — a document rendered outside its model, or one attribute shown
+> two different ways — the entry, the column and the renderer each take
+> `->fileAttachmentProvider(...)`.
+>
+> Since 1.5.0 a source that cannot be resolved is left as it was found rather than erased, so
+> a document written with a working URL still draws. That is a safety net and not the
+> configuration: a media library URL is derived from the id, and on a private disk it expires.
+
 The document is drawn in `fi-prose`, Filament's own class for rich content — the same one
 the editor draws it in, so the view page and the form agree.
 
