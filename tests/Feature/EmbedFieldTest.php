@@ -13,6 +13,13 @@ it('takes the button away where the field says so', function (): void {
     expect(editor()->embeds(false)->getTools())->not->toHaveKey('embed');
 });
 
+it('takes the name off the toolbar with the button', function (): void {
+    // The tool and the name on the bar are two halves of one switch. Leaving the name
+    // behind is not a stale button - the view throws on a name it cannot resolve, so the
+    // field that switched embeds off is the field that no longer renders.
+    expect(array_merge(...toolbarShape(editor()->embeds(false))))->not->toContain('embed');
+});
+
 it('reads whether embeds are offered from the config file', function (): void {
     config()->set('filament-advanced-rich-editor.embed.enabled', false);
 

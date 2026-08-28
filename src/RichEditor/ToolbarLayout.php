@@ -109,6 +109,12 @@ class ToolbarLayout
             'characters' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasCharacters()
                 ? 'characters'
                 : [],
+            // The same, and the one shipped name that was missing it: `embeds(false)` takes
+            // the tool away, the bar kept naming it, and the view raises on a name it cannot
+            // resolve. A field that switched embeds off stopped rendering altogether.
+            'embed' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmbeds()
+                ? 'embed'
+                : [],
             // Nothing to pick from means no trigger, the same way the overflow menu and the
             // colour pickers vanish when what they open onto is empty.
             'lineHeight' => static function (AdvancedRichEditor $editor): object|array {
