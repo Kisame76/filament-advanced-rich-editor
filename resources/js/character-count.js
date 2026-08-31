@@ -49,10 +49,22 @@ function textOf(document, isEscaped) {
         .join(BLOCK_SEPARATOR)
 }
 
+/**
+ * How long a document is in characters, and nothing else.
+ *
+ * Apart from `countDocument()` because the limit below only ever asks this one number,
+ * while asking for both walks the document a second time to build a word count nobody
+ * reads. That second walk is free on a paragraph and milliseconds on a long article, and
+ * the limit asks on every transaction the editor sees.
+ */
+export function charactersIn(document) {
+    // Code points, like PHP's `mb_strlen`: an emoji is one character in both.
+    return Array.from(textOf(document, true)).length
+}
+
 export function countDocument(document) {
     return {
-        // Code points, like PHP's `mb_strlen`: an emoji is one character in both.
-        characters: Array.from(textOf(document, true)).length,
+        characters: charactersIn(document),
         words: textOf(document, false).split(/\s+/).filter(Boolean).length,
     }
 }
@@ -78,15 +90,32 @@ export function replacesWholeDocument(steps, sizeBefore) {
 }
 
 /**
- * The key ProseMirror's history plugin is registered under, or null where there is none.
+ * What a key belonging to ProseMirror's history plugin looks like.
  *
- * Read off the plugins the editor actually has rather than written down. `history$` is a
- * name `PluginKey` generates by appending a counter to the plugin's name, so a second key
- * of that name registered first turns it into `history$1` - and a literal would quietly
- * stop matching, taking the undo exception below with it.
+ * A prefix rather than a constant, because `PluginKey` builds its key by appending `$` to
+ * the plugin's name and a counter after that: the first key named `history` becomes
+ * `history$`, a second `history$1`.
  */
-export function historyKeyIn(plugins) {
-    return (plugins ?? []).map((plugin) => plugin?.key).find((key) => /^history\$/.test(key ?? '')) ?? null
+const HISTORY_KEY = /^history\$/
+
+/**
+ * Whether this transaction is ProseMirror's history putting something back, which is the
+ * only way to tell an undo from somebody typing the same text.
+ *
+ * Asked of the transaction and the editor's own plugins rather than of a key written down
+ * here, and asked of *every* key that looks like history rather than the first one found.
+ * Both halves matter. A literal `history$` stops matching the day something else registers
+ * that name first; and picking the first matching key is the same bug one step along,
+ * because it is whichever plugin registered the name first that owns the bare `history$` -
+ * so the impostor is exactly the one that gets picked, and the real history is never asked.
+ *
+ * Asking all of them removes the choice: the key that marked this transaction is the one
+ * that put the content back, whatever counter its name ended up with.
+ */
+export function isHistoryTransaction(transaction, plugins) {
+    return (plugins ?? []).some(
+        (plugin) => HISTORY_KEY.test(plugin?.key ?? '') && transaction.getMeta(plugin.key) !== undefined,
+    )
 }
 
 /**
@@ -109,21 +138,17 @@ export function limitPluginsFor(editor, pmState) {
     return [
         new Plugin({
             key: new PluginKey('arteCharacterCountLimit'),
-            filterTransaction: (transaction, state) => {
-                const historyKey = historyKeyIn(state.plugins)
-
-                return allowsTransaction({
-                    limit,
-                    changed: transaction.docChanged,
-                    after: countDocument(transaction.doc.toJSON()).characters,
-                    before: () => countDocument(state.doc.toJSON()).characters,
-                    replacesWholeDocument: replacesWholeDocument(
-                        transaction.steps,
-                        state.doc.content.size,
-                    ),
-                    isHistory: historyKey !== null && transaction.getMeta(historyKey) !== undefined,
-                })
-            },
+            filterTransaction: (transaction, state) => allowsTransaction({
+                limit,
+                changed: transaction.docChanged,
+                after: () => charactersIn(transaction.doc.toJSON()),
+                before: () => charactersIn(state.doc.toJSON()),
+                replacesWholeDocument: replacesWholeDocument(
+                    transaction.steps,
+                    state.doc.content.size,
+                ),
+                isHistory: () => isHistoryTransaction(transaction, state.plugins),
+            }),
         }),
     ]
 }
@@ -140,21 +165,27 @@ export function limitPluginsFor(editor, pmState) {
  *     cannot be taken back;
  *   - a document already over the limit stays editable as long as it is not growing.
  *
- * `before` is a callback and not a number on purpose. Measuring it walks the whole document
- * and builds a string, and this runs on every keystroke - but it is only ever needed in the
- * last branch, which is reached only once the result is already too long.
+ * `isHistory`, `after` and `before` are callbacks and not values on purpose, and the branches
+ * are ordered cheapest first. This runs on every transaction the editor sees, and most of
+ * them are a caret moving - which changes no text and is answered by the first line without
+ * measuring anything at all. Measuring means walking the whole document and building a
+ * string from it: on a long one that is milliseconds, paid per arrow key, for an answer no
+ * branch reads. `before` costs the same again and is needed only in the last branch, which
+ * is reached only once the result is already too long.
  */
 export function allowsTransaction({ limit, changed, before, after, replacesWholeDocument: isWhole, isHistory }) {
-    if (!limit || !changed || isWhole || isHistory) {
+    if (!limit || !changed || isWhole || isHistory()) {
         return true
     }
 
-    if (after <= limit) {
+    const grown = after()
+
+    if (grown <= limit) {
         return true
     }
 
     // Over the limit, so the only remaining question is whether this made it worse.
-    return after <= before()
+    return grown <= before()
 }
 
 /**

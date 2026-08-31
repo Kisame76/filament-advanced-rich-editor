@@ -162,12 +162,68 @@ it('writes its numbers through the one helper that knows the locale', function (
         ->toContain('1.234');
 });
 
+it('lets a project decide what a number looks like', function (): void {
+    // `Numbers` is where this package decided, not the last word on it: the line reaches it
+    // through an overridable `number()`, and the component is resolved from the container,
+    // so binding a subclass changes the count and the limit together. Naming `Numbers` at
+    // both places instead would let a project change one of the two numbers on one line.
+    app()->bind(CharacterCount::class, BracketedCharacterCount::class);
+
+    expect(CharacterCount::make()->characters(1234)->limit(9999)->toEmbeddedHtml())
+        ->toContain('[1234]')
+        ->and(CharacterCount::make()->characters(1234)->limit(9999)->toEmbeddedHtml())
+        ->toContain('[9999]');
+});
+
+/** A project that decided its own answer. Declared here because it exists for one test. */
+final class BracketedCharacterCount extends CharacterCount
+{
+    protected static function number(int $value): string
+    {
+        return "[{$value}]";
+    }
+}
+
 it('treats a limit below one as no limit at all', function (): void {
     // A `maxLength(0)` - from a config value that arrived empty, or a computed limit that
     // came back zero - would otherwise paint the line red on an empty document, and with
     // the limit held it would refuse every character: a field nobody can type into.
-    expect(CharacterCount::make()->characters(0)->limit(0)->enforced()->toEmbeddedHtml())
-        ->not->toContain('fi-arte-character-count-danger')
-        ->and(editor()->maxLength(0)->enforceMaxLength()->getCharacterCountSettingsForJs())
-        ->toBeNull();
+    $line = CharacterCount::make()->characters(0)->limit(0)->enforced()->toEmbeddedHtml();
+
+    expect($line)->not->toContain('fi-arte-character-count-danger')
+        // And the wording drops the limit with the colour, rather than announcing one of
+        // nought: the three answers the line gives about a limit all have to say the same.
+        ->and($line)->not->toContain('0 / 0')
+        ->and($line)->toContain('limit: null')
+        ->and(CharacterCount::make()->limit(0)->getStateThresholds())->toBeNull();
+});
+
+it('takes a limit below one as none wherever it is read', function (): void {
+    expect(CharacterCount::make()->limit(0)->getLimit())->toBeNull()
+        ->and(CharacterCount::make()->limit(-5)->getLimit())->toBeNull()
+        // Answered where the number comes from, so the counter, the browser's copy of the
+        // rule and the field's own accessor cannot disagree about the same zero.
+        ->and(editor()->maxLength(0)->getCharacterCountLimit())->toBeNull()
+        ->and(editor()->characterCountLimit(0)->getCharacterCountLimit())->toBeNull()
+        ->and(editor()->characterCountLimit(-5)->getCharacterCountLimit())->toBeNull()
+        ->and(belowContent(editor()->maxLength(0))->getLimit())->toBeNull()
+        ->and(editor()->maxLength(0)->enforceMaxLength()->getCharacterCountSettingsForJs())->toBeNull()
+        // While one is a limit, and is left alone.
+        ->and(editor()->maxLength(1)->getCharacterCountLimit())->toBe(1)
+        ->and(editor()->maxLength(1)->enforceMaxLength()->getCharacterCountSettingsForJs())
+        ->toBe(['limit' => 1, 'enforce' => true]);
+});
+
+it('takes a target of nought as no target rather than as no limit', function (): void {
+    // A field that names both, where the target arrived empty: nought is not a number to
+    // count towards, so the counter falls through to the limit the record is validated
+    // against - exactly as it does when no target was named at all. Reading it the other
+    // way would let an empty config value hide `maxLength()` from the reader.
+    expect(editor()->maxLength(500)->characterCountLimit(0)->getCharacterCountLimit())->toBe(500)
+        ->and(editor()->maxLength(500)->characterCountLimit(null)->getCharacterCountLimit())->toBe(500)
+        ->and(editor()->maxLength(500)->characterCountLimit(fn (): int => 0)->getCharacterCountLimit())->toBe(500)
+        // And with nothing behind it there is nothing to fall through to.
+        ->and(editor()->characterCountLimit(0)->getCharacterCountLimit())->toBeNull()
+        // A target that is a target is still preferred to the validated limit.
+        ->and(editor()->maxLength(500)->characterCountLimit(160)->getCharacterCountLimit())->toBe(160);
 });

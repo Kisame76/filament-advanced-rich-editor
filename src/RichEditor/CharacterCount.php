@@ -80,9 +80,18 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
         return $this->words;
     }
 
+    /**
+     * Below one is not a limit, and is taken as none at all.
+     *
+     * Normalised here rather than answered at each of the places that read it, because the
+     * line has three of them and they have to agree: the wording picks a phrase that names
+     * a limit, the initial class paints the line red, and the browser half is handed the
+     * number. A `maxLength(0)` - a config value that arrived empty, a computed limit that
+     * came back zero - otherwise reads "0 / 0 characters" in red on an empty document.
+     */
     public function limit(?int $limit): static
     {
-        $this->limit = $limit;
+        $this->limit = ($limit !== null && $limit >= 1) ? $limit : null;
 
         return $this;
     }
@@ -196,9 +205,23 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
         return str_replace(
             [':count', ':limit'],
-            [Numbers::format($count), Numbers::format($this->limit ?? 0)],
+            [static::number($count), static::number($this->limit ?? 0)],
             $templates[$kind][$count === 1 ? 'one' : 'other'],
         );
+    }
+
+    /**
+     * A number the way this line writes one.
+     *
+     * `Numbers` is where the package decided that, and this is the seam a project reaches
+     * for to decide otherwise - the component is resolved through `app(static::class)`, so
+     * a binding replaces it. Called late-bound rather than written out at the two places
+     * above, because a subclass that changed only one of them would say 1,234 and 1.234 on
+     * the same line.
+     */
+    protected static function number(int $value): string
+    {
+        return Numbers::format($value);
     }
 
     public function enforced(bool $condition = true): static
@@ -225,10 +248,8 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
      */
     public function getStateThresholds(): ?array
     {
-        // Below one is not a limit: `maxLength(0)` would otherwise paint the line red on an
-        // empty document, and with the limit held it would refuse every character - a field
-        // that cannot be typed into at all.
-        if ($this->limit === null || $this->limit < 1) {
+        // Nothing below one reaches this: `limit()` has already taken it as no limit.
+        if ($this->limit === null) {
             return null;
         }
 

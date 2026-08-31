@@ -7,6 +7,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\StatisticsAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Numbers;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StatisticsTable;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\RichEditor\RomanStatisticsAction;
 
 /**
  * The statistics dialog, and the numbers behind it.
@@ -122,12 +123,91 @@ it('formats its numbers the way the line under the field formats them', function
     // would read 1,234 beside a line reading 1.234.
     app()->setLocale('de');
 
+    // The line shows its word count too, so the same 1,234 has to be written the same way
+    // in both places - which is the whole point of there being one helper.
+    $field = editor()->characterCountWords();
+    $field->state('<p>'.trim(str_repeat('wort ', 1234)).'</p>');
+
+    // Read out of the dialog the tools menu opens rather than off the source: the rows are
+    // built inside the action's own schema, and a number only proves anything where it
+    // arrives the way a reader gets it.
+    $dialog = statisticsDialogText($field);
+    $line = (string) belowContent($field)->toEmbeddedHtml();
+
     expect(Numbers::format(1234))->toBe('1.234')
-        // And the dialog draws its numbers through the same helper rather than its own.
-        ->and(file_get_contents(dirname(__DIR__, 2).'/src/RichEditor/Actions/StatisticsAction.php'))
-        ->toContain('Numbers::format(')
-        ->and(file_get_contents(dirname(__DIR__, 2).'/src/RichEditor/CharacterCount.php'))
-        ->toContain('Numbers::format(');
+        ->and($dialog)->toContain('1.234')
+        ->and($dialog)->not->toContain('1,234')
+        // The same document, the same shape, on the line underneath it.
+        ->and($line)->toContain('1.234');
+});
+
+it('says how long the document is, row by row', function (): void {
+    // The five rows are built where nothing else can reach them - `rowsFor()` only works on
+    // a field inside a schema - so they are read back through the dialog itself. Without
+    // this the labels, their order and the reading time are covered by nothing.
+    $field = editor();
+    $field->state('<p>eins zwei</p><p>drei</p>');
+
+    $counted = $field->measureDocument($field->getState());
+    $text = statisticsDialogText($field);
+    $row = static fn (string $key): string => __("filament-advanced-rich-editor::advanced-rich-editor.statistics.{$key}");
+
+    // The numbers are read off the field rather than written down again: showing the field's
+    // own measurement is the dialog's whole job, and counting a second time here would be a
+    // test that agrees with itself while the screen says something else. What is asserted is
+    // that each number arrives, in order, beside the label it belongs to.
+    $expected = [
+        $row('words').' '.Numbers::format($counted['words']),
+        $row('characters').' '.Numbers::format($counted['characters']),
+        $row('characters_without_spaces').' '.Numbers::format($counted['charactersWithoutSpaces']),
+        $row('paragraphs').' '.Numbers::format($counted['paragraphs']),
+        // Anything under a minute is said in words, because "1" reads as a rounded number.
+        $row('reading_time').' '.$row('reading_time_under'),
+    ];
+
+    $found = array_map(static fn (string $needle): int|false => mb_strpos($text, $needle), $expected);
+
+    expect($counted['readingMinutes'])->toBe(1)
+        ->and($found)->not->toContain(false, "A row is missing from: {$text}")
+        ->and($found)->toBe(array_values(collect($found)->sort()->all()), "The rows are out of order in: {$text}");
+});
+
+it('says an empty document takes no time at all', function (): void {
+    $field = editor();
+    $field->state(null);
+
+    $row = static fn (string $key): string => __("filament-advanced-rich-editor::advanced-rich-editor.statistics.{$key}");
+
+    expect(statisticsDialogText($field))
+        ->toContain($row('words').' 0')
+        ->and(statisticsDialogText($field))
+        ->toContain($row('reading_time').' '.$row('reading_time_none'));
+});
+
+it('lets a project decide what its numbers look like', function (): void {
+    // `Numbers` is where this package decided, not the last word on it. The rows go through
+    // an overridable `number()` so that a project changing the shape changes all five at
+    // once - four calls naming `Numbers` outright would leave a subclass with a dialog that
+    // formatted four of its numbers one way and the fifth another.
+    $field = editor();
+    $field->state('<p>eins zwei</p>');
+
+    expect(array_column(RomanStatisticsAction::rows($field), 'value'))
+        ->toContain('[2]')
+        ->and(array_column(RomanStatisticsAction::rows($field), 'value'))
+        ->toContain('[9]');
+});
+
+it('answers an empty document in the same shape as an occupied one', function (): void {
+    // The empty answer is written out separately from the counted one, so nothing in the
+    // language holds their names or their order together. This does - a sixth number added
+    // to one side and not the other stops here rather than at a caller reading positionally.
+    $field = editor();
+
+    expect(array_keys($field->measureDocument(null)))
+        ->toBe(array_keys($field->measureDocument('<p>wort</p>')))
+        ->and(array_keys($field->measureCharacterCount(null)))
+        ->toBe(array_keys($field->measureCharacterCount('<p>wort</p>')));
 });
 
 it('escapes what a project put in its translation file', function (): void {

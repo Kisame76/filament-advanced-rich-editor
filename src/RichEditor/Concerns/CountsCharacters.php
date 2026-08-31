@@ -68,7 +68,27 @@ trait CountsCharacters
 
     public function getCharacterCountLimit(): ?int
     {
-        return $this->evaluate($this->characterCountLimit) ?? $this->getMaxLength();
+        // Each half is normalised before the fallback rather than the pair afterwards, and
+        // the difference shows on a field that sets both: a `characterCountLimit(0)` is a
+        // field that named no target rather than one that named nought, so it falls through
+        // to `maxLength()` the way a null does. Normalising after the fallback would let an
+        // empty config value hide the limit the record really is validated against.
+        return $this->asLimit($this->evaluate($this->characterCountLimit))
+            ?? $this->asLimit($this->getMaxLength());
+    }
+
+    /**
+     * A number that is actually a limit, or null.
+     *
+     * Below one is not a limit: a `maxLength(0)` - a config value that arrived empty, a
+     * computed limit that came back zero - is a field announcing a limit of nought, and
+     * where it is held, one that refuses every character. Nobody writes that down on
+     * purpose, and the three answers this trait gives about the limit have to agree about
+     * it, so they ask here rather than each deciding.
+     */
+    protected function asLimit(?int $value): ?int
+    {
+        return ($value !== null && $value >= 1) ? $value : null;
     }
 
     /**
@@ -110,11 +130,9 @@ trait CountsCharacters
             return null;
         }
 
-        $limit = (int) $this->getMaxLength();
+        $limit = $this->asLimit($this->getMaxLength());
 
-        // Below one is not a limit, the same answer the counter gives: `maxLength(0)` would
-        // otherwise send the browser a limit that refuses every character.
-        return $limit < 1 ? null : ['limit' => $limit, 'enforce' => true];
+        return $limit === null ? null : ['limit' => $limit, 'enforce' => true];
     }
 
     /**
@@ -174,13 +192,14 @@ trait CountsCharacters
      */
     protected function measure(mixed $content, bool $full): array
     {
-        // The names in one place, so an empty document cannot come back in a different
-        // shape than an occupied one - and so a sixth number is one edit rather than two.
-        $keys = ['characters', 'words'];
-        $extraKeys = ['charactersWithoutSpaces', 'paragraphs', 'readingMinutes'];
-
         if (blank($content)) {
-            return array_fill_keys($full ? [...$keys, ...$extraKeys] : $keys, 0);
+            // The same names in the same order as the answer below, written out rather than
+            // built from a list: a list would still leave the occupied answer naming its own
+            // keys, so it moved the duplication rather than removing it. What holds the two
+            // together is the test that compares their shapes, since nothing here can.
+            return $full
+                ? ['characters' => 0, 'words' => 0, 'charactersWithoutSpaces' => 0, 'paragraphs' => 0, 'readingMinutes' => 0]
+                : ['characters' => 0, 'words' => 0];
         }
 
         $editor = $this->getTipTapEditor()->setContent($content);

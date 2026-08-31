@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Schema;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
@@ -182,6 +184,33 @@ function belowContent(AdvancedRichEditor $editor): mixed
     // Filament wraps anything `Htmlable` handed to `belowContent()` in its own `Html`
     // component, so the thing the field put there is one layer down.
     return $component instanceof Html ? $component->getContent() : $component;
+}
+
+/**
+ * What the statistics dialog says about a field, as text.
+ *
+ * The rows are built inside the action's own schema, and the method that builds them only
+ * works on a field that is inside one - so the way to read them is the way a reader gets
+ * them: resolve the action the tools menu opens and render what it puts in the modal.
+ * Reading the source instead proves nothing, and asserting on a helper the dialog happens
+ * to call proves only that the helper works.
+ */
+function statisticsDialogText(AdvancedRichEditor $editor): string
+{
+    $action = collect($editor->getActions())->first(
+        static fn (Action $action): bool => $action->getName() === 'statistics',
+    );
+
+    if (! $action instanceof Action) {
+        throw new RuntimeException('The field registered no statistics action to open.');
+    }
+
+    $html = implode('', array_map(
+        static fn (Component $component): string => (string) $component->toHtml(),
+        $action->getSchema(testSchema())?->getComponents() ?? [],
+    ));
+
+    return trim((string) preg_replace('/\s+/u', ' ', strip_tags($html)));
 }
 
 /**

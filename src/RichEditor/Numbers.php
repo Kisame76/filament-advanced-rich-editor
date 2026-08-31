@@ -15,9 +15,12 @@ use Illuminate\Support\Number;
  * handed `app()->getLocale()` - left apart, the same count is written one way before the
  * first keystroke and another way after it.
  *
- * This needs `ext-intl`, which the package requires for exactly this reason: Laravel's
- * `Number` builds a `NumberFormatter`, and a host without the extension answers a request
- * with an exception rather than an English-looking number.
+ * This needs `ext-intl`: Laravel's `Number` builds a `NumberFormatter`, and a host without
+ * the extension answers with an exception rather than an English-looking number. The
+ * package's `composer.json` requires it directly, which is a statement rather than a fix -
+ * `filament/support` already requires it, so no host that can install this package is
+ * without it. Declared anyway because this file uses it, and a dependency that is only ever
+ * true through somebody else's requirement is one nobody notices being dropped.
  */
 final class Numbers
 {

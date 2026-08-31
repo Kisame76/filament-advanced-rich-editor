@@ -51,7 +51,7 @@ class StatisticsAction
     /**
      * The five rows, formatted the way the line under the field formats its two.
      *
-     * Through `Numbers::format()`, which is where this package decided what a
+     * Through `number()` below, which reaches `Numbers` - where this package decided what a
      * number looks like: the app's locale, the same one the counter's browser half is
      * handed. A dialog formatting its own way would read 1,234 one screen away from a line
      * reading 1.234.
@@ -65,15 +65,25 @@ class StatisticsAction
         $line = static fn (string $key): string => __("filament-advanced-rich-editor::advanced-rich-editor.statistics.{$key}");
 
         return [
-            ['label' => $line('words'), 'value' => Numbers::format($counted['words'])],
-            ['label' => $line('characters'), 'value' => Numbers::format($counted['characters'])],
+            ['label' => $line('words'), 'value' => static::number($counted['words'])],
+            ['label' => $line('characters'), 'value' => static::number($counted['characters'])],
             [
                 'label' => $line('characters_without_spaces'),
-                'value' => Numbers::format($counted['charactersWithoutSpaces']),
+                'value' => static::number($counted['charactersWithoutSpaces']),
             ],
-            ['label' => $line('paragraphs'), 'value' => Numbers::format($counted['paragraphs'])],
+            ['label' => $line('paragraphs'), 'value' => static::number($counted['paragraphs'])],
             ['label' => $line('reading_time'), 'value' => static::readingTime($counted['readingMinutes'])],
         ];
+    }
+
+    /**
+     * A number the way this dialog writes one, which is the way the line under the field
+     * writes one. The seam a project overrides to decide otherwise; `Numbers` is the answer
+     * until it does.
+     */
+    protected static function number(int $value): string
+    {
+        return Numbers::format($value);
     }
 
     /**
