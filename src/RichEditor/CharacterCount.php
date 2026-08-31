@@ -38,6 +38,13 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
     protected ?int $limit = null;
 
+    /**
+     * Whether the field refuses input past the limit, which changes what full means:
+     * the count cannot pass a limit that is held, so `over` would never be reached and
+     * the line would stay on `almost` while the keyboard stopped answering.
+     */
+    protected bool $isEnforced = false;
+
     protected string $evaluationIdentifier = 'characterCount';
 
     protected string $viewIdentifier = 'characterCount';
@@ -117,6 +124,7 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
                 characters: {$this->characters},
                 words: {$this->js($words)},
                 limit: {$this->js($limit)},
+                thresholds: {$this->js($this->getStateThresholds())},
                 templates: {$this->js($templates)},
                 formatter: new Intl.NumberFormat({$this->js(str_replace('_', '-', app()->getLocale()))}),
                 // The editor is the only thing that knows what it holds, so it says so, and
@@ -141,15 +149,17 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
                         .replace(':limit', this.formatter.format(this.limit ?? 0))
                 },
                 get state() {
-                    if (this.limit === null) {
+                    // The two numbers are worked out in PHP and handed over, so the line
+                    // cannot say one thing before the first keystroke and another after it.
+                    if (this.thresholds === null) {
                         return null
                     }
 
-                    if (this.characters > this.limit) {
+                    if (this.characters >= this.thresholds.danger) {
                         return 'danger'
                     }
 
-                    return this.characters >= this.limit * {$this->js(static::WARNING_THRESHOLD)} ? 'warning' : null
+                    return this.characters >= this.thresholds.warning ? 'warning' : null
                 },
             }
             JS;
@@ -187,22 +197,71 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
         return str_replace(
             [':count', ':limit'],
-            [Number::format($count), Number::format($this->limit ?? 0)],
+            [static::number($count), static::number($this->limit ?? 0)],
             $templates[$kind][$count === 1 ? 'one' : 'other'],
         );
     }
 
-    protected function getInitialStateClass(): string
+    public function enforced(bool $condition = true): static
+    {
+        $this->isEnforced = $condition;
+
+        return $this;
+    }
+
+    /**
+     * A number in the app's locale.
+     *
+     * `Number::format()` reads a locale of its own, which is English until an application
+     * sets it - while the browser half of this line is handed `app()->getLocale()`. Left
+     * apart, the count is written one way before the first keystroke and another way after
+     * it, and the number changes shape while somebody is looking at it.
+     */
+    public static function number(int $value): string
+    {
+        return Number::format($value, locale: app()->getLocale());
+    }
+
+    /**
+     * The two counts at which the line changes what it says, or null where there is no
+     * limit to say anything about.
+     *
+     * Worked out once and read by both halves. The rule used to be written twice - here for
+     * the first render and again in the Alpine getter for every render after - which is two
+     * places to edit and one number that can disagree with itself while somebody watches.
+     *
+     * `danger` starts *at* the limit on a field that refuses more, because the count can
+     * never pass a limit that is held: a line that only turned red above it would never turn
+     * red at all, and somebody would sit on "almost full" while the keyboard stopped
+     * answering.
+     *
+     * @return array{danger: int, warning: float}|null
+     */
+    public function getStateThresholds(): ?array
     {
         if ($this->limit === null) {
+            return null;
+        }
+
+        return [
+            'danger' => $this->isEnforced ? $this->limit : $this->limit + 1,
+            'warning' => $this->limit * static::WARNING_THRESHOLD,
+        ];
+    }
+
+    protected function getInitialStateClass(): string
+    {
+        $thresholds = $this->getStateThresholds();
+
+        if ($thresholds === null) {
             return '';
         }
 
-        if ($this->characters > $this->limit) {
+        if ($this->characters >= $thresholds['danger']) {
             return 'fi-arte-character-count-danger';
         }
 
-        return $this->characters >= $this->limit * static::WARNING_THRESHOLD
+        return $this->characters >= $thresholds['warning']
             ? 'fi-arte-character-count-warning'
             : '';
     }
