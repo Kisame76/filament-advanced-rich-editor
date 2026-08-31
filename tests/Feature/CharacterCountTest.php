@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Numbers;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 
 it('hangs the counter under the editor', function (): void {
@@ -151,4 +152,22 @@ it('renders the same number shape the browser will render', function (): void {
 
     expect($html)->toContain('1.234')
         ->and($html)->toContain('de');
+});
+
+it('writes its numbers through the one helper that knows the locale', function (): void {
+    app()->setLocale('de');
+
+    expect(Numbers::format(1234))->toBe('1.234')
+        ->and(CharacterCount::make()->characters(1234)->limit(9999)->toEmbeddedHtml())
+        ->toContain('1.234');
+});
+
+it('treats a limit below one as no limit at all', function (): void {
+    // A `maxLength(0)` - from a config value that arrived empty, or a computed limit that
+    // came back zero - would otherwise paint the line red on an empty document, and with
+    // the limit held it would refuse every character: a field nobody can type into.
+    expect(CharacterCount::make()->characters(0)->limit(0)->enforced()->toEmbeddedHtml())
+        ->not->toContain('fi-arte-character-count-danger')
+        ->and(editor()->maxLength(0)->enforceMaxLength()->getCharacterCountSettingsForJs())
+        ->toBeNull();
 });

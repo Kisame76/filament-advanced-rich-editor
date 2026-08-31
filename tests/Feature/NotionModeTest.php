@@ -86,3 +86,16 @@ it('lets a preset and the field overrule the upload answer', function (): void {
     expect(editor()->notion()->preset('comment')->hasFileAttachments())->toBeFalse()
         ->and(editor()->notion()->fileAttachments(false)->hasFileAttachments())->toBeFalse();
 });
+
+it('has no opinion about a switch it never named', function (): void {
+    // The mode holds five things on, written out as a list. A switch outside it has to fall
+    // through to the config exactly as on any other field, or the mode would be forcing
+    // decisions nobody wrote down.
+    config()->set('filament-advanced-rich-editor.typography.enabled', false);
+    config()->set('filament-advanced-rich-editor.text_case', false);
+
+    expect(editor()->notion()->hasTypography())->toBeFalse()
+        ->and(editor()->notion()->hasTextCase())->toBeFalse()
+        // While the five it did name are held against the same config.
+        ->and(editor()->notion()->hasSlashMenu())->toBeTrue();
+});

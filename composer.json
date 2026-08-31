@@ -29,6 +29,7 @@
   ],
   "require": {
     "php": "^8.2",
+    "ext-intl": "*",
     "filament/actions": "^5.7",
     "filament/forms": "^5.7",
     "filament/schemas": "^5.7",

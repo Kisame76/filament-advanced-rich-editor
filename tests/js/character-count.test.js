@@ -2,9 +2,17 @@ import { describe, expect, it } from 'vitest'
 import {
     allowsTransaction,
     countDocument,
+    historyKeyIn,
     limitFrom,
+    limitPluginsFor,
     replacesWholeDocument,
 } from '../../resources/js/character-count.js'
+
+/** What `window.FilamentRichEditor.tiptap.pmState` gives the module, reduced to what it uses. */
+const stubPmState = {
+    Plugin: class { constructor(spec) { this.spec = spec } },
+    PluginKey: class { constructor(name) { this.key = name } },
+}
 
 /**
  * The two decisions the character count makes, without an editor to make them in.
@@ -168,5 +176,43 @@ describe('the boundary between the page and the rule', () => {
     it('hands on a number whatever the page wrote', () => {
         // A limit compared to `after` by coercion works until the day it does not.
         expect(limitFrom('{"limit":"260","enforce":true}')).toBe(260)
+    })
+})
+
+describe('finding the history plugin', () => {
+    it('reads the key off the plugins that are actually there', () => {
+        // `history$` is a name ProseMirror generates by appending a counter, not an API. A
+        // second key of that name registered first makes it `history$1`, and a literal would
+        // stop matching without anything saying so.
+        expect(historyKeyIn([{ key: 'arte$' }, { key: 'history$' }])).toBe('history$')
+        expect(historyKeyIn([{ key: 'history$1' }])).toBe('history$1')
+    })
+
+    it('says so rather than guessing where there is no history plugin', () => {
+        expect(historyKeyIn([{ key: 'arte$' }])).toBeNull()
+    })
+})
+
+describe('the extension against an editor', () => {
+    const editorWith = (dataset) => ({ options: { element: { dataset } } })
+
+    it('registers no filter for a field that only shows the number', () => {
+        expect(limitPluginsFor(editorWith({}), stubPmState)).toEqual([])
+        expect(limitPluginsFor(editorWith({ arteCharacterCount: '{"limit":9,"enforce":false}' }), stubPmState)).toEqual([])
+    })
+
+    it('registers one that reads the limit the field was given', () => {
+        const plugins = limitPluginsFor(editorWith({ arteCharacterCount: '{"limit":9,"enforce":true}' }), stubPmState)
+
+        expect(plugins).toHaveLength(1)
+
+        // The wiring the pure rule cannot check: that the limit came off the element, and
+        // that an undo is recognised through the key the editor's own plugins carry.
+        const state = { doc: { toJSON: () => doc(paragraph('aaaa')), content: { size: 6 } }, plugins: [{ key: 'history$' }] }
+        const typed = { docChanged: true, steps: [{ from: 2, to: 2 }], doc: { toJSON: () => doc(paragraph('aaaaaaaaaaaa')) }, getMeta: () => undefined }
+        const undone = { ...typed, getMeta: (key) => (key === 'history$' ? {} : undefined) }
+
+        expect(plugins[0].spec.filterTransaction(typed, state)).toBe(false)
+        expect(plugins[0].spec.filterTransaction(undone, state)).toBe(true)
     })
 })

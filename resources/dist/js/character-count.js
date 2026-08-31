@@ -78,6 +78,57 @@ export function replacesWholeDocument(steps, sizeBefore) {
 }
 
 /**
+ * The key ProseMirror's history plugin is registered under, or null where there is none.
+ *
+ * Read off the plugins the editor actually has rather than written down. `history$` is a
+ * name `PluginKey` generates by appending a counter to the plugin's name, so a second key
+ * of that name registered first turns it into `history$1` - and a literal would quietly
+ * stop matching, taking the undo exception below with it.
+ */
+export function historyKeyIn(plugins) {
+    return (plugins ?? []).map((plugin) => plugin?.key).find((key) => /^history\$/.test(key ?? '')) ?? null
+}
+
+/**
+ * The plugins this extension adds for one editor: one, or none.
+ *
+ * Split out so the wiring can be tested at all - which limit was read off the element, and
+ * how an undo is recognised - rather than only the rule it ends up calling.
+ */
+export function limitPluginsFor(editor, pmState) {
+    const limit = limitFrom(editor?.options?.element?.dataset?.arteCharacterCount)
+
+    // Nothing to hold, so nothing is registered: a field that only shows the number pays
+    // for no filter at all.
+    if (!limit || !pmState) {
+        return []
+    }
+
+    const { Plugin, PluginKey } = pmState
+
+    return [
+        new Plugin({
+            key: new PluginKey('arteCharacterCountLimit'),
+            filterTransaction: (transaction, state) => {
+                const historyKey = historyKeyIn(state.plugins)
+
+                return allowsTransaction({
+                    limit,
+                    changed: transaction.docChanged,
+                    after: countDocument(transaction.doc.toJSON()).characters,
+                    before: () => countDocument(state.doc.toJSON()).characters,
+                    replacesWholeDocument: replacesWholeDocument(
+                        transaction.steps,
+                        state.doc.content.size,
+                    ),
+                    isHistory: historyKey !== null && transaction.getMeta(historyKey) !== undefined,
+                })
+            },
+        }),
+    ]
+}
+
+/**
  * Whether the editor lets a transaction through once a field holds its limit.
  *
  * Five ways to be allowed, and three of them are what keep the rule from turning into a
@@ -172,34 +223,7 @@ export default () => {
         },
 
         addProseMirrorPlugins() {
-            const limit = limitFrom(this.editor?.options?.element?.dataset?.arteCharacterCount)
-
-            // Nothing to hold, so nothing is registered: a field that only shows the number
-            // pays for no filter at all.
-            if (!limit || !pmState) {
-                return []
-            }
-
-            const { Plugin, PluginKey } = pmState
-
-            return [
-                new Plugin({
-                    key: new PluginKey('arteCharacterCountLimit'),
-                    filterTransaction: (transaction, state) => allowsTransaction({
-                        limit,
-                        changed: transaction.docChanged,
-                        after: countDocument(transaction.doc.toJSON()).characters,
-                        before: () => countDocument(state.doc.toJSON()).characters,
-                        replacesWholeDocument: replacesWholeDocument(
-                            transaction.steps,
-                            state.doc.content.size,
-                        ),
-                        // ProseMirror's history plugin marks what it puts back, which is
-                        // the only way to tell an undo from somebody typing the same text.
-                        isHistory: transaction.getMeta('history$') !== undefined,
-                    }),
-                }),
-            ]
+            return limitPluginsFor(this.editor, pmState)
         },
     })
 }

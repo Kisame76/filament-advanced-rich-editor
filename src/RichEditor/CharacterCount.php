@@ -8,7 +8,6 @@ use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Illuminate\Support\Js;
-use Illuminate\Support\Number;
 
 /**
  * The line under the editor that says how long the text is.
@@ -197,7 +196,7 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
         return str_replace(
             [':count', ':limit'],
-            [static::number($count), static::number($this->limit ?? 0)],
+            [Numbers::format($count), Numbers::format($this->limit ?? 0)],
             $templates[$kind][$count === 1 ? 'one' : 'other'],
         );
     }
@@ -207,19 +206,6 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
         $this->isEnforced = $condition;
 
         return $this;
-    }
-
-    /**
-     * A number in the app's locale.
-     *
-     * `Number::format()` reads a locale of its own, which is English until an application
-     * sets it - while the browser half of this line is handed `app()->getLocale()`. Left
-     * apart, the count is written one way before the first keystroke and another way after
-     * it, and the number changes shape while somebody is looking at it.
-     */
-    public static function number(int $value): string
-    {
-        return Number::format($value, locale: app()->getLocale());
     }
 
     /**
@@ -239,7 +225,10 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
      */
     public function getStateThresholds(): ?array
     {
-        if ($this->limit === null) {
+        // Below one is not a limit: `maxLength(0)` would otherwise paint the line red on an
+        // empty document, and with the limit held it would refuse every character - a field
+        // that cannot be typed into at all.
+        if ($this->limit === null || $this->limit < 1) {
             return null;
         }
 

@@ -110,9 +110,11 @@ trait CountsCharacters
             return null;
         }
 
-        $limit = $this->getMaxLength();
+        $limit = (int) $this->getMaxLength();
 
-        return blank($limit) ? null : ['limit' => (int) $limit, 'enforce' => true];
+        // Below one is not a limit, the same answer the counter gives: `maxLength(0)` would
+        // otherwise send the browser a limit that refuses every character.
+        return $limit < 1 ? null : ['limit' => $limit, 'enforce' => true];
     }
 
     /**
@@ -172,11 +174,13 @@ trait CountsCharacters
      */
     protected function measure(mixed $content, bool $full): array
     {
-        $empty = ['characters' => 0, 'words' => 0];
-        $emptyExtras = ['charactersWithoutSpaces' => 0, 'paragraphs' => 0, 'readingMinutes' => 0];
+        // The names in one place, so an empty document cannot come back in a different
+        // shape than an occupied one - and so a sixth number is one edit rather than two.
+        $keys = ['characters', 'words'];
+        $extraKeys = ['charactersWithoutSpaces', 'paragraphs', 'readingMinutes'];
 
         if (blank($content)) {
-            return $full ? [...$empty, ...$emptyExtras] : $empty;
+            return array_fill_keys($full ? [...$keys, ...$extraKeys] : $keys, 0);
         }
 
         $editor = $this->getTipTapEditor()->setContent($content);

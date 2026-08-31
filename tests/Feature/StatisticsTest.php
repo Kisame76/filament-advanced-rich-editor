@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\HelpAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\StatisticsAction;
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Numbers;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StatisticsTable;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 
@@ -122,11 +122,12 @@ it('formats its numbers the way the line under the field formats them', function
     // would read 1,234 beside a line reading 1.234.
     app()->setLocale('de');
 
-    $rows = StatisticsAction::rowsFor(editor()->maxLength(9999));
-    $values = array_column($rows, 'value');
-
-    expect(CharacterCount::number(1234))->toBe('1.234')
-        ->and($values)->toContain(CharacterCount::number(0));
+    expect(Numbers::format(1234))->toBe('1.234')
+        // And the dialog draws its numbers through the same helper rather than its own.
+        ->and(file_get_contents(dirname(__DIR__, 2).'/src/RichEditor/Actions/StatisticsAction.php'))
+        ->toContain('Numbers::format(')
+        ->and(file_get_contents(dirname(__DIR__, 2).'/src/RichEditor/CharacterCount.php'))
+        ->toContain('Numbers::format(');
 });
 
 it('escapes what a project put in its translation file', function (): void {

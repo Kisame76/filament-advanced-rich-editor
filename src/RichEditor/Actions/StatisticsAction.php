@@ -8,15 +8,15 @@ use Filament\Actions\Action;
 use Filament\Schemas\Components\Html;
 use Filament\Support\Enums\Width;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Numbers;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StatisticsTable;
 
 /**
  * How long the document is, in a dialog.
  *
- * The numbers are the field's own, from `measureCharacterCount()` - the same measurement
- * the counter under the editor shows and the same one `maxLength()` refuses a save over.
- * Counting again here would give a friendlier number and a reader with two answers.
+ * The numbers are the field's own, from `measureDocument()` - the same measurement the
+ * counter under the editor shows two of, and the same one `maxLength()` refuses a save
+ * over. Counting again here would give a friendlier number and a reader with two answers.
  *
  * Read at the moment the dialog opens rather than kept in step with the typing. Mounting
  * the action is a Livewire request, and the editor's state travels with it even on a field
@@ -51,27 +51,27 @@ class StatisticsAction
     /**
      * The five rows, formatted the way the line under the field formats its two.
      *
-     * Through `CharacterCount::number()`, which is where this package decided what a
+     * Through `Numbers::format()`, which is where this package decided what a
      * number looks like: the app's locale, the same one the counter's browser half is
      * handed. A dialog formatting its own way would read 1,234 one screen away from a line
      * reading 1.234.
      *
      * @return array<int, array{label: string, value: string}>
      */
-    public static function rowsFor(AdvancedRichEditor $component): array
+    protected static function rowsFor(AdvancedRichEditor $component): array
     {
         $counted = $component->measureDocument($component->getState());
 
         $line = static fn (string $key): string => __("filament-advanced-rich-editor::advanced-rich-editor.statistics.{$key}");
 
         return [
-            ['label' => $line('words'), 'value' => CharacterCount::number($counted['words'])],
-            ['label' => $line('characters'), 'value' => CharacterCount::number($counted['characters'])],
+            ['label' => $line('words'), 'value' => Numbers::format($counted['words'])],
+            ['label' => $line('characters'), 'value' => Numbers::format($counted['characters'])],
             [
                 'label' => $line('characters_without_spaces'),
-                'value' => CharacterCount::number($counted['charactersWithoutSpaces']),
+                'value' => Numbers::format($counted['charactersWithoutSpaces']),
             ],
-            ['label' => $line('paragraphs'), 'value' => CharacterCount::number($counted['paragraphs'])],
+            ['label' => $line('paragraphs'), 'value' => Numbers::format($counted['paragraphs'])],
             ['label' => $line('reading_time'), 'value' => static::readingTime($counted['readingMinutes'])],
         ];
     }
