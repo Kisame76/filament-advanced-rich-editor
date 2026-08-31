@@ -2,6 +2,18 @@
     Forked from Filament v5.6.7:
     vendor/filament/forms/resources/views/components/rich-editor.blade.php
 
+    That file is gone. Since v5.7 Filament renders the editor out of PHP, from
+    \Filament\Forms\Components\RichEditor::toEmbeddedHtml(), and the Blade view it was
+    forked from was deleted along the way - so there is nothing left on disk to diff
+    this file against. `ForkParityTest` is the replacement for that diff: it reads the
+    options out of toEmbeddedHtml() and holds them against the ones below, so the next
+    upstream release cannot add a key here without saying so.
+
+    This is not a deprecated path. ViewComponent::toHtml() renders $view whenever
+    hasView() is true, before it looks at publishedViewOverrideCheckPath or falls
+    through to toEmbeddedHtml(), and AdvancedRichEditor sets $view - so the fork keeps
+    its Blade file for as long as ViewComponent has one.
+
     Kept byte-for-byte identical to upstream apart from the changes listed below,
     so that a future Filament release can be diffed against the original file and
     the fork re-applied mechanically. The list is the whole of it: a change that
@@ -14,7 +26,8 @@
       - top-of-file PHP block: the settings each of this package's TipTap extensions reads
         off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
         $codeBlockSettings, $findSettings, $pasteSettings, $dragHandleSettings,
-        $autosaveSettings, $accessibilitySettings, $typographySettings), resolved alongside them
+        $autosaveSettings, $accessibilitySettings, $typographySettings,
+        $characterCountSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -74,6 +87,7 @@
     $dragHandleSettings = $getDragHandleSettingsForJs();
     $autosaveSettings = $getAutosaveSettingsForJs();
     $accessibilitySettings = $getAccessibilitySettingsForJs();
+    $characterCountSettings = $getCharacterCountSettingsForJs();
     $typographySettings = $getTypographySettingsForJs();
 @endphp
 
@@ -247,6 +261,7 @@
                     @if ($dragHandleSettings) data-arte-drag-handle="{{ json_encode($dragHandleSettings) }}" @endif
                     @if ($autosaveSettings) data-arte-autosave="{{ json_encode($autosaveSettings) }}" @endif
                     @if ($accessibilitySettings) data-arte-accessibility="{{ json_encode($accessibilitySettings) }}" @endif
+                    @if ($characterCountSettings) data-arte-character-count="{{ json_encode($characterCountSettings) }}" @endif
                     @if ($typographySettings) data-arte-typography="{{ json_encode($typographySettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
