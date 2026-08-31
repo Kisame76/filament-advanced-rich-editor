@@ -291,12 +291,24 @@ return [
         ],
     ],
 
+    'statistics' => [
+        'label' => 'Statistics',
+        'heading' => 'Statistics',
+        'words' => 'Words',
+        'characters' => 'Characters',
+        'characters_without_spaces' => 'Characters without spaces',
+        'paragraphs' => 'Blocks',
+        'reading_time' => 'Reading time',
+        'reading_time_none' => '—',
+        'reading_time_under' => 'under a minute',
+        'reading_time_minutes' => ':minutes min',
+    ],
+
     'help' => [
         'label' => 'Help',
         'heading' => 'Help',
         'shortcuts' => 'Shortcuts',
         'more' => 'More',
-        'close' => 'Close',
         'editing' => [
             'line_break' => 'Line break without a new paragraph',
             'paste_plain' => 'Paste as plain text',

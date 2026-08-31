@@ -1062,6 +1062,58 @@ body.fi-arte-fullscreen-lock {
  * Pairs flow across and then down, so the reading order is the order the rows were built
  * in whichever number of columns they end up in.
  */
+/*
+ * The statistics dialog: a name on the reading edge, a number on the far one, a hairline
+ * between the pairs. The same shape the shortcut list below uses, for the same reason - a
+ * pair is only legible as a pair while it is clear which number belongs to which name, and
+ * the rule is what carries the eye across the gap.
+ *
+ * A definition list rather than a table, because that is what it is: five names and the
+ * value of each. It is drawn as a table because a column of numbers is read by comparing
+ * them, and comparing needs them aligned.
+ */
+.fi-arte-statistics {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.fi-arte-statistics dt,
+.fi-arte-statistics dd {
+    padding: 0.5rem 0;
+    border-top: 1px solid rgb(228 228 231);
+}
+
+.fi-arte-statistics dt:where(.dark, .dark *),
+.fi-arte-statistics dd:where(.dark, .dark *) {
+    border-color: rgb(63 63 70);
+}
+
+/* The first pair sits under the heading, which is its own rule already. */
+.fi-arte-statistics dt:first-of-type,
+.fi-arte-statistics dt:first-of-type + dd {
+    border-top: 0;
+}
+
+.fi-arte-statistics dt {
+    color: rgb(82 82 91);
+}
+
+.fi-arte-statistics dt:where(.dark, .dark *) {
+    color: rgb(161 161 170);
+}
+
+.fi-arte-statistics dd {
+    margin: 0;
+    padding-inline-start: 1.5rem;
+    text-align: end;
+    /* Tabular figures, so the column lines up on the digit rather than on the glyph. */
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
 .fi-arte-shortcuts-list {
     display: grid;
     grid-template-columns: 1fr;

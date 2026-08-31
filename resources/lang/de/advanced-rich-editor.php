@@ -289,12 +289,24 @@ return [
         ],
     ],
 
+    'statistics' => [
+        'label' => 'Statistik',
+        'heading' => 'Statistik',
+        'words' => 'Wörter',
+        'characters' => 'Zeichen',
+        'characters_without_spaces' => 'Zeichen ohne Leerzeichen',
+        'paragraphs' => 'Blöcke',
+        'reading_time' => 'Lesezeit',
+        'reading_time_none' => '—',
+        'reading_time_under' => 'unter einer Minute',
+        'reading_time_minutes' => ':minutes Min.',
+    ],
+
     'help' => [
         'label' => 'Hilfe',
         'heading' => 'Hilfe',
         'shortcuts' => 'Tastenkürzel',
         'more' => 'Weiteres',
-        'close' => 'Schließen',
         'editing' => [
             'line_break' => 'Zeilenumbruch ohne neuen Absatz',
             'paste_plain' => 'Als reinen Text einfügen',

@@ -65,6 +65,34 @@ final class DocumentContent
     }
 
     /**
+     * How many blocks a reader would count in this document.
+     *
+     * The top level only, and only what `isBlank()` would not throw away: the paragraph
+     * TipTap always keeps at the end is not one, and neither is the empty one somebody left
+     * behind by pressing return twice. Everything else at that level is - a heading, a
+     * list, a table, a picture - because what is being counted is how many things the
+     * document is made of rather than how many of them happen to be prose.
+     *
+     * The rule is `isBlank()`'s, deliberately, so the two answers cannot drift: a document
+     * this calls empty is one that reports zero blocks.
+     *
+     * @param  array<string, mixed>  $document
+     */
+    public static function countBlocks(array $document): int
+    {
+        $content = $document['content'] ?? [];
+
+        if (! is_array($content)) {
+            return 0;
+        }
+
+        return count(array_filter(
+            $content,
+            static fn (mixed $node): bool => is_array($node) && (! self::isBlank($node)),
+        ));
+    }
+
+    /**
      * Every node in the tree, the document itself included.
      *
      * @param  array<string, mixed>  $node
