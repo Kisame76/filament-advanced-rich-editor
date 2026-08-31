@@ -109,6 +109,12 @@ class ToolbarLayout
             'characters' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasCharacters()
                 ? 'characters'
                 : [],
+            // The same, and for the same reason it was missed: the emoji picker ships inside
+            // the overflow menu, where a dropdown drops what it cannot resolve. Named
+            // directly on a bar - which a toolbar preset does - it had nothing to drop it.
+            'emoji' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmoji()
+                ? 'emoji'
+                : [],
             // Nothing to offer means no trigger, the same rule the spacing dropdown follows.
             'textCase' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextCase()
                 ? ToolbarDropdown::textCase()
@@ -165,6 +171,9 @@ class ToolbarLayout
                 : [],
             'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
                 ? 'help'
+                : [],
+            'statistics' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasStatistics()
+                ? 'statistics'
                 : [],
             'find' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFind()
                 ? 'find'

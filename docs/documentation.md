@@ -46,13 +46,15 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Raise Livewire's nesting limit](#raise-livewires-nesting-limit) · [Usage](#usage)
 
 **[The toolbar](#the-toolbar)** — [The default toolbar](#the-default-toolbar) ·
+[Presets](#toolbar-presets) · [No toolbar](#the-mode-with-no-toolbar) ·
 [Rearranging it](#rearranging-the-toolbar) · [Dividers](#dividers) · [Dropdowns](#dropdowns) ·
 [Custom tokens](#custom-tokens) · [Custom tools](#custom-tools) ·
 [Toolbar alignment](#toolbar-alignment) · [Pinned buttons](#pinned-buttons) ·
 [The tools menu](#the-tools-menu) · [The more menu](#the-more-menu) ·
 [Sticky toolbar](#sticky-toolbar) · [Toolbar over a selection](#toolbar-over-a-selection) ·
 [Floating toolbars](#floating-toolbars) · [Maximum height](#maximum-height) ·
-[Fullscreen](#fullscreen) · [Help](#help)
+[Fullscreen](#fullscreen) · [A hard limit](#a-hard-limit) ·
+[Statistics](#statistics) · [Help](#help)
 
 **[Blocks](#blocks)** — [Heading levels](#heading-levels) ·
 [Lists and task lists](#lists-and-task-lists) ·
@@ -252,6 +254,112 @@ AdvancedRichEditor::make('content')
     ->textToolbarButtons([..., 'language']);          // the language of a passage
 // the quote ships inside the `more` menu already
 ```
+
+### Toolbar presets
+
+Five named starting points, each covering all four bars at once:
+
+```php
+AdvancedRichEditor::make('content')->preset('comment');
+```
+
+| Preset | The bar | Uploads |
+| --- | --- | --- |
+| `minimal` | bold, italic, underline · link, lists | off |
+| `comment` | bold, italic · link, lists, quote · emoji | off |
+| `blog` | undo · headings, styles · bold, italic, underline, link · lists, image, embed, callouts · more ⟨pin⟩ tools | on |
+| `default` | the shipped bar above, unchanged | on |
+| `full` | `default` plus `fontFamily`, `textCase` and `language` on the bar and `strike` in the overflow | on |
+
+`minimal` and `comment` also empty the overflow and the tools menu and cut the selection
+bubble down to bold, italic and link. That is the point of a preset: a comment box whose
+main bar has three buttons and whose bubble still offers the style picker and both colour
+pickers is not a comment box.
+
+**Uploads are named, not inferred.** Without a preset the field answers
+`hasFileAttachments()` from whether the bar carries `image` or `attachFiles`, so a hand-cut
+bar takes the upload, the drop *and* the paste-upload with it and says nothing. Each preset
+states its own answer instead, and `->fileAttachments(true)` overrules it.
+
+That answer holds only while the preset still describes what is on screen. A field that
+replaces the bar outright with `->toolbarButtons([...])` is no longer drawing the preset's
+toolbar, so the picture button answers again — the same way it does on a field with no
+preset at all.
+
+**A preset is a fixed list, not a copy of the config.** `->preset('default')` stays the bar
+this package ships even in a project that has rebuilt `toolbar` into something else — which
+is what makes it a starting point rather than a second name for the current state.
+
+Everything the field says itself still wins. The order is field → preset → config → shipped
+default, one bar at a time:
+
+```php
+AdvancedRichEditor::make('content')
+    ->preset('blog')                       // structure, pictures, both menus
+    ->toolsMenu(['find', 'help'])          // …but this menu, not the preset's
+    ->fileAttachments(false);              // …and no uploads after all
+```
+
+A preset may answer only some of the five keys — `toolbar`, `more`, `tools_menu`,
+`text_toolbar_buttons`, `file_attachments`. What it leaves out falls through to the config
+file, so a house preset is free to speak about the main bar and leave the rest alone. Add
+one, or replace a shipped one under its own name, in `toolbar_presets`:
+
+```php
+// config/filament-advanced-rich-editor.php
+'toolbar_presets' => [
+    'house' => [
+        'toolbar' => [['bold', 'italic'], 'divider', ['link']],
+        'file_attachments' => false,
+    ],
+],
+```
+
+The name may be a closure, so a field can pick its bar from the record it is editing.
+`->preset(null)` means no preset; every other name that is not registered — an empty string
+included — raises with the known ones in the message rather than quietly falling back to the
+shipped bar. A preset registered under a key nothing reads, or registered as something other
+than an array, raises too: a misspelled `more_tools` would otherwise leave the overflow menu
+falling through to the config file as though the preset had said nothing about it.
+
+### The mode with no toolbar
+
+```php
+AdvancedRichEditor::make('content')->notion();
+```
+
+The bar above the field is not drawn. What is left is what a document needs anyway and what
+this package already ships: `/` opens the slash menu, which knows this field's own tools;
+the grip in the margin rearranges blocks and its plus starts new ones; selecting text raises
+the bar with the marks, the link and both colour pickers.
+
+All three are on by default, so the mode is not a shortcut for three calls. It is the
+statement that this field is a document, and it holds that statement against a project that
+switched one of them off globally — the field with nothing else left to reach a block with
+is not the field that setting was written for. The order is field → mode → config:
+
+```php
+->notion()->dragHandle(false)   // no grip: the field overrules the mode
+// 'drag_handle.enabled' => false in the config no longer reaches a ->notion() field
+```
+
+Naming a preset alongside puts a bar back, because a preset says something more specific
+about the bar than "there is none" — `->notion()->preset('minimal')` is a document with a
+five-button bar, and everything else the mode stands for.
+
+**The mode says yes to uploads**, and has to. Without a preset the field reads that answer
+off the bar, this mode has no bar, and the slash menu's insert group ships `image` and
+`attachFiles` — so inferring it would switch the upload off on the one field where `/` is
+the only way to put a picture in. A preset named alongside answers instead
+(`->notion()->preset('comment')` takes uploads with it), and `->fileAttachments(false)`
+overrules both.
+
+**One limit, and it is Filament's rather than this package's.** The bar over a selection is
+registered under the `paragraph` key, and Filament's compiled bundle shows it only while
+`editor.isActive('paragraph')`. Inside a heading it does not appear, so with no toolbar the
+link, the colours and the styles cannot be reached there. Any field with
+`->toolbarButtons([])` has had the same hole all along; a field that needs those tools in a
+heading wants a preset rather than the bare mode.
 
 ### Rearranging the toolbar
 
@@ -635,6 +743,79 @@ the top layer, and Filament renders its modals at the end of the body, so the fi
 dialog would be invisible while the editor was expanded. The overlay deliberately sits
 below Filament's modal layer, so those dialogs still work. While expanded the editor body
 is the scroll container, and a sticky toolbar pins to it rather than to the page.
+
+### A hard limit
+
+`maxLength()` is a rule the save is checked against. Whether the editor also refuses the
+keystroke is a separate decision — a comment box wants to block, an article wants to warn —
+so it is a switch of its own:
+
+```php
+AdvancedRichEditor::make('content')
+    ->maxLength(280)
+    ->enforceMaxLength();
+```
+
+Off by default; `character_count.enforce` turns it on for a whole project.
+
+**What is held is `maxLength()`**, not `->characterCountLimit()`. The second falls back to
+the first but may be set on its own, and it is a number with no rule behind it — enforcing
+that would refuse a keystroke the server would have accepted.
+
+**What is refused is growth past the limit, and nothing else.** Three things stay possible,
+and they are the difference between a limit and a trap:
+
+| Situation | What happens |
+| --- | --- |
+| Typing at the limit | refused |
+| A paste that would go past it | refused whole, rather than silently cut in half |
+| A document that is *already* too long | opens, and can be shortened — every edit that does not make it longer is allowed |
+| Loading, the source dialog, a restored draft, undo | always allowed |
+
+The last row is why the rule looks at more than the size. Those all arrive as one
+replacement of the whole document, which is a shape no keystroke makes; without recognising
+it, a record saved before the limit existed could not even be opened.
+
+The counter under the field reads as full rather than nearly full on a field that enforces —
+the count can never pass a limit that is held, so a line that only turned red *above* it
+would never turn red at all.
+
+### Statistics
+
+```php
+AdvancedRichEditor::make('content')->statistics();      // on by default
+AdvancedRichEditor::make('content')->statistics(false); // take it out of the tools menu
+```
+
+How long the document is, in a dialog: words, characters, characters without spaces,
+blocks, and an estimated reading time. It lives in the [tools menu](#the-tools-menu) rather
+than on the bar — the things a field *does* belong together, and a dropdown drops an entry
+whose tool was switched off instead of raising on it.
+
+The numbers are the field's own. **Characters** is the number `maxLength()` refuses a save
+over, which is Filament's `Str::length($editor->getText())` — so a single `&` costs the five
+characters of `&amp;`, and every nesting level joins with a blank line. That is the number
+the counter under the field shows too; a friendlier one here would give a reader two answers
+to one question. **Characters without spaces** is measured off that same string, for the
+same reason.
+
+**Blocks** counts what a reader would count at the top level of the document — a paragraph,
+a heading, a list, a table, a picture. The empty paragraph TipTap always keeps at the end is
+not one, and neither is one somebody left behind by pressing return twice; the rule is the
+one [`required`](#required-and-what-counts-as-empty) uses, so a document called empty there
+reports zero blocks here.
+
+**Reading time** is `words ÷ words per minute`, rounded up, and it says so rather than
+pretending to precision: under a minute is shown as "under a minute". The rate lives in the
+config file, because a project knows its own readers better than a default does:
+
+```php
+// config/filament-advanced-rich-editor.php
+'statistics' => [
+    'enabled' => true,
+    'words_per_minute' => 200,   // the usual figure for prose; technical writing is slower
+],
+```
 
 ### Help
 
@@ -2714,6 +2895,13 @@ The counter's numbers are available without the counter:
 
 ```php
 $field->measureCharacterCount($post->content);   // ['characters' => 812, 'words' => 137]
+
+// And everything the statistics dialog says, measured the same way in one go. Kept apart
+// from the two above because the counter under the field shows two and would otherwise pay
+// for a second walk of the document on every render.
+$field->measureDocument($post->content);
+// ['characters' => 812, 'words' => 137, 'charactersWithoutSpaces' => 689,
+//  'paragraphs' => 6, 'readingMinutes' => 1]
 ```
 
 Deliberately the same counting rule Filament's `maxLength` validation uses, so a reading-time

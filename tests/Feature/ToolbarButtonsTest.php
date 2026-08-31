@@ -127,7 +127,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
 
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
-    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->disableToolbarButtons([
+    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->statistics(false)->disableToolbarButtons([
         'lists', 'callouts', 'link', 'image', 'embed', 'table',
     ]);
 

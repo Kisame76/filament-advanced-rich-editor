@@ -16,7 +16,7 @@ it('ends the toolbar with the pinned group the fullscreen button sits in', funct
 it('empties the pinned half when the button is turned off', function (): void {
     // Nothing is left to pin, so the bar goes back to the plain row of groups it was
     // before - and the insert group is the last of them again.
-    expect(array_slice(toolbarShape(editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)), -1))->toBe([
+    expect(array_slice(toolbarShape(editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->statistics(false)), -1))->toBe([
         ['dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table', calloutsShape()],
     ]);
 });

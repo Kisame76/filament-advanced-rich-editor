@@ -19,12 +19,14 @@ return [
     |   'callouts'   dropdown of `callouts.variants`
     |   'language'   dropdown of `languages.values`
     |   'characters' the special characters picker, absent while it is switched off
+    |   'emoji'      the emoji picker, absent while it is switched off
     |   'styles'     dropdown of `styles`, absent while that list is empty
     |
     | Tokens work at any depth, and a ToolbarDropdown or RichEditorTool may be mixed
     | in. Every other Filament tool is registered too and can be named anywhere:
     | 'highlight', 'small', 'lead', 'attachFiles', 'mergeTags', 'customBlocks',
-    | 'ltr', 'rtl' and the table editing ones. Per field: `->toolbarButtons([...])`.
+    | 'ltr', 'rtl' and the table editing ones. Per field: `->toolbarButtons([...])`, or
+    | `->preset('blog')` for a named starting point - see 'toolbar_presets' below.
     */
     'toolbar' => [
         ['undo', 'redo'],
@@ -41,6 +43,79 @@ return [
         'pin',
         ['tools', 'fullscreen'],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Toolbar presets
+    |--------------------------------------------------------------------------
+    | Named starting points for all four bars at once, asked for with `->preset('blog')`.
+    | Five are shipped, from the shortest bar to the longest:
+    |
+    |   'minimal'  bold, italic, underline, link and lists. Nothing else, no uploads
+    |   'comment'  the same plus the quote and the emoji picker, no uploads
+    |   'blog'     structure, pictures and both menus, without the typographic controls
+    |   'default'  the bar above, under a name
+    |   'full'     everything the editor draws, including the four tools no bar ships:
+    |              'fontFamily', 'textCase' and 'language' on the bar, 'strike' in 'more'
+    |
+    | A preset answers five things - 'toolbar', 'more', 'tools_menu',
+    | 'text_toolbar_buttons' and 'file_attachments' - and may answer only some of them.
+    | What it leaves out falls through to the keys in this file, so a preset is free to
+    | speak about the main bar and leave the rest alone.
+    |
+    | 'file_attachments' is named rather than inferred on purpose. Without it a shrinking
+    | bar takes the upload, the drop and the paste-upload with it, because the field's
+    | answer is otherwise read off the presence of the picture button. It holds only while
+    | the preset still describes what is on screen: a field that replaces the bar with
+    | `->toolbarButtons()` is answered by the picture button again, the way an unpreset
+    | field is.
+    |
+    | A preset is a fixed list and not a copy of the keys in this file: `->preset('default')`
+    | stays the bar this package ships even where a project has rebuilt 'toolbar' into
+    | something else. That is what makes it a starting point rather than a second name for
+    | the current state.
+    |
+    | Add your own here, or replace a shipped one by naming it again:
+    |
+    |   'toolbar_presets' => [
+    |       'house' => [
+    |           'toolbar' => [['bold', 'italic'], 'divider', ['link']],
+    |           'file_attachments' => false,
+    |       ],
+    |   ],
+    |
+    | A field always wins: 'toolbar_presets' sets defaults, and `->toolbarButtons()`,
+    | `->moreTools()`, `->toolsMenu()`, `->textToolbarButtons()` and `->fileAttachments()`
+    | each override the preset's answer for their own bar.
+    */
+    'toolbar_presets' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | The mode with no toolbar
+    |--------------------------------------------------------------------------
+    | `->notion()` takes the bar away and leaves the document to carry the editor: the
+    | slash menu knows this field's own tools, the grip rearranges blocks, and the bar over
+    | a selection holds the marks.
+    |
+    | There is no key here, on purpose. All three of those are on by default already, so a
+    | switch in this file would only be a second name for switching them off - and the
+    | point of the mode is that it holds them on for the one field that has nothing else
+    | left to reach a block with. It sits between the field and this file: `->notion()
+    | ->dragHandle(false)` still takes the grip away, and 'drag_handle.enabled' => false
+    | no longer does.
+    |
+    | Naming a preset alongside it puts a bar back, because a preset says something more
+    | specific about the bar than "there is none" - and answers for uploads, which the mode
+    | otherwise says yes to. It has to: the upload answer is read off the bar, this mode has
+    | no bar, and the slash menu's insert group ships 'image' and 'attachFiles'.
+    |
+    | One limit, and it is Filament's: the bar over a selection is registered under the
+    | 'paragraph' key and its compiled bundle shows it only while the caret is in a
+    | paragraph. Inside a heading it does not appear, so with no toolbar the link, the
+    | colours and the styles are out of reach there. Any field with `->toolbarButtons([])`
+    | has the same hole today.
+    */
 
     /*
     |--------------------------------------------------------------------------
@@ -132,7 +207,7 @@ return [
     |
     | An empty menu is dropped rather than drawn. Per field: `->toolsMenu()`.
     */
-    'tools_menu' => ['find', 'accessibility', 'sourceCode', 'help'],
+    'tools_menu' => ['find', 'accessibility', 'statistics', 'sourceCode', 'help'],
 
     /*
     |--------------------------------------------------------------------------
@@ -447,6 +522,15 @@ return [
     | tell the people writing; a plain string is escaped and keeps its line breaks.
     | Per field: `->help()` and `->helpMore()`, which also takes an `Htmlable`.
     */
+    'statistics' => [
+        'enabled' => true,
+        // How fast a reader is assumed to be. 200 is the usual figure for prose in a
+        // European language; technical writing is slower and a project that knows its own
+        // readers should say so. The dialog rounds up, so this only has to be roughly
+        // right - it is an estimate presented as one, not a measurement.
+        'words_per_minute' => 200,
+    ],
+
     'help' => true,
 
     'help_more' => null,
@@ -1079,6 +1163,18 @@ return [
     'character_count' => [
         'enabled' => true,
         'words' => false,
+        // Whether the editor refuses input past `maxLength()` as well, instead of only
+        // letting the save be refused over it. A setting rather than an assumption: a
+        // comment box wants to block, an article wants to warn.
+        //
+        // Off by default, because refusing a keystroke is the more surprising of the two
+        // and a project should ask for it. What is refused is growth past the limit and
+        // nothing else - a document that is already too long, from before the limit existed
+        // or from an import, still opens and can still be shortened.
+        //
+        // The limit held is `maxLength()` and not `character_count.limit`: only the first
+        // is a rule the save is checked against. Per field: `->enforceMaxLength()`.
+        'enforce' => false,
     ],
 
     /*
@@ -1116,6 +1212,7 @@ return [
         'more' => 'heroicon-o-ellipsis-horizontal',
         'tools_menu' => 'heroicon-o-wrench-screwdriver',
         'source_code' => 'heroicon-o-code-bracket',
+        'statistics' => 'heroicon-o-chart-bar',
         'find' => 'heroicon-o-magnifying-glass',
         'find_previous' => 'heroicon-o-chevron-up',
         'find_next' => 'heroicon-o-chevron-down',
