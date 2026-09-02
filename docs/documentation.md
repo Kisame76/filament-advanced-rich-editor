@@ -35,7 +35,7 @@ on top of it, checked against the current Filament v5 release:
 | **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
 | **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [word counts and rules about what the document holds](#rules-about-the-content), [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
-| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji) and [special characters](#special-characters) |
+| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
@@ -61,12 +61,13 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Lists and task lists](#lists-and-task-lists) ·
 [List markers, numbering and direction](#lists-markers-numbering-and-direction) ·
 [Callouts](#callouts) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
-[Text direction](#text-direction) · [Code blocks](#code-blocks)
+[Indenting](#indenting) · [Text direction](#text-direction) · [Code blocks](#code-blocks)
 
 **[Characters](#characters)** — [Styles](#styles) · [Fonts](#fonts) ·
 [Font size](#font-size) · [Colours](#colours) ·
 [Language of a passage](#language-of-a-passage) · [Emoji](#emoji) ·
-[Special characters](#special-characters)
+[Special characters](#special-characters) · [Format brush](#format-brush) ·
+[Changing the case](#changing-the-case) · [Date and time](#date-and-time)
 
 **[Media and links](#media-and-links)** — [Images](#images) ·
 [Where a picture sits](#where-a-picture-sits) ·
@@ -78,7 +79,8 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Anchors in the editor](#anchors-in-the-editor)
 
 **[Typing instead of aiming](#typing-instead-of-aiming)** — [Slash menu](#slash-menu) ·
-[Drag handle](#drag-handle) · [Find and replace](#find-and-replace) ·
+[Typography while typing](#typography-while-typing) · [Drag handle](#drag-handle) ·
+[Find and replace](#find-and-replace) ·
 [Pasting from Word and Google Docs](#pasting-from-word-and-google-docs)
 
 **[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
@@ -1125,6 +1127,50 @@ Paragraphs, headings, quotes and list items carry a spacing. Turning the dropdow
 the extension with it, so a field that has none stops declaring the attribute — and content
 that already carries one loses it on the next save, the same way the text direction does.
 
+### Indenting
+
+`'indent'` and `'outdent'` move a block one step further in and one step back out, and
+answer <kbd>Mod</kbd>+<kbd>]</kbd> and <kbd>Mod</kbd>+<kbd>[</kbd> on every field that has
+them — buttons or no buttons.
+
+**Ships off**, and nothing ships on a bar either. Most documents indent nothing, and the
+ones that do are a kind rather than a majority — a contract, a report, minutes — so this is
+a decision rather than a default. Switching it on is one line, and the two keys work from
+that moment; put the names in [`more`](#the-more-menu), or the `'indent'` and `'outdent'`
+tokens on a bar, to give them buttons as well.
+
+```php
+AdvancedRichEditor::make('content')
+    ->indent()               // the keys; no buttons until the names are placed
+    ->indentStep('2.5rem')   // default: config('...indent.step')
+    ->indentMax(8)           // default: config('...indent.max')
+    ->moreTools([..., 'indent', 'outdent']);
+```
+
+The step is stored as a `margin-inline-start` in the block's inline style. Logical rather
+than `margin-left`, so an indent on a right-to-left paragraph sits on its right; a style
+rather than a class, because a class means nothing without a stylesheet this package does
+not ship over your rendered pages, and a `data-*` would not survive Filament's sanitiser at
+all — it would be visible while editing and gone for the reader. A `margin-left` written by
+another editor is read on the way in and converted.
+
+What a document keeps is the *number of steps*, not the length, so both buttons always land
+on the grid. Two things follow from that. A length written in another unit is read onto the
+grid — a `36pt` pasted from Word is a step and a fifth at the shipped `2.5rem`, so it
+becomes one step — and anything under half a step is read as no indent at all. And changing
+`indentStep` re-measures existing documents on their next save, which is the price of never
+drifting off the grid.
+
+`indentStep` takes any absolute CSS length — `'2.5rem'`, `'1.27cm'`, `'40px'` — and a bare
+number is read as `rem`. A percentage, an unknown unit or a zero is not a step this can
+multiply, so the shipped `2.5rem` is used instead: a field whose step is nothing would have
+two buttons that do nothing. `indentMax` is 1 to 40 steps.
+
+Paragraphs, headings and quotes carry an indent. **List items do not** — with the caret
+inside a list the same two buttons and the same two keys nest the item instead, which is
+where a list's numbering and bullets come from. A margin beside that would be a second
+indent the list knows nothing about.
+
 ### Text direction
 
 `'ltr'` and `'rtl'` write a `dir` attribute onto the block the caret sits in - the
@@ -1617,9 +1663,11 @@ AdvancedRichEditor::make('content')
     ->formatBrush();                   // default: config('…format_brush')
 ```
 
-Registered but with no button, the same as the case switcher and for the same reason — the
-overflow menu is finite. Put `formatBrush` where you want it: on the bar, in the selection
-bubble, or in `moreTools()`.
+**Ships off.** A brush is a mode: it changes what the next click does, and that is a thing to
+hand somebody deliberately rather than something to find. Switching it on is the line above,
+and it then arrives registered but with no button — the same as the case switcher and for the
+same reason, the overflow menu is finite. Put `formatBrush` where you want it: on the bar, in
+the selection bubble, or in `moreTools()`.
 
 **One button, three states.** A click picks the formatting up and arms it for one stroke; a
 second click keeps it armed; a third puts it away. Plain clicks rather than click-versus-
@@ -1706,6 +1754,85 @@ its own, with its own marks, so a bold word inside the selection stays bold and 
 across two paragraphs stays two paragraphs; replacing the whole range in one step would flatten
 both. And the edits are applied last first, because uppercasing `ß` yields `SS` and an edit that
 grows moves everything after it.
+
+### Date and time
+
+Writing today's date, or the time, into the document.
+
+```php
+AdvancedRichEditor::make('content')
+    ->dateTime()                       // default: config('…date_time.enabled'), off
+    ->dateTimeFormats(['date' => 'j. F Y', 'stamp' => '\\S\\t\\a\\n\\d: j.n.Y, H:i']);
+                                       // default: config('…date_time.formats')
+```
+
+One tool per configured format, named `insert` plus the key: `insertDate`, `insertTime`,
+`insertDateTime`, and `insertStamp` for the example above. That is the shape rather than one
+tool taking a format, because a toolbar array carries names and nothing else — they are
+matched by exact equality out of the configuration, so `'d.m.Y H:i'` cannot be one. A key is
+therefore a bare identifier: a lower-case letter, then letters and digits. Anything else
+registers no tool.
+
+**Ships off**, and nothing ships on a bar either. A date button is worth having where a
+template is filled in daily and worth nothing in a blog, so this is a decision rather than a
+default. Switched on, the way in is the slash menu, where `/date`, `/heute` or `/timestamp`
+all find it. To give them buttons as well, name them in `'more'` or put the `'dateTime'`
+token on a bar — it draws a dropdown of everything the field offers, and disappears with the
+feature.
+
+**Where the format comes from.** `null` means *whatever this schema says a date looks like*,
+and that is a question Filament already answers three times over — for a date, a time and
+both together. Its answer is inherited rather than replaced, which is the precedence
+Filament's own columns and entries follow. The settings live on the schema rather than on the
+panel, so an application-wide answer is a `Schema::configureUsing()` in a service provider:
+
+```php
+Schema::configureUsing(fn (Schema $schema) => $schema
+    ->defaultDateDisplayFormat('j. F Y')
+    ->defaultDateTimeDisplayFormat('j. F Y, H:i'));
+```
+
+Worth knowing when the two disagree: Filament's own `DateTimePicker` does **not** read those
+settings — it carries its own defaults — so a project that sets them reaches this field and
+not its pickers. Only the three keys above may stand as `null`; a fourth key naming no format
+has nothing to fall back on and is dropped rather than registering a button that inserts
+nothing.
+
+**Language and timezone.** Formats are rendered with Carbon's `translatedFormat()`, so month
+and day names come out in the application's language — never the browser's, which this
+package does not consult anywhere. Two tokens behave differently from `date()`: `S` is the
+ordinal suffix of that language rather than the English one, and `e`, `p`, `x` and `X` are not
+translated and arrive as the bare letter, so name a zone with `T`, `O` or `P`. Every other
+unescaped letter is a token, which is why a literal needs a backslash: `'\\H\\e\\u\\t\\e, j. F Y'`.
+
+A format carrying a time is rendered in Filament's display timezone
+(`FilamentTimezone::set()`); a date on its own is not. That exemption is Filament's own and
+it is not cosmetic: an offset applied to a date moves it a whole day for every instant near
+midnight. Which of the two a format is gets read off the format itself, since that is all
+there is to read.
+
+**Why it asks the server.** The string is fetched when the button is clicked rather than
+carried in the button. A date written in at render time is the date the page was opened, and
+a field left open across an afternoon would insert an afternoon-old timestamp. The click
+therefore makes one request — over the same seam the media browser and the mention menu use
+— and what comes back is already in the right language and the right timezone. The
+alternative that needs no request is the browser's own clock and the browser's own idea of a
+language, and this package takes neither anywhere else. What crosses is the configured key
+and never a format: the field looks it up in its own list, so a crafted request cannot make
+the server render a format nobody configured. An answer that does not come back inserts
+nothing.
+
+Nothing about it touches the schema — a date is text — so it needs no extension on either
+side, survives the sanitiser and `RichContentRenderer` like any other letter, and switching it
+off later leaves every date already written where it is. It is the only tool in the package
+with no JavaScript module at all: `insertContent` is one of TipTap's own commands. That
+command's text path takes the marks at the caret, so a date written inside a bold sentence
+comes out bold, the way a typed one would.
+
+The dropdown labels the three shipped formats by name and anything else by drawing the format
+itself — a format a project added has no name anybody wrote down. That example is rendered
+with the page, which is worth knowing for a format that is only a clock: the menu then shows
+the hour the page was opened while the insert writes the hour it was clicked.
 
 ## Media and links
 

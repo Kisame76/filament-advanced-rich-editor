@@ -34,6 +34,9 @@ return [
             'attachFiles' => 'datei, anhang, hochladen',
             'emoji' => 'smiley, symbol',
             'characters' => 'sonderzeichen, zeichen, strich, pfeil, währung, akzent',
+            'insertDate' => 'datum, heute, tag',
+            'insertTime' => 'uhrzeit, zeit, uhr, jetzt, stunde',
+            'insertDateTime' => 'datum und uhrzeit, zeitstempel, jetzt',
             'customBlocks' => 'block, baustein',
             'mergeTags' => 'platzhalter, variable',
         ],
@@ -156,6 +159,23 @@ return [
             'single' => 'Einfach (1,0)',
             'double' => 'Doppelt (2,0)',
             'value' => ':value',
+        ],
+        /*
+         * Die Datums-Werkzeuge. Der Schlüssel ist der des konfigurierten Formats; ein
+         * Projekt, das ein viertes Format ergänzt, übersetzt es durch einen Schlüssel hier.
+         * Ohne Übersetzung trägt der Eintrag das Format selbst, so gesetzt wie es aussehen
+         * wird.
+         */
+        'date_time' => [
+            'label' => 'Datum und Uhrzeit',
+            // Die konfigurierten Schlüssel stehen unter einem eigenen Schlüssel und nicht
+            // neben 'label', damit ein Format namens `label` nicht die Beschriftung des
+            // Auslösers trifft.
+            'formats' => [
+                'date' => 'Datum',
+                'time' => 'Uhrzeit',
+                'date_time' => 'Datum und Uhrzeit',
+            ],
         ],
         'text_case' => [
             'label' => 'Schreibweise ändern',
@@ -297,6 +317,10 @@ return [
             'ltr' => 'Links nach rechts',
             'rtl' => 'Rechts nach links',
         ],
+        'indent' => [
+            'indent' => 'Einrücken',
+            'outdent' => 'Ausrücken',
+        ],
     ],
 
     'preview' => [
@@ -329,6 +353,8 @@ return [
             'paste_plain' => 'Als reinen Text einfügen',
             'indent_list' => 'Listenpunkt einrücken',
             'outdent_list' => 'Listenpunkt ausrücken',
+            'indent_block' => 'Einrücken',
+            'outdent_block' => 'Ausrücken',
             'change_case' => 'Schreibweise der Auswahl durchwechseln',
             'find' => 'Suchen',
             'find_replace' => 'Suchen und Ersetzen',

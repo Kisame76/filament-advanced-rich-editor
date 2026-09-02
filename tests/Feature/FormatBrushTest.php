@@ -13,25 +13,33 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
  * tool exists, that the switch takes it away, that the token resolves, and above all the one
  * line whose failure mode is silent and permanent.
  */
+it('ships off, so a brush is handed over rather than found', function (): void {
+    // A brush is a mode: it changes what the next click does. That is a thing to give
+    // somebody deliberately, and it is why switching it on is a line rather than a default -
+    // the same reason the typographic replacements ship off.
+    expect(editor()->hasFormatBrush())->toBeFalse()
+        ->and(editor()->getTools())->not->toHaveKey('formatBrush');
+});
+
 it('offers the tool, and takes it away with the switch', function (): void {
-    expect(editor()->getTools())->toHaveKey('formatBrush')
+    expect(editor()->formatBrush()->getTools())->toHaveKey('formatBrush')
         ->and(editor()->formatBrush(false)->getTools())->not->toHaveKey('formatBrush');
 });
 
 it('reads the switch from the config file, and lets a field overrule it', function (): void {
-    config()->set('filament-advanced-rich-editor.format_brush', false);
+    config()->set('filament-advanced-rich-editor.format_brush', true);
 
-    expect(editor()->hasFormatBrush())->toBeFalse()
-        ->and(editor()->getTools())->not->toHaveKey('formatBrush')
-        ->and(editor()->formatBrush()->hasFormatBrush())->toBeTrue();
+    expect(editor()->hasFormatBrush())->toBeTrue()
+        ->and(editor()->getTools())->toHaveKey('formatBrush')
+        ->and(editor()->formatBrush(false)->hasFormatBrush())->toBeFalse();
 });
 
 it('keeps its place in the toolbar, and resolves away where it is switched off', function (): void {
     // A raw name in a group with no token behind it raises while the view renders and costs
     // the whole field, which is why the token exists at all.
     expect(array_keys(ToolbarLayout::tokens()))->toContain('formatBrush')
-        ->and(ToolbarLayout::tokens()['formatBrush'](editor()))->toBe('formatBrush')
-        ->and(ToolbarLayout::tokens()['formatBrush'](editor()->formatBrush(false)))->toBe([]);
+        ->and(ToolbarLayout::tokens()['formatBrush'](editor()->formatBrush()))->toBe('formatBrush')
+        ->and(ToolbarLayout::tokens()['formatBrush'](editor()))->toBe([]);
 });
 
 it('never says a button is pressed because its script is missing', function (): void {

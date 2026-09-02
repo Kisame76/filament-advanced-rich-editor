@@ -115,9 +115,31 @@ class ToolbarLayout
             'emoji' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmoji()
                 ? 'emoji'
                 : [],
+            // Nothing to pick from means no trigger, the same rule the spacing dropdown
+            // follows - and here "nothing" counts a list whose every format resolved to
+            // nothing, which is what a key naming no format and inheriting none leaves.
+            'dateTime' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasDateTime()) {
+                    return [];
+                }
+
+                $formats = $editor->getDateTimeFormats();
+
+                return $formats === [] ? [] : ToolbarDropdown::dateTime(array_keys($formats));
+            },
             // Nothing to offer means no button, the same rule the rest of the bar follows.
             'formatBrush' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFormatBrush()
                 ? 'formatBrush'
+                : [],
+            // The indent pair. Two tokens named after the two buttons rather than one
+            // expanding into both, the way `emoji` and `characters` are: a token that
+            // shadowed the name of a tool would take away the only way to name that tool on
+            // its own, and a bar that wants both writes both.
+            'indent' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasIndent()
+                ? 'indent'
+                : [],
+            'outdent' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasIndent()
+                ? 'outdent'
                 : [],
             // Nothing to offer means no trigger, the same rule the spacing dropdown follows.
             'textCase' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextCase()

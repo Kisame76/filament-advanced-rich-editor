@@ -38,6 +38,11 @@ class Icons
             // there is nothing to swap it for and it is the only thing saying what they
             // measure - lines, and the room between them.
             'line_height' => 'arte-line-spacing',
+            // The indent pair. Both drawings carry the same three lines of text with an
+            // arrow beside them, pointing the way the block is about to move - which is the
+            // one thing that separates the two buttons and the only thing worth drawing.
+            'indent' => 'arte-indent-increase',
+            'outdent' => 'arte-indent-decrease',
             'task_list' => 'arte-task-list',
             'blockquote' => 'arte-message-square-quote',
             // The callouts. The dropdown's own trigger is the circled i - the sign for the
@@ -51,6 +56,12 @@ class Icons
             'callout_danger' => 'heroicon-o-shield-exclamation',
             'image' => 'heroicon-o-photo',
             'embed' => 'heroicon-o-film',
+            // The date family. The trigger carries the calendar with its days written on
+            // it - the sign for "a date" without being either of the two things under it -
+            // and the options carry what each one writes: a bare calendar and a clock.
+            'date_time' => 'heroicon-o-calendar-days',
+            'date_time_date' => 'heroicon-o-calendar',
+            'date_time_time' => 'heroicon-o-clock',
             // The colour tools carry the thing they paint, not the instrument: a bare `A`
             // for the letters - the trigger already draws the current colour as a bar
             // under it, so Lucide's baseline would only repeat that stroke - a highlighter

@@ -206,16 +206,13 @@ trait FormatsText
     }
 
     /**
-     * Changing the case of the selection. Nothing about it is stored as markup - a raised
-     * letter is a letter - so switching it off later leaves every word already changed
-     * exactly as it is.
-     */
-    /**
      * Whether the field offers the brush that carries formatting from one passage to
      * another.
      *
-     * On by default, and cheap to have: the button refuses to arm where there is no
-     * formatting to take, so a field nobody uses it on shows a button that never lights.
+     * Ships off. The button refuses to arm where there is no formatting to take, so it
+     * costs nothing to have - but a brush is a mode, and a mode on a bar that nobody in a
+     * project uses is a mode somebody eventually arms by accident. Switching it on is one
+     * line; the button then appears wherever `formatBrush` is named.
      */
     public function formatBrush(bool|Closure $condition = true): static
     {
@@ -226,9 +223,14 @@ trait FormatsText
 
     public function hasFormatBrush(): bool
     {
-        return (bool) ($this->evaluate($this->hasFormatBrush) ?? config('filament-advanced-rich-editor.format_brush') ?? true);
+        return (bool) ($this->evaluate($this->hasFormatBrush) ?? config('filament-advanced-rich-editor.format_brush') ?? false);
     }
 
+    /**
+     * Changing the case of the selection. Nothing about it is stored as markup - a raised
+     * letter is a letter - so switching it off later leaves every word already changed
+     * exactly as it is.
+     */
     public function textCase(bool|Closure $condition = true): static
     {
         $this->hasTextCase = $condition;

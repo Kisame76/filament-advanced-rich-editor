@@ -34,6 +34,9 @@ return [
             'attachFiles' => 'file, upload, attachment',
             'emoji' => 'smiley, icon',
             'characters' => 'symbol, special character, dash, arrow, currency, accent',
+            'insertDate' => 'date, today, day',
+            'insertTime' => 'time, clock, now, hour',
+            'insertDateTime' => 'date and time, timestamp, now',
             'customBlocks' => 'block, component',
             'mergeTags' => 'tag, variable, placeholder',
         ],
@@ -156,6 +159,21 @@ return [
             'single' => 'Single (1.0)',
             'double' => 'Double (2.0)',
             'value' => ':value',
+        ],
+        /*
+         * The date tools. The key is the configured format's own key, so a project that
+         * adds a fourth format translates it by adding a key here; one without a
+         * translation is labelled with the format itself, rendered as it will read.
+         */
+        'date_time' => [
+            'label' => 'Date and time',
+            // The configured keys live under their own key rather than beside 'label', so a
+            // format keyed `label` cannot resolve to the dropdown's own text.
+            'formats' => [
+                'date' => 'Date',
+                'time' => 'Time',
+                'date_time' => 'Date and time',
+            ],
         ],
         'text_case' => [
             'label' => 'Change case',
@@ -299,6 +317,15 @@ return [
             'ltr' => 'Left to right',
             'rtl' => 'Right to left',
         ],
+        /*
+         * The indent pair. Named for the move rather than for a state, because that is
+         * what the buttons are: a block is not "indented" the way it is bold, it is one
+         * step further in than it was.
+         */
+        'indent' => [
+            'indent' => 'Increase indent',
+            'outdent' => 'Decrease indent',
+        ],
     ],
 
     'preview' => [
@@ -331,6 +358,8 @@ return [
             'paste_plain' => 'Paste as plain text',
             'indent_list' => 'Indent list item',
             'outdent_list' => 'Outdent list item',
+            'indent_block' => 'Increase indent',
+            'outdent_block' => 'Decrease indent',
             'change_case' => 'Cycle the case of the selection',
             'next_cell' => 'Next table cell',
             'find' => 'Find',

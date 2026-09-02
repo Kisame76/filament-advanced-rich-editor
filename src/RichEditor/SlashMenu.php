@@ -27,8 +27,9 @@ class SlashMenu
     /**
      * The groups and their contents, when the config file has nothing to say.
      *
-     * `'headings'` and `'callouts'` expand to what the field offers - its heading levels
-     * and its kinds of callout - which are the same tokens the toolbar uses.
+     * `'headings'`, `'callouts'` and `'dateTime'` expand to what the field offers - its
+     * heading levels, its kinds of callout and its date formats - which are the same tokens
+     * the toolbar uses.
      *
      * @var array<string, array<int, string>>
      */
@@ -44,7 +45,7 @@ class SlashMenu
         // one entry does not need a heading over it.
         'insert' => [
             'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
-            'customBlocks', 'mergeTags',
+            'dateTime', 'customBlocks', 'mergeTags',
         ],
     ];
 
@@ -138,6 +139,23 @@ class SlashMenu
             if ($name === 'callouts') {
                 foreach ($editor->getCalloutVariants() as $variant) {
                     $expanded[] = Callouts::toolName($variant);
+                }
+
+                continue;
+            }
+
+            // Expanded rather than written out, so a project that adds a fourth format gets
+            // it in the menu without naming it here as well - and so a field that switched
+            // the feature off contributes nothing to expand.
+            if ($name === 'dateTime') {
+                if ($editor->hasDateTime()) {
+                    foreach (array_keys($editor->getDateTimeFormats()) as $key) {
+                        $toolName = DateTimeFormats::toolName($key);
+
+                        if ($toolName !== null) {
+                            $expanded[] = $toolName;
+                        }
+                    }
                 }
 
                 continue;

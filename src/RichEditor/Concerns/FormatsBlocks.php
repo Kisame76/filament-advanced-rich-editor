@@ -6,6 +6,8 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Closure;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\IndentPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Indent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use LogicException;
 
@@ -42,6 +44,12 @@ trait FormatsBlocks
      * @var array<int, mixed> | Closure | null
      */
     protected array|Closure|null $lineHeights = null;
+
+    protected bool|Closure|null $hasIndent = null;
+
+    protected string|int|float|Closure|null $indentStep = null;
+
+    protected int|string|Closure|null $indentMax = null;
 
     protected bool|Closure|null $hasTaskList = null;
 
@@ -290,6 +298,83 @@ trait FormatsBlocks
         return LineHeight::values(array_values($this->evaluate($this->lineHeights)
             ?? config('filament-advanced-rich-editor.line_height.values')
             ?? [1, 1.15, 1.5, 2]));
+    }
+
+    /**
+     * The indent buttons, the two keys, and the attribute behind them.
+     *
+     * Ships off. Most documents indent nothing, and the ones that do are a kind rather than
+     * a majority - a contract, a report, minutes - so a bar that carried the pair everywhere
+     * would be spending two places on a question most fields never ask. Switching it on is
+     * one line, and the keys work from that moment whether or not the buttons are placed.
+     *
+     * Switching it off drops the extension with it, so a field that has none stops declaring
+     * the attribute - and content that already carries an indent loses it on the next save,
+     * the same way the spacing does.
+     */
+    public function indent(bool|Closure $condition = true): static
+    {
+        $this->hasIndent = $condition;
+
+        return $this;
+    }
+
+    public function hasIndent(): bool
+    {
+        return (bool) ($this->evaluate($this->hasIndent) ?? config('filament-advanced-rich-editor.indent.enabled') ?? false);
+    }
+
+    /**
+     * How far one step in moves a block. A CSS length - `'2.5rem'`, `'1.27cm'`, `'40px'` -
+     * or a bare number, which is read as `rem`.
+     */
+    public function indentStep(string|int|float|Closure $step): static
+    {
+        $this->indentStep = $step;
+
+        return $this;
+    }
+
+    /**
+     * Canonicalised, so a length written by the toolbar and one parsed back out of a
+     * document are the same string. A length this side cannot multiply - a percentage, a
+     * unit nobody named, a zero - is the shipped step rather than nothing at all, because a
+     * field whose step is nothing has two buttons that do nothing.
+     */
+    public function getIndentStep(): string
+    {
+        return Indent::step($this->evaluate($this->indentStep)
+            ?? config('filament-advanced-rich-editor.indent.step'));
+    }
+
+    /**
+     * How many steps in a block may go.
+     */
+    public function indentMax(int|string|Closure $max): static
+    {
+        $this->indentMax = $max;
+
+        return $this;
+    }
+
+    public function getIndentMax(): int
+    {
+        return Indent::max($this->evaluate($this->indentMax)
+            ?? config('filament-advanced-rich-editor.indent.max'));
+    }
+
+    /**
+     * The step and the depth, for the view to hand to the script. Null while indenting is
+     * switched off, which is also when the extension that would read them was never
+     * registered.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getIndentSettingsForJs(): ?array
+    {
+        return $this->hasIndent()
+            ? IndentPlugin::getSettings($this->getIndentStep(), $this->getIndentMax())
+            : null;
     }
 
     public function taskList(bool|Closure $condition = true): static

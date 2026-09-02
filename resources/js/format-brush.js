@@ -396,8 +396,15 @@ export default () => {
                         )
                         const stroke = chain().focus()
 
-                        plan.unset.forEach((name) => stroke.unsetMark(name))
-                        plan.set.forEach((mark) => stroke.setMark(mark.name, mark.attrs))
+                        // Braced on purpose: the chain call returns the chain, and a
+                        // `forEach` callback that returns a value is the shape that reads
+                        // like a `map` somebody forgot to collect.
+                        plan.unset.forEach((name) => {
+                            stroke.unsetMark(name)
+                        })
+                        plan.set.forEach((mark) => {
+                            stroke.setMark(mark.name, mark.attrs)
+                        })
 
                         const painted = stroke.run()
 

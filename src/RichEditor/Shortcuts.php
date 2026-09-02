@@ -142,6 +142,16 @@ class Shortcuts
             $rows[] = $line('outdent_list', ['Shift', 'Tab']);
         }
 
+        // Two keys, one pair of buttons and two meanings: inside a list they nest the item,
+        // and everywhere else they move the block's own margin. The row names the move rather
+        // than either meaning, because the key does whichever one the caret is standing in -
+        // and, like the case row, it is the only way to reach the feature on a field that
+        // was given no buttons for it.
+        if ($editor->hasIndent()) {
+            $rows[] = $line('indent_block', ['Mod', ']']);
+            $rows[] = $line('outdent_block', ['Mod', '[']);
+        }
+
         if (array_key_exists('table', $tools)) {
             $rows[] = $line('next_cell', ['Tab']);
         }

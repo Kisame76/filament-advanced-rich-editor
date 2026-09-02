@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Closure;
+use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\SourceCodeAction;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DateTimeFormats;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
+use Livewire\Attributes\Renderless;
 
 /**
  * The tools that help while writing without changing what is written: emoji, find
@@ -37,6 +40,13 @@ trait OffersWritingAids
     protected string|Closure|null $helpMoreLabel = null;
 
     protected bool|Closure|null $hasFullscreen = null;
+
+    protected bool|Closure|null $hasDateTime = null;
+
+    /**
+     * @var array<string, ?string>|Closure|null
+     */
+    protected array|Closure|null $dateTimeFormats = null;
 
     /**
      * The emoji picker. Nothing about it is stored as markup - an emoji is a character -
@@ -230,5 +240,127 @@ trait OffersWritingAids
     {
         return (bool) ($this->evaluate($this->hasFullscreen)
             ?? config('filament-advanced-rich-editor.fullscreen', true));
+    }
+
+    /**
+     * Writing today's date, or the time, into the document. Nothing about it is stored as
+     * markup - a date is text - so switching it off later leaves every date already
+     * written where it is.
+     */
+    public function dateTime(bool|Closure $condition = true): static
+    {
+        $this->hasDateTime = $condition;
+
+        return $this;
+    }
+
+    public function hasDateTime(): bool
+    {
+        return (bool) ($this->evaluate($this->hasDateTime)
+            ?? config('filament-advanced-rich-editor.date_time.enabled') ?? false);
+    }
+
+    /**
+     * The formats this field offers, as key => format. One tool is registered per entry.
+     *
+     * @param  array<string, ?string>|Closure|null  $formats
+     */
+    public function dateTimeFormats(array|Closure|null $formats): static
+    {
+        $this->dateTimeFormats = $formats;
+
+        return $this;
+    }
+
+    /**
+     * The same list with every format actually settled, which is the form both halves of
+     * the feature use: the tools are built from it and a click is looked up in it.
+     *
+     * A `null` format means "whatever this schema says a date looks like", and that is a
+     * question Filament already answers three times over. Its answer is inherited rather
+     * than replaced, which is the same precedence Filament's own columns and entries
+     * follow - and worth knowing when the two disagree: `DateTimePicker` does not read
+     * these settings, so a project that sets them reaches this field and not its pickers.
+     *
+     * @return array<string, string>
+     */
+    public function getDateTimeFormats(): array
+    {
+        $configured = DateTimeFormats::map(
+            $this->evaluate($this->dateTimeFormats)
+                ?? config('filament-advanced-rich-editor.date_time.formats')
+                ?? [],
+        );
+
+        $formats = [];
+
+        foreach ($configured as $key => $format) {
+            $format ??= $this->getInheritedDateTimeFormat($key);
+
+            if (blank($format)) {
+                continue;
+            }
+
+            $formats[$key] = $format;
+        }
+
+        return $formats;
+    }
+
+    /**
+     * What the surrounding schema answers for one of the three keys it knows about.
+     *
+     * Asked of the container only where there is one. `Component::$container` is a typed
+     * property with no default, so reading it on a field that was never put in a schema is
+     * a fatal error rather than a null - and every other question this field answers can be
+     * asked of it standing on its own. A field with no schema simply inherits nothing, and
+     * the key is then dropped like any other that names no format.
+     */
+    protected function getInheritedDateTimeFormat(string $key): ?string
+    {
+        if (! isset($this->container)) {
+            return null;
+        }
+
+        $container = $this->getContainer();
+
+        return match ($key) {
+            'date' => $container->getDefaultDateDisplayFormat(),
+            'time' => $container->getDefaultTimeDisplayFormat(),
+            'dateTime' => $container->getDefaultDateTimeDisplayFormat(),
+            default => null,
+        };
+    }
+
+    /**
+     * The string one date button writes, asked for at the moment it is clicked.
+     *
+     * What arrives is a key and never a format: the field looks it up in its own list, so a
+     * request naming anything else is answered with nothing rather than with a rendering of
+     * whatever it asked for. `mixed` rather than `string` for the same reason - what reaches
+     * this method is whatever a request carried, and an array where a key was expected
+     * belongs in the same "answered with nothing" branch as an unknown key rather than in a
+     * type error and a stack trace. `Renderless` because the document does not change here -
+     * the browser is given a string and puts it in itself.
+     *
+     * The answer is escaped, because the command that receives it parses its argument as
+     * HTML on the way to the text it inserts. Escaping is what keeps a format holding an
+     * ampersand or an angle bracket from arriving as markup.
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function getDateTimeForJs(mixed $key): ?string
+    {
+        if (! is_string($key) || ! $this->hasDateTime()) {
+            return null;
+        }
+
+        $format = $this->getDateTimeFormats()[$key] ?? null;
+
+        if ($format === null) {
+            return null;
+        }
+
+        return e(DateTimeFormats::render($format));
     }
 }

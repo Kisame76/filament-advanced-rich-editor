@@ -27,7 +27,7 @@
         off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
         $codeBlockSettings, $findSettings, $pasteSettings, $dragHandleSettings,
         $autosaveSettings, $accessibilitySettings, $typographySettings,
-        $characterCountSettings), resolved alongside them
+        $characterCountSettings, $indentSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -89,6 +89,7 @@
     $accessibilitySettings = $getAccessibilitySettingsForJs();
     $characterCountSettings = $getCharacterCountSettingsForJs();
     $typographySettings = $getTypographySettingsForJs();
+    $indentSettings = $getIndentSettingsForJs();
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -263,6 +264,7 @@
                     @if ($accessibilitySettings) data-arte-accessibility="{{ json_encode($accessibilitySettings) }}" @endif
                     @if ($characterCountSettings) data-arte-character-count="{{ json_encode($characterCountSettings) }}" @endif
                     @if ($typographySettings) data-arte-typography="{{ json_encode($typographySettings) }}" @endif
+                    @if ($indentSettings) data-arte-indent="{{ json_encode($indentSettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div

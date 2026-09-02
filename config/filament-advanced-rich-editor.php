@@ -16,10 +16,13 @@ return [
     |   'headings'   dropdown of `heading_levels`      'lists'  dropdown of `lists`
     |   'alignment'  dropdown of `alignments`          'more'   overflow dropdown
     |   'lineHeight' dropdown of `line_height.values`
+    |   'dateTime'   dropdown of `date_time.formats`, absent while it is switched off
     |   'callouts'   dropdown of `callouts.variants`
     |   'language'   dropdown of `languages.values`
     |   'characters' the special characters picker, absent while it is switched off
     |   'emoji'      the emoji picker, absent while it is switched off
+    |   'indent'     one step in, and 'outdent' one step out, both absent while
+    |                indenting is switched off
     |   'styles'     dropdown of `styles`, absent while that list is empty
     |
     | Tokens work at any depth, and a ToolbarDropdown or RichEditorTool may be mixed
@@ -55,8 +58,10 @@ return [
     |   'comment'  the same plus the quote and the emoji picker, no uploads
     |   'blog'     structure, pictures and both menus, without the typographic controls
     |   'default'  the bar above, under a name
-    |   'full'     everything the editor draws, including the four tools no bar ships:
-    |              'fontFamily', 'textCase' and 'language' on the bar, 'strike' in 'more'
+    |   'full'     the longest bar this package draws: 'fontFamily', 'textCase' and
+    |              'language' on it, 'strike' in 'more'. Not literally everything - the
+    |              features that ship switched off (the format brush, the date tools) are
+    |              a decision per project rather than a preset's to make
     |
     | A preset answers five things - 'toolbar', 'more', 'tools_menu',
     | 'text_toolbar_buttons' and 'file_attachments' - and may answer only some of them.
@@ -492,7 +497,7 @@ return [
             ],
             'insert' => [
                 'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
-                'customBlocks', 'mergeTags',
+                'dateTime', 'customBlocks', 'mergeTags',
             ],
         ],
     ],
@@ -684,6 +689,83 @@ return [
     'line_height' => [
         'enabled' => true,
         'values' => [1, 1.15, 1.5, 2],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Indenting
+    |--------------------------------------------------------------------------
+    | Two buttons, 'indent' and 'outdent', that move a block one step further in and one
+    | step back out, and Mod+] and Mod+[ on every field that has them — whether or not the
+    | buttons are on a bar.
+    |
+    | The step is stored as a `margin-inline-start` in the block's inline style — logical,
+    | so an indent on a right-to-left paragraph sits on its right, and a style rather than
+    | a class because a class means nothing without a stylesheet this package does not ship
+    | over your rendered pages. `margin-left` is read on the way in and converted.
+    |
+    | 'step' is a CSS length in any absolute unit ('2.5rem', '1.27cm', '40px'); a bare
+    | number is read as rem. What a document keeps is the number of steps, not the length,
+    | so both buttons always land on the grid — which also means that changing the step
+    | here re-measures existing documents on their next save. 'max' is how many steps deep
+    | a block may go, 1 to 40.
+    |
+    | Inside a list the same two buttons nest the item instead, which is what a list's
+    | numbering and bullets are made of.
+    |
+    | Ships off, and nothing ships on a bar either. Most documents indent nothing, and the
+    | ones that do are a kind rather than a majority — a contract, a report, minutes — so
+    | this is a decision rather than a default. Switching it on is this line, and the two
+    | keys work from that moment; put the names in 'more', or the 'indent' and 'outdent'
+    | tokens on a bar, to give them buttons as well. Per field: `->indent()`,
+    | `->indentStep('1.27cm')`, `->indentMax(4)`.
+    */
+    'indent' => [
+        'enabled' => false,
+        'step' => '2.5rem',
+        'max' => 8,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Date and time
+    |--------------------------------------------------------------------------
+    | Writing today's date, or the time, into the document. One tool per entry below,
+    | named `insert` plus the key: 'date' is `insertDate`, 'dateTime' is `insertDateTime`.
+    | A key is a bare identifier — a lower-case letter, then letters and digits — because
+    | it becomes a tool name, and a tool name is what a toolbar array names it by.
+    |
+    | The value is a PHP date format. `null` means "whatever this schema says a date looks
+    | like" and works for the three keys Filament itself answers for — 'date', 'time' and
+    | 'dateTime'; any other key must name its own format or it is dropped. Change the
+    | inherited answer with `Schema::configureUsing()` in a service provider rather than
+    | here, and note that Filament's own date pickers do not read it.
+    |
+    | Formats are rendered with Carbon's `translatedFormat()`, so month and day names come
+    | out in the application's language. Two things it does differently from `date()`: `S`
+    | is the ordinal suffix of that language rather than the English one, and `e`, `p`, `x`
+    | and `X` are not translated and arrive as the bare letter — use `T`, `O` or `P` to
+    | name a zone. Every other unescaped letter is a token, so literals need a backslash:
+    | `'\H\e\u\t\e, j. F Y'`.
+    |
+    | A format carrying a time is rendered in Filament's display timezone
+    | (`FilamentTimezone::set()`); a date on its own is not, because an offset applied to a
+    | date moves it a whole day either side of midnight.
+    |
+    | Ships off, and nothing ships on a bar either. A date typed once is a date; a button
+    | for it is worth having where a template is filled in daily and worth nothing in a
+    | blog, so this is a decision rather than a default. Switching it on is this line, and
+    | the way in is then the slash menu - put the names in 'more', or the 'dateTime' token
+    | on a bar, to give them buttons as well. Per field: `->dateTime()`,
+    | `->dateTimeFormats([...])`.
+    */
+    'date_time' => [
+        'enabled' => false,
+        'formats' => [
+            'date' => null,
+            'time' => null,
+            'dateTime' => null,
+        ],
     ],
 
     /*
@@ -961,12 +1043,15 @@ return [
     | is a destination rather than a look and carries an anchor that has to stay
     | unique, and a language says what a passage *is* rather than how it looks.
     |
-    | Ships registered but with no button: put `formatBrush` on the bar, in the
-    | selection bubble or in `more`. Per field: `->formatBrush(false)`.
+    | Ships off. Most documents are written once rather than matched to a passage
+    | somewhere else, and a brush is a mode - it changes what the next click does,
+    | which is a thing to hand somebody deliberately. Switching it on is this line
+    | plus a place for the button: `formatBrush` on the bar, in the selection
+    | bubble or in `more`. Per field: `->formatBrush()`.
     |
     */
 
-    'format_brush' => true,
+    'format_brush' => false,
 
     'text_case' => true,
 
@@ -1271,6 +1356,8 @@ return [
         'headings' => 'fi-o-heading',
         'lists' => 'heroicon-o-list-bullet',
         'line_height' => 'arte-line-spacing',
+        'indent' => 'arte-indent-increase',
+        'outdent' => 'arte-indent-decrease',
         'task_list' => 'arte-task-list',
         'blockquote' => 'arte-message-square-quote',
 
@@ -1282,6 +1369,11 @@ return [
         'callout_danger' => 'heroicon-o-shield-exclamation',
         'image' => 'heroicon-o-photo',
         'embed' => 'heroicon-o-film',
+        // The date family: the calendar with its days as the sign for the whole thing, and
+        // a bare calendar and a clock for the two options under it.
+        'date_time' => 'heroicon-o-calendar-days',
+        'date_time_date' => 'heroicon-o-calendar',
+        'date_time_time' => 'heroicon-o-clock',
         'text_color' => 'arte-letter-a',
         'text_background' => 'arte-highlighter',
         'color_custom' => 'arte-palette',

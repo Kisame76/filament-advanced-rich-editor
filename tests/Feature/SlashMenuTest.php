@@ -48,6 +48,11 @@ it('separates what a block is from what gets added to the document', function ()
         'calloutNote', 'calloutTip', 'calloutWarning', 'calloutDanger',
         'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
     ]);
+
+    // The date tools are in the same group and behind a switch that ships off, so they are
+    // absent from the list above rather than missing from it.
+    expect(slashNames(editor()->dateTime()))
+        ->toContain('insertDate', 'insertTime', 'insertDateTime');
 });
 
 it('names the two groups after the question they answer', function (): void {

@@ -44,6 +44,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CalloutPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharactersPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DateTimePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
@@ -57,6 +58,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageDecorativePlugin
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\IndentPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
@@ -496,12 +498,31 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // Built with the field's own list, because the tools are one per format, and the
+        // formats a field offers are its own: one may inherit what the schema answers while
+        // the next names its own. A format that resolves to nothing registers no tool.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasDateTime()
+                ? [DateTimePlugin::make($component->getDateTimeFormats())]
+                : [],
+        );
+
         // Built with the field's own list, because the tools are one per spacing: two fields
         // on one page may offer different numbers, and a spacing without a tool is dropped
         // from the dropdown rather than breaking it.
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasLineHeight()
                 ? [LineHeightPlugin::make($component->getLineHeights())]
+                : [],
+        );
+
+        // Built with the field's own step and depth, because the extension writes lengths
+        // with them and reads lengths against them: a field that steps differently reads the
+        // same document onto a different grid, and the two halves have to be given the same
+        // two numbers or a document is parsed at one and rendered at the other.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasIndent()
+                ? [IndentPlugin::make($component->getIndentStep(), $component->getIndentMax())]
                 : [],
         );
 

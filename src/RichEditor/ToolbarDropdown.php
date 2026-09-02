@@ -165,6 +165,27 @@ class ToolbarDropdown extends ToolbarButtonGroup
     }
 
     /**
+     * The date and time formats this field offers. Textual, and with a trigger that keeps
+     * its own icon, for the reason the spacing dropdown does: the options are read rather
+     * than aimed at, and there is nothing among them to swap the trigger for.
+     *
+     * @param  array<int, string>  $keys
+     */
+    public static function dateTime(array $keys, ?string $label = null): static
+    {
+        return static::make(
+            $label ?? __('filament-advanced-rich-editor::advanced-rich-editor.tools.date_time.label'),
+            array_values(array_filter(array_map(
+                DateTimeFormats::toolName(...),
+                $keys,
+            ))),
+        )
+            ->icon(Icons::get('date_time'))
+            ->staticIcon()
+            ->textualButtons();
+    }
+
+    /**
      * The overflow menu: the tools a toolbar would rather not spend a button on. It is
      * the one dropdown whose trigger stays put - the three dots are the way back to what
      * is inside, so they must not be traded for the icon of whatever the caret is in -
