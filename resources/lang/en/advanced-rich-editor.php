@@ -67,6 +67,10 @@ return [
             'referrerpolicy' => 'Referrer policy',
             'hreflang' => 'Language of the linked page',
             'id' => 'Anchor',
+            'internal' => [
+                'label' => 'Link to a record',
+                'hint' => 'Picking one fills the URL below, which is what the link stores.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Plain text',

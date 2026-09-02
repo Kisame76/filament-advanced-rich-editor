@@ -11,7 +11,10 @@ use Filament\Forms\Components\RichEditor\EditorCommand;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Enums\Width;
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 
 /**
@@ -71,7 +74,30 @@ class LinkAction
                 'referrerpolicy' => $arguments['referrerpolicy'] ?? null,
                 'id' => $arguments['id'] ?? null,
             ])
-            ->schema([
+            ->schema(fn (AdvancedRichEditor $component): array => [
+                // Above the URL rather than beside it: picking is what somebody came here to
+                // do, and typing a URL is the fallback. Only drawn where the field was given
+                // somewhere to pick from - a select with nothing in it is a dead control.
+                ...($component->hasLinkSources() ? [
+                    Select::make('internal')
+                        ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.link.internal.label'))
+                        ->helperText(__('filament-advanced-rich-editor::advanced-rich-editor.tools.link.internal.hint'))
+                        ->searchable()
+                        ->native(false)
+                        ->options(fn (): array => static::internalOptions($component->getLinkSources(), ''))
+                        ->getSearchResultsUsing(fn (string $search): array => static::internalOptions($component->getLinkSources(), $search))
+                        // The picked value IS the URL, so filling the field below is the whole
+                        // of what picking does. Live, because a select that only takes effect
+                        // on save is a select nobody can see the result of.
+                        ->live()
+                        ->afterStateUpdated(static function (mixed $state, Set $set): void {
+                            if (filled($state)) {
+                                $set('href', $state);
+                            }
+                        })
+                        ->columnSpanFull(),
+                ] : []),
+
                 TextInput::make('href')
                     ->label(__('filament-forms::components.rich_editor.actions.link.modal.form.url.label'))
                     ->inputMode('url')
@@ -131,6 +157,36 @@ class LinkAction
                     editorSelection: $arguments['editorSelection'],
                 );
             });
+    }
+
+    /**
+     * What the picker offers, out of the sources a field was given.
+     *
+     * The value of an option is the URL itself, which is what makes picking one a matter of
+     * filling the field below rather than resolving anything later. That is not a shortcut:
+     * `tiptap-php`'s link mark matches `a[href]` and drops a link whose `href` is empty, so a
+     * reference stored instead of a URL is a link that disappears on the next hydration.
+     *
+     * One source is listed flat. A heading over the only group in the list is a heading over
+     * everything, which says nothing; with two it is what tells an article from a category.
+     * A source that found nothing is left out rather than drawn as an empty heading.
+     *
+     * @param  array<int, LinkSource>  $sources
+     * @return array<string, string|array<string, string>>
+     */
+    public static function internalOptions(array $sources, string $search): array
+    {
+        $groups = [];
+
+        foreach ($sources as $source) {
+            $options = $source->getOptions($search);
+
+            if ($options !== []) {
+                $groups[$source->getLabel()] = $options;
+            }
+        }
+
+        return count($groups) > 1 ? $groups : (reset($groups) ?: []);
     }
 
     /**

@@ -21,7 +21,7 @@ on top of it, checked against the current Filament v5 release:
 | **Character look** | `textColor` with an optional free picker, `highlight`, `small`, `lead` | + [a background colour with a palette of its own](#colours), [font size](#font-size), [your design system's own named styles](#styles), [a typeface picker](#fonts) |
 | **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser), [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
 | **Sizing a picture** | `->resizableImages()`, off by default, and the drag always keeps the ratio | [On by default, with the pixel size beside the pointer](#images) — a ratio lock you can open, quarter turns, a panel to type the two numbers into, and a download |
-| **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window |
+| **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window, and [a search over your own records](#linking-to-a-record-instead-of-typing-a-url) instead of a typed URL |
 | **Video** | — | [Paste a YouTube or Vimeo link](#video-embeds) and get a player, timestamp included, through the cookie-free host |
 | **Code** | A code block with no language | [A language picker on the block](#code-blocks), and syntax colours rendered in PHP |
 | **Callouts** | — | [Note, tip, warning and danger](#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
@@ -2329,6 +2329,54 @@ Subdomains of a listed host count (`player.vimeo.com` for `vimeo.com`); a host t
 
 `'sanitizer' => false` leaves the application's sanitiser alone. Embeds are then still
 stored and edited, and stripped from every rendered page — which is a coherent choice only
+#### Linking to a record instead of typing a URL
+
+Give the field somewhere to pick from and the dialog grows a search above the URL field.
+This is the thing a Filament editor can do that a generic one never will: the records are
+already here.
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
+
+AdvancedRichEditor::make('content')->linkSources([
+    LinkSource::make('articles')
+        ->label('Articles')
+        ->using(fn (string $search): array => Article::query()
+            ->when($search, fn ($query) => $query->whereLike('title', "%{$search}%"))
+            ->limit(20)
+            ->get()
+            ->mapWithKeys(fn (Article $article): array => [
+                route('articles.show', $article) => $article->title,
+            ])
+            ->all()),
+
+    LinkSource::make('categories')
+        ->using(fn (string $search): array => /* ... */ []),
+]);
+```
+
+**A source answers with `url => label`.** The URL is the value of the option, so picking one
+fills the URL field below — and that field stays the thing the link stores. The picker is a
+way of writing a URL, not a second way of storing a link.
+
+That is not a simplification, it is the only shape that works. `tiptap-php`'s link mark
+matches `a[href]` and returns `false` for an empty one, so a link carrying a reference and no
+`href` is not a link the next hydration recognises: the markup survives, the linking quietly
+does not, and nothing reports it. A resolved URL is therefore always what is written.
+
+The query is yours. What the package needs is a name, a heading and somewhere to be asked;
+which models are linkable, how their URLs are built and who may see them are decisions it has
+no business making. That is also why there is no config key for this — a source is a closure,
+and the config file is cacheable.
+
+A source with no label is headed by its own name read as a title, so `LinkSource::make('articles')`
+is "Articles". With one source the list is flat: a heading over the only group in it is a
+heading over everything. With two or more, each source's records sit under their own. A source
+that finds nothing is left out rather than drawn as an empty heading.
+
+Re-opening a link does not preselect the record it points at. Finding the record behind a URL
+means storing a reference next to it, which is exactly what the mark cannot carry.
+
 if something else in the project renders them.
 
 > **Living with another package.** Symfony chains every sanitiser registered for the same

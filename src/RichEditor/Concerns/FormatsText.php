@@ -6,6 +6,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Closure;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Typography;
 
 /**
@@ -45,6 +46,11 @@ trait FormatsText
 
     /**
      * Whether the link tool offers `rel`, `referrerpolicy`, `hreflang` and an anchor, and
+    /**
+     * @var array<int, LinkSource>|Closure|null
+     */
+    protected array|Closure|null $linkSources = null;
+
      * whether the schema keeps them.
      *
      * Both halves move together on purpose. A dialog that writes an attribute the schema
@@ -65,6 +71,41 @@ trait FormatsText
 
     /**
      * The two direction buttons. Switching them off keeps the `dir` attribute out of the
+    /**
+     * Where the link dialog may offer records instead of a typed URL.
+     *
+     * On the field rather than in the config file, and for the same reason the mention
+     * providers are: a source is a closure over a query, and the config file is cacheable.
+     * A closure here as well as inside each source, because what is linkable can depend on
+     * who is logged in - and that is known when the field renders, not when it is described.
+     *
+     * @param  array<int, LinkSource>|Closure|null  $sources
+     */
+    public function linkSources(array|Closure|null $sources): static
+    {
+        $this->linkSources = $sources;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, LinkSource>
+     */
+    public function getLinkSources(): array
+    {
+        $sources = $this->evaluate($this->linkSources) ?? [];
+
+        return array_values(array_filter(
+            is_array($sources) ? $sources : [],
+            static fn (mixed $source): bool => $source instanceof LinkSource,
+        ));
+    }
+
+    public function hasLinkSources(): bool
+    {
+        return $this->getLinkSources() !== [];
+    }
+
      * editor's schema, which means a document that already carries one loses it on the next
      * save - the parser only keeps what something declares.
      */

@@ -67,6 +67,10 @@ return [
             'referrerpolicy' => 'Referrer-Richtlinie',
             'hreflang' => 'Sprache der Zielseite',
             'id' => 'Anker',
+            'internal' => [
+                'label' => 'Auf einen Datensatz verlinken',
+                'hint' => 'Die Auswahl füllt die URL darunter - das ist, was der Link speichert.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Reiner Text',
