@@ -123,6 +123,7 @@ class Icons
             // Changing the case. Lucide draws the three as what they produce - Aa, AB, ab -
             // which is the one set of drawings that tells them apart without a tooltip. The
             // dropdown's trigger is the mixed one, because that is the family's sign.
+            'format_brush' => 'heroicon-o-paint-brush',
             'text_case' => 'arte-case-sensitive',
             'text_case_sentence' => 'arte-case-sensitive',
             'text_case_upper' => 'arte-case-upper',

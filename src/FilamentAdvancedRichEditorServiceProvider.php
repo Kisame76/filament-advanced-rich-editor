@@ -52,6 +52,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
 
                 // Same deal for the font size mark: only fields that render the stepper
                 // ask for it.
+                // The brush that carries formatting. Loaded only where the button is,
+                // since a field without it has no way to arm one.
+                Js::make('advanced-rich-editor/format-brush', __DIR__.'/../resources/dist/js/format-brush.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/font-size', __DIR__.'/../resources/dist/js/font-size.js')
                     ->loadedOnRequest(),
                 Js::make('advanced-rich-editor/font-family', __DIR__.'/../resources/dist/js/font-family.js')
@@ -87,14 +92,14 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/text-direction', __DIR__.'/../resources/dist/js/text-direction.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/text-toolbar', __DIR__.'/../resources/dist/js/text-toolbar.js')
+                    ->loadedOnRequest(),
+
                 // Two keyboard shortcuts and nothing else. It is asked for by every field
                 // rather than by a configured few, because the keys it repairs are bound by
                 // Filament's own build on every field.
                 Js::make('advanced-rich-editor/alignment', __DIR__.'/../resources/dist/js/alignment.js')
                     ->loadedOnRequest(),
-                Js::make('advanced-rich-editor/text-toolbar', __DIR__.'/../resources/dist/js/text-toolbar.js')
-                    ->loadedOnRequest(),
-
 
                 // The language a passage is written in, and what a list is told about
                 // itself. Both are schema only - a mark and a set of global attributes -

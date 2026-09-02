@@ -115,6 +115,10 @@ class ToolbarLayout
             'emoji' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmoji()
                 ? 'emoji'
                 : [],
+            // Nothing to offer means no button, the same rule the rest of the bar follows.
+            'formatBrush' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFormatBrush()
+                ? 'formatBrush'
+                : [],
             // Nothing to offer means no trigger, the same rule the spacing dropdown follows.
             'textCase' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextCase()
                 ? ToolbarDropdown::textCase()
@@ -175,10 +179,6 @@ class ToolbarLayout
             'statistics' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasStatistics()
                 ? 'statistics'
                 : [],
-            'find' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFind()
-                ? 'find'
-                : [],
-            'accessibility' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasAccessibility()
             // Two questions behind one token, and the second is the honest one: a field
             // nobody gave a stylesheet has nothing to draw the document with, so it gets no
             // button rather than one opening onto unstyled markup. Shipped that way, like
@@ -186,6 +186,10 @@ class ToolbarLayout
             'preview' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasPreviewFrontEnd()
                 ? 'preview'
                 : [],
+            'find' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFind()
+                ? 'find'
+                : [],
+            'accessibility' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasAccessibility()
                 ? 'accessibility'
                 : [],
             'textBackground' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextBackground()

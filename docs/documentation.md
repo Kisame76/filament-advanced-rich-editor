@@ -1607,6 +1607,65 @@ One entry is invisible and is drawn as `␣` — the non-breaking space, which G
 needs several times a page ("10 %", "Nr. 5", "S. 12"). A blank button is one nobody can aim
 at.
 
+### Format brush
+
+Word's format painter, TinyMCE's permanent pen: pick the formatting up at one passage and
+put it down on another.
+
+```php
+AdvancedRichEditor::make('content')
+    ->formatBrush();                   // default: config('…format_brush')
+```
+
+Registered but with no button, the same as the case switcher and for the same reason — the
+overflow menu is finite. Put `formatBrush` where you want it: on the bar, in the selection
+bubble, or in `moreTools()`.
+
+**One button, three states.** A click picks the formatting up and arms it for one stroke; a
+second click keeps it armed; a third puts it away. Plain clicks rather than click-versus-
+double-click, which is the gesture every editor copies from Word and the one part of this
+that could not be built honestly — telling the two apart means reading `event.detail`, and
+the second half of a double-click is indistinguishable from a deliberate second click.
+Escape puts it away too.
+
+While it is armed the pointer is a copy cursor, and the button carries `data-arte-brush`
+with `once` or `sticky` in it, so a theme can draw the two states apart.
+
+**It carries character formatting.** Bold, italic, underline, strikethrough, super- and
+subscript, highlight, small, colour, background, size and typeface — whichever of those
+*this field's* schema declares, read at the moment the brush is used rather than from a list
+written here. Two editors on one page do not have the same schema: the styles plugin is on
+for one and off for the other, and a written-out list would promise a mark that is not there.
+
+Three marks are refused, and only the last one by name:
+
+- **A code run.** It declares `excludes: "_"`, so applying it takes every other mark back
+  off. A brush carrying it would put down something other than what it picked up — measured
+  in both orders.
+- **A link.** A destination rather than a look, and it carries an `id` that has to stay
+  unique; brushed onto a second passage, two elements answer to one `#name` and the second
+  is unreachable. Refused by what the mark declares, so a plugin's own anchor-carrying mark
+  is refused on the same grounds without an entry anywhere.
+- **A language.** What a passage *is*, not how it looks — it is what a screen reader
+  switches voice on. Nothing structural gives it away, so this one is named.
+
+**It replaces rather than adds**, the way Word does — but only within what it carries. A
+hyperlink, a language and a code run on the target survive a stroke, because they were never
+on the list. That is why the stroke is made mark by mark instead of with `unsetAllMarks`,
+which was measured taking the hyperlink off as well.
+
+**What it refuses to do.** It will not arm where there is nothing to take, so the button
+cannot light for a brush that is empty. It will not pick up from a selected picture: an image
+declares no marks of its own, so ProseMirror's default lets every mark onto it — the chain
+returns true, `can()` returns true, and the document quietly gains a bold picture. And a
+selection is read through all of its ranges rather than through `from`/`to`, because a
+selection across table cells has one range per cell and `from`/`to` are the ends of one of
+them.
+
+Paragraph formatting — alignment, line spacing, direction — is **not** carried. A mark
+applies to a range of characters and a block attribute applies to a whole node, so brushing
+one over half a sentence would change the whole paragraph: more than was selected.
+
 ### Changing the case
 
 ```php
@@ -2270,6 +2329,54 @@ change every other package's links too.
 Everything the dialog writes survives Filament's sanitiser: `rel`, `target`, `hreflang`,
 `referrerpolicy` and `id` all reach the page as written.
 
+#### Linking to a record instead of typing a URL
+
+Give the field somewhere to pick from and the dialog grows a search above the URL field.
+This is the thing a Filament editor can do that a generic one never will: the records are
+already here.
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
+
+AdvancedRichEditor::make('content')->linkSources([
+    LinkSource::make('articles')
+        ->label('Articles')
+        ->using(fn (string $search): array => Article::query()
+            ->when($search, fn ($query) => $query->whereLike('title', "%{$search}%"))
+            ->limit(20)
+            ->get()
+            ->mapWithKeys(fn (Article $article): array => [
+                route('articles.show', $article) => $article->title,
+            ])
+            ->all()),
+
+    LinkSource::make('categories')
+        ->using(fn (string $search): array => /* ... */ []),
+]);
+```
+
+**A source answers with `url => label`.** The URL is the value of the option, so picking one
+fills the URL field below — and that field stays the thing the link stores. The picker is a
+way of writing a URL, not a second way of storing a link.
+
+That is not a simplification, it is the only shape that works. `tiptap-php`'s link mark
+matches `a[href]` and returns `false` for an empty one, so a link carrying a reference and no
+`href` is not a link the next hydration recognises: the markup survives, the linking quietly
+does not, and nothing reports it. A resolved URL is therefore always what is written.
+
+The query is yours. What the package needs is a name, a heading and somewhere to be asked;
+which models are linkable, how their URLs are built and who may see them are decisions it has
+no business making. That is also why there is no config key for this — a source is a closure,
+and the config file is cacheable.
+
+A source with no label is headed by its own name read as a title, so `LinkSource::make('articles')`
+is "Articles". With one source the list is flat: a heading over the only group in it is a
+heading over everything. With two or more, each source's records sit under their own. A source
+that finds nothing is left out rather than drawn as an empty heading.
+
+Re-opening a link does not preselect the record it points at. Finding the record behind a URL
+means storing a reference next to it, which is exactly what the mark cannot carry.
+
 ### Video embeds
 
 The `embed` tool takes a link and puts a video in the document. Paste the link from the
@@ -2333,54 +2440,6 @@ Subdomains of a listed host count (`player.vimeo.com` for `vimeo.com`); a host t
 
 `'sanitizer' => false` leaves the application's sanitiser alone. Embeds are then still
 stored and edited, and stripped from every rendered page — which is a coherent choice only
-#### Linking to a record instead of typing a URL
-
-Give the field somewhere to pick from and the dialog grows a search above the URL field.
-This is the thing a Filament editor can do that a generic one never will: the records are
-already here.
-
-```php
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
-
-AdvancedRichEditor::make('content')->linkSources([
-    LinkSource::make('articles')
-        ->label('Articles')
-        ->using(fn (string $search): array => Article::query()
-            ->when($search, fn ($query) => $query->whereLike('title', "%{$search}%"))
-            ->limit(20)
-            ->get()
-            ->mapWithKeys(fn (Article $article): array => [
-                route('articles.show', $article) => $article->title,
-            ])
-            ->all()),
-
-    LinkSource::make('categories')
-        ->using(fn (string $search): array => /* ... */ []),
-]);
-```
-
-**A source answers with `url => label`.** The URL is the value of the option, so picking one
-fills the URL field below — and that field stays the thing the link stores. The picker is a
-way of writing a URL, not a second way of storing a link.
-
-That is not a simplification, it is the only shape that works. `tiptap-php`'s link mark
-matches `a[href]` and returns `false` for an empty one, so a link carrying a reference and no
-`href` is not a link the next hydration recognises: the markup survives, the linking quietly
-does not, and nothing reports it. A resolved URL is therefore always what is written.
-
-The query is yours. What the package needs is a name, a heading and somewhere to be asked;
-which models are linkable, how their URLs are built and who may see them are decisions it has
-no business making. That is also why there is no config key for this — a source is a closure,
-and the config file is cacheable.
-
-A source with no label is headed by its own name read as a title, so `LinkSource::make('articles')`
-is "Articles". With one source the list is flat: a heading over the only group in it is a
-heading over everything. With two or more, each source's records sit under their own. A source
-that finds nothing is left out rather than drawn as an empty heading.
-
-Re-opening a link does not preselect the record it points at. Finding the record behind a URL
-means storing a reference next to it, which is exactly what the mark cannot carry.
-
 if something else in the project renders them.
 
 > **Living with another package.** Symfony chains every sanitiser registered for the same
@@ -3108,65 +3167,6 @@ There is a trap behind the first of those, and it is why the trait hangs on `cre
 on the instance that created a record, every later save still answers true to it. Asked on
 `saved`, a typo fix in the title would announce a document nobody wrote.
 
-written itself. The same pass is public, and is what an importer or a seeder wants:
-
-```php
-$field = AdvancedRichEditor::make('content')->headingLevels([2, 3]);
-
-$field->normaliseSourceHtml($legacyPost->body);
-// an <h1> becomes a paragraph, unknown tags are dropped, the rest is schema-clean
-```
-
-It obeys everything the field was configured with, which is the point: HTML normalised
-against a field that allows `h2` and `h3` cannot come back carrying an `h1`.
-
-## Rendering
-
-Everything above is about the editor. This part is about the page the content ends up on.
-
-`AdvancedRichContentRenderer` is Filament's `RichContentRenderer` with what this package
-adds, used exactly the same way — every method you already know is still there:
-
-```php
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
-
-AdvancedRichContentRenderer::make($article->content)
-    ->anchorHeadings()
-    ->toHtml();
-```
-
-A subclass rather than macros on Filament's own class. A macro is registered once and
-applies to every renderer in the application, including the ones other packages build for
-their own content — installing this package would change what those render, without anyone
-asking for it. Where the additions *should* apply everywhere, including Filament's model
-rich content attributes, which build their renderer themselves and take no arguments, one
-line says so:
-
-```php
-// AppServiceProvider::register()
-AdvancedRichContentRenderer::bind();
-```
-
-**It declares everything this package can write, whether or not you name a plugin.** A
-renderer that has to be told is one that drops it the day somebody forgets to say so, and
-that is not hypothetical: task lists, font sizes, typefaces, line heights, highlights,
-writing directions and image rotations all used to arrive only with the plugin that puts
-their button on the toolbar, so a plain `AdvancedRichContentRenderer::make($article->content)
-->toHtml()` quietly rendered a task list as an ordinary bullet list with every tick gone.
-Passing the plugins still matters where a field configures them — a plugin's instance
-carries that configuration and wins — but nothing is lost by leaving them out.
-
-It also renders an empty record as an empty string. Filament's own renderer walks the
-document without first checking that there is one, and a rich content column is null until
-somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this
-one returns `''`. The same goes for `toText()`.
-
-### Table column widths
-
-A column somebody dragged wider stays wider on the page. Filament configures TipTap's table
-with `resizable: true`, so dragging already worked and the width was already kept in the
-document — it just never reached the reader. `ueberdosis/tiptap-php` writes it as
-`data-colwidth` on the cell, which is neither on the sanitiser's allow list nor anything a
 ### Required, and what counts as empty
 
 An empty editor is not an empty value. TipTap keeps at least one paragraph in the document
@@ -3378,6 +3378,65 @@ the code editor: that one is the document's own doing, not the layout's.
 
 The source dialog does not hand TipTap whatever was typed into it: markup is round-tripped
 through *that field's own* schema first, so what is stored is what the field would have
+written itself. The same pass is public, and is what an importer or a seeder wants:
+
+```php
+$field = AdvancedRichEditor::make('content')->headingLevels([2, 3]);
+
+$field->normaliseSourceHtml($legacyPost->body);
+// an <h1> becomes a paragraph, unknown tags are dropped, the rest is schema-clean
+```
+
+It obeys everything the field was configured with, which is the point: HTML normalised
+against a field that allows `h2` and `h3` cannot come back carrying an `h1`.
+
+## Rendering
+
+Everything above is about the editor. This part is about the page the content ends up on.
+
+`AdvancedRichContentRenderer` is Filament's `RichContentRenderer` with what this package
+adds, used exactly the same way — every method you already know is still there:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+
+AdvancedRichContentRenderer::make($article->content)
+    ->anchorHeadings()
+    ->toHtml();
+```
+
+A subclass rather than macros on Filament's own class. A macro is registered once and
+applies to every renderer in the application, including the ones other packages build for
+their own content — installing this package would change what those render, without anyone
+asking for it. Where the additions *should* apply everywhere, including Filament's model
+rich content attributes, which build their renderer themselves and take no arguments, one
+line says so:
+
+```php
+// AppServiceProvider::register()
+AdvancedRichContentRenderer::bind();
+```
+
+**It declares everything this package can write, whether or not you name a plugin.** A
+renderer that has to be told is one that drops it the day somebody forgets to say so, and
+that is not hypothetical: task lists, font sizes, typefaces, line heights, highlights,
+writing directions and image rotations all used to arrive only with the plugin that puts
+their button on the toolbar, so a plain `AdvancedRichContentRenderer::make($article->content)
+->toHtml()` quietly rendered a task list as an ordinary bullet list with every tick gone.
+Passing the plugins still matters where a field configures them — a plugin's instance
+carries that configuration and wins — but nothing is lost by leaving them out.
+
+It also renders an empty record as an empty string. Filament's own renderer walks the
+document without first checking that there is one, and a rich content column is null until
+somebody types into it — so `RichContentRenderer::make(null)->toHtml()` throws where this
+one returns `''`. The same goes for `toText()`.
+
+### Table column widths
+
+A column somebody dragged wider stays wider on the page. Filament configures TipTap's table
+with `resizable: true`, so dragging already worked and the width was already kept in the
+document — it just never reached the reader. `ueberdosis/tiptap-php` writes it as
+`data-colwidth` on the cell, which is neither on the sanitiser's allow list nor anything a
 browser does something with: CSS cannot read an attribute value as a width. The editor
 looked right, the page did not, and nothing said so.
 
@@ -3714,65 +3773,6 @@ AdvancedRichContentRenderer::make($article->content)
     ->toMarkdown(['header_style' => 'setext']);      // overrules the default
 ```
 
-### Excerpts
-
-The first few lines of a document, for a meta description, a teaser or a card:
-
-```php
-AdvancedRichContentRenderer::make($article->content)->toExcerpt();          // 160 characters
-AdvancedRichContentRenderer::make($article->content)->toExcerpt(200, ' …'); // and your own marker
-```
-
-The length is the length of the **text**; the marker is added on top of it, the way
-`Str::limit()` counts. The cut falls on a word boundary, and nothing is appended where the
-text already ends in a full stop — `Der erste Satz.…` is two marks doing one job. Defaults
-live under `excerpt` in the config.
-
-The text it cuts is `toText()`, which means mentions read the way they were typed and merge
-tags carry the values they hold now. Two things had to be repaired in that method to make an
-excerpt out of it, and both apply to `toText()` itself:
-
-- **A sentence is one line again.** TipTap's text serialiser puts its block separator
-  between *any* two children, not between blocks — so `<p>Hallo <strong>Welt</strong>!</p>`
-  came back as three lines, two of them one word long. Anything that indexed or excerpted a
-  document with a link or a bold word in it got that shape.
-- **Entities are spelled out.** The serialiser escapes every text node it walks, which is
-  right on the way into markup and wrong in the one method that promises there is none. A
-  search index holding `Tom &amp; Jerry` does not answer a search for Tom & Jerry.
-
-The cutting itself is a plain function on a string, usable on text this package did not
-produce:
-
-```php
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\Excerpt;
-
-Excerpt::from($text, 160);
-```
-
-### Blade component
-
-One tag instead of three lines of renderer assembly in every template that prints a
-document:
-
-```blade
-<x-arte-content :content="$article->content" class="prose" />
-```
-
-It draws a `<div>` around the document and passes your attributes to it. `:tag="'article'"`
-draws something else, `:tag="null"` prints the document on its own. What it prints has been
-through the sanitiser — it calls `toHtml()`, which is the point of having the component at
-all: `toUnsafeHtml()` is the shorter name and the wrong one.
-
-The props follow the renderer:
-
-```blade
-<x-arte-content
-    :content="$article->content"
-    anchors                       {{-- or :anchors="[2, 3]" --}}
-    highlight                     {{-- or highlight="github-dark" --}}
-    :styles="$styles"
-    :link-attributes="false"
-    :merge-tags="['name' => $user->name]"
 Nothing has to be registered for it. `TaskListPlugin` puts the button on a toolbar; the
 renderer declares the two nodes whether or not anything asked for them, so a plain render
 of a stored document keeps its boxes.
@@ -3859,6 +3859,65 @@ is built.
 An empty string reads as an empty **document** rather than an empty array, which is what
 Filament stores for a field nobody typed into.
 
+### Excerpts
+
+The first few lines of a document, for a meta description, a teaser or a card:
+
+```php
+AdvancedRichContentRenderer::make($article->content)->toExcerpt();          // 160 characters
+AdvancedRichContentRenderer::make($article->content)->toExcerpt(200, ' …'); // and your own marker
+```
+
+The length is the length of the **text**; the marker is added on top of it, the way
+`Str::limit()` counts. The cut falls on a word boundary, and nothing is appended where the
+text already ends in a full stop — `Der erste Satz.…` is two marks doing one job. Defaults
+live under `excerpt` in the config.
+
+The text it cuts is `toText()`, which means mentions read the way they were typed and merge
+tags carry the values they hold now. Two things had to be repaired in that method to make an
+excerpt out of it, and both apply to `toText()` itself:
+
+- **A sentence is one line again.** TipTap's text serialiser puts its block separator
+  between *any* two children, not between blocks — so `<p>Hallo <strong>Welt</strong>!</p>`
+  came back as three lines, two of them one word long. Anything that indexed or excerpted a
+  document with a link or a bold word in it got that shape.
+- **Entities are spelled out.** The serialiser escapes every text node it walks, which is
+  right on the way into markup and wrong in the one method that promises there is none. A
+  search index holding `Tom &amp; Jerry` does not answer a search for Tom & Jerry.
+
+The cutting itself is a plain function on a string, usable on text this package did not
+produce:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Excerpt;
+
+Excerpt::from($text, 160);
+```
+
+### Blade component
+
+One tag instead of three lines of renderer assembly in every template that prints a
+document:
+
+```blade
+<x-arte-content :content="$article->content" class="prose" />
+```
+
+It draws a `<div>` around the document and passes your attributes to it. `:tag="'article'"`
+draws something else, `:tag="null"` prints the document on its own. What it prints has been
+through the sanitiser — it calls `toHtml()`, which is the point of having the component at
+all: `toUnsafeHtml()` is the shorter name and the wrong one.
+
+The props follow the renderer:
+
+```blade
+<x-arte-content
+    :content="$article->content"
+    anchors                       {{-- or :anchors="[2, 3]" --}}
+    highlight                     {{-- or highlight="github-dark" --}}
+    :styles="$styles"
+    :link-attributes="false"
+    :merge-tags="['name' => $user->name]"
     :mentions="$providers"
     disk="s3"
     visibility="private"

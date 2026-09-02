@@ -9,7 +9,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 
 it('exposes the built-in tokens', function (): void {
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'textCase', 'embed', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'statistics', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize']);
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'formatBrush', 'textCase', 'embed', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'statistics', 'preview', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize']);
 });
 
 it('resolves tokens at any nesting depth', function (): void {
@@ -34,7 +34,7 @@ it('registers extra tokens from the config file', function (): void {
 
     $toolbar = editor('body')->toolbarButtons([['inline', 'link']])->getToolbarButtons();
 
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'textCase', 'embed', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'statistics', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize', 'inline'])
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'formatBrush', 'textCase', 'embed', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'help', 'statistics', 'preview', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize', 'inline'])
         ->and($toolbar[0][0])->toBeInstanceOf(ToolbarDropdown::class)
         // The token closure is evaluated through the field, so it can read its configuration.
         ->and($toolbar[0][0]->getName())->toBe('body inline')

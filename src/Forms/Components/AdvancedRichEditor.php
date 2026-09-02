@@ -50,6 +50,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FormatBrushPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\HelpPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageDecorativePlugin;
@@ -62,8 +63,8 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StatisticsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StylesPlugin;
@@ -71,11 +72,11 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextCasePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextToolbarPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TypographyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
 use Tiptap\Editor;
 
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextToolbarPlugin;
 /**
  * Filament's rich editor with the things a long document needs.
  *
@@ -90,10 +91,10 @@ class AdvancedRichEditor extends RichEditor
     use AttachesFiles;
     use BuildsTheToolbar;
     use CastsItsContent;
+    use ChecksItsContent;
     use ChoosesTypefaces;
     use ColoursText;
     use CountsCharacters;
-    use ChecksItsContent;
     use FloatsToolbars;
     use FormatsBlocks;
     use FormatsText;
@@ -103,8 +104,8 @@ class AdvancedRichEditor extends RichEditor
     use OffersWritingAids;
     use OpensMenus;
     use PlacesImages;
-    use ServesTheMediaBrowser;
     use PreviewsContent;
+    use ServesTheMediaBrowser;
     use WritesWithoutAToolbar;
 
     protected string $view = 'filament-advanced-rich-editor::rich-editor';
@@ -118,12 +119,12 @@ class AdvancedRichEditor extends RichEditor
 
     protected bool|int|Closure|null $nestingCheck = null;
 
-    protected function setUp(): void
     /**
      * @var array<int, Closure(AdvancedRichContentRenderer): mixed>
      */
     protected array $rendererConfiguration = [];
 
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -328,6 +329,12 @@ class AdvancedRichEditor extends RichEditor
         );
 
         $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasFormatBrush()
+                ? [FormatBrushPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTypography()
                 ? [TypographyPlugin::make()]
                 : [],
@@ -498,6 +505,14 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // Only where the bar is actually drawn: what this registers is the rule that governs
+        // it, and a rule for a bar that is not there is a message addressed to nobody.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasTextToolbarBubble()
+                ? [TextToolbarPlugin::make()]
+                : [],
+        );
+
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasSourceCode()
                 ? [SourceCodePlugin::make()]
@@ -515,14 +530,16 @@ class AdvancedRichEditor extends RichEditor
                 ? [StatisticsPlugin::make()]
                 : [],
         );
-        // Only where the bar is actually drawn: what this registers is the rule that governs
-        // it, and a rule for a bar that is not there is a message addressed to nobody.
+
+        // Asked for the front end rather than for the setting, the same way the media browser
+        // is asked for the pool: a field with no stylesheet named has nothing to draw the
+        // document with, and a dialog showing unstyled HTML under the word "preview" is a
+        // worse answer than no button.
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasPreviewFrontEnd()
                 ? [PreviewPlugin::make()]
                 : [],
         );
-
 
         // Registered whenever the picker is, and also wherever a document might already
         // carry a typeface: the mark is what keeps it through the next save.
@@ -676,6 +693,13 @@ class AdvancedRichEditor extends RichEditor
     {
         $renderer = AdvancedRichContentRenderer::make($content)
             ->plugins($this->getPlugins())
+            ->customBlocks($this->getCustomBlocks())
+            ->mergeTags($this->getMergeTags())
+            ->mentions($this->getMentionProviders())
+            ->fileAttachmentsDisk($this->getFileAttachmentsDiskName())
+            ->fileAttachmentsVisibility($this->getFileAttachmentsVisibility())
+            ->fileAttachmentProvider($this->getFileAttachmentProvider())
+            ->textColors($this->getTextColors())
             ->linkProtocols($this->getLinkProtocols())
             ->linkAttributes($this->hasLinkAttributes())
             ->styles(Styles::for($this));

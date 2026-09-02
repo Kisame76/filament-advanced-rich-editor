@@ -84,25 +84,46 @@ trait CastsItsContent
      */
     public function hasContent(mixed $state): bool
     {
+        $document = $this->toDocument($state);
+
+        if ($document !== null) {
+            return ! DocumentContent::isBlank($document);
+        }
+
+        // Nothing to look at, for one of two reasons that have to answer differently. Blank
+        // state is empty. Anything else - an object a project put in the column, a number -
+        // is believed, which is the same direction an unknown node is believed in.
+        return ! blank($state instanceof Htmlable ? $state->toHtml() : $state);
+    }
+
+    /**
+     * The state as a document tree, or null where there is no tree to look at.
+     *
+     * State arrives in every shape on the way into the validator: the document Livewire
+     * carries, the markup a record was hydrated from, an `Htmlable` a cast produced, or
+     * nothing. Every rule that asks a question about the tree needs the same three steps
+     * first, so they are taken once here.
+     *
+     * The blank check is also the guard that keeps an empty string away from the parser:
+     * `setContent('')` walks a document body that was never built and dies on the null.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function toDocument(mixed $state): ?array
+    {
         if ($state instanceof Htmlable) {
             $state = $state->toHtml();
         }
 
-        // Also the guard that keeps an empty string away from the parser: `setContent('')`
-        // walks a document body that was never built and dies on the null.
         if (blank($state)) {
-            return false;
+            return null;
         }
 
         if (is_string($state)) {
-            $state = $this->getTipTapEditor()->setContent($state)->getDocument();
+            return $this->getTipTapEditor()->setContent($state)->getDocument();
         }
 
-        if (! is_array($state)) {
-            return true;
-        }
-
-        return ! DocumentContent::isBlank($state);
+        return is_array($state) ? $state : null;
     }
 
     /**

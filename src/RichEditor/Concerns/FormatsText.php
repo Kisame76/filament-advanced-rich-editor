@@ -29,6 +29,8 @@ trait FormatsText
 
     protected bool|Closure|null $hasCharacters = null;
 
+    protected bool|Closure|null $hasFormatBrush = null;
+
     protected bool|Closure|null $hasTextCase = null;
 
     protected bool|Closure|null $hasTypography = null;
@@ -45,12 +47,12 @@ trait FormatsText
     protected bool|Closure|null $hasLinkAttributes = null;
 
     /**
-     * Whether the link tool offers `rel`, `referrerpolicy`, `hreflang` and an anchor, and
-    /**
      * @var array<int, LinkSource>|Closure|null
      */
     protected array|Closure|null $linkSources = null;
 
+    /**
+     * Whether the link tool offers `rel`, `referrerpolicy`, `hreflang` and an anchor, and
      * whether the schema keeps them.
      *
      * Both halves move together on purpose. A dialog that writes an attribute the schema
@@ -69,8 +71,6 @@ trait FormatsText
         return (bool) ($this->evaluate($this->hasLinkAttributes) ?? config('filament-advanced-rich-editor.link.attributes') ?? true);
     }
 
-    /**
-     * The two direction buttons. Switching them off keeps the `dir` attribute out of the
     /**
      * Where the link dialog may offer records instead of a typed URL.
      *
@@ -106,6 +106,8 @@ trait FormatsText
         return $this->getLinkSources() !== [];
     }
 
+    /**
+     * The two direction buttons. Switching them off keeps the `dir` attribute out of the
      * editor's schema, which means a document that already carries one loses it on the next
      * save - the parser only keeps what something declares.
      */
@@ -208,6 +210,25 @@ trait FormatsText
      * letter is a letter - so switching it off later leaves every word already changed
      * exactly as it is.
      */
+    /**
+     * Whether the field offers the brush that carries formatting from one passage to
+     * another.
+     *
+     * On by default, and cheap to have: the button refuses to arm where there is no
+     * formatting to take, so a field nobody uses it on shows a button that never lights.
+     */
+    public function formatBrush(bool|Closure $condition = true): static
+    {
+        $this->hasFormatBrush = $condition;
+
+        return $this;
+    }
+
+    public function hasFormatBrush(): bool
+    {
+        return (bool) ($this->evaluate($this->hasFormatBrush) ?? config('filament-advanced-rich-editor.format_brush') ?? true);
+    }
+
     public function textCase(bool|Closure $condition = true): static
     {
         $this->hasTextCase = $condition;

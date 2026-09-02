@@ -947,6 +947,27 @@ return [
     |
     | Per field: `->textCase()`.
     */
+    /*
+    |--------------------------------------------------------------------------
+    | Format brush
+    |--------------------------------------------------------------------------
+    |
+    | The brush from Word, TinyMCE's permanent pen: pick the formatting up at one
+    | passage and put it down on another. One click arms it for a single stroke,
+    | a second keeps it armed, a third puts it away.
+    |
+    | It carries character formatting only - the marks this field's own schema
+    | declares, minus three. A code run takes every other mark off with it, a link
+    | is a destination rather than a look and carries an anchor that has to stay
+    | unique, and a language says what a passage *is* rather than how it looks.
+    |
+    | Ships registered but with no button: put `formatBrush` on the bar, in the
+    | selection bubble or in `more`. Per field: `->formatBrush(false)`.
+    |
+    */
+
+    'format_brush' => true,
+
     'text_case' => true,
 
     /*
@@ -1268,6 +1289,7 @@ return [
         'tools_menu' => 'heroicon-o-wrench-screwdriver',
         'source_code' => 'heroicon-o-code-bracket',
         'statistics' => 'heroicon-o-chart-bar',
+        'preview' => 'heroicon-o-eye',
         'find' => 'heroicon-o-magnifying-glass',
         'find_previous' => 'heroicon-o-chevron-up',
         'find_next' => 'heroicon-o-chevron-down',
@@ -1289,7 +1311,6 @@ return [
         // The language a passage is written in, and the way back to the language of the
         // page. The globe with letters on it is the sign for "this is in another one";
         // the cross is the same cross every other clearing control in here uses.
-        'preview' => 'heroicon-o-eye',
         'language' => 'heroicon-o-language',
         'language_none' => 'heroicon-o-x-mark',
 
@@ -1313,6 +1334,7 @@ return [
         // The letter this package already draws, put to a second use: the Latin tab is
         // the one holding letters.
         'characters_latin' => 'arte-letter-a',
+        'format_brush' => 'heroicon-o-paint-brush',
         'text_case' => 'arte-case-sensitive',
         'text_case_sentence' => 'arte-case-sensitive',
         'text_case_upper' => 'arte-case-upper',

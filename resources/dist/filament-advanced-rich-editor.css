@@ -3444,6 +3444,7 @@ body.fi-arte-fullscreen-lock {
     color: var(--gray-400, #a1a1aa);
 }
 
+
 /* -------------------------------------------------------------------------- */
 /* Preview frame                                                              */
 /* -------------------------------------------------------------------------- */
@@ -3457,21 +3458,57 @@ body.fi-arte-fullscreen-lock {
  * A viewport-relative height also says something true: a preview is judged the way a page
  * is read, in a window, not as one tall column.
  *
- * Filament decides which floating toolbar to show per toolbar, and the two answers disagree
- * on a selected picture: the text bubble asks whether the selection is non-empty and sits in
- * a paragraph, and a picture selected inside a paragraph answers yes to both. So the bubble
- * for formatting words is drawn over the bar for laying out the picture, on top of the
- * buttons somebody is reaching for - which is what a resize drag ends in.
- *
- * The rule this settles is not about pictures: a node selection is not a text selection, and
- * a bar offering bold, italic and a link has nothing to say about one. `.ProseMirror-
- * selectednode` is ProseMirror's own mark for exactly that state, so this covers a selected
- * embed or callout as well, and leaves a caret or a stretch of selected text alone.
- *
- * Written here rather than worked around in JavaScript because the decision belongs to
- * Filament's `shouldShow`, which this package cannot reach: what is left is saying that the
- * loser of the argument is not painted.
+ * White rather than transparent, and not themed. What is inside is the project's page, and
+ * a page with no background of its own is a white page - borrowing the panel's dark surface
+ * would be the frame answering a question that belongs to the stylesheet inside it.
  */
-.fi-arte .fi-fo-rich-editor-content:has(.ProseMirror-selectednode) [x-ref='floatingToolbar::paragraph'] {
-    display: none;
+.fi-arte-preview {
+    block-size: 70vh;
+    min-block-size: 20rem;
+    overflow: hidden;
+    border: 1px solid var(--gray-200, #e4e4e7);
+    border-radius: 0.5rem;
+    background-color: #fff;
+}
+
+.fi-arte-preview-frame {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    border: 0;
+}
+
+/*
+ * The format brush, while it is armed.
+ *
+ * A cursor rather than a colour on the text, because nothing has been decided yet: the
+ * document is untouched until a selection is finished, and a preview drawn on the passage
+ * under the pointer would be a promise the brush has not made. `copy` is the one cursor
+ * every platform draws and every user already reads as "this will be put somewhere".
+ *
+ * On the element and not on its descendants, which is a correction rather than a shortcut:
+ * `cursor` inherits, so one declaration already reaches every word - and the `*` that used
+ * to be here also reached the image handles, the drag grip and the table grips, painting
+ * "this will be copied" over the three cursors that say what dragging them does.
+ */
+.fi-arte-brush-armed {
+    cursor: copy;
+}
+
+/*
+ * Armed for good, as opposed to armed for one stroke. Both states light the button - that
+ * is Filament's own `fi-active` - and this is the difference between them, drawn as a ring
+ * rather than a second colour so it reads on top of whatever the panel's theme does.
+ *
+ * Unscoped, and that is the fix rather than the shortcut: this rule shipped as
+ * `.fi-rich-editor [data-arte-brush='sticky']` and matched nothing at all. Measured in a
+ * running panel - the wrapper is `fi-fo-rich-editor`, nine levels above the button, and the
+ * name written here was one this package uses exactly once. An ancestor bought nothing to
+ * begin with: `data-arte-brush` is written by one tool in one package, so there is nothing
+ * on any page for it to collide with, and naming a parent only adds a second thing that has
+ * to stay true - including if Filament ever renders the overflow menu somewhere else.
+ */
+[data-arte-brush='sticky'] {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
 }

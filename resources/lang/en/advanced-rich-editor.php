@@ -89,6 +89,12 @@ return [
                 'vimeo' => 'Vimeo',
             ],
         ],
+        'format_brush' => [
+            'label' => 'Format brush',
+            'once' => 'Armed for one stroke',
+            'sticky' => 'Armed until you switch it off',
+        ],
+
         'task_list' => 'Task list',
         'callouts' => 'Callout',
         'language' => 'Language',
@@ -295,12 +301,6 @@ return [
         ],
     ],
 
-    'statistics' => [
-        'label' => 'Statistics',
-        'heading' => 'Statistics',
-        'words' => 'Words',
-        'characters' => 'Characters',
-        'characters_without_spaces' => 'Characters without spaces',
     'preview' => [
         'label' => 'Preview',
         'heading' => 'Preview',
@@ -308,6 +308,12 @@ return [
         'frame' => 'Preview of the document',
     ],
 
+    'statistics' => [
+        'label' => 'Statistics',
+        'heading' => 'Statistics',
+        'words' => 'Words',
+        'characters' => 'Characters',
+        'characters_without_spaces' => 'Characters without spaces',
         'paragraphs' => 'Blocks',
         'reading_time' => 'Reading time',
         'reading_time_none' => '—',
@@ -391,7 +397,6 @@ return [
             'other' => ':count words',
         ],
     ],
-];
 
     'validation' => [
         'min_words' => 'The :attribute must have at least :min words.',
@@ -418,3 +423,4 @@ return [
             'taskList' => 'a task list',
         ],
     ],
+];

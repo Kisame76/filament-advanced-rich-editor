@@ -89,6 +89,12 @@ return [
                 'vimeo' => 'Vimeo',
             ],
         ],
+        'format_brush' => [
+            'label' => 'Format übertragen',
+            'once' => 'Für einen Strich scharf',
+            'sticky' => 'Scharf, bis du es abschaltest',
+        ],
+
         'task_list' => 'Aufgabenliste',
         'callouts' => 'Infobox',
         'language' => 'Sprache',
@@ -293,12 +299,6 @@ return [
         ],
     ],
 
-    'statistics' => [
-        'label' => 'Statistik',
-        'heading' => 'Statistik',
-        'words' => 'Wörter',
-        'characters' => 'Zeichen',
-        'characters_without_spaces' => 'Zeichen ohne Leerzeichen',
     'preview' => [
         'label' => 'Vorschau',
         'heading' => 'Vorschau',
@@ -306,6 +306,12 @@ return [
         'frame' => 'Vorschau des Dokuments',
     ],
 
+    'statistics' => [
+        'label' => 'Statistik',
+        'heading' => 'Statistik',
+        'words' => 'Wörter',
+        'characters' => 'Zeichen',
+        'characters_without_spaces' => 'Zeichen ohne Leerzeichen',
         'paragraphs' => 'Blöcke',
         'reading_time' => 'Lesezeit',
         'reading_time_none' => '—',
@@ -390,7 +396,6 @@ return [
             'other' => ':count Wörter',
         ],
     ],
-];
 
     'validation' => [
         'min_words' => ':attribute muss mindestens :min Wörter enthalten.',
@@ -417,3 +422,4 @@ return [
             'taskList' => 'eine Aufgabenliste',
         ],
     ],
+];
