@@ -49,9 +49,19 @@ trait CountsCharacters
         return $this;
     }
 
+    /**
+     * A field that refuses a save over three hundred words and then counts characters
+     * underneath is a field reporting the wrong number, so a word rule turns the words on.
+     * Between the field's own answer and the config file, on the same reasoning the Notion
+     * mode sits there: it is more specific than the project's default and less specific than
+     * this field saying so itself.
+     */
     public function hasCharacterCountWords(): bool
     {
-        return (bool) ($this->evaluate($this->hasCharacterCountWords) ?? config('filament-advanced-rich-editor.character_count.words') ?? false);
+        return (bool) ($this->evaluate($this->hasCharacterCountWords)
+            ?? ($this->hasWordRule() ? true : null)
+            ?? config('filament-advanced-rich-editor.character_count.words')
+            ?? false);
     }
 
     /**

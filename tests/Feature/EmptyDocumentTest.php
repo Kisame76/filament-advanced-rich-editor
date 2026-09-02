@@ -2,65 +2,8 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Validator;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
-
-/**
- * What a save would say about a field holding a given state.
- *
- * Built out of the two calls `InteractsWithSchemas` makes on the way into the validator -
- * the schema mutates the state for validation, then the rules are run against it - so that
- * this measures what a save measures rather than what one method happens to return. The
- * field is put into its own container first, because a schema only collects rules from the
- * components it actually holds.
- *
- * @return array<string, array<int, string>>
- */
-function validationErrors(AdvancedRichEditor $field, mixed $state): array
-{
-    $schema = $field->getContainer()->components([$field]);
-
-    $data = [$field->getName() => $state];
-
-    $schema->mutateStateForValidation($data);
-
-    return Validator::make($data, $schema->getValidationRules())
-        ->errors()
-        ->messages();
-}
-
-/**
- * A document, from the nodes it holds. The shape is TipTap's own, which is what Livewire
- * carries between the browser and the validator.
- *
- * @param  array<int, array<string, mixed>>  $content
- * @return array<string, mixed>
- */
-function documentOf(array $content): array
-{
-    return ['type' => 'doc', 'content' => $content];
-}
-
-/**
- * An empty paragraph, with the alignment attribute the state cast writes onto every one it
- * parses - so that a test says what production hands over rather than the shortest thing
- * that happens to work.
- *
- * @return array<string, mixed>
- */
-function emptyParagraph(): array
-{
-    return ['type' => 'paragraph', 'attrs' => ['textAlign' => 'start']];
-}
-
-/**
- * @param  array<int, array<string, mixed>>  $content
- * @return array<string, mixed>
- */
-function paragraphOf(array $content): array
-{
-    return ['type' => 'paragraph', 'attrs' => ['textAlign' => 'start'], 'content' => $content];
-}
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
 
 it('rejects a document of nothing but empty paragraphs', function (): void {
     // Filament rejects a document holding exactly one empty paragraph. Pressing return in

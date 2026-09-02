@@ -124,3 +124,39 @@ final class DocumentContent
         return preg_replace(self::BLANK_CHARACTERS, '', $text) !== '';
     }
 }
+    /**
+     * Whether a node or a mark of a given type is anywhere in the document.
+     *
+     * Marks are searched alongside nodes and by the same name, because the difference is
+     * TipTap's rather than a reader's: somebody asking whether the document has a link in it
+     * does not care that a link is stored as a mark on text and a picture as a node.
+     *
+     * The type is taken as given and never checked against a list of known ones. A node this
+     * package has never heard of is exactly what a project adds, and a rule that only worked
+     * for the shipped types would be one that quietly did nothing for everybody else.
+     *
+     * @param  array<string, mixed>  $document
+     */
+    public static function contains(array $document, string $type): bool
+    {
+        foreach (self::nodes($document) as $node) {
+            if (($node['type'] ?? null) === $type) {
+                return true;
+            }
+
+            $marks = $node['marks'] ?? [];
+
+            if (! is_array($marks)) {
+                continue;
+            }
+
+            foreach ($marks as $mark) {
+                if (is_array($mark) && ($mark['type'] ?? null) === $type) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+

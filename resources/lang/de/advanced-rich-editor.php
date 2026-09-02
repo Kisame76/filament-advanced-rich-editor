@@ -380,3 +380,29 @@ return [
         ],
     ],
 ];
+
+    'validation' => [
+        'min_words' => ':attribute muss mindestens :min Wörter enthalten.',
+        'max_words' => ':attribute darf höchstens :max Wörter enthalten.',
+        'must_contain' => ':attribute muss :content enthalten.',
+
+        /*
+         * Wie ein Knoten oder eine Marke in diesem Satz heißt. Ein Typ ohne Eintrag fällt auf
+         * seinen eigenen Namen zurück - das ist es, was einen projekteigenen Knoten
+         * abfragbar macht, ohne dass hier etwas geändert werden muss.
+         */
+        'content' => [
+            'blockquote' => 'ein Zitat',
+            'bulletList' => 'eine Aufzählung',
+            'callout' => 'einen Hinweiskasten',
+            'codeBlock' => 'einen Codeblock',
+            'embed' => 'ein eingebettetes Video',
+            'heading' => 'eine Überschrift',
+            'horizontalRule' => 'eine Trennlinie',
+            'image' => 'ein Bild',
+            'link' => 'einen Link',
+            'orderedList' => 'eine nummerierte Liste',
+            'table' => 'eine Tabelle',
+            'taskList' => 'eine Aufgabenliste',
+        ],
+    ],

@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Validator;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
@@ -211,6 +213,138 @@ function statisticsDialogText(AdvancedRichEditor $editor): string
     ));
 
     return trim((string) preg_replace('/\s+/u', ' ', strip_tags($html)));
+}
+
+/**
+ * The markup the preview dialog puts on screen, for a field and a document the browser sent.
+ *
+ * Resolved off the action the tools menu opens, the same way the statistics dialog is read:
+ * what a reader gets is what the schema resolved on this field, and reading the class that
+ * builds it proves only that the builder was written. The arguments are set the way the tool
+ * sets them, because the document arriving from the browser rather than from the server's
+ * state is the thing most worth not faking.
+ */
+function previewFrameHtml(AdvancedRichEditor $editor, ?string $html = null): string
+{
+    $action = collect($editor->getActions())->first(
+        static fn (Action $action): bool => $action->getName() === 'preview',
+    );
+
+    if (! $action instanceof Action) {
+        throw new RuntimeException('The field registered no preview action to open.');
+    }
+
+    $action->arguments(['html' => $html]);
+
+    return implode('', array_map(
+        static fn (Component $component): string => (string) $component->toHtml(),
+        $action->getSchema(testSchema())?->getComponents() ?? [],
+    ));
+}
+
+/**
+ * The page inside the frame, decoded out of the `srcdoc` attribute it travels in.
+ */
+function previewFramePage(AdvancedRichEditor $editor, ?string $html = null): string
+{
+    preg_match('/srcdoc="([^"]*)"/', previewFrameHtml($editor, $html), $matches);
+
+    return html_entity_decode($matches[1] ?? '', ENT_QUOTES);
+}
+
+/**
+ * What a save would say about a field holding a given state.
+ *
+ * Built out of the two calls `InteractsWithSchemas` makes on the way into the validator -
+ * the schema mutates the state for validation, then the rules are run against it - so that
+ * this measures what a save measures rather than what one method happens to return. The
+ * field is put into its own container first, because a schema only collects rules from the
+ * components it actually holds.
+ *
+ * @return array<string, array<int, string>>
+ */
+function validationErrors(AdvancedRichEditor $field, mixed $state): array
+{
+    $schema = $field->getContainer()->components([$field]);
+
+    $data = [$field->getName() => $state];
+
+    $schema->mutateStateForValidation($data);
+
+    return Validator::make($data, $schema->getValidationRules())
+        ->errors()
+        ->messages();
+}
+
+/**
+ * A document, from the nodes it holds. The shape is TipTap's own, which is what Livewire
+ * carries between the browser and the validator.
+ *
+ * @param  array<int, array<string, mixed>>  $content
+ * @return array<string, mixed>
+ */
+function documentOf(array $content): array
+{
+    return ['type' => 'doc', 'content' => $content];
+}
+
+/**
+ * An empty paragraph, with the alignment attribute the state cast writes onto every one it
+ * parses - so that a test says what production hands over rather than the shortest thing
+ * that happens to work.
+ *
+ * @return array<string, mixed>
+ */
+function emptyParagraph(): array
+{
+    return ['type' => 'paragraph', 'attrs' => ['textAlign' => 'start']];
+}
+
+/**
+ * @param  array<int, array<string, mixed>>  $content
+ * @return array<string, mixed>
+ */
+function paragraphOf(array $content): array
+{
+    return ['type' => 'paragraph', 'attrs' => ['textAlign' => 'start'], 'content' => $content];
+}
+
+/**
+ * The field names the link dialog draws, flattened out of whatever it nests them in.
+ *
+ * Asked of the resolved schema rather than of the source, for the same reason the statistics
+ * dialog is read that way: what a modal shows is what its schema resolved on this field, and
+ * reading the class that builds it proves only that the builder was written.
+ *
+ * @return array<int, string>
+ */
+function linkDialogFields(AdvancedRichEditor $editor): array
+{
+    $action = collect($editor->getActions())->first(
+        static fn (Action $action): bool => $action->getName() === 'link',
+    );
+
+    if (! $action instanceof Action) {
+        throw new RuntimeException('The field registered no link action to open.');
+    }
+
+    $names = [];
+
+    $walk = static function (iterable $components) use (&$walk, &$names): void {
+        foreach ($components as $component) {
+            if ($component instanceof Field) {
+                $names[] = $component->getName();
+            }
+
+            foreach ($component->getChildSchemas() as $child) {
+                $walk($child->getComponents());
+            }
+        }
+    };
+
+    $walk($action->getSchema(testSchema())?->getComponents() ?? []);
+
+    return $names;
 }
 
 /**

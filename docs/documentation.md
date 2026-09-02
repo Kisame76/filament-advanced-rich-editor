@@ -3038,6 +3038,135 @@ the code editor: that one is the document's own doing, not the layout's.
 
 The source dialog does not hand TipTap whatever was typed into it: markup is round-tripped
 through *that field's own* schema first, so what is stored is what the field would have
+### Rules about the content
+
+`minLength()` and `maxLength()` measure characters, and Filament measures them on the
+serialised text rather than on the markup — which is right, and is also all they measure.
+Two other things are ordinary to ask of a document: how many **words** it holds, and what it
+has to **have in it**.
+
+```php
+AdvancedRichEditor::make('teaser')
+    ->minWords(20)
+    ->maxWords(60);
+
+AdvancedRichEditor::make('content')
+    ->mustContain('image')                 // one
+    ->mustContain(['heading', 'image']);   // or several - a later call replaces the earlier
+```
+
+Words are counted the way the counter under the field counts them, deliberately: the number
+that refuses a save is the number the author was watching while they wrote. Setting either
+half turns the words on in that counter, since a field that validates words and reports
+characters underneath is a field reporting the wrong number. `->characterCountWords(false)`
+still overrules it.
+
+Neither has a config key. A word count is a statement about one field, the way `maxLength()`
+is; a project-wide "every editor needs fifty words" is not a thing anybody means.
+
+#### What `mustContain()` takes
+
+Node and mark names, as TipTap knows them — `image`, `heading`, `table`, `blockquote`,
+`bulletList`, `orderedList`, `codeBlock`, and this package's own `callout`, `embed` and
+`taskList`. Marks count as well as nodes, so `'link'` works: somebody asking whether the
+document has a link in it does not care that TipTap stores one as a mark on text.
+
+Names rather than a method per kind, because the list of kinds is not this package's to
+close. A project's own node is asked for by its own name and needs no entry anywhere:
+
+```php
+AdvancedRichEditor::make('content')->mustContain('productCard');
+```
+
+The message says it in words — "must contain an image", not "must contain image" — from
+`validation.content.<type>` in the translation file. A type with no entry there falls back to
+its own name, which is what makes the line above work without an edit to this package.
+
+#### Both stand down on an empty field
+
+An empty field is `required()`'s business, and only its. A `minWords(50)` on an optional
+field must not refuse a save nobody typed into, and on a required one it must not complain a
+second time about the same emptiness.
+
+Empty here is [the same question `required()` asks](#required-and-what-counts-as-empty) —
+`hasContent()`, not `blank()`. The two differ on exactly the state that matters: an untouched
+editor hands over a document holding one empty paragraph, which is present, not blank, and
+holds no words at all.
+
+The rules also exist without a field, for an observer or a job that only has the column:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
+
+DocumentContent::contains($post->content, 'image');   // nodes and marks, any depth
+```
+
+### Being told a document was saved
+
+Optimise the pictures in a document, check its links, clear the cache that renders it — three
+jobs an application eventually wants, and none of them the editor's. Put the trait on the
+model and it says so:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Models\Concerns\FiresRichContentEvents;
+
+class Article extends Model implements HasRichContent
+{
+    use InteractsWithRichContent;
+    use FiresRichContentEvents;
+}
+```
+
+`RichContentSaved` is then dispatched once per rich content column that changed:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Events\RichContentSaved;
+
+Event::listen(function (RichContentSaved $event): void {
+    $event->record;              // the model
+    $event->attribute;           // which column
+    $event->content;             // what is in it now
+    $event->previousContent;     // what it replaced - null on a create
+    $event->wasRecentlyCreated;  // whether this save created the record
+});
+```
+
+Which columns count is what the model already declares through `registerRichContent()`. A
+model storing a document in a column it never declared can name its own by overriding
+`richContentEventAttributes()`.
+
+**On the model rather than on the field**, and that is the design rather than a preference.
+Filament holds exactly one `saveRelationshipsUsing()` closure, so a field registering a second
+one replaces the file attachment save without a word. And on an edit page that hook runs
+inside `getState()`, before `handleRecordUpdate()` writes anything — which is why Filament's
+own use of it bails out unless the record `wasRecentlyCreated`. A field cannot answer "was
+this saved". A model can, and it answers for an import, a queued job and a tinker session too,
+none of which ever go near a field.
+
+**A trait rather than something the package installs for you.** This is behaviour a project
+opts into; a package has no business hooking every save an application makes on the chance
+that one of them is a document.
+
+#### What it does not announce
+
+- A save that changed another column. A listener that re-optimises every picture whenever
+  somebody fixes a typo in the title is a listener nobody keeps.
+- A record created with nothing in the column. Clearing a document later is news; never
+  having had one is not.
+- A record created through an editor nobody typed into. That is the same case, and saying it
+  twice is the point: an untouched editor does not store nothing, it stores `<p></p>` — which
+  is present, not blank, and empty. Emptiness here is
+  [the question the rest of the package asks](#required-and-what-counts-as-empty),
+  `DocumentContent::isBlank()`, so a create page saved without a word in the field announces
+  nothing, and one holding a single picture and no words announces it.
+
+Clearing a document **is** announced, with the old content in `previousContent`.
+
+There is a trap behind the first of those, and it is why the trait hangs on `created` and
+`updated` rather than on `saved`: `wasRecentlyCreated` is set on insert and never cleared, so
+on the instance that created a record, every later save still answers true to it. Asked on
+`saved`, a typo fix in the title would announce a document nobody wrote.
+
 written itself. The same pass is public, and is what an importer or a seeder wants:
 
 ```php

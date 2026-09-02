@@ -18,6 +18,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\CharacterCount;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\AttachesFiles;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\BuildsTheToolbar;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\CastsItsContent;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ChecksItsContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ChoosesTypefaces;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ColoursText;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\CountsCharacters;
@@ -90,6 +91,7 @@ class AdvancedRichEditor extends RichEditor
     use ChoosesTypefaces;
     use ColoursText;
     use CountsCharacters;
+    use ChecksItsContent;
     use FloatsToolbars;
     use FormatsBlocks;
     use FormatsText;

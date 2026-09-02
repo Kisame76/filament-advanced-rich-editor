@@ -381,3 +381,29 @@ return [
         ],
     ],
 ];
+
+    'validation' => [
+        'min_words' => 'The :attribute must have at least :min words.',
+        'max_words' => 'The :attribute must not have more than :max words.',
+        'must_contain' => 'The :attribute must contain :content.',
+
+        /*
+         * What a node or a mark is called in that sentence. A type with no entry here falls
+         * back to its own name, which is what makes a project's own node askable for without
+         * an edit to this file.
+         */
+        'content' => [
+            'blockquote' => 'a quote',
+            'bulletList' => 'a bulleted list',
+            'callout' => 'a callout',
+            'codeBlock' => 'a code block',
+            'embed' => 'an embedded video',
+            'heading' => 'a heading',
+            'horizontalRule' => 'a horizontal rule',
+            'image' => 'an image',
+            'link' => 'a link',
+            'orderedList' => 'a numbered list',
+            'table' => 'a table',
+            'taskList' => 'a task list',
+        ],
+    ],
