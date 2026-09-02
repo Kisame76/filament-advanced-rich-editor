@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
+use Illuminate\Contracts\Support\Htmlable;
+
 /**
  * Whether a TipTap document puts anything on the page.
  *
@@ -45,10 +47,41 @@ final class DocumentContent
     private const BLANK_CHARACTERS = '/[\s\x{00A0}\x{200B}\x{FEFF}]+/u';
 
     /**
-     * @param  array<string, mixed>  $document
+     * Whether a stored document puts anything on the page, in whichever shape it is held.
+     *
+     * A column may hold either form and the caller is usually in no position to know which:
+     * an observer, a queued job or a model hook has the value the cast handed it, which is a
+     * `doc` array on a JSON column and markup on a `text` one. Answering only for the array
+     * would make this the right question asked of half the records, which is worse than a
+     * wrong one - the half it cannot read would silently be called content.
+     *
+     * A column value rather than a document, so `mixed` and no narrower annotation beside it:
+     * what a cast hands back is not this package's to promise, and a caller holding an
+     * attribute cannot narrow it first without already knowing the answer it came here for.
+     * The three shapes read are a `doc` array, markup, and nothing; anything else is believed.
      */
-    public static function isBlank(array $document): bool
+    public static function isBlank(mixed $document): bool
     {
+        if ($document instanceof Htmlable) {
+            $document = $document->toHtml();
+        }
+
+        if (blank($document)) {
+            return true;
+        }
+
+        if (is_string($document)) {
+            return self::isBlankMarkup($document);
+        }
+
+        if (! is_array($document)) {
+            // A shape this cannot read - an object a project put in the column, a number.
+            // Believed, which is the direction an unknown node is believed in: reporting
+            // content that turns out to be nothing costs a wasted listener, and the other
+            // way round costs the one save somebody cared about.
+            return false;
+        }
+
         foreach (self::nodes($document) as $node) {
             $type = $node['type'] ?? null;
 
@@ -62,6 +95,33 @@ final class DocumentContent
         }
 
         return true;
+    }
+
+    /**
+     * The same rule, said in markup rather than in nodes.
+     *
+     * Read rather than parsed, deliberately. Parsing here would mean a TipTap editor, and the
+     * only one that knows a project's own nodes is the one a *field* assembles - which is
+     * exactly what the caller of this does not have. A parser built without them would answer
+     * that a document holding nothing but a callout is empty, which is the one mistake this
+     * class is written to avoid.
+     *
+     * So the blank list above becomes a blank tag list, and everything else counts. That is
+     * coarser in one direction only: an empty `<strong></strong>` is called content here where
+     * the parsed document would call it blank. Erring that way is the point - the other way
+     * throws somebody's work out.
+     */
+    private static function isBlankMarkup(string $markup): bool
+    {
+        $rest = (string) preg_replace('#</?(?:p|br)\b[^>]*>#i', '', $markup);
+
+        // A tag start rather than a bare `<`, so that "a < b" stays text the way a reader
+        // reads it.
+        if (preg_match('/<[a-z!\/]/i', $rest) === 1) {
+            return false;
+        }
+
+        return ! self::hasVisibleText(html_entity_decode($rest));
     }
 
     /**
@@ -92,38 +152,6 @@ final class DocumentContent
         ));
     }
 
-    /**
-     * Every node in the tree, the document itself included.
-     *
-     * @param  array<string, mixed>  $node
-     * @return iterable<array<string, mixed>>
-     */
-    private static function nodes(array $node): iterable
-    {
-        yield $node;
-
-        $content = $node['content'] ?? [];
-
-        if (! is_array($content)) {
-            return;
-        }
-
-        foreach ($content as $child) {
-            if (is_array($child)) {
-                yield from self::nodes($child);
-            }
-        }
-    }
-
-    private static function hasVisibleText(mixed $text): bool
-    {
-        if (! is_string($text)) {
-            return false;
-        }
-
-        return preg_replace(self::BLANK_CHARACTERS, '', $text) !== '';
-    }
-}
     /**
      * Whether a node or a mark of a given type is anywhere in the document.
      *
@@ -160,3 +188,35 @@ final class DocumentContent
         return false;
     }
 
+    /**
+     * Every node in the tree, the document itself included.
+     *
+     * @param  array<string, mixed>  $node
+     * @return iterable<array<string, mixed>>
+     */
+    private static function nodes(array $node): iterable
+    {
+        yield $node;
+
+        $content = $node['content'] ?? [];
+
+        if (! is_array($content)) {
+            return;
+        }
+
+        foreach ($content as $child) {
+            if (is_array($child)) {
+                yield from self::nodes($child);
+            }
+        }
+    }
+
+    private static function hasVisibleText(mixed $text): bool
+    {
+        if (! is_string($text)) {
+            return false;
+        }
+
+        return preg_replace(self::BLANK_CHARACTERS, '', $text) !== '';
+    }
+}
