@@ -72,6 +72,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TypographyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
 use Tiptap\Editor;
 
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextToolbarPlugin;
 /**
  * Filament's rich editor with the things a long document needs.
  *
@@ -504,6 +505,14 @@ class AdvancedRichEditor extends RichEditor
                 ? [StatisticsPlugin::make()]
                 : [],
         );
+        // Only where the bar is actually drawn: what this registers is the rule that governs
+        // it, and a rule for a bar that is not there is a message addressed to nobody.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasTextToolbarBubble()
+                ? [TextToolbarPlugin::make()]
+                : [],
+        );
+
 
         // Registered whenever the picker is, and also wherever a document might already
         // carry a typeface: the mark is what keeps it through the next save.

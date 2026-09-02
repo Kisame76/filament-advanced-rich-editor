@@ -648,9 +648,28 @@ there is no room below it. The bar hangs under the text it belongs to, so near t
 document a menu would otherwise be cut off by the editor's own scrolling content box.
 
 The bar is keyed `'paragraph'` rather than `'text'`, which is not a naming choice: Filament's
-JavaScript treats that one key as a special case and shows its toolbar on a non-empty
-selection inside a paragraph, where every other key waits for a node to be active. A key
-called anything else would be drawn and never shown.
+JavaScript treats that one key as a special case, where every other key waits for a node to
+be active. A key called anything else would be drawn and never shown.
+
+**Where it appears.** Anywhere a stretch of text is selected and a mark means something:
+a paragraph, a heading, a list item, a quote, a callout, a table cell. Filament's own rule
+asks for `isActive('paragraph')` and so shows the bar in a paragraph and nowhere else, which
+leaves a heading with no link, no colours and no styles at all - and on a field with no
+toolbar, no way to reach them. This package replaces that rule rather than adding a second
+bar, because a bar registered under `heading` would appear on a click into the heading
+instead of on a selection inside it.
+
+Two places it stays away from, both on purpose. A code block, because bold, italic, a colour
+and a link have nothing to do in one - asked of the schema, so a project's own code-ish block
+gets the same answer. And a selected node: a picture, an embed or a callout selected whole is
+not a selection of text, and the bar for laying that node out is the one that belongs there.
+
+Asked of everything the selection covers rather than of the block it starts in, and the
+difference is not academic. A selection across two table cells resolves its first position to
+the cell rather than to a paragraph, so read from that one block the bar would vanish the
+moment a selection crossed a cell boundary - on text every button still applies to. One block
+that takes marks is enough, which is also why a selection leaving a code block for ordinary
+prose keeps the bar.
 
 ### Floating toolbars
 
@@ -661,7 +680,7 @@ one, over a table cell. This package ships three more.
 
 | Key | Shows while | Holds |
 | --- | --- | --- |
-| `paragraph` | text is selected | [the selection bar](#toolbar-over-a-selection) — styles, marks, link, both colour pickers |
+| `paragraph` | text is selected, in any block that takes marks | [the selection bar](#toolbar-over-a-selection) — styles, marks, link, both colour pickers |
 | `image` | an image is selected | the aspect lock, the size panel, the two quarter turns, the alt and caption panel, download, delete |
 | `bulletList` / `orderedList` | the caret is in a list | [the marker, start number and reverse panel](#lists-markers-numbering-and-direction) |
 

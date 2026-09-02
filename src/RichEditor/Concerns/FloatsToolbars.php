@@ -20,6 +20,11 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPresets;
  * text bar is the exception it hard-codes, which is why its key is `'paragraph'` and cannot
  * be anything else. What the picture, list and text bars carry is a per-field answer, so
  * they are assembled here rather than declared once.
+ *
+ * What is assembled here is the contents. When each bar is shown is decided in the browser,
+ * and for all three the hard-coded answer was wrong in some way - see `TextToolbarPlugin`,
+ * `image-resize.js` and `list-properties.js`, which each replace their own bar's rule
+ * through the bubble menu's `updateOptions` message.
  */
 trait FloatsToolbars
 {
@@ -37,8 +42,8 @@ trait FloatsToolbars
     {
         $toolbars = parent::getDefaultFloatingToolbars();
 
-        if ($this->hasTextToolbar() && ($text = $this->getTextToolbarButtons()) !== []) {
-            $toolbars['paragraph'] = $text;
+        if ($this->hasTextToolbarBubble()) {
+            $toolbars['paragraph'] = $this->getTextToolbarButtons();
         }
 
         // What a list is told about itself, in the one place it means anything.
@@ -129,6 +134,20 @@ trait FloatsToolbars
         return (bool) ($this->evaluate($this->hasTextToolbar)
             ?? $this->notionDefaultFor('textToolbar')
             ?? config('filament-advanced-rich-editor.text_toolbar', true));
+    }
+
+    /**
+     * Whether the bar is drawn at all, which is two questions rather than one: the switch,
+     * and whether anything survived the list of buttons. An empty list takes the bar away
+     * the same way `->textToolbar(false)` does.
+     *
+     * Asked in one place because two readers need the same answer and neither of them is
+     * allowed to be almost right: the list of floating toolbars decides whether the markup
+     * is there, and `TextToolbarPlugin` decides whether the rule that governs it is loaded.
+     */
+    public function hasTextToolbarBubble(): bool
+    {
+        return $this->hasTextToolbar() && $this->getTextToolbarButtons() !== [];
     }
 
     /**

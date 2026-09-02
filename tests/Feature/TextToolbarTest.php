@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextToolbarPlugin;
+
 it('gives selected text a floating toolbar of its own', function (): void {
     // Filament's JavaScript treats `'paragraph'` as a special case and shows that toolbar
     // on a non-empty selection inside a paragraph, which is the bubble people expect.
@@ -75,4 +77,57 @@ it('reads the same left to right as the bar at the top', function (): void {
         // And what they share is in the same order in both.
         ->and(array_values(array_intersect($bubble, toolbarGroup(editor(), 'bold'))))
         ->toBe(toolbarGroup(editor(), 'bold'));
+});
+
+it('registers the extension that owns when the bubble is shown', function (): void {
+    // Filament hard-codes the rule for this one key: focused, non-empty selection, and
+    // `isActive('paragraph')`. The last clause is what keeps the bar out of a heading, so
+    // the package replaces the rule through the bubble menu's own `updateOptions` message -
+    // the same route the image bar and the two list bars already take.
+    expect(pluginNames(editor()))->toContain(TextToolbarPlugin::class);
+});
+
+it('takes the extension away with the bubble it belongs to', function (): void {
+    // Both ways of losing the bar, because a rule for a bar that is not there is a message
+    // addressed to nobody.
+    expect(pluginNames(editor()->textToolbar(false)))->not->toContain(TextToolbarPlugin::class)
+        ->and(pluginNames(editor()->textToolbarButtons([])))->not->toContain(TextToolbarPlugin::class);
+});
+
+it('keeps the extension in the mode that has no other way to reach a mark', function (): void {
+    // The hole this closes is worst here: with no toolbar, a heading offered no link, no
+    // colours and no styles at all.
+    expect(pluginNames(editor()->notion()))->toContain(TextToolbarPlugin::class);
+});
+
+it('ships the rule and nothing else', function (): void {
+    $plugin = TextToolbarPlugin::make();
+
+    expect($plugin->getTipTapPhpExtensions())->toBe([])
+        ->and($plugin->getEditorTools())->toBe([])
+        ->and($plugin->getEditorActions())->toBe([])
+        ->and($plugin->getTipTapJsExtensions())->toHaveCount(1)
+        ->and($plugin->getTipTapJsExtensions()[0])->toContain('text-toolbar');
+});
+
+it('answers in one place whether the bar is drawn at all', function (): void {
+    expect(editor()->hasTextToolbarBubble())->toBeTrue()
+        ->and(editor()->textToolbar(false)->hasTextToolbarBubble())->toBeFalse()
+        ->and(editor()->textToolbarButtons([])->hasTextToolbarBubble())->toBeFalse()
+        // And it is the same answer the floating toolbar list gives, rather than a second
+        // one that can drift from it.
+        ->and(array_key_exists('paragraph', editor()->getFloatingToolbars()))->toBeTrue();
+});
+
+it('no longer hides the bar from the stylesheet', function (): void {
+    // The rule used to be a `:has(.ProseMirror-selectednode)` override that stopped the bar
+    // being painted over the picture bar, written there because `shouldShow` looked out of
+    // reach. It is not out of reach, and two mechanisms answering one question is one too
+    // many: the JavaScript rule refuses a node selection outright.
+    // Named by the selector rather than by the class, because the class has a second and
+    // unrelated job: it is how a selected embed card is drawn.
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/filament-advanced-rich-editor.css');
+
+    expect($css)->not->toContain(":has(.ProseMirror-selectednode) [x-ref='floatingToolbar::paragraph']")
+        ->and($css)->toContain('.fi-arte-embed-card.ProseMirror-selectednode');
 });

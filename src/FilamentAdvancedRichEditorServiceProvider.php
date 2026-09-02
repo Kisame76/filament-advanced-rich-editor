@@ -92,6 +92,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // Filament's own build on every field.
                 Js::make('advanced-rich-editor/alignment', __DIR__.'/../resources/dist/js/alignment.js')
                     ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/text-toolbar', __DIR__.'/../resources/dist/js/text-toolbar.js')
+                    ->loadedOnRequest(),
+
 
                 // The language a passage is written in, and what a list is told about
                 // itself. Both are schema only - a mark and a set of global attributes -

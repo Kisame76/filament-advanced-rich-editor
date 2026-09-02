@@ -20,12 +20,12 @@ use Closure;
  * with. That is why the mode sits between the field and the config file rather than beside
  * them - the field still overrules it, the config no longer does.
  *
- * The limit, and it is Filament's rather than this package's: the bar over a selection is
- * registered under the `paragraph` key, and the compiled bundle shows it only while
- * `editor.isActive('paragraph')`. Inside a heading it does not appear, so with no toolbar
- * the link, the colours and the styles are out of reach there. It is the same hole any
- * field with `->toolbarButtons([])` has today, which is why it is written down rather than
- * papered over here.
+ * The limit this mode was shipped with is gone, and it is worth saying what it was, because
+ * it is why the mode reads as complete now and did not then: Filament registers the bar over
+ * a selection under the `paragraph` key and showed it only while `editor.isActive('paragraph')`,
+ * so inside a heading it never appeared - and with no toolbar, the link, the colours and the
+ * styles were out of reach there. `TextToolbarPlugin` replaces that rule for every field, so
+ * the hole is closed here and on any field with `->toolbarButtons([])` at the same time.
  */
 trait WritesWithoutAToolbar
 {
