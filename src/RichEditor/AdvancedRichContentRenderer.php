@@ -11,7 +11,10 @@ use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\ImportedMarkup;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\LooseText;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontFamily;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
@@ -33,6 +36,8 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\TextDirection;
+use League\CommonMark\Extension\ExtensionInterface;
+use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
 use Tiptap\Core\Extension;
@@ -127,6 +132,20 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         // item, a grid, the wrapper of a custom block - and stripping those to their text
         // is what makes the result readable as Markdown.
         'strip_tags' => true,
+    ];
+
+    /**
+     * What this package asks the Markdown parser for on the way back in.
+     *
+     * A `javascript:` url is the one thing CommonMark writes that a document has no
+     * business keeping. The schema already drops it from a link, because a link is a mark
+     * and a mark is checked; an image's address is an attribute and is stored exactly as
+     * written. Nothing executes either way - browsers stopped running `javascript:` in a
+     * `src` long ago - but a column is not the place for it. Anything passed to
+     * `fromMarkdown()` wins over this, the same as on the way out.
+     */
+    public const MARKDOWN_IMPORT_OPTIONS = [
+        'allow_unsafe_links' => false,
     ];
 
     /**
@@ -648,6 +667,90 @@ class AdvancedRichContentRenderer extends RichContentRenderer
 
             return trim($converter->convert($this->toUnsafeHtml()));
         });
+    }
+
+    /**
+     * A Markdown document, read into the document this editor stores.
+     *
+     * The mirror of `toMarkdown()`, and the more dangerous direction: what the export gets
+     * wrong is a string somebody reads, and what this gets wrong is a column somebody
+     * keeps. Markdown says more than any rich text schema can hold, and every one of those
+     * things arrives looking like content.
+     *
+     * `league/commonmark` is not an optional dependency the way the export's converter is -
+     * `laravel/framework` requires it - so nothing has to be installed for this. `Str::markdown()`
+     * is the GitHub-flavoured converter, which brings tables, strikethrough, bare urls and
+     * `- [x]` along with it; tables in particular need no permission from the toolbar,
+     * because Filament's renderer declares them unconditionally.
+     *
+     * Three things are done on top of it, and none of them is a preference:
+     *
+     * - Footnotes are parsed. Without the extension CommonMark reads `[^1]: The note.` as a
+     *   link reference definition: the note's text disappears from the document and the
+     *   marker before it becomes a link pointing at what used to be the note. A footnote
+     *   *with* the extension is something this schema can hold - a superscript marker, a
+     *   rule and a numbered list - so the extension turns a silent loss into a document.
+     * - `ImportedMarkup` translates the markup CommonMark writes for a construct this
+     *   schema has no node for.
+     * - `LooseText` repairs the document afterwards, because raw HTML - which is part of
+     *   Markdown - can leave text with no block around it, which the field and the page
+     *   then disagree about.
+     *
+     * The result is the document itself rather than a renderer holding it, because the one
+     * thing anybody wants it for is the column:
+     *
+     * ```php
+     * $article->content = AdvancedRichContentRenderer::make()->fromMarkdown($markdown);
+     * ```
+     *
+     * Nothing has to be registered for any of it, task lists included: the nodes are
+     * declared here unconditionally, on the rule this class states six times over - a
+     * renderer that has to be told is one that drops the thing the day somebody forgets to
+     * say so.
+     *
+     * @param  array<string, mixed>  $options
+     * @param  array<int, ExtensionInterface>  $extensions
+     * @return array<string, mixed>
+     */
+    public function fromMarkdown(string $markdown, array $options = [], array $extensions = []): array
+    {
+        $html = Str::markdown(
+            $markdown,
+            [...static::MARKDOWN_IMPORT_OPTIONS, ...$options],
+            $this->markdownExtensions($extensions),
+        );
+
+        $html = (new ImportedMarkup)->apply($html);
+
+        // TipTap's PHP parser reads the body of a parsed document without checking that
+        // there is one, so an empty string raises rather than answering. An empty paragraph
+        // is the answer rather than an empty `content` array because it is what Filament's
+        // own state cast puts in a field nobody has typed into.
+        $document = $this->getEditor()->setContent(blank($html) ? '<p></p>' : $html)->getDocument();
+
+        return (new LooseText)->apply((array) $document);
+    }
+
+    /**
+     * The parser extensions, with the one this package insists on unless it was named.
+     *
+     * Named again rather than added twice: CommonMark registers a parser per extension and
+     * a second copy of the footnote one raises while the environment is built. A caller
+     * passing their own configured `FootnoteExtension` is the case that matters, and it is
+     * theirs to configure.
+     *
+     * @param  array<int, ExtensionInterface>  $extensions
+     * @return array<int, ExtensionInterface>
+     */
+    protected function markdownExtensions(array $extensions): array
+    {
+        foreach ($extensions as $extension) {
+            if ($extension instanceof FootnoteExtension) {
+                return $extensions;
+            }
+        }
+
+        return [new FootnoteExtension, ...$extensions];
     }
 
     /**

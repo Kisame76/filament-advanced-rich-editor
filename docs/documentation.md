@@ -3711,7 +3711,6 @@ task lists agree on:
 
 ```php
 AdvancedRichContentRenderer::make($article->content)
-    ->plugins([TaskListPlugin::make()])              // so task items parse at all
     ->toMarkdown(['header_style' => 'setext']);      // overrules the default
 ```
 
@@ -3774,6 +3773,92 @@ The props follow the renderer:
     :styles="$styles"
     :link-attributes="false"
     :merge-tags="['name' => $user->name]"
+Nothing has to be registered for it. `TaskListPlugin` puts the button on a toolbar; the
+renderer declares the two nodes whether or not anything asked for them, so a plain render
+of a stored document keeps its boxes.
+
+#### Reading Markdown back in
+
+```php
+$article->content = AdvancedRichContentRenderer::make()->fromMarkdown($markdown);
+```
+
+The mirror of `toMarkdown()`, and the more dangerous direction: what the export gets wrong
+is a string somebody reads, and what this gets wrong is a column somebody keeps. It returns
+the document itself rather than a renderer holding it, because the column is the one thing
+anybody wants it for.
+
+The parser is `Str::markdown()`, so **nothing has to be installed** — `league/commonmark`
+comes with the framework, unlike the converter the export needs. It is the
+GitHub-flavoured one, which brings tables, strikethrough, bare urls and `- [x]` along with
+it. Tables in particular need no permission from the toolbar.
+
+Markdown says more than any rich text schema can hold, and each of those things arrives
+looking like content. Four decisions cover them, and the first three are not preferences:
+
+- **Footnotes are parsed.** Without the extension CommonMark reads `[^1]: The note.` as a
+  link reference definition: the note's text disappears from the document and the marker
+  before it becomes a link pointing at what used to be the note. Both halves are wrong and
+  neither shows up as an error, because a link is perfectly valid markup. With it, a
+  footnote is something this schema *can* hold — a superscript marker, a rule, and a
+  numbered list of notes.
+- **Its plumbing is not.** The extension links marker and note to each other by id, and ids
+  are not attributes this schema keeps — so the anchors would arrive pointing at nothing
+  and the `↩` would be a glyph to delete by hand. Both go; the marker stays.
+- **Loose content is put back into a paragraph.** Raw HTML is part of Markdown, so
+  `Ein <div>roh</div> Wort` converts to `<p>Ein <div>roh</div> Wort</p>` — and a `<div>`
+  inside a `<p>` closes that paragraph while the markup is parsed, which leaves the words
+  after it with no block around them. Nothing raises over it, which is the point: the editor
+  coerces the stray text into a paragraph while it loads and the renderer writes it out as
+  it found it, so the same document is two paragraphs in the field and one paragraph plus a
+  bare text node on the page — where none of the styling a paragraph gets can reach it. That
+  markup parses back to the same document, so it stays that way until somebody opens the
+  record and saves it.
+
+  Text is not the only thing this happens to. Images and mentions are **inline** nodes here,
+  so a picture written as raw `<img>` rather than as `![]()` lands beside the blocks in the
+  same way — four of the 433 Markdown files in a typical `vendor` tree open with exactly
+  that.
+
+  Below the document's own children the repair asks for a **paragraph** beside the loose
+  run, and nothing weaker, because a paragraph closed early always leaves its first half
+  behind as one. The near miss is worth knowing about if you are reading the code: "inline
+  content sitting beside a block" reads like the same rule and is not. A nested list is
+  `listItem[text, bulletList]`, a README title with a badge is `heading[text, image]`, a
+  picture in a sentence is `paragraph[image, text]` — all three are inline beside
+  non-inline, none is damaged, and all three are what the editor holds too. Measured over
+  those 433 files, the wider rule rewrites 27 of them and the one shipped here fires once.
+- **A list keeps the kind of list it is.** Markdown lets an author put a box on some items
+  and not others; `taskList` holds `taskItem+` and cannot. A list that mixes them is split
+  into runs, so each item stays what it was written as — a plain bullet is not an unticked
+  task. Boxes are read at the front of an item and at the front of its first block, which is
+  where GitHub-flavoured Markdown puts them, and nowhere else: a checkbox is legal raw HTML,
+  and one further inside an item would otherwise promote the whole list to something nobody
+  wrote. `1. [x]` keeps its text but loses its state — a task list is a `<ul>`, so a numbered
+  one has nowhere to put it.
+
+- **`allow_unsafe_links` defaults to `false`.** A `javascript:` url in a *link* is already
+  dropped, because a link is a mark and marks are checked; an image's address is an
+  attribute and is stored exactly as written. Nothing executes either way — browsers
+  stopped running `javascript:` in a `src` long ago — but a column is not the place for it.
+
+Options and extensions are passed through, and anything named there wins:
+
+```php
+AdvancedRichContentRenderer::make()->fromMarkdown(
+    $markdown,
+    ['html_input' => 'escape'],          // overrules the default
+    [new SmartPunctExtension],           // added to the parser
+);
+```
+
+Naming a `FootnoteExtension` of your own replaces the one above rather than adding a second
+— CommonMark registers a parser per extension, and two of them raise while the environment
+is built.
+
+An empty string reads as an empty **document** rather than an empty array, which is what
+Filament stores for a field nobody typed into.
+
     :mentions="$providers"
     disk="s3"
     visibility="private"
