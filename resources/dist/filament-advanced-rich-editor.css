@@ -2457,6 +2457,16 @@ body.fi-arte-fullscreen-lock {
  */
 .fi-arte-figure {
     margin-inline: 0;
+    /*
+     * Boxed to the picture rather than to the column. A figure is a block, so without this
+     * it is as wide as the text around it whatever the picture measures - and then a
+     * centred caption is centred on the column instead of under the picture, and the
+     * `margin-inline: auto` that centres a picture has nothing to push against. Written
+     * on the element as well, because the page a rendered figure lands on does not load
+     * this stylesheet.
+     */
+    inline-size: fit-content;
+    max-inline-size: 100%;
 }
 
 /*
@@ -2469,6 +2479,13 @@ body.fi-arte-fullscreen-lock {
 }
 
 .fi-arte-figure > figcaption {
+    /*
+     * And the caption must not widen the figure back out. Its longest word is all it
+     * contributes to the figure's preferred width; the minimum brings it back to whatever
+     * the picture settled on.
+     */
+    inline-size: min-content;
+    min-inline-size: 100%;
     padding-block-start: 0.375rem;
     font-size: 0.8125rem;
     line-height: 1.4;
