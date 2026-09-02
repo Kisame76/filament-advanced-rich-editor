@@ -160,7 +160,7 @@ class ToolbarPresets
                     'details',
                     'emoji', 'characters',
                 ],
-                'tools_menu' => ['find', 'accessibility', 'statistics', 'sourceCode', 'help'],
+                'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help'],
                 'text_toolbar_buttons' => ['styles', 'bold', 'italic', 'underline', 'link'],
                 'file_attachments' => true,
             ],
@@ -192,7 +192,7 @@ class ToolbarPresets
                     'details',
                     'emoji', 'characters',
                 ],
-                'tools_menu' => ['find', 'accessibility', 'statistics', 'sourceCode', 'help'],
+                'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help'],
                 'text_toolbar_buttons' => [
                     'styles', 'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground',
                 ],
@@ -233,7 +233,7 @@ class ToolbarPresets
                     'details',
                     'emoji', 'characters',
                 ],
-                'tools_menu' => ['find', 'accessibility', 'statistics', 'sourceCode', 'help'],
+                'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help'],
                 'text_toolbar_buttons' => [
                     'styles', 'bold', 'italic', 'underline', 'link', 'textColor', 'textBackground',
                 ],

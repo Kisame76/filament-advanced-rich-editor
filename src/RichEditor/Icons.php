@@ -66,6 +66,7 @@ class Icons
             'tools_menu' => 'heroicon-o-wrench-screwdriver',
             'source_code' => 'heroicon-o-code-bracket',
             'statistics' => 'heroicon-o-chart-bar',
+            'preview' => 'heroicon-o-eye',
             // Searching. The magnifier is the button, and the three inside the bar are the
             // chrome around it: two chevrons for the way through the hits and a cross for
             // the way out. The arrow curving back is the replacement, which is one thing

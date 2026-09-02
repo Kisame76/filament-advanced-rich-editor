@@ -179,6 +179,13 @@ class ToolbarLayout
                 ? 'find'
                 : [],
             'accessibility' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasAccessibility()
+            // Two questions behind one token, and the second is the honest one: a field
+            // nobody gave a stylesheet has nothing to draw the document with, so it gets no
+            // button rather than one opening onto unstyled markup. Shipped that way, like
+            // the styles trigger above.
+            'preview' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasPreviewFrontEnd()
+                ? 'preview'
+                : [],
                 ? 'accessibility'
                 : [],
             'textBackground' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextBackground()

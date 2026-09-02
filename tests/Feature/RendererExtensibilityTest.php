@@ -7,6 +7,8 @@ use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CalloutPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Tiptap\Core\Extension;
 use Tiptap\Core\Node;
@@ -206,4 +208,63 @@ it('renders a node a foreign package added, on a render nobody configured', func
     expect(AdvancedRichContentRenderer::make($html)->toHtml())
         ->toContain('data-type="aside"')
         ->toContain('Ein fremder Knoten');
+});
+
+/**
+ * Two callers naming the same plugin.
+ *
+ * The ordinary case rather than the odd one: a field registers what its switches turned on,
+ * and a project hands the same renderer a list through `configureRenderer()` because that is
+ * how a page describes itself. Neither knows about the other, and `getPlugins()` above is
+ * where the two are reconciled. Written down here because the reconciliation is easy to
+ * mistake for an accident and delete - it is what stops a `TransformsRenderedHtml` pass from
+ * running twice and wrapping its own output.
+ */
+it('registers a plugin once however many callers name it', function (): void {
+    $renderer = AdvancedRichContentRenderer::make()
+        ->plugins([TaskListPlugin::make()])
+        ->plugins([TaskListPlugin::make(), CalloutPlugin::make()]);
+
+    expect($renderer->getPlugins())->toHaveCount(2)
+        ->and(array_map('get_class', array_values($renderer->getPlugins())))
+        ->toBe([TaskListPlugin::class, CalloutPlugin::class]);
+});
+
+it('keeps the order the first caller assembled, because that is the order the browser gets', function (): void {
+    // The extensions reach the browser in registration order, so a second mention of a
+    // plugin must not move it to the back of the list.
+    $renderer = AdvancedRichContentRenderer::make()
+        ->plugins([TaskListPlugin::make(), CalloutPlugin::make()])
+        ->plugins([TaskListPlugin::make()]);
+
+    expect(array_map('get_class', array_values($renderer->getPlugins())))
+        ->toBe([TaskListPlugin::class, CalloutPlugin::class]);
+});
+
+it('does not let a field and its renderer configuration register the same plugin twice', function (): void {
+    // The path that made this worth pinning: `getTipTapEditor()` runs through
+    // `getRichContentRenderer()`, so a project's `configureRenderer()` closure reaches the
+    // schema a save is parsed through. That is wanted - a node the renderer draws and the
+    // parser strips disappears on the next save - and it means a field and a page routinely
+    // name the same plugin.
+    $plain = editor();
+    $configured = editor()->configureRenderer(
+        fn (AdvancedRichContentRenderer $renderer) => $renderer->plugins([TaskListPlugin::make()]),
+    );
+
+    expect($configured->getRichContentRenderer()->getPlugins())
+        ->toHaveCount(count($plain->getRichContentRenderer()->getPlugins()));
+});
+
+it('still adds a plugin the field did not have', function (): void {
+    // The other direction, and the one worth guarding: collapsing by class must not become
+    // dropping. Silently losing what a closure adds is a worse fault than counting a plugin
+    // twice, because the missing node reaches the parser and is stripped on the next save.
+    $plain = editor()->taskList(false);
+    $configured = editor()->taskList(false)->configureRenderer(
+        fn (AdvancedRichContentRenderer $renderer) => $renderer->plugins([TaskListPlugin::make()]),
+    );
+
+    expect($configured->getRichContentRenderer()->getPlugins())
+        ->toHaveCount(count($plain->getRichContentRenderer()->getPlugins()) + 1);
 });

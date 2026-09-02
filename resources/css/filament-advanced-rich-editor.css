@@ -3445,11 +3445,17 @@ body.fi-arte-fullscreen-lock {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Two floating toolbars at once                                              */
+/* Preview frame                                                              */
 /* -------------------------------------------------------------------------- */
 
 /*
- * The text bubble stays out of the way while a node is selected.
+ * The box the preview frame sits in.
+ *
+ * A fixed height that scrolls inside itself rather than a frame sized to its content. The
+ * obvious alternative needs JavaScript to measure the document and grow the frame to it,
+ * and it buys a dialog that is already scrolling a second scrollbar for the same document.
+ * A viewport-relative height also says something true: a preview is judged the way a page
+ * is read, in a window, not as one tall column.
  *
  * Filament decides which floating toolbar to show per toolbar, and the two answers disagree
  * on a selected picture: the text bubble asks whether the selection is non-empty and sits in

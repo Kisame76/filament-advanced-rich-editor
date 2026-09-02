@@ -89,8 +89,8 @@ it('offers a second overflow that is named rather than a second set of dots', fu
     // different rooms behind them. This one says what is in it.
     $editor = editor()->accessibility()->sourceCode()->toolbarButtons([['tools', 'fullscreen']]);
 
-    expect(toolbarShape($editor))->toBe([['dropdown:find,accessibility,statistics,sourceCode,help', 'fullscreen']])
-        ->and(toolbarItem($editor, 'dropdown:find,accessibility,statistics,sourceCode,help')->getName())->toBe('Tools');
+    expect(toolbarShape($editor))->toBe([['dropdown:find,accessibility,statistics,preview,sourceCode,help', 'fullscreen']])
+        ->and(toolbarItem($editor, 'dropdown:find,accessibility,statistics,preview,sourceCode,help')->getName())->toBe('Tools');
 });
 
 it('is the shipped corner, so it keeps its shape as that family grows', function (): void {

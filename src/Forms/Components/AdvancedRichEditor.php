@@ -31,6 +31,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\KeepsContentClean;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OffersWritingAids;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensMenus;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PreviewsContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ServesTheMediaBrowser;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolbar;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
@@ -62,6 +63,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StatisticsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StylesPlugin;
@@ -102,6 +104,7 @@ class AdvancedRichEditor extends RichEditor
     use OpensMenus;
     use PlacesImages;
     use ServesTheMediaBrowser;
+    use PreviewsContent;
     use WritesWithoutAToolbar;
 
     protected string $view = 'filament-advanced-rich-editor::rich-editor';
@@ -116,6 +119,11 @@ class AdvancedRichEditor extends RichEditor
     protected bool|int|Closure|null $nestingCheck = null;
 
     protected function setUp(): void
+    /**
+     * @var array<int, Closure(AdvancedRichContentRenderer): mixed>
+     */
+    protected array $rendererConfiguration = [];
+
     {
         parent::setUp();
 
@@ -510,8 +518,8 @@ class AdvancedRichEditor extends RichEditor
         // Only where the bar is actually drawn: what this registers is the rule that governs
         // it, and a rule for a bar that is not there is a message addressed to nobody.
         $this->plugins(
-            static fn (AdvancedRichEditor $component): array => $component->hasTextToolbarBubble()
-                ? [TextToolbarPlugin::make()]
+            static fn (AdvancedRichEditor $component): array => $component->hasPreviewFrontEnd()
+                ? [PreviewPlugin::make()]
                 : [],
         );
 
@@ -620,12 +628,68 @@ class AdvancedRichEditor extends RichEditor
      */
     public function getTipTapEditor(): Editor
     {
-        return AdvancedRichContentRenderer::make()
+        return $this->getRichContentRenderer()->getEditor();
+    }
+
+    /**
+     * How this field's content renders, said once.
+     *
+     * Until this existed the field could not build a complete renderer at all. `AdvancedRichEntry`
+     * and `AdvancedRichColumn` assemble one out of eight setters through `RendersRichContent`,
+     * reading what the *model* declared about the attribute; the field is the other half of
+     * that pair and used none of it - it built four setters inline and threw the renderer away
+     * on `getEditor()`, because parsing a save is all it ever needed.
+     *
+     * Which was true until something wanted the field's content as a finished page. Anything
+     * built on the four would render an uploaded picture as a broken image and a mention as an
+     * empty span, and it would do it quietly: both are valid markup that simply points nowhere,
+     * so nothing raises and nobody finds out until a reader does.
+     *
+     * The state is a parameter rather than always the field's own, because the two callers want
+     * different things from it: parsing wants an empty editor to `setContent()` into, and the
+     * preview wants the document that is in the browser this moment, which arrived as an
+     * argument and is not the state on the server.
+     */
+    /**
+     * Anything about rendering that the field cannot work out for itself.
+     *
+     * The same hook `AdvancedRichEntry` and `AdvancedRichColumn` carry, and it is here for a
+     * reason a preview makes obvious: a field knows its own plugins, mentions and disk, and
+     * knows nothing at all about the decisions a page makes on top of them. Heading anchors,
+     * a table of contents, syntax colours - all of those are named where the document is
+     * rendered, which is somewhere this field has never seen.
+     *
+     * Without it the preview is truthful about the field and wrong about the page, which is
+     * the one thing a preview may not be. Point this at the same description the page renders
+     * with rather than a copy of it.
+     *
+     * @param  Closure(AdvancedRichContentRenderer): mixed  $callback
+     */
+    public function configureRenderer(Closure $callback): static
+    {
+        $this->rendererConfiguration[] = $callback;
+
+        return $this;
+    }
+
+    public function getRichContentRenderer(mixed $content = null): AdvancedRichContentRenderer
+    {
+        $renderer = AdvancedRichContentRenderer::make($content)
             ->plugins($this->getPlugins())
             ->linkProtocols($this->getLinkProtocols())
             ->linkAttributes($this->hasLinkAttributes())
-            ->styles(Styles::for($this))
-            ->getEditor();
+            ->styles(Styles::for($this));
+
+        // Last, the same way the entry applies it: what the field was told about rendering
+        // wins over what the field worked out about itself. Applied here rather than only in
+        // the preview, so that a closure reaching for a plugin is a plugin the schema knows
+        // about too - a node the renderer draws and the parser strips is a node that
+        // disappears on the next save.
+        foreach ($this->rendererConfiguration as $configure) {
+            $configure($renderer);
+        }
+
+        return $renderer;
     }
 
     /**

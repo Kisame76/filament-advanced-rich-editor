@@ -32,7 +32,8 @@ on top of it, checked against the current Filament v5 release:
 | **Accessibility** | — | [A check](#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read — and [`lang` on a passage](#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
 | **Closing the tab** | The text is gone | [A draft kept in the browser](#drafts-in-the-browser), offered back the next time the field is opened, and a warning before the tab closes |
 | **Seeing the HTML** | — | [The document in Filament's own code editor](#source-code) |
-| **How long it is** | `minLength()` / `maxLength()`, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
+| **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
+| **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [word counts and rules about what the document holds](#rules-about-the-content), [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
 | **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji) and [special characters](#special-characters) |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
@@ -82,6 +83,9 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 
 **[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
 [Drafts in the browser](#drafts-in-the-browser) · [Character count](#character-count) ·
+[Rules about the content](#rules-about-the-content) ·
+[Being told a document was saved](#being-told-a-document-was-saved) ·
+[Preview](#preview) ·
 [Required, and what counts as empty](#required-and-what-counts-as-empty) ·
 [Source code](#source-code)
 
@@ -2975,117 +2979,6 @@ Deliberately the same counting rule Filament's `maxLength` validation uses, so a
 estimate, an excerpt check or a table column agrees with the number the author was shown
 while writing.
 
-### Required, and what counts as empty
-
-An empty editor is not an empty value. TipTap keeps at least one paragraph in the document
-at all times, so a field nobody typed into reaches the validator as
-`['type' => 'doc', 'content' => [['type' => 'paragraph']]]` — an array Laravel's `required`
-is perfectly happy with. Filament rejects that exact shape; press return once and the
-document has two empty paragraphs, which it does not.
-
-This package answers the question once, for every shape state arrives in:
-
-```php
-AdvancedRichEditor::make('content')->required();
-```
-
-A document counts as **empty** when it holds nothing but paragraphs, line breaks and
-whitespace — ordinary spaces, and the non-breaking ones a paste from Word leaves behind.
-Everything else is content: a list, a heading, a horizontal rule, an image, a table, a
-custom block, and any node a project or another package adds.
-
-That direction is deliberate. A list of nodes that count as content would need extending
-every time a node is added, and the day one was forgotten it would throw away somebody's
-work. Stated this way an unknown node counts as content, so the worst this can do is let an
-empty-looking document through — visible, and reported — rather than reject a document that
-had something in it.
-
-The same question is available on the field, which is what a custom rule or an observer
-wants:
-
-```php
-$field->hasContent($state);   // markup, a document, or null - all three
-```
-
-`$field->hasContent($state)` answers the same question but needs a field instance. Where you
-only have the column — an observer, a custom validation rule, a queued job — the rule is a
-static:
-
-```php
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
-
-DocumentContent::isBlank($post->content);   // true for a document of empty paragraphs
-```
-
-It treats non-breaking spaces, zero-width spaces and byte order marks as blank, which is what
-makes it agree with what the author sees rather than with `strlen()`.
-
-#### Storing nothing instead of `<p></p>`
-
-By default an empty document is stored as `<p></p>`, exactly as Filament stores it. That is
-noise in a nullable column, and it is why `@if($post->content)` is true for a post with no
-content. To store nothing instead:
-
-```php
-AdvancedRichEditor::make('content')->nullWhenEmpty();   // default: config('...null_when_empty')
-```
-
-It is off by default, and that is a decision about your database rather than a preference: a
-column that is `NOT NULL` without a default takes `<p></p>` and refuses a null, so turning
-this on for everyone would break a save that works today. Turn it on per field, or once in
-the config file when you know your columns.
-
-Emptiness means the same thing here as it does above, and `json()` fields get the same
-answer even though what they store is a document rather than markup.
-
-#### Hydrating an empty column
-
-A `text NOT NULL DEFAULT ''` column is ordinary, and Filament's cast only guards against
-null - an empty string went to TipTap's DOM parser, which reached for a `<body>` that was
-never built and threw `DOMParser::getDocumentBody(): Return value must be of type
-DOMElement, null returned` out of a form that was only being rendered. This package treats a
-blank string as no content, so such a record opens on an empty editor like any other.
-
-### Source code
-
-`'sourceCode'` opens the document as HTML, in Filament's own code editor, next to the
-fullscreen button. **Off by default:**
-
-```php
-AdvancedRichEditor::make('content')->sourceCode();        // default: config('...source_code')
-```
-
-It hands an editor a way past every control the toolbar stands for — whoever types into that
-box writes whatever the schema will accept, and the toolbar stops being the answer to what a
-document may contain. Worth having where the people using it know HTML, not worth giving to
-everybody who installs the package. The token stays in the shipped toolbar and resolves to
-nothing while this is off, so turning it on needs no toolbar surgery.
-
-Both directions go through the field's own TipTap schema rather than being passed along
-untouched, and that is the point of it:
-
-- **Opening** shows the markup as it is stored, not as the browser happened to serialise it.
-  Every plugin the field carries is in that schema, so a rotation, a background colour or a
-  direction is there to see.
-- **Applying** hands the markup to the same schema before it reaches the editor. Anything it
-  cannot represent is gone at that moment - the same thing that happens to pasted markup,
-  but visibly, and before the record is written rather than silently on the next save.
-
-Which also means the source view is not a way to store markup the editor does not support.
-Filament sanitises rich content on the way out anyway; this simply makes the boundary
-visible.
-
-The markup is laid out for reading on the way in - every block on its own line, indented by
-nesting - and compacted again on the way out. That costs nothing, because the parser drops
-whitespace between block tags; inline content is never broken, since the whitespace between
-inline elements is part of the sentence, and anything inside a `<pre>` is copied through
-exactly as written. A single long paragraph still arrives as a single long line, wrapped by
-the code editor: that one is the document's own doing, not the layout's.
-
-#### Normalising HTML from somewhere else
-
-The source dialog does not hand TipTap whatever was typed into it: markup is round-tripped
-through *that field's own* schema first, so what is stored is what the field would have
 ### Rules about the content
 
 `minLength()` and `maxLength()` measure characters, and Filament measures them on the
@@ -3274,6 +3167,217 @@ A column somebody dragged wider stays wider on the page. Filament configures Tip
 with `resizable: true`, so dragging already worked and the width was already kept in the
 document — it just never reached the reader. `ueberdosis/tiptap-php` writes it as
 `data-colwidth` on the cell, which is neither on the sanitiser's allow list nor anything a
+### Required, and what counts as empty
+
+An empty editor is not an empty value. TipTap keeps at least one paragraph in the document
+at all times, so a field nobody typed into reaches the validator as
+`['type' => 'doc', 'content' => [['type' => 'paragraph']]]` — an array Laravel's `required`
+is perfectly happy with. Filament rejects that exact shape; press return once and the
+document has two empty paragraphs, which it does not.
+
+This package answers the question once, for every shape state arrives in:
+
+```php
+AdvancedRichEditor::make('content')->required();
+```
+
+A document counts as **empty** when it holds nothing but paragraphs, line breaks and
+whitespace — ordinary spaces, and the non-breaking ones a paste from Word leaves behind.
+Everything else is content: a list, a heading, a horizontal rule, an image, a table, a
+custom block, and any node a project or another package adds.
+
+That direction is deliberate. A list of nodes that count as content would need extending
+every time a node is added, and the day one was forgotten it would throw away somebody's
+work. Stated this way an unknown node counts as content, so the worst this can do is let an
+empty-looking document through — visible, and reported — rather than reject a document that
+had something in it.
+
+The same question is available on the field, which is what a custom rule or an observer
+wants:
+
+```php
+$field->hasContent($state);   // markup, a document, or null - all three
+```
+
+`$field->hasContent($state)` answers the same question but needs a field instance. Where you
+only have the column — an observer, a custom validation rule, a queued job — the rule is a
+static:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
+
+DocumentContent::isBlank($post->content);   // true for a document of empty paragraphs
+```
+
+It takes the column in whichever shape it is stored — a `doc` array from a JSON column,
+markup from a `text` one, or nothing — because a job or an observer holding an attribute is
+in no position to narrow it first. It treats non-breaking spaces, zero-width spaces and byte
+order marks as blank, which is what makes it agree with what the author sees rather than with
+`strlen()`.
+
+On markup it reads rather than parses, and that is deliberate: the only parser that knows
+*your* nodes is the one a field assembles, which is exactly what a job does not have, and a
+parser built without them would call a document holding nothing but a callout empty. So the
+blank list becomes a blank tag list — a paragraph and a line break — and every other tag
+counts. That is coarser in one direction only: an empty `<strong></strong>` is content here
+where the parsed document would call it blank. Erring that way is the point; the other way
+throws somebody's work out.
+
+#### Storing nothing instead of `<p></p>`
+
+By default an empty document is stored as `<p></p>`, exactly as Filament stores it. That is
+noise in a nullable column, and it is why `@if($post->content)` is true for a post with no
+content. To store nothing instead:
+
+```php
+AdvancedRichEditor::make('content')->nullWhenEmpty();   // default: config('...null_when_empty')
+```
+
+It is off by default, and that is a decision about your database rather than a preference: a
+column that is `NOT NULL` without a default takes `<p></p>` and refuses a null, so turning
+this on for everyone would break a save that works today. Turn it on per field, or once in
+the config file when you know your columns.
+
+Emptiness means the same thing here as it does above, and `json()` fields get the same
+answer even though what they store is a document rather than markup.
+
+#### Hydrating an empty column
+
+A `text NOT NULL DEFAULT ''` column is ordinary, and Filament's cast only guards against
+null - an empty string went to TipTap's DOM parser, which reached for a `<body>` that was
+never built and threw `DOMParser::getDocumentBody(): Return value must be of type
+DOMElement, null returned` out of a form that was only being rendered. This package treats a
+blank string as no content, so such a record opens on an empty editor like any other.
+
+### Preview
+
+What the document looks like on the site, in a dialog. Everything else this package shows an
+author is a view of the editor; this is the one view of the page.
+
+```php
+AdvancedRichEditor::make('content')
+    ->previewStylesheets([asset('build/site.css')])
+    ->previewWrapperClass('prose dark:prose-invert mx-auto max-w-2xl');
+```
+
+The tool appears in the [tools menu](#toolbars) once a stylesheet is named, and not before.
+That is the whole shape of the feature, so it is worth being blunt about it: **the package
+supplies the frame, your project supplies the CSS.** A front end's stylesheet is not this
+package's to invent — it has said so twice already, once about [styles](#styles) and once
+about [rendering outside Filament](#callouts) — and a frame with no stylesheet draws unstyled
+markup. A button labelled "preview" opening onto that would lie about what it did, so a field
+with nothing named gets no button.
+
+**It is a real frame, not a styled box.** The panel has already loaded this package's whole
+stylesheet, and the content rules in it are deliberately unscoped so that they apply wherever
+content is rendered — including inside anything drawn in the panel. A `<div>` preview inherits
+the editor's idea of how content looks by construction, whatever it is labelled. The dialog
+holds an `<iframe srcdoc>` because that is the only boundary a browser enforces.
+
+Which has a consequence worth expecting rather than discovering: **nothing from the panel
+reaches inside.** Filament's colour tokens are gone, and so are this package's own callout,
+task list and figure rules. That is not a gap, it is the point — those rules load in the panel
+only, and the documentation tells you to copy them into your own stylesheet. The preview is
+where you find out whether that was done.
+
+Point it at the file the site actually loads rather than a copy of it. A preview built on a
+second copy of the rules can drift from the page without anybody noticing, which is the one
+failure a preview cannot survive.
+
+**The wrapper class goes on the frame's `<body>`.** A stylesheet on its own usually draws very
+little: rendered content normally sits inside a container that sets the measure and inside a
+`prose` class that styles the bare tags at all, and a dark theme is usually a class on an
+ancestor. One string on the body covers all three; a class on an inner wrapper could not carry
+the theme.
+
+**What it shows is what you typed, not what is stored.** The document is read out of the
+browser and sent back through the field's own schema, the same channel and the same reasoning
+as the [source view](#source-code): the last keystrokes may not have been synced yet, and they
+are usually the ones somebody opened a preview to look at. Anything the schema cannot hold is
+already gone in the frame — visibly, and before the record is written.
+
+**The frame runs no scripts.** `sandbox` carries `allow-same-origin` but never `allow-scripts`;
+the two together are what would let a frame lift its own sandbox, and nothing lifts anything
+with no script to lift it. Keeping the origin is what lets a relative `/storage/…` picture
+resolve and a web font be served. Links open in a new tab rather than navigating the frame,
+because a preview a single click destroys is one nobody uses twice.
+
+**Point it at the same rendering your page uses.** A field knows its own plugins, mentions and
+disk, and knows nothing at all about the decisions a page makes on top of them — heading
+anchors, a table of contents, syntax colours are named where the document is rendered, which
+is somewhere the field has never seen. Without this the preview is truthful about the field
+and wrong about the page:
+
+```php
+AdvancedRichEditor::make('content')
+    ->previewStylesheets([asset('build/site.css')])
+    // The same call your page renders through, not a copy of it.
+    ->configureRenderer(Rendering::configure(...));
+```
+
+`configureRenderer()` is the hook [`AdvancedRichEntry`](#on-a-view-page) and
+[`AdvancedRichColumn`](#in-a-table) already carry, and it is applied last — what the field was
+told about rendering wins over what it worked out about itself. It reaches the field's own
+schema too, so a closure adding a plugin adds it to what a save is parsed through: a node the
+renderer draws and the parser strips is a node that disappears on the next save.
+
+Both halves have a config default, and a field overrules either:
+
+```php
+'preview' => [
+    'enabled' => true,
+    'stylesheets' => [],
+    'wrapper_class' => null,
+],
+```
+
+`->preview(false)` takes the tool away from a field that has a stylesheet and does not want it.
+
+One caveat, and it is the front end's rather than the preview's: a stylesheet built by a
+purging Tailwind may not carry this package's class names at all, because they live in this
+package's config rather than in your templates. The frame then shows the document nearly
+unstyled — which is the preview being right about a stylesheet that is missing the rules.
+
+### Source code
+
+`'sourceCode'` opens the document as HTML, in Filament's own code editor, next to the
+fullscreen button. **Off by default:**
+
+```php
+AdvancedRichEditor::make('content')->sourceCode();        // default: config('...source_code')
+```
+
+It hands an editor a way past every control the toolbar stands for — whoever types into that
+box writes whatever the schema will accept, and the toolbar stops being the answer to what a
+document may contain. Worth having where the people using it know HTML, not worth giving to
+everybody who installs the package. The token stays in the shipped toolbar and resolves to
+nothing while this is off, so turning it on needs no toolbar surgery.
+
+Both directions go through the field's own TipTap schema rather than being passed along
+untouched, and that is the point of it:
+
+- **Opening** shows the markup as it is stored, not as the browser happened to serialise it.
+  Every plugin the field carries is in that schema, so a rotation, a background colour or a
+  direction is there to see.
+- **Applying** hands the markup to the same schema before it reaches the editor. Anything it
+  cannot represent is gone at that moment - the same thing that happens to pasted markup,
+  but visibly, and before the record is written rather than silently on the next save.
+
+Which also means the source view is not a way to store markup the editor does not support.
+Filament sanitises rich content on the way out anyway; this simply makes the boundary
+visible.
+
+The markup is laid out for reading on the way in - every block on its own line, indented by
+nesting - and compacted again on the way out. That costs nothing, because the parser drops
+whitespace between block tags; inline content is never broken, since the whitespace between
+inline elements is part of the sentence, and anything inside a `<pre>` is copied through
+exactly as written. A single long paragraph still arrives as a single long line, wrapped by
+the code editor: that one is the document's own doing, not the layout's.
+
+#### Normalising HTML from somewhere else
+
+The source dialog does not hand TipTap whatever was typed into it: markup is round-tripped
+through *that field's own* schema first, so what is stored is what the field would have
 browser does something with: CSS cannot read an attribute value as a width. The editor
 looked right, the page did not, and nothing said so.
 

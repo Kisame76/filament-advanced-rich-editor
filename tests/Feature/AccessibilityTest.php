@@ -19,7 +19,7 @@ it('sits with the tools that are about the document rather than about the text',
     // The shipped tools menu keeps a place for it between searching and the source view, so
     // switching the check on is the whole of what a project has to do - and it lands in the
     // menu rather than as another icon in the corner.
-    expect(editor()->getToolsMenu())->toBe(['find', 'accessibility', 'statistics', 'sourceCode', 'help'])
+    expect(editor()->getToolsMenu())->toBe(['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help'])
         ->and(resolvedButtonNames(toolbarItem(editor()->accessibility(), toolsShape())))
         ->toBe(['find', 'accessibility', 'statistics', 'help']);
 });

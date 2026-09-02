@@ -207,7 +207,7 @@ return [
     |
     | An empty menu is dropped rather than drawn. Per field: `->toolsMenu()`.
     */
-    'tools_menu' => ['find', 'accessibility', 'statistics', 'sourceCode', 'help'],
+    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help'],
 
     /*
     |--------------------------------------------------------------------------
@@ -529,6 +529,61 @@ return [
         // readers should say so. The dialog rounds up, so this only has to be roughly
         // right - it is an estimate presented as one, not a measurement.
         'words_per_minute' => 200,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Preview
+    |--------------------------------------------------------------------------
+    | The document drawn the way the site draws it, in an isolated frame. The panel
+    | cannot answer that question in place: it has already loaded this package's whole
+    | stylesheet, and the content rules in it are deliberately unscoped so that they apply
+    | wherever content is rendered - including inside anything drawn here. A frame is the
+    | only boundary the browser enforces.
+    |
+    | Which is why this is a seam rather than a feature: the package supplies the frame,
+    | the project supplies the CSS. Per field: `->preview(false)`, `->previewStylesheets()`
+    | and `->previewWrapperClass()`.
+    */
+    'preview' => [
+        /*
+         * Not what switches the preview on, despite reading like it: `stylesheets` below
+         * ships empty, and without one named there is no button on any field. A default
+         * installation draws `find`, `statistics` and `help` in this menu and nothing else.
+         *
+         * This is the switch for taking the tool away from a project that named a stylesheet
+         * and does not want the button - which is why it defaults to true rather than false.
+         * Defaulting it to false would mean doing two things to get one feature, and the
+         * second of them would do nothing on its own.
+         */
+        'enabled' => true,
+
+        /*
+         * The stylesheets the preview frame loads, as URLs a browser can reach. Your own
+         * built stylesheet - the same file the site loads.
+         *
+         * Shipped empty, and the tool is not offered until one is named. That is not
+         * caution, it is the only honest answer: a front end's CSS belongs to the project,
+         * this package has none to lend, and a frame with no stylesheet draws unstyled
+         * markup. A button labelled "preview" opening onto that lies about what it did.
+         *
+         * The preview is therefore also a check on something this documentation asks for
+         * elsewhere: the package stylesheet is registered with Filament and loads in the
+         * panel only, so the callout and task list rules have to be copied into your own
+         * sheet. If they were not, the frame shows that - correctly.
+         */
+        'stylesheets' => [],
+
+        /*
+         * The class the frame's `<body>` carries, e.g. 'prose dark:prose-invert mx-auto
+         * max-w-2xl'.
+         *
+         * A stylesheet alone usually draws very little: rendered content normally sits in a
+         * container that sets the measure and in a `prose` class that styles the bare tags
+         * at all, and a dark theme is usually a class on an ancestor. On the body rather
+         * than on a wrapper inside it, so one string covers all three.
+         */
+        'wrapper_class' => null,
     ],
 
     'help' => true,
@@ -1234,6 +1289,7 @@ return [
         // The language a passage is written in, and the way back to the language of the
         // page. The globe with letters on it is the sign for "this is in another one";
         // the cross is the same cross every other clearing control in here uses.
+        'preview' => 'heroicon-o-eye',
         'language' => 'heroicon-o-language',
         'language_none' => 'heroicon-o-x-mark',
 

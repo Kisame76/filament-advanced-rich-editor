@@ -301,6 +301,13 @@ return [
         'words' => 'Words',
         'characters' => 'Characters',
         'characters_without_spaces' => 'Characters without spaces',
+    'preview' => [
+        'label' => 'Preview',
+        'heading' => 'Preview',
+        'description' => 'The document as your own stylesheet draws it. The editor\'s styling is not loaded here.',
+        'frame' => 'Preview of the document',
+    ],
+
         'paragraphs' => 'Blocks',
         'reading_time' => 'Reading time',
         'reading_time_none' => '—',

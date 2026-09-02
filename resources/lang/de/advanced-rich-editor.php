@@ -299,6 +299,13 @@ return [
         'words' => 'Wörter',
         'characters' => 'Zeichen',
         'characters_without_spaces' => 'Zeichen ohne Leerzeichen',
+    'preview' => [
+        'label' => 'Vorschau',
+        'heading' => 'Vorschau',
+        'description' => 'Das Dokument, wie das eigene Stylesheet es zeichnet. Die Gestaltung des Editors ist hier nicht geladen.',
+        'frame' => 'Vorschau des Dokuments',
+    ],
+
         'paragraphs' => 'Blöcke',
         'reading_time' => 'Lesezeit',
         'reading_time_none' => '—',
