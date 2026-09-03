@@ -132,7 +132,7 @@ AdvancedRichEditor::make('content')
         'divider',
         ['headings', 'bold', 'italic'],
         'divider',
-        ['lists', 'link', 'image', 'embed'],
+        ['lists', 'link', 'mediaBrowser'],
         'pin',
         ['fullscreen', 'help'],
     ])

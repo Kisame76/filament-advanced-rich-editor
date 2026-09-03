@@ -120,7 +120,12 @@ trait FormatsBlocks
     }
 
     /**
-     * Whether the field can embed a video.
+     * Whether the field can embed a video from YouTube or Vimeo.
+     *
+     * On by default but not on the shipped bar, since the media browser arrived: that
+     * button covers video from your own server, and two video-shaped buttons beside each
+     * other is one door too many for a bar with a finite number of places. The slash menu
+     * still finds this one, and a bar that names it still gets it.
      *
      * Off means the button and the script are gone; stored embeds are still rendered,
      * because a field that stops offering something has no business deleting what was

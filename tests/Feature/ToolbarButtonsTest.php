@@ -68,7 +68,7 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'embed', 'table', calloutsShape()],
+        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -85,7 +85,7 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'embed', 'table', calloutsShape()],
+        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -103,7 +103,7 @@ it('does not reach inside a dropdown token', function (): void {
 
 it('collapses the dividers that an emptied group left behind', function (): void {
     $editor = editor()->disableToolbarButtons([
-        'link', 'mediaBrowser', 'embed', 'table', 'codeBlock',
+        'link', 'mediaBrowser', 'table', 'codeBlock',
     ]);
 
     // Everything the insert group inserted is gone; the two dropdowns it shares the group
@@ -128,7 +128,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
     $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->statistics(false)->disableToolbarButtons([
-        'lists', 'callouts', 'link', 'mediaBrowser', 'embed', 'table',
+        'lists', 'callouts', 'link', 'mediaBrowser', 'table',
     ]);
 
     expect(array_slice(toolbarShape($editor), -1))->toBe([

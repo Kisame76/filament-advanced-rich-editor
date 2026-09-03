@@ -42,7 +42,7 @@ return [
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'mediaBrowser', 'embed', 'table', 'callouts'],
+        ['lists', 'mediaBrowser', 'table', 'callouts'],
         'divider',
         ['more'],
         'pin',
@@ -444,6 +444,10 @@ return [
     | Per field: `->embeds()`.
     */
     'embed' => [
+        // On, but not on the shipped bar: the 'mediaBrowser' button covers video from your
+        // own server, and two video-shaped buttons beside each other is one door too many
+        // for a bar with a finite number of places. The slash menu still finds it, and a bar
+        // or 'more' that names 'embed' gets the button back.
         'enabled' => true,
         'sanitizer' => true,
         'youtube_nocookie' => true,

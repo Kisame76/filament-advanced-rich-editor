@@ -192,7 +192,7 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
     'divider',
     ['alignment', 'lineHeight'],
     'divider',
-    ['lists', 'mediaBrowser', 'embed', 'table', 'callouts'],
+    ['lists', 'mediaBrowser', 'table', 'callouts'],
     'divider',
     ['more'],
     'pin',
@@ -274,7 +274,7 @@ AdvancedRichEditor::make('content')->preset('comment');
 | --- | --- | --- |
 | `minimal` | bold, italic, underline · link, lists | off |
 | `comment` | bold, italic · link, lists, quote · emoji | off |
-| `blog` | undo · headings, styles · bold, italic, underline, link · lists, image, embed, callouts · more ⟨pin⟩ tools | on |
+| `blog` | undo · headings, styles · bold, italic, underline, link · lists, media, callouts · more ⟨pin⟩ tools | on |
 | `default` | the shipped bar above, unchanged | on |
 | `full` | `default` plus `fontFamily`, `textCase` and `language` on the bar and `strike` in the overflow | on |
 
@@ -2546,6 +2546,12 @@ Re-opening a link does not preselect the record it points at. Finding the record
 means storing a reference next to it, which is exactly what the mark cannot carry.
 
 ### Video embeds
+
+**Registered and on, but not on the shipped bar.** The
+[media browser](#media-browser) covers video from your own server, and two video-shaped
+buttons beside each other is one door too many for a bar with a finite number of places. The
+way in is the slash menu — `/video`, `/youtube`, `/vimeo` — and a bar or
+[`more`](#the-more-menu) that names `'embed'` gets the button back.
 
 The `embed` tool takes a link and puts a video in the document. Paste the link from the
 address bar or the share button — every shape either of them produces is understood:

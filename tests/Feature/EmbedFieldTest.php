@@ -2,11 +2,33 @@
 
 declare(strict_types=1);
 
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 
-it('offers the embed button by default', function (): void {
-    expect(toolbarGroup(editor(), 'embed'))->toContain('mediaBrowser')
-        ->and(editor()->getTools())->toHaveKey('embed');
+/** Every name the slash menu offers, flattened out of its groups. */
+function slashNamesOf(AdvancedRichEditor $editor): array
+{
+    return array_merge(...array_map(
+        static fn (array $group): array => array_column($group['items'], 'name'),
+        SlashMenu::for($editor)['groups'],
+    ));
+}
+
+it('ships registered and on, but not on the bar', function (): void {
+    // Off the shipped bar since the media browser arrived: that button covers video from
+    // your own server, and two video-shaped buttons beside each other is one door too many
+    // for a bar with a finite number of places. The tool itself is untouched - the slash
+    // menu still finds it, and a bar that names it still gets it.
+    expect(editor()->hasEmbeds())->toBeTrue()
+        ->and(editor()->getTools())->toHaveKey('embed')
+        ->and(array_merge(...toolbarShape(editor())))->not->toContain('embed')
+        ->and(slashNamesOf(editor()))->toContain('embed');
+});
+
+it('goes back on a bar that names it', function (): void {
+    expect(toolbarShape(editor()->toolbarButtons([['bold', 'embed']])))
+        ->toBe([['bold', 'embed']]);
 });
 
 it('takes the button away where the field says so', function (): void {
