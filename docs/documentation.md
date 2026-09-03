@@ -19,7 +19,7 @@ on top of it, checked against the current Filament v5 release:
 | **Block layout** | Four separate alignment buttons, three of them in the default row | [One alignment dropdown](#alignment) showing the alignment the caret is in, and [line spacing](#line-spacing) beside it |
 | **Writing direction** | — | [`dir` on the block the caret sits in](#text-direction), so a Hebrew paragraph inside a German article reads the right way round — registered on every field, and named `ltr` / `rtl` when you want the buttons |
 | **Character look** | `textColor` with an optional free picker, `highlight`, `small`, `lead` | + [a background colour with a palette of its own](#colours), [font size](#font-size), [your design system's own named styles](#styles), [a typeface picker](#fonts) |
-| **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser), [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
+| **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser) on its own button, with Filament's dialog left untouched beside it, [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
 | **Sizing a picture** | `->resizableImages()`, off by default, and the drag always keeps the ratio | [On by default, with the pixel size beside the pointer](#images) — a ratio lock you can open, quarter turns, a panel to type the two numbers into, and a download |
 | **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window, and [a search over your own records](#linking-to-a-record-instead-of-typing-a-url) instead of a typed URL |
 | **Video** | — | [Paste a YouTube or Vimeo link](#video-embeds) and get a player, timestamp included, through the cookie-free host |
@@ -76,6 +76,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [A picture that points somewhere](#a-picture-that-points-somewhere) ·
 [Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
 [Links](#links) · [Video embeds](#video-embeds) ·
+[Video and audio you host](#video-and-audio-you-host) ·
 [Anchors in the editor](#anchors-in-the-editor)
 
 **[Typing instead of aiming](#typing-instead-of-aiming)** — [Slash menu](#slash-menu) ·
@@ -191,7 +192,7 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
     'divider',
     ['alignment', 'lineHeight'],
     'divider',
-    ['lists', 'image', 'embed', 'table', 'callouts'],
+    ['lists', 'mediaBrowser', 'embed', 'table', 'callouts'],
     'divider',
     ['more'],
     'pin',
@@ -283,8 +284,9 @@ main bar has three buttons and whose bubble still offers the style picker and bo
 pickers is not a comment box.
 
 **Uploads are named, not inferred.** Without a preset the field answers
-`hasFileAttachments()` from whether the bar carries `image` or `attachFiles`, so a hand-cut
-bar takes the upload, the drop *and* the paste-upload with it and says nothing. Each preset
+`hasFileAttachments()` from whether the bar carries `mediaBrowser`, `image` or `attachFiles`,
+so a hand-cut bar naming none of them takes the upload, the drop *and* the paste-upload with
+it and says nothing. Each preset
 states its own answer instead, and `->fileAttachments(true)` overrules it.
 
 That answer holds only while the preset still describes what is on screen. A field that
@@ -2161,10 +2163,39 @@ Per field: `->imageLink(false)`; project-wide: the `images.link` key.
 
 ### Media browser
 
-The image button opens the pictures that are already on the server, with uploading as the
-second tab — because uploading is what you do when the picture is *not* there yet. Filament's
-own dialog only ever asks for a file, so the same image lands on the disk once per article
-that shows it.
+The `'mediaBrowser'` button — the one on the shipped bar — opens the **files** that are
+already on the server, with uploading built into the grid, because uploading is what you do
+when the file is *not* there yet. Filament's own dialog only ever asks for a file, so the same
+image lands on the disk once per article that shows it.
+
+**One door, three families.** Pictures, video and audio share one browser, with a tab each —
+drawn only where the pool actually holds more than one, so a library of nothing but pictures
+is the dialog it always was. What gets inserted is decided by the file: a picture becomes an
+`<img>` with everything that hangs off it — [caption](#images), float, size, link, decorative
+— and a video or a sound becomes the [player node](#video-and-audio-you-host). Unifying the
+way *in* is the point; the storage stays one node per family.
+
+`'image'`, `'video'` and `'audio'` are the same door under narrower names: each opens the
+browser on its own tab. `'image'` is kept registered so a bar somebody already wrote keeps
+working.
+
+**An address, in the same dialog.** A file somebody else hosts is a field under the grid
+rather than a second dialog — the CDN link and the library are the same question, and having
+to pick a door before knowing which one holds the file was the whole complaint. Nothing typed
+there joins the library: it has no row, no thumbnail and no id, and it cannot be picked again
+tomorrow. It is a link.
+
+```php
+AdvancedRichEditor::make('content')
+    ->mediaLibraryAcceptedFileTypes(['image/*', 'video/*'])   // default: all three families
+    ->media(false);   // no player node, and the browser then offers pictures only
+```
+
+`mediaLibraryAcceptedFileTypes()` is deliberately **not** Filament's
+`fileAttachmentsAcceptedFileTypes()`. That one also governs Filament's compiled
+drop-and-paste handler, which inserts an `image` node for anything it accepts — widening it
+would turn a film dropped into the editor into an `<img>` pointing at an mp4. So the browser
+carries its own, wider list and Filament's stays as narrow as Filament left it.
 
 Picking an existing picture stores exactly what an upload would have stored: the media UUID
 for a field with a media collection, the storage path for one without. **Nothing is copied.**
@@ -2179,10 +2210,20 @@ disturbing the others.
 AdvancedRichEditor::make('content')->mediaLibrary(false);   // default: config('...media_library.enabled')
 ```
 
-Switching it off restores Filament's own upload dialog exactly. Everything that opens the
-dialog — the toolbar button, the slash menu entry, clicking an image that is already in the
-text — keeps working either way, because the browser replaces that one action rather than
-adding a second one beside it.
+Switching it off leaves both buttons naming Filament's own dialog, which is what they did
+before any of this existed. Everything that opens a dialog — the toolbar button, the slash
+menu entry, clicking an image that is already in the text — keeps working either way.
+
+**Filament's `attachFiles` is left alone.** The browser used to be registered *as*
+`attachFiles`, replacing Filament's action by name, which meant a project that wanted the
+plain upload dialog could not have it on any field: the name it answers to was taken. The
+browser is its own action now, so both exist side by side — put `'attachFiles'` on a bar or
+in [`more`](#the-more-menu) and you get Filament's dialog, unchanged, next to the browser.
+
+A field with nothing browsable behind it registers no browser at all — a foreign attachment
+provider, or a disk field with no directory of its own to tell its pictures apart. There both
+buttons name Filament's dialog, because an empty grid is a worse answer than a working
+upload.
 
 #### What it shows
 
@@ -2598,6 +2639,59 @@ are written into the markup as inline styles, because this package's stylesheet 
 into the admin panel and the page the content ends up on is somebody else's - an embed
 arriving there with only a class on it is a 300×150 box in the corner. `.fi-arte-embed` is
 still on the wrapper for styling beyond that.
+
+### Video and audio you host
+
+The other half of the question [embeds](#video-embeds) answer. `'video'` and `'audio'`
+place a `<video>` or an `<audio>` pointing at a file on your own server; one node draws
+both, and which of the two it is stays an attribute you can correct.
+
+**Registered and unplaced**, the way the case tools are. The way in is the
+[media browser](#media-browser) — its own button on the bar, or the slash menu's `/video`,
+`/audio`, `/mp4`, `/podcast`, each of which opens the browser on the right tab.
+
+```php
+AdvancedRichEditor::make('content')
+    ->moreTools([..., 'video', 'audio'])
+    // ->media(false);   // no node, no buttons, and the browser offers pictures only
+```
+
+Which of the two elements is drawn is read off the file — `.mp4` is a video, `.mp3` a sound
+— and it is stored as an attribute of its own, so a container that holds either (`.ogg`,
+`.webm`) can be corrected rather than renamed.
+
+`controls` is always written and is not a setting. A player nobody can start is a file
+nobody can play and nobody can see is there. `autoplay` is not offered either: it is on
+Symfony's *unsafe* attribute list, so the sanitiser would strip it on the way to the
+database — a setting that never survives a save is worse than no setting.
+
+Addresses are checked on both sides, and the whole of the check is the scheme. A path with
+no scheme — `/storage/clips/talk.mp4` — is the ordinary case; `http` and `https` are
+allowed; anything else is refused while the dialog is still open, because a `javascript:`
+or a `data:` in a `src` is what turns a player into a script. Whitespace and control
+characters are refused rather than stripped, since `java\nscript:` is `javascript:` to a
+browser.
+
+Nothing has to be unlocked in your sanitiser. `video`, `audio` and `source` are on
+Symfony's safe element list, and so are `src`, `controls`, `preload`, `poster` and `loop` —
+which is what made this a smaller job than the embed, where the `iframe` host list had to
+be built.
+
+The editor draws the real element rather than a card, which is where this parts company
+with the embed: there is no third party to call, `preload="metadata"` fetches a few
+kilobytes, and pressing play is how anyone finds out the path was wrong before the page
+ships. It sits inside a block you can select and drag — a media element answers every click
+with its own controls, so without something around it there would be nowhere left to click.
+
+Reading is wider than writing. A `<video><source src="…"></video>` written by hand or by
+another editor becomes a node with that address; only the first source is kept, because this
+node plays one file.
+
+A player picked out of the library carries a `data-id` exactly as a picture does, and it is
+walked by the same bookkeeping — which is not a nicety. The list of ids a save collects is the
+list the clean-up **spares**, so an id nothing walks is a file deleted by the next save of the
+same record, with the document still pointing at it. `RichEditor/Media/FileAttachments.php`
+is where a node type joins that lifecycle.
 
 ### Anchors in the editor
 

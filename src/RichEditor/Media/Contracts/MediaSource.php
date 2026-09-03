@@ -28,8 +28,8 @@ interface MediaSource
      *
      * @param  string  $search  matches the file name and the media name; blank lists everything
      * @param  string|null  $folder  a folder path for sources that have folders, ignored by the rest
-     * @param  array{type?: string|null, sort?: string|null}  $filters
-     * @return array{items: array<int, array<string, mixed>>, folders: array<int, array{name: string, path: string}>, parent: string|null, hasMore: bool, total: int, types: array<int, string>}
+     * @param  array{type?: string|null, sort?: string|null, kind?: string|null}  $filters
+     * @return array{items: array<int, array<string, mixed>>, folders: array<int, array{name: string, path: string}>, parent: string|null, hasMore: bool, total: int, types: array<int, string>, kinds: array<int, string>}
      */
     public function page(string $search = '', ?string $folder = null, int $page = 1, int $perPage = 40, array $filters = []): array;
 

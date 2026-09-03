@@ -113,6 +113,7 @@ describe('loading a page', () => {
             page: 2,
             type: 'png',
             sort: 'oldest',
+            kind: null,
         })
     })
 
@@ -574,6 +575,7 @@ describe('uploads', () => {
             page: 1,
             type: null,
             sort: 'newest',
+            kind: null,
         })
     })
 
@@ -795,10 +797,11 @@ describe('the numbers under a picture', () => {
     it('names a type from the mime, and falls back to a picture', () => {
         const component = mount(mediaPicker)
 
-        expect(component.kind(item({ mime: 'image/jpeg' }))).toBe('JPEG')
-        expect(component.kind(item({ mime: 'image/svg+xml' }))).toBe('SVG+')
-        expect(component.kind(item({ mime: null }))).toBe('IMG')
-        expect(component.kind(null)).toBe('IMG')
+        expect(component.format(item({ mime: 'image/jpeg' }))).toBe('JPEG')
+        expect(component.format(item({ mime: 'image/svg+xml' }))).toBe('SVG+')
+        expect(component.format(item({ mime: 'video/mp4' }))).toBe('MP4')
+        expect(component.format(item({ mime: null }))).toBe('FILE')
+        expect(component.format(null)).toBe('FILE')
     })
 
     it('reads a server timestamp as local time', () => {
@@ -808,5 +811,52 @@ describe('the numbers under a picture', () => {
         expect(component.when('not a date')).toBe('not a date')
         expect(component.when('2026-08-24 21:27:00'))
             .toBe(new Date(2026, 7, 24, 21, 27).toLocaleString())
+    })
+})
+
+describe('the family tabs', () => {
+    it('fills the tab row even when the dialog opened on one tab', async () => {
+        // The video button opens the browser on Video. A guard that only populated the tab
+        // list while no tab was chosen never populated it at all here, which left the row
+        // hidden and no way back to All - and both sources answer with the families of the
+        // POOL, not of the filtered page, so there is nothing to protect against.
+        const fetchPage = vi.fn(async () => page({ kinds: ['image', 'video'] }))
+        const component = mount(mediaPicker, { fetchPage, kind: 'video' })
+
+        expect(component.kind).toBe('video')
+
+        await component.load()
+
+        expect(component.kinds).toEqual(['image', 'video'])
+    })
+
+    it('asks for the tab it is standing on', async () => {
+        const fetchPage = vi.fn(async () => page({ kinds: ['image', 'video'] }))
+        const component = mount(mediaPicker, { fetchPage, kind: 'audio' })
+
+        await component.load()
+
+        expect(fetchPage).toHaveBeenCalledWith(expect.objectContaining({ kind: 'audio' }))
+    })
+
+    it('sends one request when a tab change clears the mime filter', async () => {
+        // Two watchers, one intention. Without the guard the tab change and the cleared
+        // filter each fired a page request and the later answer won by luck.
+        const fetchPage = vi.fn(async () => page())
+        const component = mount(mediaPicker, { fetchPage })
+
+        component.init()
+
+        component.type = 'image/png'
+        fetchPage.mockClear()
+
+        // The tab change clears the filter, and the filter's own watcher then fires for a
+        // change the tab change already caused.
+        component.kind = 'video'
+        component.trigger('kind')
+        component.trigger('type')
+
+        expect(component.type).toBe('')
+        expect(fetchPage).toHaveBeenCalledTimes(1)
     })
 })

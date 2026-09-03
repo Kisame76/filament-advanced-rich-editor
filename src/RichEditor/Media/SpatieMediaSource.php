@@ -32,7 +32,7 @@ class SpatieMediaSource implements MediaSource
     /**
      * @param  Closure(Builder<Media>): mixed|null  $poolQuery  defined pool, overriding the scope
      * @param  Closure(): mixed|null  $getRecordUsing
-     * @param  array<int, string>|null  $acceptedMimeTypes  null accepts every image
+     * @param  array<int, string>|null  $acceptedMimeTypes  null accepts every family this package draws
      * @param  string|null  $thumbnailConversion  the conversion the grid draws, if the model has one
      * @param  string  $scope  'collection', 'model' or 'record' - each narrower than the last
      * @param  Closure(): mixed|null  $getModelUsing  the model class, for a form with no record yet
@@ -95,7 +95,7 @@ class SpatieMediaSource implements MediaSource
         $query = $this->query();
 
         if ($query === null) {
-            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => []];
+            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => []];
         }
 
         // The term is used as a pattern rather than escaped into a literal, which is what
@@ -123,6 +123,19 @@ class SpatieMediaSource implements MediaSource
         // Read before the filter narrows anything: the list of kinds the filter offers has to
         // be the kinds the pool holds, not the one kind that is currently chosen.
         $types = $this->types();
+
+        // The families present, which is what the tabs are drawn from. Read off the same
+        // distinct list as the mime facet, so one query answers both.
+        $kinds = array_values(array_intersect(
+            MediaKinds::all(),
+            array_map(static fn (string $mime): string => (string) MediaKinds::of($mime), $types),
+        ));
+
+        $kind = $filters['kind'] ?? null;
+
+        if (is_string($kind) && filled($kind)) {
+            $query->where('mime_type', 'like', $kind.'/%');
+        }
 
         $type = $filters['type'] ?? null;
 
@@ -160,6 +173,7 @@ class SpatieMediaSource implements MediaSource
             'hasMore' => ($page * $perPage) < $total,
             'total' => $total,
             'types' => $types,
+            'kinds' => $kinds,
         ];
     }
 
@@ -338,8 +352,19 @@ class SpatieMediaSource implements MediaSource
 
         $query = Media::query();
 
+        // Narrowed to the families this package can draw rather than to pictures. It used to
+        // be a hard `like 'image/%'` here, applied before everything else - which meant a
+        // video in the collection was invisible in the grid AND unresolvable through the
+        // provider, because this object is both the list and the authoriser.
+        //
+        // Matched on the family prefix and not against a list of exact mime types, which is
+        // what the old rule did for pictures and has to keep doing: a collection holding an
+        // `image/heic` that nothing here would have uploaded is still holding a picture, and
+        // a row already in the library should be listed under the tab it belongs to.
         $query->where(static function (Builder $query): void {
-            $query->where('mime_type', 'like', 'image/%');
+            foreach (MediaKinds::all() as $kind) {
+                $query->orWhere('mime_type', 'like', $kind.'/%');
+            }
         });
 
         if ($this->acceptedMimeTypes !== null && $this->acceptedMimeTypes !== []) {
@@ -497,6 +522,7 @@ class SpatieMediaSource implements MediaSource
     {
         $name = (string) $media->getAttributeValue('name');
         $fileName = (string) $media->getAttributeValue('file_name');
+        $kind = MediaKinds::of((string) $media->getAttributeValue('mime_type'));
 
         return [
             'id' => (string) $media->getAttributeValue('uuid'),
@@ -511,14 +537,22 @@ class SpatieMediaSource implements MediaSource
             // a fresh upload with a queued job behind it, or a model that never declared the
             // conversion at all - would otherwise be a URL to a file that is not there, and
             // in a grid that reads as a broken library rather than as work in progress.
-            'thumbnail' => MediaUrl::forWithFallback(
-                $media,
-                $this->thumbnailConversion ?? $this->conversion,
-                $this->visibility,
-            ),
+            //
+            // Pictures only. The fallback hands back the original where a conversion is
+            // missing, and for a video that original is the film itself - which the grid
+            // would put in an `<img>` and draw as nothing. No thumbnail is what tells it to
+            // draw a sign instead.
+            'thumbnail' => $kind === MediaKinds::IMAGE
+                ? MediaUrl::forWithFallback(
+                    $media,
+                    $this->thumbnailConversion ?? $this->conversion,
+                    $this->visibility,
+                )
+                : null,
             'name' => filled($name) ? $name : $fileName,
             'fileName' => $fileName,
             'mime' => (string) $media->getAttributeValue('mime_type'),
+            'kind' => $kind,
             'size' => (int) $media->getAttributeValue('size'),
             'folder' => null,
             'createdAt' => $media->getAttributeValue('created_at')?->toDateTimeString(),
@@ -527,7 +561,10 @@ class SpatieMediaSource implements MediaSource
             // not - which is every picture something other than this editor put there. There
             // is nowhere else the numbers can come from, and the answer is remembered per file
             // so a listing pays for a picture once rather than once per listing.
-            ...$this->measure($media),
+            //
+            // Pictures only, for the reason the disk source gives: reading a video's
+            // dimensions means decoding a container this package has no business opening.
+            ...($kind === MediaKinds::IMAGE ? $this->measure($media) : ['width' => null, 'height' => null]),
         ];
     }
 }

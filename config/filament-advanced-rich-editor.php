@@ -28,7 +28,9 @@ return [
     | Tokens work at any depth, and a ToolbarDropdown or RichEditorTool may be mixed
     | in. Every other Filament tool is registered too and can be named anywhere:
     | 'highlight', 'small', 'lead', 'attachFiles', 'mergeTags', 'customBlocks',
-    | 'ltr', 'rtl' and the table editing ones. Per field: `->toolbarButtons([...])`, or
+    | 'ltr', 'rtl' and the table editing ones. 'attachFiles' is Filament's own upload
+    | dialog and stays Filament's — this package no longer registers the library
+    | browser under that name, so naming it here gets the plain dialog. Per field: `->toolbarButtons([...])`, or
     | `->preset('blog')` for a named starting point - see 'toolbar_presets' below.
     */
     'toolbar' => [
@@ -40,7 +42,7 @@ return [
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'image', 'embed', 'table', 'callouts'],
+        ['lists', 'mediaBrowser', 'embed', 'table', 'callouts'],
         'divider',
         ['more'],
         'pin',
@@ -454,6 +456,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Video and audio from your own server
+    |--------------------------------------------------------------------------
+    | Two buttons, 'video' and 'audio', that place a `<video>` or an `<audio>` pointing at
+    | a file you host — the other half of the question the embed answers. One node draws
+    | both, and the dialog takes an address, a poster, a title, how much to load ahead and
+    | whether to loop.
+    |
+    | Nothing has to be unlocked in your sanitiser for this: `video`, `audio` and `source`
+    | are on Symfony's safe element list and so are `src`, `controls`, `preload`, `poster`
+    | and `loop`. `autoplay` is marked unsafe there and is not offered here either.
+    | `controls` is always written — a player nobody can start is a file nobody can play.
+    |
+    | Addresses are checked on both sides: a path with no scheme is the ordinary case, an
+    | `http`/`https` link is allowed, and anything else — `javascript:`, `data:` — is
+    | refused while the dialog is still open.
+    |
+    | The buttons ship registered and unplaced, the way the case tools do: the way in is
+    | the slash menu, and putting 'video' or 'audio' in 'more' or on a bar gives them
+    | buttons. Switching this off takes the buttons and the script away and leaves stored
+    | players alone — the renderer declares the node whatever a field says.
+    | Per field: `->media(false)`.
+    */
+    'media' => [
+        'enabled' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Slash menu
     |--------------------------------------------------------------------------
     | Typing the slash character on an empty line, or after a space, opens a searchable
@@ -496,7 +526,8 @@ return [
                 'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
-                'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
+                'image', 'attachFiles', 'embed', 'video', 'audio', 'table', 'horizontalRule', 'details',
+                'emoji', 'characters',
                 'dateTime', 'customBlocks', 'mergeTags',
             ],
         ],
@@ -1226,8 +1257,15 @@ return [
     |--------------------------------------------------------------------------
     | Media library
     |--------------------------------------------------------------------------
-    | The image button opens a browser of the pictures that are already on the
-    | server, with uploading as its second tab. Picking one stores what an upload
+    | The 'mediaBrowser' button — the one on the shipped bar — opens a browser of the
+    | files that are already on the server, with tabs for pictures, video and audio, a
+    | field for an address somebody else hosts, and uploading built into the grid.
+    | 'image' is the same door under its older name, kept so an existing bar does not
+    | break. Neither of them is Filament's 'attachFiles': that action is left alone and
+    | can be put on any bar to get the plain upload dialog beside the browser. A field
+    | with nothing browsable behind it — a foreign attachment provider, a disk with no
+    | directory of its own — registers no browser, and both buttons then name
+    | Filament's dialog. Picking a file stores what an upload
     | would have stored — a media UUID, or a storage path on a field without a media
     | collection — so one file can back any number of references and nothing is
     | copied. Size and rotation stay on the image node, never on the file.
@@ -1258,6 +1296,15 @@ return [
     | field on its own `fileAttachmentsDirectory()`. Per field: `->mediaLibrary()`.
     */
     'media_library' => [
+        // What the browser lists and accepts an upload of, as mime types or `image/*`
+        // patterns. Null means every family this package can draw: pictures, video, audio.
+        //
+        // Deliberately NOT Filament's `fileAttachmentsAcceptedFileTypes()`. That list also
+        // governs Filament's compiled drop-and-paste handler, which inserts an `image` node
+        // for anything it accepts — so widening it would turn a film dropped into the editor
+        // into an `<img>` pointing at an mp4. Per field: `->mediaLibraryAcceptedFileTypes()`.
+        'accepted_file_types' => null,
+
         'enabled' => true,
 
         /*
@@ -1368,7 +1415,10 @@ return [
         'callout_warning' => 'heroicon-o-exclamation-triangle',
         'callout_danger' => 'heroicon-o-shield-exclamation',
         'image' => 'heroicon-o-photo',
+        'media_browser' => 'heroicon-o-photo',
         'embed' => 'heroicon-o-film',
+        'media_video' => 'heroicon-o-play-circle',
+        'media_audio' => 'heroicon-o-musical-note',
         // The date family: the calendar with its days as the sign for the whole thing, and
         // a bare calendar and a clock for the two options under it.
         'date_time' => 'heroicon-o-calendar-days',

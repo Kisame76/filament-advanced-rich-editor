@@ -64,6 +64,8 @@ trait FormatsBlocks
 
     protected bool|Closure|null $hasEmbeds = null;
 
+    protected bool|Closure|null $hasMedia = null;
+
     /**
      * @var array<string, string> | Closure | null
      */
@@ -134,6 +136,30 @@ trait FormatsBlocks
     public function hasEmbeds(): bool
     {
         return (bool) ($this->evaluate($this->hasEmbeds) ?? config('filament-advanced-rich-editor.embed.enabled') ?? true);
+    }
+
+    /**
+     * Whether the field can place a video or a sound that lives on this server.
+     *
+     * The neighbour of `embeds()` and the opposite half of the same question: that one
+     * frames a file somebody else hosts, this one points at one of your own. Named `media`
+     * rather than `video` because one node draws both elements - and it is not the media
+     * *library*, which is `mediaLibrary()` and browses pictures.
+     *
+     * Off means the buttons, the dialog and the script are gone; stored players are still
+     * rendered, because a field that stops offering something has no business deleting what
+     * was written before it stopped.
+     */
+    public function media(bool|Closure $condition = true): static
+    {
+        $this->hasMedia = $condition;
+
+        return $this;
+    }
+
+    public function hasMedia(): bool
+    {
+        return (bool) ($this->evaluate($this->hasMedia) ?? config('filament-advanced-rich-editor.media.enabled') ?? true);
     }
 
     /**

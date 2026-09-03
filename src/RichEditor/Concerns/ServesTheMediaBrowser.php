@@ -6,7 +6,9 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Support\Str;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -30,12 +32,12 @@ trait ServesTheMediaBrowser
      */
     #[ExposedLivewireMethod]
     #[Renderless]
-    public function getMediaLibraryPageForJs(string $search = '', ?string $folder = null, int $page = 1, ?string $type = null, ?string $sort = null): array
+    public function getMediaLibraryPageForJs(string $search = '', ?string $folder = null, int $page = 1, ?string $type = null, ?string $sort = null, ?string $kind = null): array
     {
         $source = $this->getMediaSource();
 
         if (! $source) {
-            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'perPage' => $this->getMediaLibraryPageSize()];
+            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => [], 'perPage' => $this->getMediaLibraryPageSize()];
         }
 
         // Taken over here rather than as each file lands. Uploading is a request per file, and
@@ -58,7 +60,14 @@ trait ServesTheMediaBrowser
             folder: $folder,
             page: $page,
             perPage: $perPage,
-            filters: ['type' => $type, 'sort' => $sort],
+            // Checked against the families this package knows rather than passed through: what
+            // arrives is whatever a request carried, and an unknown family narrowing a query
+            // to nothing would read as an empty library.
+            filters: [
+                'type' => $type,
+                'sort' => $sort,
+                'kind' => in_array($kind, MediaKinds::all(), strict: true) ? $kind : null,
+            ],
         );
 
         // Sent rather than left for the browser to infer. A grid that guesses the page size
@@ -77,6 +86,13 @@ trait ServesTheMediaBrowser
         // showing it at all.
         if ($page === 1 && blank($folder)) {
             $pending = $this->getPendingMediaItems($search);
+
+            if (in_array($kind, MediaKinds::all(), strict: true)) {
+                $pending = array_values(array_filter(
+                    $pending,
+                    static fn (array $item): bool => ($item['kind'] ?? null) === $kind,
+                ));
+            }
 
             if ($type !== null && filled($type)) {
                 $pending = array_values(array_filter(
@@ -155,7 +171,7 @@ trait ServesTheMediaBrowser
             // Hashed, because the temporary file name carries dots and `data_set()` reads a dot
             // as a level of nesting: one attachment would quietly become a tree that nothing
             // can find again.
-            $id = 'arte-'.md5($file->getFilename());
+            $id = FileAttachments::PENDING_PREFIX.md5($file->getFilename());
 
             data_set($livewire, "componentFileAttachments.{$statePath}.{$id}", $file);
         }
@@ -286,8 +302,12 @@ trait ServesTheMediaBrowser
         }
 
         $mime = (string) $file->getMimeType();
+        $kind = MediaKinds::of($mime);
 
-        if (! str_starts_with($mime, 'image/')) {
+        // Any family the browser draws, not only pictures. What is refused is a file that
+        // belongs to none of them, which reaches here when a project widened the accepted
+        // types past what this package can insert.
+        if ($kind === null) {
             return null;
         }
 
@@ -302,10 +322,13 @@ trait ServesTheMediaBrowser
         return [
             'id' => $id,
             'url' => $url,
-            'thumbnail' => $url,
+            // A picture stands in for itself; a video and a sound have nothing to draw, and
+            // saying so is what lets the grid put a sign there instead of a broken picture.
+            'thumbnail' => $kind === MediaKinds::IMAGE ? $url : null,
             'name' => $name,
             'fileName' => $name,
             'mime' => $mime,
+            'kind' => $kind,
             'size' => (int) $file->getSize(),
             'folder' => null,
             'createdAt' => null,
@@ -313,7 +336,9 @@ trait ServesTheMediaBrowser
             // Measured here rather than left for the panel: a pending upload is a file Livewire
             // is holding on local disk, so reading its header costs nothing, and there are a
             // handful of them rather than a library's worth.
-            ...($this->measurePending($file) ?? ['width' => null, 'height' => null]),
+            ...($kind === MediaKinds::IMAGE
+                ? ($this->measurePending($file) ?? ['width' => null, 'height' => null])
+                : ['width' => null, 'height' => null]),
             // Drawn differently, and said out loud: this one is not in the library until the
             // form is saved, and somebody who navigates away now will not find it again.
             'pending' => true,
@@ -346,7 +371,14 @@ trait ServesTheMediaBrowser
      */
     public function findMediaItem(mixed $id): ?array
     {
-        if (is_string($id) && ($pending = $this->pendingMediaItem($id, $this->getUploadedFileAttachment($id))) !== null) {
+        // The raw held value rather than a validated one: `pendingMediaItem()` re-checks it
+        // through the field anyway, and asking twice runs the size and accepted-type
+        // validator - which reads the file - once per lookup for nothing.
+        $held = is_string($id)
+            ? data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}.{$id}")
+            : null;
+
+        if (is_string($id) && ($pending = $this->pendingMediaItem($id, $held)) !== null) {
             return $pending;
         }
 

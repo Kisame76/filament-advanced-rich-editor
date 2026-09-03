@@ -136,7 +136,7 @@ it('drops the trigger, the tools and the extension when the field switched them 
     expect(pluginNames($editor))->not->toContain(CalloutPlugin::class)
         ->and(array_keys($editor->getTools()))->not->toContain('calloutNote')
         ->and(toolbarShape($editor)[8])->toBe([
-            'dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table',
+            'dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'embed', 'table',
         ]);
 });
 
@@ -148,7 +148,7 @@ it('drops the trigger when every configured kind was dropped as unusable', funct
     expect($editor->getCalloutVariants())->toBe([])
         ->and(pluginNames($editor))->not->toContain(CalloutPlugin::class)
         ->and(toolbarShape($editor)[8])->toBe([
-            'dropdown:bulletList,orderedList,taskList', 'image', 'embed', 'table',
+            'dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'embed', 'table',
         ]);
 });
 

@@ -37,6 +37,7 @@
             hasFolders: @js($hasFolders),
             listView: @js($isListView),
             pageSize: @js($pageSize),
+            kind: @js($getKind()),
             picked: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')") }},
             fetchPage: (query) => $wire.callSchemaComponentMethod(
                 @js($editorKey),
@@ -152,6 +153,45 @@
         </div>
 
         {{--
+            The tabs, under the toolbar and over the grid rather than inside the filter
+            dropdown beside it. They were in the dropdown first, which was wrong twice:
+            a tab is where you are, not a setting you went looking for, and a person
+            sent to the Video tab by the video button would have had to open a funnel
+            menu to find out there was a way back.
+
+            Drawn where the pool holds more than one family, so a library of nothing but
+            pictures is the dialog it always was and does not grow a row of buttons that
+            all say the same thing.
+
+            And drawn whenever a tab is chosen, whatever the pool holds: the video
+            button opens straight onto Video, and a library with no video in it would
+            otherwise be an empty grid with no way back to All.
+        --}}
+        <div class="fi-arte-media-tabs" x-show="kinds.length > 1 || kind !== ''" role="tablist">
+            <button
+                type="button"
+                role="tab"
+                x-bind:aria-selected="kind === ''"
+                x-bind:class="{ 'fi-active': kind === '' }"
+                x-on:click="kind = ''"
+                class="fi-arte-media-tab"
+                x-text="labels.allKinds"
+            ></button>
+
+            <template x-for="entry in kinds" :key="entry">
+                <button
+                    type="button"
+                    role="tab"
+                    x-bind:aria-selected="kind === entry"
+                    x-bind:class="{ 'fi-active': kind === entry }"
+                    x-on:click="kind = entry"
+                    class="fi-arte-media-tab"
+                    x-text="labels.kinds[entry] ?? entry"
+                ></button>
+            </template>
+        </div>
+
+        {{--
             The library is the dropzone. A separate one under it would be a second place to
             look, and it would sit exactly where the pictures somebody is comparing want to be.
         --}}
@@ -213,7 +253,7 @@
                             x-bind:title="item.name"
                             class="fi-arte-media-item"
                         >
-                            <span x-show="list" x-text="kind(item)" class="fi-arte-media-kind"></span>
+                            <span x-show="list" x-text="format(item)" class="fi-arte-media-kind"></span>
 
                             {{--
                                 Lazy, because a library is a long list and a dialog that opens
@@ -221,12 +261,27 @@
                                 slowly.
                             --}}
                             <img
+                                x-show="drawable(item)"
                                 x-bind:src="item.thumbnail ?? item.url"
                                 x-bind:alt="item.name"
                                 loading="lazy"
                                 decoding="async"
                                 class="fi-arte-media-item-image"
                             />
+
+                            {{--
+                                A video and a sound have no picture to show. Drawing them in
+                                an `<img>` anyway is a broken-image icon in a grid, which
+                                reads as a broken library rather than as a film.
+                            --}}
+                            <span
+                                x-show="! drawable(item)"
+                                x-bind:class="`fi-arte-media-item-sign fi-arte-media-item-sign-${item.kind ?? 'file'}`"
+                                class="fi-arte-media-item-sign"
+                                aria-hidden="true"
+                            >
+                                <span x-text="format(item)"></span>
+                            </span>
 
                             <span class="fi-arte-media-item-text">
                                 <span x-text="item.name" class="fi-arte-media-item-label"></span>
@@ -295,11 +350,42 @@
                 <template x-if="selected">
                     <div class="fi-arte-media-details-inner">
                         <img
+                            x-show="drawable(selected)"
                             x-bind:src="selected.url"
                             x-bind:alt="selected.name"
                             decoding="async"
                             class="fi-arte-media-preview"
                         />
+
+                        {{--
+                            The real element for a film and a sound, because the panel is
+                            where somebody checks they picked the right one - and for a video
+                            that means watching a second of it. `preload="metadata"` fetches
+                            a few kilobytes; nothing streams until play is pressed.
+                        --}}
+                        {{--
+                            Stopped as well as hidden. `x-show` only sets `display: none`, so
+                            a film left playing would go on playing out of an invisible
+                            element the moment the panel moved to another file - audible, and
+                            with no control left on screen to stop it.
+                        --}}
+                        <video
+                            x-show="(selected.kind ?? '') === 'video'"
+                            x-effect="if ((selected?.kind ?? '') !== 'video') { $el.pause() }"
+                            x-bind:src="(selected.kind ?? '') === 'video' ? selected.url : ''"
+                            controls
+                            preload="metadata"
+                            class="fi-arte-media-preview"
+                        ></video>
+
+                        <audio
+                            x-show="(selected.kind ?? '') === 'audio'"
+                            x-effect="if ((selected?.kind ?? '') !== 'audio') { $el.pause() }"
+                            x-bind:src="(selected.kind ?? '') === 'audio' ? selected.url : ''"
+                            controls
+                            preload="metadata"
+                            class="fi-arte-media-preview fi-arte-media-preview-audio"
+                        ></audio>
 
                         <dl class="fi-arte-media-facts">
                             <div>

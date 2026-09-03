@@ -37,6 +37,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolba
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\LivewireNesting;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AlignmentPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AutosavePlugin;
@@ -63,6 +64,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
@@ -131,10 +133,22 @@ class AdvancedRichEditor extends RichEditor
         parent::setUp();
 
         $this->tools([
+            // One dialog, two names. `mediaBrowser` is what the shipped bar carries and what
+            // this package means by "put something in from the library"; `image` is the name
+            // it had before there was anything but pictures in there, kept registered so that
+            // a bar somebody already wrote keeps working. Both mount the browser where there
+            // is a pool and Filament's own dialog where there is not - see
+            // `MediaLibraryAction::nameFor()`.
+            RichEditorTool::make('mediaBrowser')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.media_browser'))
+                ->icon(Icons::get('media_browser'))
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->activeKey('image'),
+
             RichEditorTool::make('image')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image'))
                 ->icon(Icons::get('image'))
-                ->action('attachFiles', arguments: '{ id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
                 ->activeKey('image'),
 
             // Filament's alignment labels read "Align start" and so on, which is noise in a
@@ -516,6 +530,14 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // The editor half only. The node itself is declared by the renderer whatever this
+        // field says, so a document keeps its players even where the buttons are gone.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasMedia()
+                ? [MediaPlugin::make()]
+                : [],
+        );
+
         // Built with the field's own step and depth, because the extension writes lengths
         // with them and reads lengths against them: a field that steps differently reads the
         // same document onto a different grid, and the two halves have to be given the same
@@ -525,6 +547,55 @@ class AdvancedRichEditor extends RichEditor
                 ? [IndentPlugin::make($component->getIndentStep(), $component->getIndentMax())]
                 : [],
         );
+
+        // The tamper check Filament does not do, for the nodes Filament does not know about.
+        //
+        // Its own rule collects ids with `$node->type !== 'image'` and refuses a save naming
+        // an attachment the record did not already hold. A `data-id` on a player is invisible
+        // to that walk, so a crafted one would never be measured against anything - and the
+        // pool's own `has()` is not a substitute, because a shared library authorises every
+        // id in it and the tamper check is precisely what narrows that to this document.
+        //
+        // Added beside Filament's rather than replacing it: theirs answers for pictures,
+        // this one for players, and neither has to know about the other.
+        $this->rule(static function (AdvancedRichEditor $component): Closure {
+            return static function (string $attribute, mixed $value, Closure $fail) use ($component): void {
+                if (blank($value)) {
+                    return;
+                }
+
+                $originalPaths = $component->getOriginalFileAttachmentPaths();
+                $ids = [];
+
+                $component->getTipTapEditor()
+                    ->setContent($value)
+                    ->descendants(static function (object $node) use (&$ids): void {
+                        if (($node->type ?? null) !== Media::$name) {
+                            return;
+                        }
+
+                        if (blank($node->attrs->id ?? null)) {
+                            return;
+                        }
+
+                        $ids[] = $node->attrs->id;
+                    });
+
+                foreach ($ids as $id) {
+                    if ($component->getUploadedFileAttachment($id) !== null) {
+                        continue;
+                    }
+
+                    if ($component->isFileAttachmentPathAuthorized($id, $originalPaths)) {
+                        continue;
+                    }
+
+                    $fail(__($component->getValidationMessages()['tampered'] ?? 'filament-forms::validation.tampered_file_path', ['attribute' => $component->getValidationAttribute()]));
+
+                    return;
+                }
+            };
+        }, static fn (AdvancedRichEditor $component): bool => $component->shouldPreventFileAttachmentPathTampering());
 
         // Only where the bar is actually drawn: what this registers is the rule that governs
         // it, and a rule for a bar that is not there is a message addressed to nobody.
@@ -629,19 +700,22 @@ class AdvancedRichEditor extends RichEditor
             $replacements['link'] = LinkAction::make();
         }
 
+        $additions = [];
+
         // Asked for the pool rather than for the setting: the browser is switched on by
         // default, but a field may have nothing browsable behind it - a foreign attachment
-        // provider, or a disk with no directory to tell this field's pictures apart. An empty
-        // grid would be a worse answer than Filament's own dialog.
+        // provider, or a disk with no directory to tell this field's pictures apart. An
+        // empty grid would be a worse answer than Filament's own dialog, so a field without
+        // a pool simply does not register the browser and both buttons fall back to it.
         if ($this->getMediaSource() !== null) {
-            // The media browser IS the image dialog rather than a second one beside it, so it
-            // takes over Filament's action instead of adding to it. Everything that opens the
-            // dialog - the toolbar button, the slash menu, clicking an image that is already
-            // there - keeps working without being told.
-            $replacements['attachFiles'] = MediaLibraryAction::make();
+            // Added beside Filament's action and no longer instead of it. The browser used
+            // to be registered as `attachFiles`, which left a project that wanted the plain
+            // upload dialog with no way to ask for it: the name it answers to was taken.
+            // Both are registered now, and the buttons name the one they mean.
+            $additions[] = MediaLibraryAction::make();
         }
 
-        if ($replacements === []) {
+        if ($replacements === [] && $additions === []) {
             return parent::getDefaultActions();
         }
 
@@ -653,6 +727,7 @@ class AdvancedRichEditor extends RichEditor
                 static fn (Action $action): bool => ! array_key_exists($action->getName(), $replacements),
             ),
             ...array_values($replacements),
+            ...$additions,
         ];
     }
 

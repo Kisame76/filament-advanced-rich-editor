@@ -6,6 +6,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\Forms\Components;
 
 use Closure;
 use Filament\Forms\Components\Field;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 
 /**
  * The grid of pictures inside the image dialog.
@@ -32,6 +33,8 @@ class MediaPicker extends Field
     protected bool|Closure|null $isListView = null;
 
     protected int|Closure|null $pageSize = null;
+
+    protected string|Closure|null $kind = null;
 
     /**
      * The schema key of the editor this grid asks for its pages.
@@ -99,6 +102,12 @@ class MediaPicker extends Field
             'list' => (string) __($key.'view_list'),
             'filter' => (string) __($key.'filter'),
             'allTypes' => (string) __($key.'all_types'),
+            'allKinds' => (string) __($key.'all_kinds'),
+            // Keyed by family so the tabs read as words rather than as `image` and `video`.
+            'kinds' => array_combine(
+                MediaKinds::all(),
+                array_map(static fn (string $kind): string => (string) __($key.'kinds.'.$kind), MediaKinds::all()),
+            ),
             'sort' => (string) __($key.'sort'),
             'previous' => (string) __($key.'previous'),
             'next' => (string) __($key.'next'),
@@ -155,6 +164,27 @@ class MediaPicker extends Field
         $this->pageSize = $size;
 
         return $this;
+    }
+
+    /**
+     * The tab the browser opens on.
+     *
+     * Which button was pressed, in other words: the picture button opens on pictures and the
+     * sound button on sounds, so nobody arrives at a grid of everything having already said
+     * what they were looking for. Blank opens on all of them.
+     */
+    public function kind(string|Closure|null $kind): static
+    {
+        $this->kind = $kind;
+
+        return $this;
+    }
+
+    public function getKind(): string
+    {
+        $kind = $this->evaluate($this->kind);
+
+        return in_array($kind, MediaKinds::all(), strict: true) ? $kind : '';
     }
 
     public function getPageSize(): int

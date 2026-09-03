@@ -29,6 +29,8 @@ return [
             'horizontalRule' => 'hr, trenner, linie',
             'details' => 'akkordeon, aufklappen, ausklappen',
             'embed' => 'video, youtube, vimeo, einbetten, iframe',
+            'video' => 'mp4, webm, film, clip, player, medien',
+            'audio' => 'mp3, ton, musik, podcast, player, medien',
             'image' => 'bild, foto, img',
             'table' => 'tabelle, raster, spalten',
             'attachFiles' => 'datei, anhang, hochladen',
@@ -54,6 +56,7 @@ return [
     ],
     'tools' => [
         'image' => 'Bild',
+        'media_browser' => 'Medien',
         'link' => [
             'target' => [
                 'label' => 'Öffnet in',
@@ -91,6 +94,30 @@ return [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
             ],
+        ],
+        'media' => [
+            'label' => 'Video oder Audio',
+            'heading' => 'Video oder Audio vom eigenen Server',
+            'src' => 'Adresse',
+            'src_hint' => 'Ein Pfad auf diesem Server, etwa /storage/clips/vortrag.mp4, oder ein vollständiger https-Link.',
+            'kind' => 'Art',
+            'kinds' => [
+                'video' => 'Videodatei',
+                'audio' => 'Audiodatei',
+            ],
+            'poster' => 'Vorschaubild',
+            'poster_hint' => 'Zu sehen, bevor jemand auf Abspielen drückt. Ohne eines ist das Video ein schwarzes Rechteck.',
+            'title' => 'Titel',
+            'title_hint' => 'Wird von einem Screenreader statt des Dateinamens vorgelesen.',
+            'preload' => 'Vorab laden',
+            'preload_hint' => 'Wie viel ein Browser holt, bevor auf Abspielen gedrückt wird.',
+            'preloads' => [
+                'none' => 'Nichts',
+                'metadata' => 'Nur Länge und Größe',
+                'auto' => 'So viel, wie der Browser mag',
+            ],
+            'loop' => 'Nach dem Ende von vorn beginnen',
+            'unsupported' => 'Von dieser Adresse spielt ein Browser keine Datei ab.',
         ],
         'format_brush' => [
             'label' => 'Format übertragen',
@@ -222,7 +249,7 @@ return [
         'image_rotate_right' => 'Nach rechts drehen',
         'media_library' => [
             'label' => 'Bild',
-            'heading' => 'Bild einfügen',
+            'heading' => 'Aus der Bibliothek einfügen',
             'search' => 'Dateien durchsuchen …',
             'empty_record' => 'Noch keine Bilder an diesem Datensatz. Unten eins hochladen.',
             'empty_library' => 'Die Mediathek ist leer. Unten ein Bild hochladen.',
@@ -233,7 +260,15 @@ return [
             'view_grid' => 'Kacheln',
             'view_list' => 'Liste',
             'filter' => 'Filter',
+            'address' => 'Oder eine Adresse',
+            'address_hint' => 'Eine Datei auf fremdem Server. Ein Link, nichts, was in deine Bibliothek wandert.',
             'all_types' => 'Alle Typen',
+            'all_kinds' => 'Alle',
+            'kinds' => [
+                'image' => 'Bilder',
+                'video' => 'Video',
+                'audio' => 'Audio',
+            ],
             'sort' => 'Sortierung',
             'previous' => 'Vorherige Seite',
             'next' => 'Nächste Seite',

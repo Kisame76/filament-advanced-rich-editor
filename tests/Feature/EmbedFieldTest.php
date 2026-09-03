@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 
 it('offers the embed button by default', function (): void {
-    expect(toolbarGroup(editor(), 'embed'))->toContain('image')
+    expect(toolbarGroup(editor(), 'embed'))->toContain('mediaBrowser')
         ->and(editor()->getTools())->toHaveKey('embed');
 });
 

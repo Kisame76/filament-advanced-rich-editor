@@ -29,6 +29,8 @@ return [
             'horizontalRule' => 'hr, divider, separator, rule',
             'details' => 'accordion, collapse, toggle',
             'embed' => 'video, youtube, vimeo, iframe, media',
+            'video' => 'mp4, webm, movie, clip, player, media',
+            'audio' => 'mp3, sound, music, podcast, player, media',
             'image' => 'img, picture, photo',
             'table' => 'grid, rows, columns',
             'attachFiles' => 'file, upload, attachment',
@@ -54,6 +56,9 @@ return [
     ],
     'tools' => [
         'image' => 'Image',
+        // The library button. Named for the library rather than for pictures, because that
+        // is what it opens onto and what it will hold more of.
+        'media_browser' => 'Media',
         'link' => [
             'target' => [
                 'label' => 'Opens in',
@@ -91,6 +96,34 @@ return [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
             ],
+        ],
+        /*
+         * A file on this server rather than one somebody else hosts. The two buttons open
+         * this one dialog, so the strings are shared and `kinds` names both of them.
+         */
+        'media' => [
+            'label' => 'Video or audio',
+            'heading' => 'Video or audio from your server',
+            'src' => 'Address',
+            'src_hint' => 'A path on this server, such as /storage/clips/talk.mp4, or a full https link.',
+            'kind' => 'Kind',
+            'kinds' => [
+                'video' => 'Video file',
+                'audio' => 'Audio file',
+            ],
+            'poster' => 'Poster image',
+            'poster_hint' => 'Shown before anyone presses play. Without one the video is a black rectangle.',
+            'title' => 'Title',
+            'title_hint' => 'Read out instead of the file name by a screen reader.',
+            'preload' => 'Load ahead',
+            'preload_hint' => 'How much a browser fetches before play is pressed.',
+            'preloads' => [
+                'none' => 'Nothing',
+                'metadata' => 'Length and size only',
+                'auto' => 'As much as the browser likes',
+            ],
+            'loop' => 'Play again when it ends',
+            'unsupported' => 'That address is not one a browser will play a file from.',
         ],
         'format_brush' => [
             'label' => 'Format brush',
@@ -220,7 +253,7 @@ return [
         'image_rotate_right' => 'Rotate right',
         'media_library' => [
             'label' => 'Image',
-            'heading' => 'Insert an image',
+            'heading' => 'Insert from the library',
             'search' => 'Search files...',
             'empty_record' => 'No pictures on this record yet. Upload one below.',
             'empty_library' => 'The library is empty. Upload a picture below.',
@@ -231,7 +264,15 @@ return [
             'view_grid' => 'Tiles',
             'view_list' => 'List',
             'filter' => 'Filter',
+            'address' => 'Or an address',
+            'address_hint' => 'A file somebody else hosts. It is a link, not something added to your library.',
             'all_types' => 'All types',
+            'all_kinds' => 'All',
+            'kinds' => [
+                'image' => 'Pictures',
+                'video' => 'Video',
+                'audio' => 'Audio',
+            ],
             'sort' => 'Sort',
             'previous' => 'Previous page',
             'next' => 'Next page',

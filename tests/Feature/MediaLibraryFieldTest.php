@@ -23,15 +23,27 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 /**
  * How the field decides whether the image button opens the browser, and what pool it opens on.
  */
-function imageAction(AdvancedRichEditor $editor): ?Action
+function actionNamed(AdvancedRichEditor $editor, string $name): ?Action
 {
     foreach ($editor->getDefaultActions() as $action) {
-        if ($action->getName() === 'attachFiles') {
+        if ($action->getName() === $name) {
             return $action;
         }
     }
 
     return null;
+}
+
+/** The browser, which is registered only where there is a pool to browse. */
+function browserAction(AdvancedRichEditor $editor): ?Action
+{
+    return actionNamed($editor, 'mediaBrowser');
+}
+
+/** Filament's own upload dialog, which this package no longer takes the name of. */
+function stockAttachAction(AdvancedRichEditor $editor): ?Action
+{
+    return actionNamed($editor, 'attachFiles');
 }
 
 function ourImageDialogHeading(): string
@@ -112,15 +124,39 @@ it('opens the browser by default', function (): void {
     $editor = editor()->fileAttachmentsDirectory('article-attachments');
 
     expect($editor->hasMediaLibrary())->toBeTrue()
-        ->and(imageAction($editor)?->getModalHeading())->toBe(ourImageDialogHeading());
+        ->and(browserAction($editor)?->getModalHeading())->toBe(ourImageDialogHeading());
 });
 
-it('gives Filament its own dialog back when the browser is switched off', function (): void {
+it('leaves Filament its own dialog beside the browser rather than taking its name', function (): void {
+    // The browser used to be registered AS `attachFiles`, which meant a project that wanted
+    // the plain upload dialog could not have it on any field: the name it answers to was
+    // taken. Both are registered now, and Filament's is untouched.
+    $editor = editor()->fileAttachmentsDirectory('article-attachments');
+
+    expect(stockAttachAction($editor))->not->toBeNull()
+        ->and(stockAttachAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading())
+        ->and(browserAction($editor))->not->toBeNull();
+});
+
+it('registers no browser at all where the browser is switched off', function (): void {
+    // And the buttons then name Filament's dialog, which is what they did before any of
+    // this existed - see `MediaLibraryAction::nameFor()`.
     $editor = editor()->mediaLibrary(false);
 
     expect($editor->hasMediaLibrary())->toBeFalse()
-        ->and(imageAction($editor))->not->toBeNull()
-        ->and(imageAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading());
+        ->and(browserAction($editor))->toBeNull()
+        ->and(stockAttachAction($editor))->not->toBeNull()
+        ->and(stockAttachAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading());
+});
+
+it('points both media buttons at the dialog the field actually has', function (): void {
+    $withPool = editor()->fileAttachmentsDirectory('article-attachments');
+    $withoutPool = editor()->mediaLibrary(false);
+
+    foreach (['mediaBrowser', 'image'] as $name) {
+        expect($withPool->getTools()[$name]->getJsHandler())->toContain("mountAction('mediaBrowser'")
+            ->and($withoutPool->getTools()[$name]->getJsHandler())->toContain("mountAction('attachFiles'");
+    }
 });
 
 it('can be switched off for the whole project', function (): void {
@@ -247,7 +283,7 @@ it('does not guard a field that is not browsing anything', function (): void {
 
 it('hands the browser an empty page while it is switched off', function (): void {
     expect(editor()->mediaLibrary(false)->getMediaLibraryPageForJs())
-        ->toBe(['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'perPage' => 40]);
+        ->toBe(['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => [], 'perPage' => 40]);
 });
 
 it('keeps the page size within reach', function (): void {
@@ -269,8 +305,9 @@ it('opens no browser over a disk it cannot tell apart', function (): void {
         ->container(Schema::make(new TestSchemaComponent)->operation('edit')->record(Post::create(['title' => 'P'])));
 
     expect($editor->getMediaSource())->toBeNull()
-        // ...and the image button goes back to being Filament's own.
-        ->and(imageAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading());
+        // ...and the media buttons go back to naming Filament's own dialog.
+        ->and(browserAction($editor))->toBeNull()
+        ->and(stockAttachAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading());
 });
 
 it('opens the browser as soon as the attachments have a directory of their own', function (): void {
@@ -294,7 +331,8 @@ it('opens no browser over a file attachment provider it does not know', function
 
     expect($editor->getFileAttachmentProvider())->not->toBeNull()
         ->and($editor->getMediaSource())->toBeNull()
-        ->and(imageAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading());
+        ->and(browserAction($editor))->toBeNull()
+        ->and(stockAttachAction($editor)?->getModalHeading())->not->toBe(ourImageDialogHeading());
 });
 
 it('marks the upload field the browser drops onto', function (): void {
@@ -305,7 +343,7 @@ it('marks the upload field the browser drops onto', function (): void {
 
     // Bound to the field the way the schema binds it, because the dialog is built out of the
     // editor it was opened from.
-    $schema = imageAction($editor)?->schemaComponent($editor)->getSchema(testSchema());
+    $schema = browserAction($editor)?->schemaComponent($editor)->getSchema(testSchema());
 
     $upload = collect($schema?->getComponents() ?? [])
         ->first(fn (Component $component): bool => $component instanceof FileUpload);

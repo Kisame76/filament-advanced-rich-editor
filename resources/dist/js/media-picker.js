@@ -19,6 +19,7 @@ export default ({
     hasFolders,
     listView,
     pageSize,
+    kind: initialKind = '',
     picked,
     fetchPage,
     fetchDetails,
@@ -26,6 +27,12 @@ export default ({
     items: [],
     folders: [],
     types: [],
+    // The families the pool holds, which is what the tabs are drawn from. A tab over an
+    // empty family is a door onto a wall, so a library of nothing but pictures shows no
+    // tabs at all.
+    kinds: [],
+    // The tab the dialog opened on, which is which button was pressed.
+    kind: initialKind,
     parent: null,
     folder: null,
     search: '',
@@ -44,6 +51,9 @@ export default ({
     // short last page as a tiny page size, and the footer then divided the whole
     // library by it - inventing pages that led to an empty grid.
     perPage: pageSize,
+    // Set while a tab change is clearing the mime filter, so the filter's own watcher knows
+    // the reload is already on its way.
+    _clearedByKind: false,
     picked,
     labels,
     hasFolders,
@@ -78,8 +88,31 @@ export default ({
             this._timer = setTimeout(() => this.reload(), 300)
         })
 
-        this.$watch('type', () => this.reload())
+        this.$watch('type', () => {
+            // Swallowed once when a tab change cleared it, or the two watchers would send
+            // two overlapping requests and the later answer would win by luck.
+            if (this._clearedByKind) {
+                this._clearedByKind = false
+
+                return
+            }
+
+            this.reload()
+        })
+
         this.$watch('sort', () => this.reload())
+
+        // A tab narrows the pool, so the mime filter under it has to let go of a value that
+        // is no longer in the pool - otherwise switching from Pictures to Video leaves
+        // `image/png` selected and the grid is empty for a reason nothing on screen explains.
+        this.$watch('kind', () => {
+            if (this.type !== '') {
+                this._clearedByKind = true
+                this.type = ''
+            }
+
+            this.reload()
+        })
 
         // The panel follows the selection rather than the click, so it is also right
         // when the selection was restored from an image already in the document.
@@ -97,7 +130,7 @@ export default ({
     },
 
     get isFiltered() {
-        return this.type !== '' || this.sort !== 'newest'
+        return this.type !== '' || this.kind !== '' || this.sort !== 'newest'
     },
 
     get selected() {
@@ -133,12 +166,20 @@ export default ({
                 page: this.page,
                 type: this.type || null,
                 sort: this.sort,
+                kind: this.kind || null,
             })
 
             this.items = result?.items ?? []
             this.hasMore = result?.hasMore ?? false
             this.total = result?.total ?? this.items.length
             this.types = result?.types ?? []
+
+            // Taken as answered, tab or no tab. Both sources read the families off the pool
+            // BEFORE the tab narrows it, so the list does not collapse to the tab you are
+            // standing on - and a guard here that kept the previous list instead never
+            // populated it at all when the dialog opened on a tab, which left the row
+            // hidden and no way back to All.
+            this.kinds = result?.kinds ?? []
             this.perPage = result?.perPage ?? this.perPage
             this.folders = result?.folders ?? []
             this.parent = result?.parent ?? null
@@ -361,8 +402,14 @@ export default ({
         return [this.pixels(item), this.bytes(item.size)].filter(Boolean).join(' · ')
     },
 
-    kind(item) {
-        return (item?.mime ?? '').split('/')[1]?.toUpperCase().slice(0, 4) || 'IMG'
+    /** The format badge on a tile: `PNG`, `MP4`, `MPEG`. */
+    format(item) {
+        return (item?.mime ?? '').split('/')[1]?.toUpperCase().slice(0, 4) || 'FILE'
+    },
+
+    /** Whether a tile can be drawn as a picture, or needs a sign standing in for one. */
+    drawable(item) {
+        return (item?.kind ?? 'image') === 'image' && Boolean(item?.thumbnail ?? item?.url)
     },
 
     when(value) {

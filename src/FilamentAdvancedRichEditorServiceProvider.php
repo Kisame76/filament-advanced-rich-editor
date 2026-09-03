@@ -153,6 +153,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/indent', __DIR__.'/../resources/dist/js/indent.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/media', __DIR__.'/../resources/dist/js/media.js')
+                    ->loadedOnRequest(),
+
                 Js::make('advanced-rich-editor/character-count', __DIR__.'/../resources/dist/js/character-count.js')
                     ->loadedOnRequest(),
 

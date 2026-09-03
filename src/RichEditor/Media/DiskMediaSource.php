@@ -29,29 +29,7 @@ use Throwable;
 class DiskMediaSource implements MediaSource
 {
     /**
-     * The extensions a browser can draw, and what they are.
-     *
-     * Read off the name rather than off the file: asking the disk for a mime type is a
-     * request per item, which on a remote disk turns one page of a grid into forty round
-     * trips.
-     *
-     * @var array<string, string>
-     */
-    public const MIME_TYPES = [
-        'apng' => 'image/apng',
-        'avif' => 'image/avif',
-        'bmp' => 'image/bmp',
-        'gif' => 'image/gif',
-        'ico' => 'image/x-icon',
-        'jpeg' => 'image/jpeg',
-        'jpg' => 'image/jpeg',
-        'png' => 'image/png',
-        'svg' => 'image/svg+xml',
-        'webp' => 'image/webp',
-    ];
-
-    /**
-     * @param  array<int, string>|null  $acceptedMimeTypes  null accepts every image
+     * @param  array<int, string>|null  $acceptedMimeTypes  null accepts every family this package draws
      */
     final public function __construct(
         protected ?string $disk = null,
@@ -101,7 +79,7 @@ class DiskMediaSource implements MediaSource
         $current = $this->resolveFolder($folder);
 
         if ($current === null) {
-            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => []];
+            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => []];
         }
 
         // A search looks through the whole pool rather than through the folder that happens
@@ -130,6 +108,26 @@ class DiskMediaSource implements MediaSource
 
         sort($types);
 
+        // The families present, which is what the tabs are drawn from. A tab over an empty
+        // family is a door onto a wall, so a folder holding only pictures shows only the
+        // picture tab.
+        $kinds = array_values(array_intersect(
+            MediaKinds::all(),
+            array_map(
+                fn (array $file): string => (string) MediaKinds::ofPath((string) $file['path']),
+                $files,
+            ),
+        ));
+
+        $kind = $filters['kind'] ?? null;
+
+        if (is_string($kind) && filled($kind)) {
+            $files = array_values(array_filter(
+                $files,
+                fn (array $file): bool => MediaKinds::ofPath((string) $file['path']) === $kind,
+            ));
+        }
+
         $type = $filters['type'] ?? null;
 
         if (is_string($type) && filled($type)) {
@@ -157,6 +155,7 @@ class DiskMediaSource implements MediaSource
             'hasMore' => count($files) > ($offset + $perPage),
             'total' => count($files),
             'types' => $types,
+            'kinds' => $kinds,
         ];
     }
 
@@ -246,7 +245,7 @@ class DiskMediaSource implements MediaSource
 
     protected function mimeOf(string $path): string
     {
-        return static::MIME_TYPES[Str::lower(pathinfo($path, PATHINFO_EXTENSION))] ?? '';
+        return MediaKinds::mimeOf($path);
     }
 
     public function has(mixed $id): bool
@@ -358,9 +357,12 @@ class DiskMediaSource implements MediaSource
 
     protected function accepts(string $path): bool
     {
-        $mime = static::MIME_TYPES[Str::lower(pathinfo($path, PATHINFO_EXTENSION))] ?? null;
+        // Only what a browser can draw or play, whatever else is lying in the directory. A
+        // grid is a grid of things that can be inserted, and the ones that cannot are not
+        // hidden out of tidiness - offering them would insert a player nobody can start.
+        $mime = MediaKinds::mimeOf($path);
 
-        if ($mime === null) {
+        if ($mime === '') {
             return false;
         }
 
@@ -462,14 +464,19 @@ class DiskMediaSource implements MediaSource
         $path = (string) $file['path'];
         $timestamp = (int) ($file['timestamp'] ?? 0);
         $url = $this->url($path);
+        $kind = MediaKinds::ofPath($path);
 
         return [
             'id' => $path,
             'url' => $url,
-            'thumbnail' => $url,
+            // A picture is its own thumbnail on a disk, which has no conversions to ask for.
+            // A video and a sound have no thumbnail at all, and saying so is what lets the
+            // grid draw a sign instead of a broken picture.
+            'thumbnail' => $kind === MediaKinds::IMAGE ? $url : null,
             'name' => (string) $file['name'],
             'fileName' => (string) $file['name'],
             'mime' => $this->mimeOf($path),
+            'kind' => $kind,
             'size' => (int) ($file['size'] ?? 0),
             'folder' => $this->parentOf($path),
             'createdAt' => $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : null,
@@ -477,7 +484,13 @@ class DiskMediaSource implements MediaSource
             // Measured off the file, because there is nowhere else for it to come from: a disk
             // has no row to stamp. Remembered per file, so a listing pays for a picture once
             // rather than once per listing.
-            ...($this->measure($path, (int) ($file['size'] ?? 0), $timestamp) ?? ['width' => null, 'height' => null]),
+            //
+            // Pictures only. A video has dimensions too, and reading them means decoding a
+            // container this package has no business opening - so a player is sized by the
+            // browser that plays it.
+            ...($kind === MediaKinds::IMAGE
+                ? ($this->measure($path, (int) ($file['size'] ?? 0), $timestamp) ?? ['width' => null, 'height' => null])
+                : ['width' => null, 'height' => null]),
         ];
     }
 

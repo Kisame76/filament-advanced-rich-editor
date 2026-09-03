@@ -304,7 +304,13 @@ trait BuildsTheToolbar
             }
         }
 
-        return $this->hasToolbarButton(['attachFiles', 'image']);
+        // Three names for the two doors that take a file: Filament's own dialog, the
+        // library button, and the picture button that is the library under its older name.
+        // A bar carrying any of them is a bar that accepts an upload, and one carrying none
+        // is not - which is why `mediaBrowser` had to be added here the moment it became
+        // what the shipped bar names: without it, every field on the default bar would have
+        // switched its uploads, its drops and its paste-uploads off in silence.
+        return $this->hasToolbarButton(['attachFiles', 'mediaBrowser', 'image']);
     }
 
     /**

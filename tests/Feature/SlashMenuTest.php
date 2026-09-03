@@ -46,7 +46,7 @@ it('separates what a block is from what gets added to the document', function ()
         'bulletList', 'orderedList', 'taskList',
         'blockquote', 'codeBlock',
         'calloutNote', 'calloutTip', 'calloutWarning', 'calloutDanger',
-        'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
+        'image', 'attachFiles', 'embed', 'video', 'audio', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
     ]);
 
     // The date tools are in the same group and behind a switch that ships off, so they are

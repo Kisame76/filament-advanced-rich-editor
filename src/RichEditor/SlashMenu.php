@@ -44,7 +44,8 @@ class SlashMenu
         // What arrives. Uploading is not a group of its own, the way it is in some editors:
         // one entry does not need a heading over it.
         'insert' => [
-            'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
+            'image', 'attachFiles', 'embed', 'video', 'audio', 'table', 'horizontalRule', 'details',
+            'emoji', 'characters',
             'dateTime', 'customBlocks', 'mergeTags',
         ],
     ];

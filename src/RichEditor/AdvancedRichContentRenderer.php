@@ -22,8 +22,10 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Language;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
@@ -520,6 +522,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // embed node is one that silently drops every video in a document the day
             // somebody forgets to tell it.
             app(Embed::class),
+            app(Media::class),
             // And the same again: a note somebody wrote is a note that belongs on the page,
             // whether or not this render was told the field had callouts switched on.
             app(Callout::class),
@@ -1007,7 +1010,11 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     protected function processFileAttachments(Editor $editor): void
     {
         $editor->descendants(function (object &$node): void {
-            if ($node->type !== 'image') {
+            // Every node that can carry an attachment, not only the picture. A video picked
+            // out of the library points at its file the same way, and a renderer that walked
+            // past it would draw a player whose address is whatever the document happened to
+            // be saved with - stale on a private disk, and empty on a fresh upload.
+            if (! FileAttachments::carriedBy($node->type ?? null)) {
                 return;
             }
 

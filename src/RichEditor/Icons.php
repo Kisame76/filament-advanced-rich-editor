@@ -55,7 +55,16 @@ class Icons
             'callout_warning' => 'heroicon-o-exclamation-triangle',
             'callout_danger' => 'heroicon-o-shield-exclamation',
             'image' => 'heroicon-o-photo',
+            // The library button, and the same drawing as the picture button on purpose:
+            // they are one door under two names, and a second icon would say otherwise.
+            'media_browser' => 'heroicon-o-photo',
             'embed' => 'heroicon-o-film',
+            // A file on this server, which is a different thing from an embed and gets a
+            // different sign: the button a player carries, and the note a sound is drawn
+            // with everywhere. The film reel stays with the embed, because that is the one
+            // that fetches something from somebody else.
+            'media_video' => 'heroicon-o-play-circle',
+            'media_audio' => 'heroicon-o-musical-note',
             // The date family. The trigger carries the calendar with its days written on
             // it - the sign for "a date" without being either of the two things under it -
             // and the options carry what each one writes: a bare calendar and a clock.
