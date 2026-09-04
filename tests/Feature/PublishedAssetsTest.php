@@ -49,6 +49,15 @@ const STYLE_HOOKS = [
     // own `fi-prose`, the same class the editor uses; this one is here so a project can
     // reach the entry from its theme without reaching every rendered document.
     'fi-arte-entry',
+    // The three spans inside a document card. They carry their own inline `style`, written
+    // by `Nodes/FileCard` and mirrored in `file-card.js`, because the page an attached
+    // document ends up on belongs to the project and never loads this stylesheet - a card
+    // that needed a rule from here would arrive there as three bare spans. The classes are
+    // emitted so a project can reach them from its own theme.
+    'fi-arte-file-kind',
+    'fi-arte-file-text',
+    'fi-arte-file-name',
+    'fi-arte-file-size',
 ];
 
 /**

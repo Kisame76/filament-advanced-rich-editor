@@ -2489,6 +2489,65 @@ body.fi-arte-fullscreen-lock {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Document cards                                                             */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * An uploaded document, on both sides of the save.
+ *
+ * Almost nothing here is load-bearing, and that is the point. The card carries its own
+ * shape in an inline `style` written by `Nodes/FileCard` and by `file-card.js` - the page a
+ * reader opens belongs to the project, and this stylesheet is only ever loaded into the
+ * admin panel, so a card that needed it would arrive there as three bare spans.
+ *
+ * What is left for CSS is what only the editor has: a card that reads as selected, a
+ * pointer that says "not a link right now", and a hover that says it is a thing you can
+ * grab. A project overriding the look overrides these classes, which both halves emit.
+ *
+ * No margin here, deliberately. The card is inline and carries its own spacing in the
+ * `style` both halves write, so two cards sit apart on a page that never loaded this file
+ * as well as in the panel - and a rule here would be overridden by that inline value
+ * anyway, which is the kind of dead line that reads as a working one.
+ */
+.fi-arte-file {
+    cursor: default;
+    background-color: var(--fi-arte-file-bg, rgb(250 250 250));
+    transition: background-color 75ms ease;
+}
+
+.fi-arte-file:where(.dark, .dark *) {
+    --fi-arte-file-bg: rgb(39 39 42);
+}
+
+.fi-arte-file:hover {
+    --fi-arte-file-bg: rgb(244 244 245);
+}
+
+.fi-arte-file:hover:where(.dark, .dark *) {
+    --fi-arte-file-bg: rgb(52 52 56);
+}
+
+/* The selected block reads as selected, the way the embed card and an image do. */
+.fi-arte-file.ProseMirror-selectednode {
+    outline: 2px solid var(--fi-arte-file-selected, rgb(59 130 246));
+    outline-offset: 1px;
+}
+
+/*
+ * A card with no address behind it. Only reachable from a node whose `src` was refused -
+ * a `javascript:` link, or a document written by hand with the address left out - and it
+ * exists so the block can still be selected and deleted rather than being an invisible
+ * thing the cursor jumps over.
+ */
+.fi-arte-file-empty {
+    display: inline-block;
+    min-width: 3rem;
+    min-height: 2.5rem;
+    border: 1px dashed rgb(161 161 170);
+    border-radius: 0.5rem;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Code block language                                                        */
 /* -------------------------------------------------------------------------- */
 

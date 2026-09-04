@@ -31,7 +31,7 @@ class FileAttachments
      *
      * @var array<int, string>
      */
-    public const TYPES = ['image', 'media'];
+    public const TYPES = ['image', 'media', 'file'];
 
     /**
      * What marks an attachment id as one the media browser is holding rather than one the

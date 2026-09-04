@@ -13,6 +13,7 @@ use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\FileCardConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\ImportedMarkup;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\LooseText;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
@@ -25,6 +26,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
@@ -234,14 +236,6 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     }
 
     /**
-     * Whether links carry `hreflang`, `referrerpolicy` and an `id` on top of what Filament
-     * declares.
-     *
-     * On by default: content that already holds those attributes should keep them. Turning
-     * it off matches a field that was set up the same way, and strips them on the next
-     * render.
-     */
-    /**
      * The named styles this render knows about, overriding the project's.
      *
      * A field passes its own list here so that the schema a save is parsed through is the
@@ -257,6 +251,14 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         return $this;
     }
 
+    /**
+     * Whether links carry `hreflang`, `referrerpolicy` and an `id` on top of what Filament
+     * declares.
+     *
+     * On by default: content that already holds those attributes should keep them. Turning
+     * it off matches a field that was set up the same way, and strips them on the next
+     * render.
+     */
     public function linkAttributes(bool $condition = true): static
     {
         $this->hasLinkAttributes = $condition;
@@ -523,6 +525,11 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // somebody forgets to tell it.
             app(Embed::class),
             app(Media::class),
+            // And once more, for the reason above it: an uploaded document is a card in
+            // the markup, so a render that had to be told about the node would hand a
+            // reader three bare spans - a file name with a word after it, which is what
+            // the card exists not to be.
+            app(FileCard::class),
             // And the same again: a note somebody wrote is a note that belongs on the page,
             // whether or not this render was told the field had callouts switched on.
             app(Callout::class),
@@ -667,6 +674,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         return $this->remember('markdown.'.Fingerprint::of($options), function () use ($options): string {
             $converter = new HtmlConverter([...static::MARKDOWN_OPTIONS, ...$options]);
             $converter->getEnvironment()->addConverter(new TaskItemConverter);
+            $converter->getEnvironment()->addConverter(new FileCardConverter);
 
             return trim($converter->convert($this->toUnsafeHtml()));
         });
