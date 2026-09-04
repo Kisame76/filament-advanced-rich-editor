@@ -49,6 +49,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DateTimePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FileCardPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
@@ -536,6 +537,15 @@ class AdvancedRichEditor extends RichEditor
             static fn (AdvancedRichEditor $component): array => $component->hasMedia()
                 ? [MediaPlugin::make()]
                 : [],
+        );
+
+        // Unconditional, unlike every toggle around it, and the difference is what the
+        // plugin does. Those add buttons, and a field is entitled to offer fewer. This one
+        // adds no button at all - it only teaches the editor to draw an attached document
+        // as a card instead of as an address. Behind a switch, turning it off would not
+        // remove a feature but un-draw documents that are already in the document.
+        $this->plugins(
+            static fn (): array => [FileCardPlugin::make()],
         );
 
         // Built with the field's own step and depth, because the extension writes lengths

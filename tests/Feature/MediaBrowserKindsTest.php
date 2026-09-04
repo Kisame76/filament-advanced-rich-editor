@@ -137,9 +137,11 @@ it('counts a player as something that carries a file', function (): void {
     // The whole of the data-loss guard: an id nothing walks is an id
     // `cleanUpFileAttachments()` does not spare, and the file goes while the document keeps
     // pointing at it.
-    expect(FileAttachments::TYPES)->toBe(['image', 'media'])
+    expect(FileAttachments::TYPES)->toBe(['image', 'media', 'file'])
         ->and(FileAttachments::carriedBy('image'))->toBeTrue()
         ->and(FileAttachments::carriedBy('media'))->toBeTrue()
+        // And a document card, for the same reason: it carries the same `data-id`.
+        ->and(FileAttachments::carriedBy('file'))->toBeTrue()
         ->and(FileAttachments::carriedBy('paragraph'))->toBeFalse()
         ->and(FileAttachments::carriedBy(null))->toBeFalse();
 });
