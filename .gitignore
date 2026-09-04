@@ -9,6 +9,7 @@ build
 CLAUDE.md
 composer.lock
 coverage
+docs/superpowers
 graphify-out
 node_modules
 phpstan.neon
