@@ -23,6 +23,9 @@ export default ({
     picked,
     fetchPage,
     fetchDetails,
+    saveMetadata,
+    deleteMedia,
+    canDelete = false,
 }) => ({
     items: [],
     folders: [],
@@ -46,6 +49,16 @@ export default ({
     dropping: false,
     details: null,
     detailsFor: null,
+    // Whether the panel's embed has been asked to play. Off again whenever the selection
+    // moves: a player left running in a hidden element is a video you can hear and cannot
+    // stop.
+    playing: false,
+    // What the panel's one field holds. Kept beside `details` rather than read out of it,
+    // because it is being typed into: binding an input straight at the fetched row would
+    // have every keystroke fight whatever the last request answered.
+    description: '',
+    descriptionSaving: false,
+    descriptionSaved: false,
     list: listView,
     // What the server pages by. Guessing it from how many tiles came back read a
     // short last page as a tiny page size, and the footer then divided the whole
@@ -57,6 +70,7 @@ export default ({
     picked,
     labels,
     hasFolders,
+    canDelete,
 
     init() {
         // Which layout somebody browses in is a habit rather than a setting, so it is
@@ -79,6 +93,8 @@ export default ({
         this.load()
 
         this.watchUploads()
+
+        this.watchAdded()
 
         // Debounced by hand rather than with `x-model.debounce`, because a folder or a
         // filter change has to reload at once while typing must not fire a request per
@@ -144,6 +160,19 @@ export default ({
         return this.items.find((item) => item.id === this.picked) ?? null
     },
 
+    /**
+     * Which field this is. A picture is described by an alt text - what a screen reader
+     * reads instead of it - and a film or a sound by a title, which is what a screen reader
+     * reads instead of the file name. One input, one label, decided by what is selected.
+     */
+    get descriptionKey() {
+        return (this.selected?.kind ?? 'image') === 'image' ? 'alt' : 'title'
+    },
+
+    get descriptionLabel() {
+        return this.descriptionKey === 'alt' ? this.labels.alt : this.labels.title
+    },
+
     reload() {
         this.page = 1
 
@@ -194,6 +223,7 @@ export default ({
         if (! id) {
             this.details = null
             this.detailsFor = null
+            this.playing = false
 
             return
         }
@@ -204,12 +234,15 @@ export default ({
 
         this.details = this.items.find((item) => item.id === id) ?? null
         this.detailsFor = id
+        this.playing = false
+        this.description = this.details?.[this.descriptionKey] ?? ''
 
         try {
             const result = await fetchDetails(id)
 
             if (result && this.detailsFor === id) {
                 this.details = result
+                this.description = this.details?.[this.descriptionKey] ?? ''
             }
         } catch (error) {
             console.error('The advanced rich editor could not read that picture:', error)
@@ -274,6 +307,38 @@ export default ({
 
         if (attempt < 60) {
             setTimeout(() => this.whenPond(callback, attempt + 1), 100)
+        }
+    },
+
+    /**
+     * Something was added that is not an upload - an embed, or an address.
+     *
+     * Both are written by a dialog on top of this one, so there is no `processfile` event
+     * to hang off: the dialog says so itself when it closes.
+     *
+     * On `window`, and that is not a shortcut. Livewire dispatches a component event as a
+     * `CustomEvent` on the window; a listener on this component's own element never hears
+     * it, because events go up from where they are fired and this element is below. Bound
+     * here so `destroy()` can take it off again - the dialog is built fresh every time it
+     * opens, and a listener left behind is one more reload per opening.
+     */
+    watchAdded() {
+        this._onAdded = (event) => {
+            const id = event.detail?.id ?? null
+
+            this.revealUploads().then(() => {
+                if (id) {
+                    this.picked = id
+                }
+            })
+        }
+
+        window.addEventListener('arte-media-added', this._onAdded)
+    },
+
+    destroy() {
+        if (this._onAdded) {
+            window.removeEventListener('arte-media-added', this._onAdded)
         }
     },
 
@@ -377,6 +442,92 @@ export default ({
         }
     },
 
+    /**
+     * Saves the description as the field is left.
+     *
+     * On blur rather than on a button, because a button beside one input is a button
+     * somebody has to notice - and the value is a single line that is finished the moment
+     * focus moves. Unchanged values are not sent: the field is left every time anything else
+     * in the dialog is clicked.
+     */
+    async saveDescription() {
+        const id = this.picked
+
+        if (!id) {
+            return
+        }
+
+        const key = this.descriptionKey
+        const previous = this.details?.[key] ?? ''
+        const value = this.description.trim()
+
+        if (value === previous) {
+            return
+        }
+
+        this.descriptionSaving = true
+
+        try {
+            const saved = await saveMetadata(id, { [key]: value })
+
+            if (!saved) {
+                // Refused - a read-only disk, a row that is gone, a value the server would
+                // not take. Showing the value it did take is the only honest thing left.
+                this.description = previous
+
+                return
+            }
+
+            // Written into the details as well, so leaving the file and coming back shows
+            // what was saved rather than what the last fetch happened to carry.
+            if (this.details && this.detailsFor === id) {
+                this.details = { ...this.details, [key]: value }
+            }
+
+            this.descriptionSaved = true
+            setTimeout(() => (this.descriptionSaved = false), 2000)
+        } catch (error) {
+            console.error('The advanced rich editor could not save that description:', error)
+
+            this.description = previous
+        } finally {
+            this.descriptionSaving = false
+        }
+    },
+
+    /**
+     * Throws the selected file away.
+     *
+     * The browser's own `confirm()` rather than a Filament dialog: a second modal on top of
+     * a modal that is itself on top of the editor is three layers deep, and what is being
+     * asked is one sentence.
+     */
+    async remove() {
+        const id = this.picked
+
+        if (!id || !this.canDelete) {
+            return
+        }
+
+        if (!window.confirm(this.labels.confirmDelete)) {
+            return
+        }
+
+        try {
+            if (!(await deleteMedia(id))) {
+                return
+            }
+
+            this.picked = null
+            this.details = null
+            this.detailsFor = null
+
+            await this.reload()
+        } catch (error) {
+            console.error('The advanced rich editor could not delete that file:', error)
+        }
+    },
+
     bytes(value) {
         if (! value) {
             return '—'
@@ -402,13 +553,57 @@ export default ({
         return [this.pixels(item), this.bytes(item.size)].filter(Boolean).join(' · ')
     },
 
-    /** The format badge on a tile: `PNG`, `MP4`, `MPEG`. */
+    /** The badge on a tile: `PNG`, `MP4`, `MPEG` - or which service an embed is from. */
     format(item) {
+        if ((item?.kind ?? '') === 'embed') {
+            return (item?.embed?.provider ?? 'embed').toUpperCase().slice(0, 7)
+        }
+
         return (item?.mime ?? '').split('/')[1]?.toUpperCase().slice(0, 4) || 'FILE'
     },
 
-    /** Whether a tile can be drawn as a picture, or needs a sign standing in for one. */
+    /**
+     * The picture a tile draws, or null where it has none and needs a sign instead.
+     *
+     * A film and a sound have a cover once one has been made for them, and that cover is
+     * the whole point of making it - so the tile draws whatever `thumbnail` it was given,
+     * whatever family the row is. Only a picture falls back to its own address: doing that
+     * for a film would put an mp4 in an `<img>`, which is the broken-image icon this is
+     * here to avoid.
+     */
+    thumbnailOf(item) {
+        if (item?.thumbnail) {
+            return item.thumbnail
+        }
+
+        return (item?.kind ?? 'image') === 'image' ? (item?.url ?? null) : null
+    },
+
+    /** Whether this row is a video somebody else hosts rather than a file of ours. */
+    isEmbed(item) {
+        return (item?.kind ?? '') === 'embed'
+    },
+
+    /** Which service an embed comes from, in the reader's own language. */
+    providerOf(item) {
+        const provider = item?.embed?.provider ?? ''
+
+        return this.labels.providers?.[provider] ?? provider ?? '—'
+    },
+
+    /** Whether a tile has a picture to draw, or needs a sign standing in for one. */
     drawable(item) {
+        return Boolean(this.thumbnailOf(item))
+    },
+
+    /**
+     * Whether the panel should draw this in an `<img>`.
+     *
+     * Not the same question as `drawable()`, and the difference matters: the panel draws a
+     * film in a `<video>` so it can be played, and a film with a cover would otherwise get
+     * both - the player and an `<img>` pointing at the mp4 beside it.
+     */
+    isPicture(item) {
         return (item?.kind ?? 'image') === 'image' && Boolean(item?.thumbnail ?? item?.url)
     },
 

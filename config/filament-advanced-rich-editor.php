@@ -1307,6 +1307,11 @@ return [
         // governs Filament's compiled drop-and-paste handler, which inserts an `image` node
         // for anything it accepts — so widening it would turn a film dropped into the editor
         // into an `<img>` pointing at an mp4. Per field: `->mediaLibraryAcceptedFileTypes()`.
+        //
+        // A fresh upload is shown through Livewire's temporary preview URL until the form is
+        // saved, and Livewire only hands one out for the extensions in its own
+        // `temporary_file_upload.preview_mimes`. The package adds every extension it draws to
+        // that list at boot, so nothing has to be copied there by hand.
         'accepted_file_types' => null,
 
         'enabled' => true,
@@ -1329,6 +1334,31 @@ return [
         'scope' => 'collection',
 
         'page_size' => 40,
+
+        /*
+         * The picture a tile shows for a file that is not a picture.
+         *
+         * A film gets its first frame, through the `ffmpeg` binary; a sound gets whatever
+         * cover art its ID3 tag carries, read here without a dependency. Neither is asked
+         * for twice: a file that cannot produce one is marked, and the mark is only cleared
+         * by `php artisan arte:media-covers --retry` — which is what a project runs after
+         * installing ffmpeg.
+         *
+         * 'per_page' is the cap that keeps a first opening from stalling. Forty films with
+         * no covers would otherwise be forty processes inside one Livewire request; three at
+         * a time means the library fills itself in over a few openings instead.
+         */
+        'covers' => [
+            'enabled' => true,
+            'ffmpeg' => 'ffmpeg',
+            'timeout' => 5,
+            'per_page' => 3,
+
+            // The biggest cover worth lifting out of an audio file's tag. Album art in a
+            // music library runs to several megabytes, and every one of those bytes is read
+            // into memory for a tile drawn 120 pixels wide.
+            'max_picture_bytes' => 5 * 1024 * 1024,
+        ],
 
         'directory' => null,
 

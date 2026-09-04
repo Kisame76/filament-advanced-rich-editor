@@ -713,6 +713,11 @@ class AdvancedRichEditor extends RichEditor
             // upload dialog with no way to ask for it: the name it answers to was taken.
             // Both are registered now, and the buttons name the one they mean.
             $additions[] = MediaLibraryAction::make();
+
+            // Adding something that is not an upload. Registered on the field rather than
+            // inside the browser's modal, because that is how an action becomes mountable
+            // at all - the browser only renders its trigger, up beside Upload.
+            $additions[] = MediaLibraryAction::fromUrl();
         }
 
         if ($replacements === [] && $additions === []) {

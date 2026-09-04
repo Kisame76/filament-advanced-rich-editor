@@ -195,8 +195,15 @@ trait AttachesFiles
                     $attachment = $this->getUploadedFileAttachment($node->attrs->id);
 
                     if ($attachment) {
+                        // Kept before it is overwritten: this is the only moment both ids
+                        // exist, and the description typed in the dialog is filed under the
+                        // pending one.
+                        $pendingId = $node->attrs->id;
+
                         $node->attrs->id = $this->saveUploadedFileAttachment($attachment);
                         $node->attrs->src = $this->getFileAttachmentUrl($node->attrs->id);
+
+                        $this->applyPendingMediaMetadata($pendingId, $node->attrs->id);
 
                         $fileAttachmentIds[] = $node->attrs->id;
 

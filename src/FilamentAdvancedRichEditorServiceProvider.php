@@ -9,7 +9,9 @@ use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use Kisame76\FilamentAdvancedRichEditor\Console\MediaCoversCommand;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\View\Components\Content;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -26,6 +28,7 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasTranslations()
             ->hasViews()
+            ->hasCommand(MediaCoversCommand::class)
             // `<x-arte-content :content="$post->body" />`. The prefix is the one the CSS
             // classes already use, so a project only ever learns the one abbreviation.
             ->hasViewComponents('arte', Content::class);
@@ -218,6 +221,38 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
 
         $this->registerIconSet();
         $this->allowEmbedIframes();
+        $this->allowMediaPreviews();
+    }
+
+    /**
+     * Lets Livewire show every kind of file the media browser accepts before it is saved.
+     *
+     * A held upload has no address of its own until the form is saved; what the grid shows in
+     * the meantime is Livewire's temporary preview URL, and Livewire hands one out only for the
+     * extensions in `temporary_file_upload.preview_mimes`. Its shipped list stops at `mp4`,
+     * `mov`, `mp3`, `wav` and `m4a` - so a `webm`, an `ogg` or a `flac` uploaded through the
+     * browser was accepted, held, and then invisible: no preview address, no tile, and a person
+     * left wondering whether the upload happened at all.
+     *
+     * Widened rather than replaced, and only ever by adding: what a project put there stays.
+     * Done here because the package is the thing that knows which files it draws, and asking
+     * every project to copy that list into Livewire's config by hand is asking for the one
+     * that forgets.
+     */
+    protected function allowMediaPreviews(): void
+    {
+        $key = 'livewire.temporary_file_upload.preview_mimes';
+
+        $configured = config($key);
+
+        $extensions = array_merge(
+            ...array_map(static fn (array $family): array => array_keys($family), array_values(MediaKinds::TYPES)),
+        );
+
+        config()->set($key, array_values(array_unique([
+            ...(is_array($configured) ? $configured : []),
+            ...$extensions,
+        ])));
     }
 
     /**

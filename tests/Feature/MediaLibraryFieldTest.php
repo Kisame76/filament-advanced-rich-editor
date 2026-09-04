@@ -351,3 +351,21 @@ it('marks the upload field the browser drops onto', function (): void {
     expect($upload)->not->toBeNull()
         ->and($upload?->getExtraAttributes())->toHaveKey('class', 'fi-arte-media-uploader');
 });
+
+it('asks for no alt text under the grid any more', function (): void {
+    // It moved into the panel, where it describes the file being looked at and is saved
+    // against that file rather than against this one insert.
+    $editor = editor()->fileAttachmentsDirectory('article-attachments');
+
+    $schema = browserAction($editor)?->schemaComponent($editor)->getSchema(testSchema());
+
+    $names = array_map(
+        static fn (Component $component): ?string => method_exists($component, 'getName') ? $component->getName() : null,
+        $schema?->getComponents() ?? [],
+    );
+
+    // And no address input either, since `+ Add → From an address` replaced it. `src` is
+    // still a field - a hidden one that the nested dialog fills and Submit reads.
+    expect($names)->not->toContain('alt')
+        ->and($names)->toContain('src');
+});

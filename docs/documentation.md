@@ -2177,19 +2177,73 @@ way *in* is the point; the storage stays one node per family.
 
 `'image'`, `'video'` and `'audio'` are the same door under narrower names: each opens the
 browser on its own tab. `'image'` is kept registered so a bar somebody already wrote keeps
-working.
+working. A fourth tab, Embeds, appears where the library holds any.
 
-**An address, in the same dialog.** A file somebody else hosts is a field under the grid
-rather than a second dialog — the CDN link and the library are the same question, and having
-to pick a door before knowing which one holds the file was the whole complaint. Nothing typed
-there joins the library: it has no row, no thumbnail and no id, and it cannot be picked again
-tomorrow. It is a link.
+**What a tile shows.** A picture is its own thumbnail. A film gets its first frame, pulled
+with the `ffmpeg` binary; a sound gets whatever cover art its ID3 tag carries, read without a
+dependency. Neither is asked for twice: a file that cannot produce a cover is marked and
+skipped from then on, and one listing makes at most three of them, so a first opening never
+stalls and the library fills itself in over a few visits. Install ffmpeg later and
+`php artisan arte:media-covers --retry` forgets every mark.
+
+**A description that belongs to the file.** The panel on the right carries one field — alt
+text for a picture, title for anything else — saved against the *medium* as you leave the
+field, and used as the default every time that medium is inserted. The image toolbar still
+edits one insert, which is the point: global is the default, never a lock. On a disk the
+description lives in a `sunset.png.json` beside the file; with a media collection it is the
+`arte_alt` and `arte_title` custom properties. A description typed against an upload that is
+not saved yet is held on the component and written the moment the file becomes real.
+
+**A link, whatever kind of link it is.** **From a link** sits beside Upload — the two ways of
+putting something in, side by side. One field takes the address and the package works out
+what it is: a YouTube or Vimeo link becomes an entry in your **library**, with the service's
+own still on its tile and a tab of its own, there to be picked again tomorrow; any other
+address is a file on somebody else's server, which is **inserted as a link and stored
+nowhere**, because it is not yours to keep. The helper text says which is which.
+
+Asking somebody to choose between two dialogs before they know which one their link belongs
+in was the wrong question, so there is one door. What follows from the link is still two
+different things, and that difference is real rather than cosmetic.
+
+Picking an embed and pressing Submit runs exactly what the [embed dialog](#video-embeds)
+runs — same node, same attributes — so nothing about what a document stores has changed. That
+dialog keeps the aspect ratio; this one asks only for the link and a title, because a file
+address has no ratio to state.
+
+**The panel knows what it is looking at.** An embed has no bytes, so it offers no download and
+no size; Copy link hands over the address a person recognises — the watch link, not the frame
+one. Its still is shown with a play mark, and pressing it swaps in the player: drawing an
+iframe as soon as something is selected would call the video service from every editor that
+opens the dialog, which is the tracking the cookie-free host exists to avoid.
+
+**Deleting.** Where the library is this record's own attachments, the panel also offers
+Delete, which takes the file and everything written beside it. In a shared library it does
+not, and that is not an oversight: the file may be in another record's content that nobody
+standing here can see.
+
+```php
+'media_library' => [
+    'covers' => [
+        'enabled' => true,
+        'ffmpeg' => 'ffmpeg',            // binary name, or an absolute path
+        'timeout' => 5,                  // seconds per file
+        'per_page' => 3,                 // how many one listing may make
+        'max_picture_bytes' => 5242880,  // the biggest cover worth lifting out of a tag
+    ],
+],
+```
 
 ```php
 AdvancedRichEditor::make('content')
     ->mediaLibraryAcceptedFileTypes(['image/*', 'video/*'])   // default: all three families
     ->media(false);   // no player node, and the browser then offers pictures only
 ```
+
+A file uploaded through the browser is shown before the form is saved through Livewire's
+temporary preview URL, and Livewire only issues one for the extensions in its
+`temporary_file_upload.preview_mimes` list — which stops at `mp4`, `mov`, `mp3`, `wav` and
+`m4a`. The package adds every extension it draws to that list at boot, so a `webm` or a
+`flac` shows up like anything else. Only by adding: what a project put there stays.
 
 `mediaLibraryAcceptedFileTypes()` is deliberately **not** Filament's
 `fileAttachmentsAcceptedFileTypes()`. That one also governs Filament's compiled
@@ -2552,6 +2606,10 @@ means storing a reference next to it, which is exactly what the mark cannot carr
 buttons beside each other is one door too many for a bar with a finite number of places. The
 way in is the slash menu — `/video`, `/youtube`, `/vimeo` — and a bar or
 [`more`](#the-more-menu) that names `'embed'` gets the button back.
+
+An embed can also live in the [media browser](#media-browser), where `+ Add → Embed` puts it
+in the library and it is picked from a grid instead of pasted again. The same node either
+way: a library entry is a shortcut to this dialog, not a second way of storing a video.
 
 The `embed` tool takes a link and puts a video in the document. Paste the link from the
 address bar or the share button — every shape either of them produces is understood:

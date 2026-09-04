@@ -8,7 +8,9 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemOperator;
@@ -101,10 +103,12 @@ class DiskMediaSource implements MediaSource
 
         // Read before the filter narrows anything: the kinds the filter offers have to be the
         // kinds this folder holds, not the one kind that is currently chosen.
-        $types = array_values(array_unique(array_map(
+        // Emptied of blanks: an embed has no mime type, and offering one in the filter
+        // beside the tabs would be a filter that calls a video a JSON document.
+        $types = array_values(array_unique(array_filter(array_map(
             fn (array $file): string => $this->mimeOf((string) $file['path']),
             $files,
-        )));
+        ))));
 
         sort($types);
 
@@ -113,10 +117,7 @@ class DiskMediaSource implements MediaSource
         // picture tab.
         $kinds = array_values(array_intersect(
             MediaKinds::all(),
-            array_map(
-                fn (array $file): string => (string) MediaKinds::ofPath((string) $file['path']),
-                $files,
-            ),
+            array_map(static fn (array $file): string => (string) ($file['kind'] ?? ''), $files),
         ));
 
         $kind = $filters['kind'] ?? null;
@@ -124,7 +125,7 @@ class DiskMediaSource implements MediaSource
         if (is_string($kind) && filled($kind)) {
             $files = array_values(array_filter(
                 $files,
-                fn (array $file): bool => MediaKinds::ofPath((string) $file['path']) === $kind,
+                static fn (array $file): bool => ($file['kind'] ?? null) === $kind,
             ));
         }
 
@@ -143,9 +144,14 @@ class DiskMediaSource implements MediaSource
         $perPage = max(1, min(200, $perPage));
         $offset = ($page - 1) * $perPage;
 
+        // One budget for this listing. Made here rather than held on the source, because a
+        // source is built fresh per request anyway and a budget that outlived the request
+        // would be a budget that is already spent.
+        $covers = CoverGenerator::make();
+
         return [
             'items' => array_map(
-                $this->item(...),
+                fn (array $file): array => $this->item($file, $covers),
                 array_slice($files, $offset, $perPage),
             ),
             // Folders belong to the first page: they are the navigation, and navigation that
@@ -180,6 +186,117 @@ class DiskMediaSource implements MediaSource
         // Already measured by `item()`: there is one way to learn how big a picture is, and it
         // is the same one whether a row or a panel is asking.
         return $this->find($id);
+    }
+
+    public function delete(mixed $id): bool
+    {
+        $path = $this->normalise($id);
+
+        if ($path === null || ! $this->isRecordScoped) {
+            return false;
+        }
+
+        try {
+            // The companions first: a file deleted with its sidecar left behind is an orphan
+            // that `arte:media-covers --prune` then has to find.
+            foreach ([Sidecar::pathFor($path), Sidecar::pathFor($path, 'cover.jpg')] as $companion) {
+                if ($this->disk()->exists($companion)) {
+                    $this->disk()->delete($companion);
+                }
+            }
+
+            return $this->disk()->delete($path);
+        } catch (Throwable $exception) {
+            return false;
+        }
+    }
+
+    /**
+     * @param  array{provider: string, id: string, start: int|null, title: string|null, ratio: string}  $embed
+     */
+    public function saveEmbed(array $embed): mixed
+    {
+        $described = Embeds::describes($embed);
+
+        if ($described === null) {
+            return null;
+        }
+
+        $root = $this->getRoot();
+        $path = ltrim($root.'/'.Embeds::fileName($described['provider'], $described['id']), '/');
+
+        try {
+            return $this->disk()->put($path, Embeds::encode($described)) ? $path : null;
+        } catch (Throwable $exception) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array{alt: ?string, title: ?string}
+     */
+    public function metadata(mixed $id): array
+    {
+        $path = $this->normalise($id);
+
+        if ($path === null) {
+            return ['alt' => null, 'title' => null];
+        }
+
+        return static::describedBy(Sidecar::read($this->disk(), $path));
+    }
+
+    /**
+     * @param  array{alt?: ?string, title?: ?string}  $data
+     */
+    public function saveMetadata(mixed $id, array $data): bool
+    {
+        $path = $this->normalise($id);
+
+        if ($path === null) {
+            return false;
+        }
+
+        return Sidecar::write($this->disk(), $path, static::describes($data));
+    }
+
+    /**
+     * The two fields out of whatever the sidecar holds - which is also where the cover
+     * marker lives, and that is none of the panel's business.
+     *
+     * @param  array<string, mixed>  $sidecar
+     * @return array{alt: ?string, title: ?string}
+     */
+    protected static function describedBy(array $sidecar): array
+    {
+        return [
+            'alt' => is_string($sidecar['alt'] ?? null) && filled($sidecar['alt']) ? $sidecar['alt'] : null,
+            'title' => is_string($sidecar['title'] ?? null) && filled($sidecar['title']) ? $sidecar['title'] : null,
+        ];
+    }
+
+    /**
+     * What a save writes: the keys it was given, with an emptied one spelled as null so the
+     * merge removes it.
+     *
+     * @param  array{alt?: ?string, title?: ?string}  $data
+     * @return array<string, string|null>
+     */
+    protected static function describes(array $data): array
+    {
+        $written = [];
+
+        foreach (['alt', 'title'] as $key) {
+            if (! array_key_exists($key, $data)) {
+                continue;
+            }
+
+            $value = is_string($data[$key]) ? trim($data[$key]) : null;
+
+            $written[$key] = filled($value) ? $value : null;
+        }
+
+        return $written;
     }
 
     /**
@@ -243,6 +360,17 @@ class DiskMediaSource implements MediaSource
         return is_resource($stream) ? $stream : null;
     }
 
+    protected function contentsOf(string $path): ?string
+    {
+        try {
+            $contents = $this->disk()->get($path);
+        } catch (Throwable $exception) {
+            return null;
+        }
+
+        return is_string($contents) ? $contents : null;
+    }
+
     protected function mimeOf(string $path): string
     {
         return MediaKinds::mimeOf($path);
@@ -281,9 +409,27 @@ class DiskMediaSource implements MediaSource
             // Metadata is decoration here; the file is known to exist.
         }
 
+        if (str_ends_with($path, '.'.Embeds::SUFFIX)) {
+            $embed = Embeds::read($this->contentsOf($path));
+
+            if ($embed === null) {
+                return null;
+            }
+
+            return $this->item([
+                'path' => $path,
+                'name' => Embeds::name($embed),
+                'kind' => MediaKinds::EMBED,
+                'embed' => $embed,
+                'size' => 0,
+                'timestamp' => $timestamp,
+            ]);
+        }
+
         return $this->item([
             'path' => $path,
             'name' => basename($path),
+            'kind' => MediaKinds::ofPath($path),
             'size' => $size,
             'timestamp' => $timestamp,
         ]);
@@ -357,6 +503,23 @@ class DiskMediaSource implements MediaSource
 
     protected function accepts(string $path): bool
     {
+        // The companions this package writes beside a medium. A `.json` is refused by the
+        // mime check below anyway, but a cover is a JPEG and would list as a picture in its
+        // own right - the same film appearing twice, once as itself and once as its first
+        // frame. Refused here rather than filtered in `page()`, because `accepts()` is also
+        // what `normalise()` asks: something that cannot be listed must not be resolvable
+        // through a hand-written id either.
+        // The entry an embed is stored as, which is the one companion that IS a library
+        // entry rather than a description of one. An accepted-types list is a statement
+        // about files and has nothing to say about it.
+        if (str_ends_with($path, '.'.Embeds::SUFFIX)) {
+            return true;
+        }
+
+        if (str_contains(basename($path), '.cover.')) {
+            return false;
+        }
+
         // Only what a browser can draw or play, whatever else is lying in the directory. A
         // grid is a grid of things that can be inserted, and the ones that cannot are not
         // hidden out of tidiness - offering them would insert a player nobody can start.
@@ -434,6 +597,26 @@ class DiskMediaSource implements MediaSource
 
                 $path = trim($entry->path(), '/');
 
+                // An embed is a JSON document, which nothing draws - so it is recognised
+                // here, before `accepts()` sees it, and turned into a row of its own. The
+                // file IS the entry: its whole content is what the embed is.
+                if (str_ends_with($path, '.'.Embeds::SUFFIX)) {
+                    $embed = Embeds::read($this->contentsOf($path));
+
+                    if ($embed !== null) {
+                        $files[] = [
+                            'path' => $path,
+                            'name' => Embeds::name($embed),
+                            'kind' => MediaKinds::EMBED,
+                            'embed' => $embed,
+                            'size' => 0,
+                            'timestamp' => (int) ($entry->lastModified() ?? 0),
+                        ];
+                    }
+
+                    continue;
+                }
+
                 if (! $this->accepts($path)) {
                     continue;
                 }
@@ -441,6 +624,8 @@ class DiskMediaSource implements MediaSource
                 $files[] = [
                     'path' => $path,
                     'name' => basename($path),
+                    // Read once here rather than off the name again in three places below.
+                    'kind' => MediaKinds::ofPath($path),
                     'size' => (int) ($entry->fileSize() ?? 0),
                     'timestamp' => (int) ($entry->lastModified() ?? 0),
                 ];
@@ -459,10 +644,38 @@ class DiskMediaSource implements MediaSource
      * @param  array<string, mixed>  $file
      * @return array<string, mixed>
      */
-    protected function item(array $file): array
+    protected function item(array $file, ?CoverGenerator $covers = null): array
     {
         $path = (string) $file['path'];
         $timestamp = (int) ($file['timestamp'] ?? 0);
+
+        if (($file['kind'] ?? null) === MediaKinds::EMBED) {
+            return [
+                'id' => $path,
+                // The link a person recognises, which is what Copy link hands over - and
+                // what pasting it back into this dialog would produce again. What gets
+                // *inserted* is built from the provider and the id instead, the same way the
+                // embed dialog builds it, so nothing here decides that.
+                'url' => Embeds::link($file['embed']),
+                // The address a browser will frame, for the panel's own player. Kept apart
+                // from `url` because the two are different things: one is for a person, one
+                // is for an iframe.
+                'frame' => EmbedUrl::src($file['embed']['provider'], $file['embed']['id'], $file['embed']['start']),
+                'thumbnail' => $this->embedThumbnail($path, $covers),
+                'name' => (string) $file['name'],
+                'fileName' => basename($path),
+                'mime' => '',
+                'kind' => MediaKinds::EMBED,
+                'embed' => $file['embed'],
+                'size' => 0,
+                'folder' => $this->parentOf($path),
+                'createdAt' => $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : null,
+                'modifiedAt' => $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : null,
+                'width' => null,
+                'height' => null,
+            ];
+        }
+
         $url = $this->url($path);
         $kind = MediaKinds::ofPath($path);
 
@@ -470,9 +683,9 @@ class DiskMediaSource implements MediaSource
             'id' => $path,
             'url' => $url,
             // A picture is its own thumbnail on a disk, which has no conversions to ask for.
-            // A video and a sound have no thumbnail at all, and saying so is what lets the
-            // grid draw a sign instead of a broken picture.
-            'thumbnail' => $kind === MediaKinds::IMAGE ? $url : null,
+            // A film and a sound get a cover made for them the first time they are listed,
+            // and a badge until then - see `thumbnail()`.
+            'thumbnail' => $this->thumbnail($path, $kind, $covers),
             'name' => (string) $file['name'],
             'fileName' => (string) $file['name'],
             'mime' => $this->mimeOf($path),
@@ -492,6 +705,143 @@ class DiskMediaSource implements MediaSource
                 ? ($this->measure($path, (int) ($file['size'] ?? 0), $timestamp) ?? ['width' => null, 'height' => null])
                 : ['width' => null, 'height' => null]),
         ];
+    }
+
+    /**
+     * The picture this tile draws: the file itself for a picture, a cover beside it for a
+     * film or a sound, and null where there is none - which is what tells the grid to draw a
+     * badge instead of a broken image.
+     */
+    protected function thumbnail(string $path, ?string $kind, ?CoverGenerator $covers): ?string
+    {
+        if ($kind === MediaKinds::IMAGE) {
+            return $this->url($path);
+        }
+
+        if ($kind === null) {
+            return null;
+        }
+
+        $cover = Sidecar::pathFor($path, 'cover.jpg');
+
+        try {
+            if ($this->disk()->exists($cover)) {
+                return $this->url($cover);
+            }
+        } catch (Throwable $exception) {
+            return null;
+        }
+
+        // Only while listing, and only while there is budget. A single lookup - the panel
+        // asking about one file - must not start a process.
+        if (! $covers?->mayGenerate()) {
+            return null;
+        }
+
+        if (Sidecar::read($this->disk(), $path)[CoverGenerator::ATTEMPTED_KEY] ?? false) {
+            return null;
+        }
+
+        $bytes = $this->locally($path, static fn (string $local): ?string => $covers->bytes($kind, $local));
+
+        if (! is_string($bytes) || $bytes === '') {
+            // Remembered rather than retried. A file with no picture in it, or a binary that
+            // is not installed, would otherwise cost the same work on every listing for ever.
+            Sidecar::write($this->disk(), $path, [CoverGenerator::ATTEMPTED_KEY => true]);
+
+            return null;
+        }
+
+        try {
+            $this->disk()->put($cover, $bytes);
+        } catch (Throwable $exception) {
+            return null;
+        }
+
+        return $this->url($cover);
+    }
+
+    /**
+     * The still for an embed: the same three steps as any other cover - already there,
+     * budget, marker - with the bytes coming from the service instead of from the file.
+     */
+    protected function embedThumbnail(string $path, ?CoverGenerator $covers): ?string
+    {
+        $cover = Sidecar::pathFor($path, 'cover.jpg');
+
+        try {
+            if ($this->disk()->exists($cover)) {
+                return $this->url($cover);
+            }
+        } catch (Throwable $exception) {
+            return null;
+        }
+
+        if (! $covers?->mayGenerate()) {
+            return null;
+        }
+
+        if (Sidecar::read($this->disk(), $path)[CoverGenerator::ATTEMPTED_KEY] ?? false) {
+            return null;
+        }
+
+        $embed = Embeds::read($this->contentsOf($path));
+
+        $bytes = ($embed === null) ? null : $covers->embed($embed);
+
+        if (! is_string($bytes) || $bytes === '') {
+            Sidecar::write($this->disk(), $path, [CoverGenerator::ATTEMPTED_KEY => true]);
+
+            return null;
+        }
+
+        try {
+            $this->disk()->put($cover, $bytes);
+        } catch (Throwable $exception) {
+            return null;
+        }
+
+        return $this->url($cover);
+    }
+
+    /**
+     * Runs something against a real file on this machine.
+     *
+     * Both readers need a path rather than a stream - ffmpeg is a process and takes a file
+     * name - and on a remote disk there is no such path, so the bytes are brought down to a
+     * temporary one and taken away again afterwards.
+     *
+     * @param  callable(string): (string|null)  $callback
+     */
+    protected function locally(string $path, callable $callback): ?string
+    {
+        $local = $this->localPath($path);
+
+        if ($local !== null) {
+            return $callback($local);
+        }
+
+        $stream = $this->readStream($path);
+
+        if (! is_resource($stream)) {
+            return null;
+        }
+
+        $temporary = (string) tempnam(sys_get_temp_dir(), 'arte-media');
+
+        try {
+            file_put_contents($temporary, $stream);
+
+            return $callback($temporary);
+        } finally {
+            if (is_resource($stream)) {
+                @fclose($stream);
+            }
+
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
+        }
     }
 
     protected function url(string $path): ?string

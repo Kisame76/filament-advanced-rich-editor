@@ -174,3 +174,24 @@ it('browses the whole disk when it is given no directory', function (): void {
     expect($source->has('anywhere/one.png'))->toBeTrue()
         ->and($source->has('../outside.png'))->toBeFalse();
 });
+
+it('never lists the companions it writes beside a file', function (): void {
+    // A `.json` is dropped already, because nothing here draws one. A `.cover.jpg` is a
+    // picture by its extension, and without this it would sit in the grid as a tile of its
+    // own - the same film twice, once as itself and once as its first frame.
+    ($this->put)('library/talk.mp4.cover.jpg');
+    ($this->put)('library/sunset.png');
+    Storage::disk('public')->put('library/sunset.png.json', '{"alt":"x"}');
+    Storage::disk('public')->put('library/youtube-dQw4w9WgXcQ.embed.json', '{}');
+
+    expect(array_column(($this->source)()->page()['items'], 'id'))->toBe(['library/sunset.png']);
+});
+
+it('refuses to resolve a companion through a stored id', function (): void {
+    // The listing and the lookup are one object: something that cannot be listed must not be
+    // reachable by hand-writing its path into a document either.
+    ($this->put)('library/talk.mp4.cover.jpg');
+
+    expect(($this->source)()->has('library/talk.mp4.cover.jpg'))->toBeFalse()
+        ->and(($this->source)()->find('library/talk.mp4.cover.jpg'))->toBeNull();
+});

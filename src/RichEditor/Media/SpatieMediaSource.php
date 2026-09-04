@@ -7,9 +7,15 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Media;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
 use RuntimeException;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\Support\PathGenerator\PathGeneratorFactory;
 use Throwable;
 
 /**
@@ -131,10 +137,25 @@ class SpatieMediaSource implements MediaSource
             array_map(static fn (string $mime): string => (string) MediaKinds::of($mime), $types),
         ));
 
+        // Computed from the mime types present, and an embed has none - so without this the
+        // tab would never be drawn for a library holding nothing else.
+        if ((clone $query)->where('custom_properties->'.static::EMBED_PROPERTY, true)->exists()) {
+            $kinds = array_values(array_intersect(MediaKinds::all(), [...$kinds, MediaKinds::EMBED]));
+        }
+
         $kind = $filters['kind'] ?? null;
 
         if (is_string($kind) && filled($kind)) {
-            $query->where('mime_type', 'like', $kind.'/%');
+            // The embed tab is a property test rather than a mime test, and every other tab
+            // has to say so too - an embed row's `application/json` would not match
+            // `image/%`, but a row whose file happens to be an image would match both.
+            $kind === MediaKinds::EMBED
+                ? $query->where('custom_properties->'.static::EMBED_PROPERTY, true)
+                : $query->where('mime_type', 'like', $kind.'/%')
+                    ->where(static function (Builder $query): void {
+                        $query->whereNull('custom_properties->'.static::EMBED_PROPERTY)
+                            ->orWhere('custom_properties->'.static::EMBED_PROPERTY, '!=', true);
+                    });
         }
 
         $type = $filters['type'] ?? null;
@@ -160,10 +181,13 @@ class SpatieMediaSource implements MediaSource
 
         $rows = $query->get();
 
+        // One budget for this listing, for the reason the disk source gives.
+        $covers = CoverGenerator::make();
+
         $items = [];
 
         foreach ($rows as $media) {
-            $items[] = $this->item($media);
+            $items[] = $this->item($media, $covers);
         }
 
         return [
@@ -218,6 +242,9 @@ class SpatieMediaSource implements MediaSource
         $types = $query->pluck('mime_type')
             ->filter(static fn (mixed $type): bool => is_string($type) && filled($type))
             ->map(static fn (mixed $type): string => (string) $type)
+            // An embed row's file is JSON, and `application/json` in the type filter would
+            // be a filter that shows the embeds and calls them documents.
+            ->filter(static fn (string $type): bool => MediaKinds::of($type) !== null)
             ->unique()
             ->sort()
             ->values()
@@ -265,6 +292,154 @@ class SpatieMediaSource implements MediaSource
         }
 
         return $item;
+    }
+
+    /**
+     * The custom properties this package writes. Prefixed, because a collection is shared
+     * with whatever else a project keeps in it and `alt` is a word anybody might use.
+     */
+    public const ALT_PROPERTY = 'arte_alt';
+
+    public const TITLE_PROPERTY = 'arte_title';
+
+    /** The flag the query tests. A JSON column comparison, so it has to be a scalar. */
+    public const EMBED_PROPERTY = 'arte_embed';
+
+    /**
+     * The payload, kept beside the flag rather than read out of the file.
+     *
+     * Spatie needs a file for every row, so the entry IS a file and the file holds the same
+     * five fields - but reading it while listing would be a disk read per tile, on a grid
+     * that is already doing one query. The row is the fast copy; the file is the durable one.
+     */
+    public const EMBED_DATA_PROPERTY = 'arte_embed_data';
+
+    public function delete(mixed $id): bool
+    {
+        $media = $this->media($id);
+
+        if (! $media || ! $this->isRecordScoped()) {
+            return false;
+        }
+
+        try {
+            // Spatie takes the file, the conversions and the row together, `arte-cover`
+            // included - it lives where Spatie's own namer would have put it.
+            return (bool) $media->delete();
+        } catch (Throwable $exception) {
+            return false;
+        }
+    }
+
+    /**
+     * @param  array{provider: string, id: string, start: int|null, title: string|null, ratio: string}  $embed
+     */
+    public function saveEmbed(array $embed): mixed
+    {
+        $described = Embeds::describes($embed);
+
+        if ($described === null) {
+            return null;
+        }
+
+        $record = ($this->getRecordUsing instanceof Closure) ? ($this->getRecordUsing)() : null;
+
+        // A media row belongs to a model, so an embed cannot be added on a create form
+        // before the record exists.
+        if (! ($record instanceof HasMedia) || ! ($record instanceof Model) || ! $record->exists) {
+            return null;
+        }
+
+        $fileName = Embeds::fileName($described['provider'], $described['id']);
+
+        // The same video twice is one entry. Spatie has no natural key for that, so the file
+        // name is the key and the old row goes.
+        foreach ($record->getMedia($this->collection) as $existing) {
+            if ((string) $existing->getAttributeValue('file_name') === $fileName) {
+                $existing->delete();
+            }
+        }
+
+        // Through a temporary file, because the adder factory takes a path or an
+        // `UploadedFile` and nothing else - there is no `createFromString()` on it. The
+        // adder moves the file when it succeeds; the `finally` is for when it does not.
+        $temporary = (string) tempnam(sys_get_temp_dir(), 'arte-embed');
+
+        file_put_contents($temporary, Embeds::encode($described));
+
+        try {
+            $media = FileAdderFactory::create($record, $temporary)
+                ->usingFileName($fileName)
+                ->usingName(Embeds::name($described))
+                ->withCustomProperties([
+                    static::EMBED_PROPERTY => true,
+                    static::EMBED_DATA_PROPERTY => $described,
+                ])
+                ->toMediaCollection($this->collection);
+        } catch (Throwable $exception) {
+            return null;
+        } finally {
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
+        }
+
+        return (string) $media->getAttributeValue('uuid');
+    }
+
+    /**
+     * @return array{alt: ?string, title: ?string}
+     */
+    public function metadata(mixed $id): array
+    {
+        $media = $this->media($id);
+
+        if (! $media) {
+            return ['alt' => null, 'title' => null];
+        }
+
+        return [
+            'alt' => static::text($media->getCustomProperty(static::ALT_PROPERTY)),
+            'title' => static::text($media->getCustomProperty(static::TITLE_PROPERTY)),
+        ];
+    }
+
+    /**
+     * @param  array{alt?: ?string, title?: ?string}  $data
+     */
+    public function saveMetadata(mixed $id, array $data): bool
+    {
+        $media = $this->media($id);
+
+        if (! $media) {
+            return false;
+        }
+
+        $properties = ['alt' => static::ALT_PROPERTY, 'title' => static::TITLE_PROPERTY];
+
+        foreach ($properties as $key => $property) {
+            if (! array_key_exists($key, $data)) {
+                continue;
+            }
+
+            $value = is_string($data[$key]) ? trim($data[$key]) : null;
+
+            filled($value)
+                ? $media->setCustomProperty($property, $value)
+                : $media->forgetCustomProperty($property);
+        }
+
+        try {
+            return (bool) $media->save();
+        } catch (Throwable $exception) {
+            // A read-only replica, or a row deleted between the lookup and the write.
+            return false;
+        }
+    }
+
+    protected static function text(mixed $value): ?string
+    {
+        return is_string($value) && filled(trim($value)) ? trim($value) : null;
     }
 
     /**
@@ -361,25 +536,35 @@ class SpatieMediaSource implements MediaSource
         // what the old rule did for pictures and has to keep doing: a collection holding an
         // `image/heic` that nothing here would have uploaded is still holding a picture, and
         // a row already in the library should be listed under the tab it belongs to.
-        $query->where(static function (Builder $query): void {
-            foreach (MediaKinds::all() as $kind) {
-                $query->orWhere('mime_type', 'like', $kind.'/%');
-            }
-        });
+        // Two pools in one query. A file is narrowed by its family and then by whatever the
+        // field accepts; an embed is neither - it has no mime type, and an accepted-types
+        // list is a statement about files. Narrowing an embed away with `image/png` would
+        // hide the Embeds tab on every field that names its picture formats.
+        $accepted = $this->acceptedMimeTypes;
 
-        if ($this->acceptedMimeTypes !== null && $this->acceptedMimeTypes !== []) {
-            // Matched as patterns rather than exactly, because `image/*` is a value Filament
-            // accepts on `fileAttachmentsAcceptedFileTypes()` and Laravel validates against - so
-            // a field configured that way is configured correctly, and an exact match turned its
-            // browser permanently and silently empty.
-            $query->where(function (Builder $query): void {
-                foreach ($this->acceptedMimeTypes as $type) {
-                    str_ends_with($type, '/*')
-                        ? $query->orWhere('mime_type', 'like', substr($type, 0, -1).'%')
-                        : $query->orWhere('mime_type', $type);
+        $query->where(static function (Builder $query) use ($accepted): void {
+            $query->where(static function (Builder $query) use ($accepted): void {
+                $query->where(static function (Builder $query): void {
+                    foreach (MediaKinds::families() as $kind) {
+                        $query->orWhere('mime_type', 'like', $kind.'/%');
+                    }
+                });
+
+                if ($accepted !== null && $accepted !== []) {
+                    // Matched as patterns rather than exactly, because `image/*` is a value
+                    // Filament accepts on `fileAttachmentsAcceptedFileTypes()` and Laravel
+                    // validates against - so a field configured that way is configured
+                    // correctly, and an exact match turned its browser silently empty.
+                    $query->where(static function (Builder $query) use ($accepted): void {
+                        foreach ($accepted as $type) {
+                            str_ends_with($type, '/*')
+                                ? $query->orWhere('mime_type', 'like', substr($type, 0, -1).'%')
+                                : $query->orWhere('mime_type', $type);
+                        }
+                    });
                 }
-            });
-        }
+            })->orWhere('custom_properties->'.static::EMBED_PROPERTY, true);
+        });
 
         if ($this->poolQuery instanceof Closure) {
             // The closure is the whole definition of a library pool, collection included.
@@ -516,12 +701,208 @@ class SpatieMediaSource implements MediaSource
     }
 
     /**
+     * The picture this tile draws.
+     *
+     * A picture answers with its own conversion, exactly as before. A film or a sound
+     * answers with the `arte-cover` conversion - written by this package, because a package
+     * cannot register a conversion on somebody else's model, and put where Spatie's own
+     * namer would have put it so that the URL builds.
+     */
+    protected function thumbnail(Media $media, ?string $kind, ?CoverGenerator $covers): ?string
+    {
+        if ($kind === MediaKinds::IMAGE) {
+            return MediaUrl::forWithFallback(
+                $media,
+                $this->thumbnailConversion ?? $this->conversion,
+                $this->visibility,
+            );
+        }
+
+        if ($kind === null) {
+            return null;
+        }
+
+        if ($media->hasGeneratedConversion(CoverGenerator::CONVERSION)) {
+            return $this->coverUrl($media);
+        }
+
+        if (! $covers?->mayGenerate() || $media->getCustomProperty(CoverGenerator::ATTEMPTED_PROPERTY)) {
+            return null;
+        }
+
+        $bytes = $this->locally($media, static fn (string $local): ?string => $covers->bytes($kind, $local));
+
+        return $this->keepCover($media, $bytes);
+    }
+
+    /**
+     * The still for an embed row, which is a media row like any other - so its cover is the
+     * same `arte-cover` conversion, only fetched from the service rather than made here.
+     *
+     * The embed is passed in because `item()` already has it; reading it back out of the
+     * custom properties would be deriving the same answer twice.
+     *
+     * @param  array{provider: string, id: string, start: int|null, title: string|null, ratio: string}  $embed
+     */
+    protected function embedThumbnail(Media $media, array $embed, ?CoverGenerator $covers): ?string
+    {
+        if ($media->hasGeneratedConversion(CoverGenerator::CONVERSION)) {
+            return $this->coverUrl($media);
+        }
+
+        if (! $covers?->mayGenerate() || $media->getCustomProperty(CoverGenerator::ATTEMPTED_PROPERTY)) {
+            return null;
+        }
+
+        return $this->keepCover($media, $covers->embed($embed));
+    }
+
+    /**
+     * Writes a cover that was just made, or remembers that none could be.
+     */
+    protected function keepCover(Media $media, ?string $bytes): ?string
+    {
+        if (! is_string($bytes) || $bytes === '') {
+            try {
+                $media->setCustomProperty(CoverGenerator::ATTEMPTED_PROPERTY, true);
+                $media->save();
+            } catch (Throwable $exception) {
+                // A read-only replica. It will simply be attempted again next time.
+            }
+
+            return null;
+        }
+
+        return $this->writeCover($media, $bytes) ? $this->coverUrl($media) : null;
+    }
+
+    /**
+     * Puts the cover exactly where Spatie's default namer would have, and says so on the row.
+     *
+     * `{id}/conversions/{basename}-arte-cover.jpg`, which is what
+     * `BaseUrlGenerator::getPathRelativeToRoot()` builds for a conversion - and
+     * `markAsConversionGenerated()` is what makes `hasGeneratedConversion()` true, which is
+     * what stops a fallback handing back the original film instead.
+     */
+    protected function writeCover(Media $media, string $bytes): bool
+    {
+        try {
+            Storage::disk($this->conversionsDisk($media))->put($this->coverPath($media), $bytes);
+
+            $media->markAsConversionGenerated(CoverGenerator::CONVERSION);
+
+            return true;
+        } catch (Throwable $exception) {
+            return false;
+        }
+    }
+
+    protected function coverPath(Media $media): string
+    {
+        return PathGeneratorFactory::create($media)->getPathForConversions($media)
+            .pathinfo((string) $media->getAttributeValue('file_name'), PATHINFO_FILENAME)
+            .'-'.CoverGenerator::CONVERSION.'.jpg';
+    }
+
+    protected function conversionsDisk(Media $media): string
+    {
+        return (string) ($media->getAttributeValue('conversions_disk') ?: $media->getAttributeValue('disk'));
+    }
+
+    protected function coverUrl(Media $media): ?string
+    {
+        // Not through `getUrl('arte-cover')`: Spatie resolves a conversion by name against
+        // the ones the MODEL registered, and this one is registered nowhere - it would throw
+        // `InvalidConversion`. The path is built the same way instead.
+        try {
+            $disk = Storage::disk($this->conversionsDisk($media));
+
+            if ($this->visibility === 'private') {
+                return $disk->temporaryUrl(
+                    $this->coverPath($media),
+                    now()->addMinutes(config('filament.temporary_file_url_expiry_minutes', 30))->endOfHour(),
+                );
+            }
+
+            return $disk->url($this->coverPath($media));
+        } catch (Throwable $exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Runs something against a real file on this machine, bringing it down from a remote
+     * disk first where there is no such file.
+     *
+     * @param  callable(string): (string|null)  $callback
+     */
+    protected function locally(Media $media, callable $callback): ?string
+    {
+        try {
+            $path = $media->getPath();
+        } catch (Throwable $exception) {
+            $path = null;
+        }
+
+        if (is_string($path) && is_file($path)) {
+            return $callback($path);
+        }
+
+        $stream = $this->readStream($media);
+
+        if (! is_resource($stream)) {
+            return null;
+        }
+
+        $temporary = (string) tempnam(sys_get_temp_dir(), 'arte-media');
+
+        try {
+            file_put_contents($temporary, $stream);
+
+            return $callback($temporary);
+        } finally {
+            if (is_resource($stream)) {
+                @fclose($stream);
+            }
+
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    protected function item(Media $media): array
+    protected function item(Media $media, ?CoverGenerator $covers = null): array
     {
-        $name = (string) $media->getAttributeValue('name');
         $fileName = (string) $media->getAttributeValue('file_name');
+
+        $embed = Embeds::describes((array) ($media->getCustomProperty(static::EMBED_DATA_PROPERTY) ?? []));
+
+        if ($embed !== null) {
+            return [
+                'id' => (string) $media->getAttributeValue('uuid'),
+                // The link for a person; the frame address for the panel's player. See the
+                // disk source, which says the same thing at more length.
+                'url' => Embeds::link($embed),
+                'frame' => EmbedUrl::src($embed['provider'], $embed['id'], $embed['start']),
+                'thumbnail' => $this->embedThumbnail($media, $embed, $covers),
+                'name' => Embeds::name($embed),
+                'fileName' => $fileName,
+                'mime' => '',
+                'kind' => MediaKinds::EMBED,
+                'embed' => $embed,
+                'size' => 0,
+                'folder' => null,
+                'createdAt' => $media->getAttributeValue('created_at')?->toDateTimeString(),
+                'modifiedAt' => ($media->getAttributeValue('updated_at') ?? $media->getAttributeValue('created_at'))?->toDateTimeString(),
+                'width' => null,
+                'height' => null,
+            ];
+        }
+
+        $name = (string) $media->getAttributeValue('name');
         $kind = MediaKinds::of((string) $media->getAttributeValue('mime_type'));
 
         return [
@@ -542,13 +923,7 @@ class SpatieMediaSource implements MediaSource
             // missing, and for a video that original is the film itself - which the grid
             // would put in an `<img>` and draw as nothing. No thumbnail is what tells it to
             // draw a sign instead.
-            'thumbnail' => $kind === MediaKinds::IMAGE
-                ? MediaUrl::forWithFallback(
-                    $media,
-                    $this->thumbnailConversion ?? $this->conversion,
-                    $this->visibility,
-                )
-                : null,
+            'thumbnail' => $this->thumbnail($media, $kind, $covers),
             'name' => filled($name) ? $name : $fileName,
             'fileName' => $fileName,
             'mime' => (string) $media->getAttributeValue('mime_type'),

@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions;
 
+use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\EditorCommand;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
 use Filament\Support\Enums\Width;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Embeds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 
 /**
@@ -52,45 +55,75 @@ class EmbedAction
                 'title' => $arguments['title'] ?? null,
                 'ratio' => $arguments['ratio'] ?? Embed::DEFAULT_RATIO,
             ])
-            ->schema([
-                TextInput::make('url')
-                    ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.url'))
-                    ->helperText(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.url_hint'))
-                    ->required()
-                    ->live(onBlur: true)
-                    // Refused here rather than silently rendered as nothing later. The
-                    // dialog is the last moment anyone can still paste a different link.
-                    ->rule(static fn (): \Closure => static function (string $attribute, mixed $value, \Closure $fail): void {
-                        if (EmbedUrl::parse(is_string($value) ? $value : null) === null) {
-                            $fail(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.unsupported'));
-                        }
-                    }),
-                TextInput::make('title')
-                    ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.title'))
-                    ->helperText(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.title_hint')),
-                Select::make('ratio')
-                    ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.ratio'))
-                    ->options(static::RATIOS)
-                    ->selectablePlaceholder(false)
-                    ->default(Embed::DEFAULT_RATIO),
-            ])
+            ->schema(static::schema())
             ->action(function (array $arguments, array $data, RichEditor $component): void {
-                $embed = EmbedUrl::parse($data['url'] ?? null);
+                $embed = static::parse($data);
 
                 if ($embed === null) {
                     return;
                 }
 
                 $component->runCommands(
-                    [
-                        EditorCommand::make('setEmbed', arguments: [[
-                            ...$embed,
-                            'title' => filled($data['title'] ?? null) ? trim((string) $data['title']) : null,
-                            'ratio' => $data['ratio'] ?? Embed::DEFAULT_RATIO,
-                        ]]),
-                    ],
+                    [EditorCommand::make('setEmbed', arguments: [$embed])],
                     editorSelection: $arguments['editorSelection'],
                 );
             });
+    }
+
+    /**
+     * The three questions an embed is described by.
+     *
+     * Extracted so the embed button's dialog and the media browser's `+ Add` cannot drift:
+     * a field added here appears in both, and the validation that refuses a link this
+     * package will not frame is written once.
+     *
+     * @return array<int, Component>
+     */
+    public static function schema(): array
+    {
+        return [
+            TextInput::make('url')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.url'))
+                ->helperText(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.url_hint'))
+                ->required()
+                ->live(onBlur: true)
+                // Refused here rather than silently rendered as nothing later. The dialog is
+                // the last moment anyone can still paste a different link.
+                ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
+                    if (EmbedUrl::parse(is_string($value) ? $value : null) === null) {
+                        $fail(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.unsupported'));
+                    }
+                }),
+            TextInput::make('title')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.title'))
+                ->helperText(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.title_hint')),
+            Select::make('ratio')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.ratio'))
+                ->options(static::RATIOS)
+                ->selectablePlaceholder(false)
+                ->default(Embed::DEFAULT_RATIO),
+        ];
+    }
+
+    /**
+     * The five fields out of a filled-in form, or null where the link is one this package
+     * has no business framing.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{provider: string, id: string, start: int|null, title: string|null, ratio: string}|null
+     */
+    public static function parse(array $data): ?array
+    {
+        $embed = EmbedUrl::parse(is_string($data['url'] ?? null) ? $data['url'] : null);
+
+        if ($embed === null) {
+            return null;
+        }
+
+        return Embeds::describes([
+            ...$embed,
+            'title' => $data['title'] ?? null,
+            'ratio' => $data['ratio'] ?? Embed::DEFAULT_RATIO,
+        ]);
     }
 }

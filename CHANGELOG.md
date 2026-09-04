@@ -2,6 +2,51 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- The media browser stopped being about pictures, and now shows what is in a file before you
+  open it. A film gets its first frame through the `ffmpeg` binary; a sound gets whatever
+  cover art its ID3 tag carries, read here rather than through a dependency. Neither is asked
+  for twice - a file that cannot produce a cover is marked and skipped - and one listing makes
+  at most three, so a library of forty films fills itself in over a few openings instead of
+  stalling the first. `php artisan arte:media-covers --retry` forgets every mark, which is
+  what a project runs the day it installs ffmpeg; `--prune` clears the companions of files
+  that are gone
+
+- An alt text now belongs to the file rather than to the insert. The panel beside the preview
+  carries one field - alt for a picture, title for anything else - saved as you leave it and
+  used as the default everywhere that file is used afterwards, so one photograph stops being
+  described three different ways in three articles. The image toolbar still edits a single
+  insert, which is the point: global is a default, never a lock. On a disk it lives in a JSON
+  document beside the file; with a media collection it is two custom properties. A description
+  typed against an upload that is not saved yet is held and written the moment the file
+  becomes real
+
+- A YouTube or Vimeo embed can live in the library like any other entry, with the service's
+  own still on its tile and a tab of its own. Picking one and pressing Submit runs exactly
+  what the embed dialog runs, so nothing about what a document stores has changed
+
+- **From a link**, beside Upload: one field that takes any address and works out what it is.
+  A YouTube or Vimeo link becomes a library entry; anything else is a file somebody else
+  hosts, inserted as a link and stored nowhere. It began as two buttons under the grid -
+  "Embed" and "From an address" - which asked people to know which dialog their link belonged
+  in before they had the answer, and sat below the tallest column so a short list left a field
+  of nothing above them
+
+- Download beside Copy link in the panel, and Delete where the library is this record's own
+  attachments. Not in a shared library: the file may be in another record's content that
+  nobody standing there can see. An embed has neither - it has no bytes to download and no
+  file to delete - and its Copy link hands over the watch address rather than the frame one.
+  Its still is shown with a play mark, and only pressing it loads a player
+
+### Changed
+
+- The two inputs under the grid are gone. The alt text moved into the panel beside the file it
+  describes, and the address moved into `+ Add` - which is what the grid looked like it was
+  for all along
+
 ## 1.4.0 - 2026-08-27
 
 ### Fixed

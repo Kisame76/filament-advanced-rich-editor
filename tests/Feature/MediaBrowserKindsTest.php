@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\MediaPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
@@ -16,7 +17,7 @@ use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\Post;
  * lists, and what it will accept an upload of.
  */
 it('knows three families and files a mime under the right one', function (): void {
-    expect(MediaKinds::all())->toBe(['image', 'video', 'audio'])
+    expect(MediaKinds::families())->toBe(['image', 'video', 'audio'])
         ->and(MediaKinds::of('image/jpeg'))->toBe('image')
         ->and(MediaKinds::of('video/mp4'))->toBe('video')
         ->and(MediaKinds::of('audio/mpeg'))->toBe('audio')
@@ -202,4 +203,27 @@ it('reads a typed address past its query string', function (): void {
         ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/photo.png']))->toBe('image')
         // Nothing in the ending says anything, so nothing is claimed.
         ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/download']))->toBeNull();
+});
+
+it('knows three families of file and a fourth thing that is not a file', function (): void {
+    // `families()` is what builds a mime filter; `all()` is what the tabs are drawn from. An
+    // embed has no extension and no mime type, so it may never reach the first of those - a
+    // `LIKE 'embed/%'` matches nothing and would quietly empty a query.
+    expect(MediaKinds::families())->toBe(['image', 'video', 'audio'])
+        ->and(MediaKinds::all())->toBe(['image', 'video', 'audio', 'embed'])
+        ->and(MediaKinds::patterns())->toBe(['image/*', 'video/*', 'audio/*'])
+        ->and(MediaKinds::patterns([MediaKinds::EMBED]))->toBe([])
+        // And nothing reads it off a name or a mime type, because there is neither.
+        ->and(MediaKinds::of('embed/youtube'))->toBeNull()
+        ->and(MediaKinds::ofPath('something.embed.json'))->toBeNull()
+        ->and(array_keys(MediaKinds::TYPES))->not->toContain('embed');
+});
+
+it('names the fourth tab in the browser\'s own words', function (): void {
+    $labels = MediaPicker::make('media')
+        ->container(testSchema())
+        ->getLabels();
+
+    expect($labels['kinds'])->toHaveKey('embed')
+        ->and($labels['kinds']['embed'])->toBe('Embeds');
 });

@@ -33,6 +33,15 @@ class MediaKinds
     public const AUDIO = 'audio';
 
     /**
+     * Not a family of file at all: a video somebody else hosts, stored as what it is rather
+     * than as bytes. It is here because the browser lists it, tabs it and filters by it -
+     * everywhere a family is a label. It is deliberately NOT in `TYPES`, and `families()`
+     * exists so that no mime filter can ever be built from it: `LIKE 'embed/%'` matches
+     * nothing, and a query narrowed by it would read as an empty library.
+     */
+    public const EMBED = 'embed';
+
+    /**
      * Extension to mime, by family, in the order the tabs are drawn.
      *
      * Only formats a browser can actually draw or play. A `.mkv` is a video and no browser
@@ -80,11 +89,24 @@ class MediaKinds
     ];
 
     /**
+     * The families that are files: what a mime filter, an extension lookup and an
+     * accepted-types list are built from.
+     *
+     * @return array<int, string>
+     */
+    public static function families(): array
+    {
+        return array_keys(static::TYPES);
+    }
+
+    /**
+     * Everything the browser has a tab for, the pseudo-family last.
+     *
      * @return array<int, string>
      */
     public static function all(): array
     {
-        return array_keys(static::TYPES);
+        return [...static::families(), self::EMBED];
     }
 
     /**
@@ -149,7 +171,7 @@ class MediaKinds
     {
         return array_map(
             static fn (string $kind): string => "{$kind}/*",
-            $kinds === null ? static::all() : array_values(array_intersect(static::all(), $kinds)),
+            $kinds === null ? static::families() : array_values(array_intersect(static::families(), $kinds)),
         );
     }
 

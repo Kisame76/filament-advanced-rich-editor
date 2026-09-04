@@ -794,6 +794,13 @@ describe('the numbers under a picture', () => {
         expect(component.meta(item({ width: null, height: null, size: 2048 }))).toBe('2.0 KB')
     })
 
+    it('badges an embed with the service it comes from', () => {
+        const component = mount(mediaPicker)
+
+        expect(component.format({ kind: 'embed', embed: { provider: 'youtube' } })).toBe('YOUTUBE')
+        expect(component.format({ kind: 'embed' })).toBe('EMBED')
+    })
+
     it('names a type from the mime, and falls back to a picture', () => {
         const component = mount(mediaPicker)
 
@@ -858,5 +865,349 @@ describe('the family tabs', () => {
 
         expect(component.type).toBe('')
         expect(fetchPage).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('what a tile draws', () => {
+    it('draws the cover a film was given, rather than a badge', () => {
+        // The bug this pins: covers were made, stored, and never shown - the tile asked
+        // whether the row was a picture instead of whether it had one.
+        const component = mount(mediaPicker)
+
+        const film = item({ kind: 'video', mime: 'video/mp4', thumbnail: '/storage/cover.jpg' })
+
+        expect(component.drawable(film)).toBe(true)
+        expect(component.thumbnailOf(film)).toBe('/storage/cover.jpg')
+    })
+
+    it('draws a badge for a film that has no cover yet', () => {
+        // And never the film's own address: an mp4 in an `<img>` is a broken-image icon.
+        const film = item({ kind: 'video', mime: 'video/mp4', thumbnail: null, url: '/storage/a.mp4' })
+        const component = mount(mediaPicker)
+
+        expect(component.thumbnailOf(film)).toBeNull()
+        expect(component.drawable(film)).toBe(false)
+    })
+
+    it('lets a picture stand in for itself', () => {
+        const component = mount(mediaPicker)
+
+        expect(component.thumbnailOf(item({ thumbnail: null, url: '/storage/a.png' })))
+            .toBe('/storage/a.png')
+    })
+
+    it('keeps the panel drawing only a picture in an image element', () => {
+        // The panel draws a film in a `<video>`, so a film with a cover must not also get an
+        // `<img>` pointing at the mp4 beside it.
+        const component = mount(mediaPicker)
+
+        expect(component.isPicture(item({ kind: 'video', thumbnail: '/storage/cover.jpg' }))).toBe(false)
+        expect(component.isPicture(item())).toBe(true)
+    })
+})
+
+describe('an embed in the panel', () => {
+    it('knows one from a file, and names the service', () => {
+        const component = mount(mediaPicker, {
+            labels: { sorts: {}, providers: { youtube: 'YouTube' } },
+        })
+
+        const embed = item({ kind: 'embed', embed: { provider: 'youtube', id: 'abc' } })
+
+        expect(component.isEmbed(embed)).toBe(true)
+        expect(component.isEmbed(item())).toBe(false)
+        expect(component.providerOf(embed)).toBe('YouTube')
+    })
+
+    it('does not play until it is asked, and stops when the selection moves', async () => {
+        // An iframe drawn on selection would call the video service from every editor that
+        // opens the dialog; one left running in a hidden element is a video you can hear and
+        // cannot stop.
+        const component = mount(mediaPicker, {
+            fetchDetails: async () => item({ id: 'b' }),
+        })
+
+        component.items = [item({ id: 'a', kind: 'embed' }), item({ id: 'b' })]
+        component.picked = 'a'
+        component.playing = true
+
+        await component.loadDetails('b')
+
+        expect(component.playing).toBe(false)
+    })
+
+    it('stops playing when nothing is selected at all', async () => {
+        const component = mount(mediaPicker)
+
+        component.playing = true
+
+        await component.loadDetails(null)
+
+        expect(component.playing).toBe(false)
+    })
+
+    it('copies the link a person recognises rather than the frame address', async () => {
+        const writeText = vi.fn(async () => {})
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+
+        const component = mount(mediaPicker)
+
+        component.items = [item({
+            id: 'a',
+            kind: 'embed',
+            url: 'https://www.youtube.com/watch?v=abc',
+            frame: 'https://www.youtube-nocookie.com/embed/abc',
+        })]
+        component.picked = 'a'
+
+        await component.copy()
+
+        expect(writeText).toHaveBeenCalledWith('https://www.youtube.com/watch?v=abc')
+    })
+})
+
+describe('describing what is selected', () => {
+    it('reads the description out of the details it fetched', async () => {
+        const component = mount(mediaPicker, {
+            fetchDetails: async () => item({ id: 'a', alt: 'The harbour', title: null }),
+        })
+
+        component.items = [item({ id: 'a' })]
+
+        await component.loadDetails('a')
+
+        expect(component.description).toBe('The harbour')
+    })
+
+    it('asks for the title rather than the alt text of a sound', async () => {
+        const component = mount(mediaPicker, {
+            fetchDetails: async () =>
+                item({ id: 'a', kind: 'audio', mime: 'audio/mpeg', alt: null, title: 'The talk' }),
+        })
+
+        component.items = [item({ id: 'a', kind: 'audio', mime: 'audio/mpeg' })]
+        component.picked = 'a'
+
+        await component.loadDetails('a')
+
+        expect(component.descriptionKey).toBe('title')
+        expect(component.description).toBe('The talk')
+    })
+
+    it('saves once when the field is left, and says so for a moment', async () => {
+        vi.useFakeTimers()
+
+        const saveMetadata = vi.fn(async () => true)
+        const component = mount(mediaPicker, { saveMetadata })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+        component.details = item({ id: 'a', alt: '' })
+        component.detailsFor = 'a'
+        component.description = 'The harbour'
+
+        await component.saveDescription()
+
+        expect(saveMetadata).toHaveBeenCalledWith('a', { alt: 'The harbour' })
+        expect(component.descriptionSaved).toBe(true)
+
+        vi.advanceTimersByTime(2000)
+
+        expect(component.descriptionSaved).toBe(false)
+
+        vi.useRealTimers()
+    })
+
+    it('does not save a value that has not changed', async () => {
+        // The field is left every time somebody clicks anywhere in the dialog, and a request
+        // per click is a request per click.
+        const saveMetadata = vi.fn(async () => true)
+        const component = mount(mediaPicker, { saveMetadata })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+        component.details = item({ id: 'a', alt: 'The harbour' })
+        component.detailsFor = 'a'
+        component.description = 'The harbour'
+
+        await component.saveDescription()
+
+        expect(saveMetadata).not.toHaveBeenCalled()
+    })
+
+    it('puts the old value back when the server refuses', async () => {
+        const component = mount(mediaPicker, { saveMetadata: async () => false })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+        component.details = item({ id: 'a', alt: 'The harbour' })
+        component.detailsFor = 'a'
+        component.description = 'Something the server would not take'
+
+        await component.saveDescription()
+
+        expect(component.description).toBe('The harbour')
+        expect(component.descriptionSaved).toBe(false)
+    })
+
+    it('stays quiet when the request itself fails', async () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+        const component = mount(mediaPicker, {
+            saveMetadata: async () => {
+                throw new Error('gone')
+            },
+        })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+        component.details = item({ id: 'a', alt: 'The harbour' })
+        component.detailsFor = 'a'
+        component.description = 'New'
+
+        await component.saveDescription()
+
+        expect(component.description).toBe('The harbour')
+        expect(error).toHaveBeenCalled()
+    })
+
+    it('keeps what was saved in the details, so leaving and coming back shows it', async () => {
+        const component = mount(mediaPicker, { saveMetadata: async () => true })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+        component.details = item({ id: 'a', alt: '' })
+        component.detailsFor = 'a'
+        component.description = 'The harbour'
+
+        await component.saveDescription()
+
+        expect(component.details.alt).toBe('The harbour')
+    })
+
+    it('does nothing at all when nothing is selected', async () => {
+        const saveMetadata = vi.fn(async () => true)
+        const component = mount(mediaPicker, { saveMetadata })
+
+        component.description = 'orphan'
+
+        await component.saveDescription()
+
+        expect(saveMetadata).not.toHaveBeenCalled()
+    })
+})
+
+describe('something added from a dialog on top', () => {
+    it('reloads and selects what was just added', async () => {
+        // On the window, because that is where Livewire fires a component event - a listener
+        // on the picker's own element is below it and never hears one.
+        const fetchPage = vi.fn(async () => page({ items: [item({ id: 'new' })] }))
+
+        const component = mount(mediaPicker, { fetchPage })
+
+        component.watchAdded()
+
+        window.dispatchEvent(new CustomEvent('arte-media-added', { detail: { id: 'new' } }))
+
+        await vi.waitFor(() => expect(component.picked).toBe('new'))
+
+        component.destroy()
+    })
+
+    it('stops listening once the dialog is gone', async () => {
+        // The dialog is built fresh every time it opens, so a listener left behind is one
+        // more reload per opening for ever.
+        const fetchPage = vi.fn(async () => page())
+        const component = mount(mediaPicker, { fetchPage })
+
+        component.watchAdded()
+        component.destroy()
+
+        window.dispatchEvent(new CustomEvent('arte-media-added', { detail: { id: 'new' } }))
+
+        await new Promise((resolve) => setTimeout(resolve, 10))
+
+        expect(fetchPage).not.toHaveBeenCalled()
+    })
+
+    it('reloads and selects nothing when nothing was added to the library', async () => {
+        // A typed address is a link, not an entry - there is no tile to select.
+        const fetchPage = vi.fn(async () => page())
+
+        const component = mount(mediaPicker, { fetchPage })
+
+        component.picked = 'was-picked'
+        component.watchAdded()
+
+        window.dispatchEvent(new CustomEvent('arte-media-added', { detail: { id: null } }))
+
+        await vi.waitFor(() => expect(fetchPage).toHaveBeenCalled())
+
+        expect(component.picked).toBe('was-picked')
+
+        component.destroy()
+    })
+})
+
+describe('deleting what is selected', () => {
+    it('asks first, deletes, and clears the selection', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const deleteMedia = vi.fn(async () => true)
+        const fetchPage = vi.fn(async () => page({ items: [] }))
+
+        const component = mount(mediaPicker, { deleteMedia, fetchPage })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+
+        await component.remove()
+
+        expect(confirm).toHaveBeenCalled()
+        expect(deleteMedia).toHaveBeenCalledWith('a')
+        expect(component.picked).toBeNull()
+        expect(fetchPage).toHaveBeenCalled()
+    })
+
+    it('does nothing when the question is answered no', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(false)
+        const deleteMedia = vi.fn(async () => true)
+
+        const component = mount(mediaPicker, { deleteMedia })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+
+        await component.remove()
+
+        expect(deleteMedia).not.toHaveBeenCalled()
+        expect(component.picked).toBe('a')
+    })
+
+    it('keeps the selection when the server refuses', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        const component = mount(mediaPicker, { deleteMedia: async () => false })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+
+        await component.remove()
+
+        expect(component.picked).toBe('a')
+    })
+
+    it('never asks in a library that offers no delete', async () => {
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const deleteMedia = vi.fn(async () => true)
+
+        const component = mount(mediaPicker, { deleteMedia, canDelete: false })
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+
+        await component.remove()
+
+        expect(confirm).not.toHaveBeenCalled()
+        expect(deleteMedia).not.toHaveBeenCalled()
     })
 })

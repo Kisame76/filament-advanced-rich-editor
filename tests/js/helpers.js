@@ -18,6 +18,9 @@ export function mount(factory, config = {}, { root = null } = {}) {
         picked: null,
         fetchPage: async () => ({}),
         fetchDetails: async () => null,
+        saveMetadata: async () => true,
+        deleteMedia: async () => true,
+        canDelete: true,
         ...config,
     })
 
@@ -49,6 +52,9 @@ export function item(attributes = {}) {
         size: 2048,
         width: 800,
         height: 600,
+        kind: 'image',
+        alt: null,
+        title: null,
         pending: false,
         ...attributes,
     }

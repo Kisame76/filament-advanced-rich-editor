@@ -2352,9 +2352,19 @@ body.fi-arte-fullscreen-lock {
     --fi-arte-media-sign-text: rgb(161 161 170);
 }
 
-/* A sound is a control bar and nothing else, so it does not want a picture's height. */
-.fi-arte-media-preview-audio {
-    height: auto;
+/*
+ * A sound is a control bar and nothing else. Its height is deliberately NOT set here:
+ * `height: auto` on an `<audio>` is zero - the element has no content to size by - and
+ * the bar that appears is the browser's own default height for `audio[controls]`.
+ *
+ * Two classes rather than one, on purpose. The base `.fi-arte-media-preview` rule sits
+ * further down this file and, at equal specificity, its `max-height` won over this one -
+ * which is how a first fix here changed nothing on screen. The picture's ceiling is what
+ * this lifts; the bar must never be squeezed by it.
+ */
+.fi-arte-media-preview.fi-arte-media-preview-audio {
+    max-height: none;
+    object-fit: unset;
 }
 
 /*
@@ -3027,6 +3037,81 @@ body.fi-arte-fullscreen-lock {
     object-fit: contain;
     border-radius: 0.5rem;
     background-color: var(--fi-arte-media-tile);
+}
+
+/*
+ * The two ways of putting something in, side by side at the top of the dialog. They used to
+ * be a row under the grid, which sat below the *tallest* column - the details panel - and so
+ * left a field of nothing under a short list.
+ */
+.fi-arte-media-add {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/*
+ * An embed's still, with a play mark over it. A button rather than an iframe until it is
+ * pressed: an iframe drawn on selection would call the video service from every editor that
+ * opens the dialog.
+ */
+.fi-arte-media-play {
+    position: relative;
+    display: block;
+    width: 100%;
+    border-radius: 0.5rem;
+    background-color: var(--fi-arte-media-tile);
+}
+
+.fi-arte-media-play-mark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.fi-arte-media-play-mark svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background-color: rgb(0 0 0 / 0.55);
+    padding: 0.625rem;
+}
+
+/* A frame has no intrinsic shape, so it is given the one a video has. */
+.fi-arte-media-preview-embed {
+    aspect-ratio: 16 / 9;
+    max-height: none;
+    border: 0;
+}
+
+/*
+ * The description, under the preview and over the facts. Full width, because the value is a
+ * sentence and the column is narrow.
+ */
+.fi-arte-media-describe {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fi-arte-media-muted);
+}
+
+.fi-arte-media-describe-saved {
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--fi-arte-media-muted);
+}
+
+.fi-arte-media-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .fi-arte-media-facts {

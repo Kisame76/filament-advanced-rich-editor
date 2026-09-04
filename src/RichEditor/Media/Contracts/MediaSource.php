@@ -71,4 +71,48 @@ interface MediaSource
      * different in each case.
      */
     public function isRecordScoped(): bool;
+
+    /**
+     * The one line of text this medium carries wherever it is used.
+     *
+     * Global rather than per-insert: the alt text belongs to the picture, and asking for it
+     * again every time the picture is used is how three documents end up describing the same
+     * photograph three different ways. The image toolbar still overrides it for one insert.
+     *
+     * @return array{alt: ?string, title: ?string}
+     */
+    public function metadata(mixed $id): array;
+
+    /**
+     * Writes what the panel was given, and only that.
+     *
+     * A key that is absent is left as it was - the panel sends one field at a time, and the
+     * other one must survive. A key given as an empty string clears it. Answers `false`
+     * rather than raising: a read-only disk or a row somebody deleted is a field that shows
+     * its last value again, not a page that falls over.
+     *
+     * @param  array{alt?: ?string, title?: ?string}  $data
+     */
+    public function saveMetadata(mixed $id, array $data): bool;
+
+    /**
+     * Puts an embed in the library, and answers with the id it is known by afterwards.
+     *
+     * Named after the video rather than after the moment it was added, so adding the same
+     * one twice corrects the entry instead of making a second one - which is what anybody
+     * would expect a library to do.
+     *
+     * @param  array{provider: string, id: string, start: int|null, title: string|null, ratio: string}  $embed
+     * @return mixed the new entry's id, or null where it could not be written
+     */
+    public function saveEmbed(array $embed): mixed;
+
+    /**
+     * Throws a medium away, with everything written beside it.
+     *
+     * Only where `isRecordScoped()` - in a shared library the file may be in content this
+     * editor cannot see, and there is no way from here to find out. Never called for an
+     * upload that is not saved yet: that is "discard", and it belongs to the upload widget.
+     */
+    public function delete(mixed $id): bool;
 }

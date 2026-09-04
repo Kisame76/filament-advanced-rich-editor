@@ -10,6 +10,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Livewire\Attributes\Renderless;
+use Livewire\Features\SupportFileUploads\FileNotPreviewableException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
@@ -103,6 +104,18 @@ trait ServesTheMediaBrowser
 
             $result['items'] = [...$pending, ...$result['items']];
             $result['total'] = ((int) $result['total']) + count($pending);
+
+            // The tabs are drawn from the families on the page, and a file uploaded a
+            // moment ago is on the page: without this a library holding nothing but two
+            // fresh uploads answered `kinds: []`, and the tab row stayed hidden with a
+            // video and a sound sitting right under it.
+            $result['kinds'] = array_values(array_intersect(
+                MediaKinds::all(),
+                array_unique([
+                    ...$result['kinds'],
+                    ...array_map(static fn (array $item): string => (string) ($item['kind'] ?? ''), $pending),
+                ]),
+            ));
         }
 
         return $result;
@@ -130,11 +143,159 @@ trait ServesTheMediaBrowser
         // for this call.
         $pending = $this->pendingMediaItem($id, $this->getUploadedFileAttachment($id));
 
-        if ($pending !== null) {
-            return $pending;
+        $item = $pending ?? $this->getMediaSource()?->details($id);
+
+        // Merged here rather than in either source, so the pending path and the two stored
+        // paths cannot answer this differently - and so a listing, which does not need the
+        // description, does not pay a sidecar read per tile to get one.
+        return $item === null ? null : [...$item, ...$this->getMediaMetadata($id)];
+    }
+
+    /**
+     * Where a description waits while the file it describes is still a temporary upload.
+     *
+     * On the Livewire component rather than on the field, and for the same reason
+     * `componentFileAttachments` is: the dialog is a modal, its form is thrown away when it
+     * closes, and a description typed there has to outlive that.
+     */
+    public const PENDING_METADATA_KEY = 'arteMediaMetadata';
+
+    /**
+     * What this medium is called, wherever the answer happens to live.
+     *
+     * @return array{alt: ?string, title: ?string}
+     */
+    public function getMediaMetadata(mixed $id): array
+    {
+        if (FileAttachments::pending($id)) {
+            $held = data_get($this->getLivewire(), static::PENDING_METADATA_KEY.'.'.$id);
+
+            return [
+                'alt' => is_string($held['alt'] ?? null) ? $held['alt'] : null,
+                'title' => is_string($held['title'] ?? null) ? $held['title'] : null,
+            ];
         }
 
-        return $this->getMediaSource()?->details($id);
+        return $this->getMediaSource()?->metadata($id) ?? ['alt' => null, 'title' => null];
+    }
+
+    /**
+     * The panel's one field, saved as it is left.
+     *
+     * Reachable from the browser, so what it accepts is the whole of what it trusts: two
+     * keys, strings, and a length that is a description rather than a document. Anything
+     * else is `false` and nothing is written - the panel then shows the value it last knew,
+     * which is the honest thing to show when a write did not happen.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function saveMediaMetadataForJs(string $id, array $data): bool
+    {
+        if (blank($id) || ! $this->hasMediaLibrary()) {
+            return false;
+        }
+
+        $written = [];
+
+        foreach ($data as $key => $value) {
+            // An unknown key is refused rather than dropped. Dropping it would write the rest
+            // and answer `true`, which tells the panel a save happened that partly did not.
+            if (! in_array($key, ['alt', 'title'], strict: true)) {
+                return false;
+            }
+
+            if ($value !== null && ! is_string($value)) {
+                return false;
+            }
+
+            $value = is_string($value) ? trim($value) : '';
+
+            if (mb_strlen($value) > 1000) {
+                return false;
+            }
+
+            $written[$key] = $value;
+        }
+
+        if ($written === []) {
+            return false;
+        }
+
+        if (FileAttachments::pending($id)) {
+            // Only for an upload this field is actually holding. An id that is merely spelled
+            // with the prefix is not one of ours, and holding a description against it would
+            // be a place for anything to write anything.
+            if (! ($this->getUploadedFileAttachment($id) instanceof TemporaryUploadedFile)) {
+                return false;
+            }
+
+            $livewire = $this->getLivewire();
+            $key = static::PENDING_METADATA_KEY.'.'.$id;
+
+            data_set($livewire, $key, [...(array) (data_get($livewire, $key) ?? []), ...$written]);
+
+            return true;
+        }
+
+        return (bool) $this->getMediaSource()?->saveMetadata($id, $written);
+    }
+
+    /**
+     * Throws away what is selected.
+     *
+     * Three refusals before anything happens: no library, an upload that is not saved yet -
+     * which is a discard rather than a delete - and a pool that is not this record's own.
+     * The source refuses the last one again, because a rule that only lives on the exposed
+     * method is a rule the next caller does not have.
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function deleteMediaForJs(string $id): bool
+    {
+        if (blank($id) || ! $this->hasMediaLibrary() || FileAttachments::pending($id)) {
+            return false;
+        }
+
+        $source = $this->getMediaSource();
+
+        if (! $source?->isRecordScoped()) {
+            return false;
+        }
+
+        return $source->delete($id);
+    }
+
+    /**
+     * Moves a description from the upload it was typed against onto the file that upload
+     * became.
+     *
+     * Called from `resolveFileAttachmentIds()`, at the one point where a pending id turns
+     * into a real one. Let go of afterwards: a second save must not write it back over a
+     * description somebody has since corrected in the library.
+     */
+    public function applyPendingMediaMetadata(mixed $pendingId, mixed $savedId): void
+    {
+        if (! FileAttachments::pending($pendingId) || blank($savedId)) {
+            return;
+        }
+
+        $livewire = $this->getLivewire();
+        $key = static::PENDING_METADATA_KEY.'.'.$pendingId;
+
+        $held = data_get($livewire, $key);
+
+        if (! is_array($held) || $held === []) {
+            return;
+        }
+
+        $this->getMediaSource()?->saveMetadata($savedId, [
+            'alt' => is_string($held['alt'] ?? null) ? $held['alt'] : null,
+            'title' => is_string($held['title'] ?? null) ? $held['title'] : null,
+        ]);
+
+        data_set($livewire, $key, null);
     }
 
     /**
@@ -225,6 +386,12 @@ trait ServesTheMediaBrowser
         $livewire = $this->getLivewire();
         $statePath = $this->getStatePath();
 
+        // The descriptions typed against those uploads go with them. The ones that became
+        // files have already been written through `applyPendingMediaMetadata()`; the rest
+        // describe pictures nobody used. Above the guard below, or a field holding a
+        // description and no attachment would keep it for ever.
+        data_set($livewire, static::PENDING_METADATA_KEY, []);
+
         $attachments = data_get($livewire, "componentFileAttachments.{$statePath}");
 
         if (! is_array($attachments) || $attachments === []) {
@@ -311,7 +478,13 @@ trait ServesTheMediaBrowser
             return null;
         }
 
-        $url = $this->getUploadedFileAttachmentTemporaryUrl($file);
+        // Off the file, not through Filament's `getUploadedFileAttachmentTemporaryUrl()`.
+        // That wrapper takes the OBJECT back through `getUploadedFileAttachment()`, and with
+        // an object rather than an id there is no prefix to say the file came through the
+        // browser - so it was measured against Filament's picture-only list and every
+        // video and sound came back null. The file was validated against the browser's
+        // list a few lines up; this is the one place it is asked for its address.
+        $url = static::temporaryUrlOf($file);
 
         if (blank($url)) {
             return null;
@@ -343,6 +516,27 @@ trait ServesTheMediaBrowser
             // form is saved, and somebody who navigates away now will not find it again.
             'pending' => true,
         ];
+    }
+
+    /**
+     * Where a held upload can be looked at before it is saved, or null where Livewire
+     * refuses to say.
+     *
+     * Livewire hands out a preview address only for the extensions in its
+     * `temporary_file_upload.preview_mimes` list, and answers anything else with an
+     * exception rather than a null. The shipped list covers `mp4`, `mov`, `mp3`, `wav`
+     * and `m4a` but not `webm`, `ogg`, `flac` or `aac` - so a project that uploads those
+     * extends that list, and until it does the upload is held but cannot be shown. Held
+     * rather than crashed: an exception here would take the whole page request down for
+     * one file that merely cannot be previewed.
+     */
+    protected static function temporaryUrlOf(TemporaryUploadedFile $file): ?string
+    {
+        try {
+            return $file->temporaryUrl();
+        } catch (FileNotPreviewableException $exception) {
+            return null;
+        }
     }
 
     /**

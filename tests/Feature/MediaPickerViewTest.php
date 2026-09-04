@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Filament\Actions\Action;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
@@ -19,7 +20,7 @@ use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\Post;
  * JavaScript, or the editor key going missing - which would leave the grid asking the wrong
  * component for its pages and showing an empty library for ever.
  */
-function renderPicker(bool $hasFolders = true, bool $isRecordScoped = true, bool $isListView = false): string
+function renderPicker(bool $hasFolders = true, bool $isRecordScoped = true, bool $isListView = false, bool $canDescribe = true): string
 {
     View::share('errors', new ViewErrorBag);
 
@@ -28,6 +29,7 @@ function renderPicker(bool $hasFolders = true, bool $isRecordScoped = true, bool
         ->folders($hasFolders)
         ->recordScoped($isRecordScoped)
         ->listView($isListView)
+        ->canDescribe($canDescribe)
         ->container(Schema::make(new TestSchemaComponent)->operation('edit'))
         ->render()
         ->render();
@@ -152,4 +154,83 @@ it('takes the opening layout from the field', function (): void {
     expect(AdvancedRichEditor::make('content')->hasMediaLibraryListView())->toBeTrue()
         // ...and the field still wins over the project.
         ->and(AdvancedRichEditor::make('content')->mediaLibraryListView(false)->hasMediaLibraryListView())->toBeFalse();
+});
+
+it('describes the selection in the panel rather than under the grid', function (): void {
+    // The two inputs under the grid pushed it up and read as part of the picker, which they
+    // were not: an alt text belongs to the medium being looked at, so it belongs beside it.
+    $html = renderPicker();
+
+    expect($html)
+        ->toContain('saveMediaMetadataForJs')
+        ->toContain('saveDescription()')
+        ->toContain('descriptionLabel');
+});
+
+it('offers the selected file for download', function (): void {
+    // A plain anchor with the `download` attribute: on a private disk `url` is already the
+    // temporary signed one, so nothing else has to know about visibility.
+    expect(renderPicker())->toContain('download');
+});
+
+it('writes no description field where the field has no library to write to', function (): void {
+    // A picker rendered without a pool - which the address-only case is - has nowhere to
+    // put a description, and an input that silently does nothing is worse than no input.
+    expect(renderPicker(canDescribe: false))->not->toContain('saveDescription()');
+});
+
+it('offers no delete button in a library shared across records', function (): void {
+    // The file may be in content this editor cannot see. A button that cannot know that is
+    // a button that quietly breaks somebody else's page.
+    expect(renderPicker(isRecordScoped: false))->toContain('canDelete: false')
+        ->and(renderPicker(isRecordScoped: true))->toContain('canDelete: true');
+});
+
+it('draws the trigger it was handed, beside Upload', function (): void {
+    // The one that actually renders it: the picker is handed somebody else's action and has
+    // to put it on screen. Handing it nothing must leave the header alone.
+    View::share('errors', new ViewErrorBag);
+
+    $editor = AdvancedRichEditor::make('content')
+        ->fileAttachmentsDirectory('article-attachments')
+        ->container(Schema::make(new TestSchemaComponent)->operation('edit')->record(Post::create(['title' => 'P'])));
+
+    $html = MediaPicker::make('media')
+        ->editorKey('editor-key')
+        ->fromUrlAction(fn (): ?Action => $editor->getAction('mediaBrowserUrl'))
+        ->container(Schema::make(new TestSchemaComponent)->operation('edit'))
+        ->render()
+        ->render();
+
+    expect($html)->toContain('From a link')
+        ->and($html)->toContain('mediaBrowserUrl')
+        // As markup rather than as text. Blade escapes a plain string, so rendering
+        // `->toHtml()` here put an escaped `<button>` on screen for a person to read.
+        ->and($html)->not->toContain('&lt;button');
+});
+
+it('draws the add-from-a-link trigger beside Upload rather than under the grid', function (): void {
+    // Under the grid it sat below the *tallest* column - the details panel - so a short
+    // list left a field of nothing above it. And "add something" is not a thing anybody
+    // looks for at the bottom of what they are looking through.
+    $html = renderPicker();
+
+    $header = substr($html, (int) strpos($html, 'fi-arte-media-header'), 1200);
+
+    expect($header)->toContain('fi-arte-media-add')
+        ->and($html)->not->toContain('labels.addEmbed');
+});
+
+it('plays an embed only once it is asked to', function (): void {
+    // An iframe drawn on selection would call the video service from every editor that
+    // opens the dialog, which is the tracking the cookie-free host exists to avoid.
+    $html = renderPicker();
+
+    expect($html)->toContain('playing = true')
+        ->and($html)->toContain('fi-arte-media-play')
+        ->and($html)->toContain('selected.frame');
+});
+
+it('offers no download for something that is not a file', function (): void {
+    expect(renderPicker())->toContain('! isEmbed(selected)');
 });
