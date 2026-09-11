@@ -98,7 +98,7 @@ class AdvancedRichEditor extends RichEditor
 
     protected string|Closure|null $stickyToolbarOffset = null;
 
-    protected string|int|Closure|null $maxHeight = null;
+    protected string|Closure|null $maxHeight = null;
 
     /**
      * Whether the field answered the height question itself, however it answered it.
