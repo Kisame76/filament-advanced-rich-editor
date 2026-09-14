@@ -41,6 +41,28 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   file to delete - and its Copy link hands over the watch address rather than the frame one.
   Its still is shown with a play mark, and only pressing it loads a player
 
+### Fixed
+
+- A field built on this package was a fatal error on `filament/forms` v5.8, before it drew
+  anything. v5.8 gives `RichEditor` a `$maxHeight` of its own, declared `string|Closure|null`,
+  and the property here has carried `int` since it was written against a version that had
+  nothing to override - PHP refuses a redeclaration that widens a property's type. It failed
+  at class load, so a panel holding one field went down whole rather than losing a height.
+  The property matches the parent now, and the bare number `maxHeight()` has always accepted
+  is turned into a string as it arrives, so `maxHeight(400)` still means `400px`. A project
+  held on v5.7 never saw this
+
+- `e` and `p` in a date format are read as the zone tokens `date()` calls them. Both were
+  left out of the list that decides whether a format carries a time, because Carbon emitted
+  them as bare letters and a letter says nothing about an instant - Carbon 3.14 resolves them
+  the way `date()` always did, which left `Y-m-d e` naming the application's timezone beside a
+  date that had never been read in the displayed one. A format that names a zone is about an
+  instant, which is the reason `I`, `O`, `P`, `T` and `Z` were already counted, so these two
+  are counted beside them whatever version of Carbon is installed rather than letting the
+  installed version decide which day a value lands on. Worth knowing: a date-only format
+  carrying `e` or `p` now follows the display timezone and can move a day, exactly as one
+  carrying `T` always did. `x` and `X` stay out, because what they expand is a year
+
 ### Changed
 
 - The two inputs under the grid are gone. The alt text moved into the panel beside the file it
