@@ -202,11 +202,15 @@ it('reads a time out of a format, because that is all there is to read', functio
         ->and(DateTimeFormats::carriesTime('j. F Y'))->toBeFalse()
         ->and(DateTimeFormats::carriesTime('\\t\\o\\d\\a\\y: j.n.Y'))->toBeFalse()
         ->and(DateTimeFormats::carriesTime('\\H j.n.Y'))->toBeFalse()
-        // `date()` calls these zone tokens; `translatedFormat()` emits the bare letter, so
-        // they say nothing about a time and must not move a date-only format a day.
-        ->and(DateTimeFormats::carriesTime('j. F Y e'))->toBeFalse()
-        ->and(DateTimeFormats::carriesTime('j. F Y p'))->toBeFalse()
-        ->and(DateTimeFormats::carriesTime('j. F Y T'))->toBeTrue();
+        // `e` and `p` name a zone exactly as `T` does, so they carry a time for the same
+        // reason it does. Carbon emitted them as bare letters until 3.14 and resolves them
+        // from there on; which day the format lands on must not depend on that.
+        ->and(DateTimeFormats::carriesTime('j. F Y e'))->toBeTrue()
+        ->and(DateTimeFormats::carriesTime('j. F Y p'))->toBeTrue()
+        ->and(DateTimeFormats::carriesTime('j. F Y T'))->toBeTrue()
+        // `x` and `X` are resolved from 3.14 too, but what they expand is a year.
+        ->and(DateTimeFormats::carriesTime('j. F Y x'))->toBeFalse()
+        ->and(DateTimeFormats::carriesTime('j. F Y X'))->toBeFalse();
 });
 
 it('shows a time in the display timezone and leaves a date alone', function (): void {
@@ -222,9 +226,10 @@ it('shows a time in the display timezone and leaves a date alone', function (): 
     try {
         expect(DateTimeFormats::render('H:i'))->toBe('10:30')
             ->and(DateTimeFormats::render('Y-m-d'))->toBe('2026-03-04')
-            // `e` is a zone token to `date()` and a bare letter to `translatedFormat()`, so
-            // it must not drag a date-only format into the display timezone.
-            ->and(DateTimeFormats::render('Y-m-d e'))->toBe('2026-03-04 e');
+            // A format that names a zone is about an instant, so it follows the display
+            // timezone like any other: 23:30 UTC is already the next day in Sydney. What
+            // `e` itself prints changed in Carbon 3.14, so only the date is asserted.
+            ->and(DateTimeFormats::render('Y-m-d e'))->toStartWith('2026-03-05');
     } finally {
         Carbon::setTestNow();
         FilamentTimezone::set(null);

@@ -46,16 +46,19 @@ class DateTimeFormats
     /**
      * Every unescaped format character that says something about the time of day, taken
      * from PHP's own table. `c`, `r` and `U` are in it because each one spells out a full
-     * instant, and `I`, `O`, `P`, `T` and `Z` because a zone is only meaningful about one -
-     * a date has no offset to name.
+     * instant, and `I`, `O`, `P`, `T`, `Z`, `e` and `p` because a zone is only meaningful
+     * about one - a date has no offset to name.
      *
-     * `e` and `p` are deliberately absent although `date()` treats them as zone tokens:
-     * `translatedFormat()` does not implement either and emits the bare letter, so a format
-     * carrying one says nothing about a time - and counting it would apply the display
-     * timezone to a date-only format and move it a day around midnight, which is the exact
-     * thing the distinction exists to prevent. `x` and `X` are absent for the same reason.
+     * `e` and `p` were once absent from this list: `translatedFormat()` did not implement
+     * either and emitted the bare letter, so a format carrying one said nothing about a
+     * time. Carbon 3.14 resolves both the way `date()` always did, which makes them zone
+     * tokens in fact as well as in name. They are counted here whatever the installed
+     * version, because which day a format lands on must not depend on that.
+     *
+     * `x` and `X` stay out. Carbon 3.14 resolves those too, but what they expand is a
+     * year, and a year is not a time of day.
      */
-    public const TIME_TOKENS = 'aABgGhHisuvIOPTZcrU';
+    public const TIME_TOKENS = 'aABgGhHisuvIOPTZepcrU';
 
     /**
      * The toolbar name of one configured format. It is also the name a dropdown, the
@@ -143,11 +146,12 @@ class DateTimeFormats
      * Now, written the way this format asks for it.
      *
      * `translatedFormat()` rather than `format()`: the second one is PHP's, and PHP's
-     * month names are English whatever the application's language is. Four tokens are
-     * worth knowing about, because Carbon answers them differently from PHP - `S` is the
-     * ordinal suffix of the language rather than the English one, and `e`, `p`, `x` and
-     * `X` are not translated at all and come out as the bare letter. `T`, `O` and `P` are
-     * the tokens that do name a zone.
+     * month names are English whatever the application's language is. `S` is worth knowing
+     * about, because Carbon answers it differently from PHP - it is the ordinal suffix of
+     * the language rather than the English one. `e`, `p`, `x` and `X` came out as bare
+     * letters until Carbon 3.14 and are resolved from there on, so what they print differs
+     * by version; only which timezone the value is read in is decided here, and that is
+     * settled by `TIME_TOKENS` rather than by the version.
      */
     public static function render(string $format, ?string $locale = null): string
     {
