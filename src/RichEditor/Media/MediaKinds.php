@@ -33,6 +33,18 @@ class MediaKinds
     public const AUDIO = 'audio';
 
     /**
+     * Everything that is taken away rather than drawn: a pdf, a spreadsheet, an archive. It
+     * becomes a download card in the document, not an element that shows it.
+     *
+     * A label like `EMBED` and not an entry in `TYPES`, and for the reason the roadmap gave
+     * when the card was built: a document is a catch-all, not a mime prefix. `application/*`
+     * holds a pdf and a program alike, and a `file/*` pattern is something neither Filament's
+     * accepted types nor Laravel's `mimetypes:` rule would understand. What counts as one is
+     * a list of endings, and that list is a setting - see `LibraryTypes`.
+     */
+    public const FILE = 'file';
+
+    /**
      * Not a family of file at all: a video somebody else hosts, stored as what it is rather
      * than as bytes. It is here because the browser lists it, tabs it and filters by it -
      * everywhere a family is a label. It is deliberately NOT in `TYPES`, and `families()`
@@ -100,13 +112,14 @@ class MediaKinds
     }
 
     /**
-     * Everything the browser has a tab for, the pseudo-family last.
+     * Everything the browser has a tab for, in the order the tabs are drawn: the three that
+     * are drawn, the documents, and the videos somebody else hosts last.
      *
      * @return array<int, string>
      */
     public static function all(): array
     {
-        return [...static::families(), self::EMBED];
+        return [...static::families(), self::FILE, self::EMBED];
     }
 
     /**

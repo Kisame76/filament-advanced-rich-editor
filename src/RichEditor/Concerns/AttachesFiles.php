@@ -8,10 +8,10 @@ use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileA
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\HasFileAttachmentProvider;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileNames;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -137,25 +137,67 @@ trait AttachesFiles
             return null;
         }
 
-        $maxSize = $this->getFileAttachmentsMaxSize();
-        $acceptedFileTypes = $this->getMediaLibraryAcceptedFileTypes();
+        return $this->acceptsMediaLibraryUpload($file) ? $file : null;
+    }
 
-        try {
-            Validator::validate(
-                ['file' => $file],
-                rules: [
-                    'file' => [
-                        'file',
-                        ...($maxSize ? ["max:{$maxSize}"] : []),
-                        ...($acceptedFileTypes ? ['mimetypes:'.implode(',', $acceptedFileTypes)] : []),
-                    ],
-                ],
-            );
-        } catch (ValidationException $exception) {
+    /**
+     * Whether the browser takes an upload: small enough, and something the field offers.
+     *
+     * The type half is `LibraryTypes::accepts()`, which reads a document by the ending it was
+     * sent under and then asks whether its content agrees - a list of mime types could not
+     * say "a pdf" without also saying "anything else `application/*` holds".
+     */
+    public function acceptsMediaLibraryUpload(TemporaryUploadedFile $file): bool
+    {
+        $maxSize = $this->getFileAttachmentsMaxSize();
+
+        $size = Validator::make(
+            ['file' => $file],
+            ['file' => ['file', ...($maxSize ? ["max:{$maxSize}"] : [])]],
+        );
+
+        return $size->passes() && $this->getMediaLibraryTypes()->accepts($file);
+    }
+
+    /**
+     * Stores an upload on a disk under a name somebody can find again.
+     *
+     * Only where there is no provider - a provider decides its own names, and the Spatie one
+     * keeps the name the file came with anyway - and only where a browser lists this disk. A
+     * field without one never shows a file by its name, and keeps Filament's hash.
+     *
+     * The ending is the one the file was checked against rather than a guess at its content:
+     * `finfo` calls a spreadsheet written as text what it is, and guessing from that would
+     * store `prices.csv` as a `.txt` - which is also what a web server would then serve it as.
+     */
+    public function defaultSaveUploadedFileAttachment(TemporaryUploadedFile $file): mixed
+    {
+        if (($this->getFileAttachmentProvider() !== null) || ($this->getMediaSource() === null)) {
+            return parent::defaultSaveUploadedFileAttachment($file);
+        }
+
+        $directory = trim((string) $this->getFileAttachmentsDirectory(), '/');
+        $extension = $this->getMediaLibraryTypes()->extensionFor($file);
+        $disk = $this->getFileAttachmentsDisk();
+
+        // Six random characters make a collision rare rather than impossible, and a file that
+        // quietly replaced another one would take that one out of every document using it.
+        do {
+            $name = FileNames::stored($file->getClientOriginalName(), $extension);
+            $path = ltrim($directory.'/'.$name, '/');
+        } while ($disk->exists($path));
+
+        $stored = $file->storeAs($directory, $name, $this->getFileAttachmentsDiskName());
+
+        if (! is_string($stored)) {
             return null;
         }
 
-        return $file;
+        if ($this->getFileAttachmentsVisibility() === 'public') {
+            rescue(fn () => $disk->setVisibility($stored, 'public'), report: false);
+        }
+
+        return $stored;
     }
 
     /**

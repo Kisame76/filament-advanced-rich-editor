@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import {
+import { afterEach, describe, expect, it } from 'vitest'
+import fileCardExtension, {
     DEFAULT_TINT,
     fileCard,
     fileLabel,
@@ -7,6 +7,7 @@ import {
     fileSize,
     fileSrc,
     fileTint,
+    fileToolbarVisibility,
 } from '../../resources/js/file-card.js'
 
 /**
@@ -153,5 +154,70 @@ describe('the card', () => {
     it('has no size where nobody knows the size', () => {
         expect(fileCard({ src: '/a.pdf' }).size).toBeNull()
         expect(fileCard({ src: '/a.pdf', size: '1,2 MB' }).size).toBe('1,2 MB')
+    })
+})
+
+describe('the bar over a selected card', () => {
+    /**
+     * An editor as far as the rule reads one: a selection, and whether it has the focus.
+     */
+    const editor = ({ node = null, empty = false, focused = true } = {}) => ({
+        isFocused: focused,
+        state: { selection: { node, empty } },
+    })
+
+    const card = { type: { name: 'file' } }
+
+    it('shows on a card selected inside a paragraph', () => {
+        // Filament's own rule gives a paragraph's bar the right of way over every other bar
+        // whenever the selection is not empty inside a paragraph - and a card is inline, so
+        // it is always inside one. Left to that rule, this bar is drawn and never shown.
+        const shouldShow = fileToolbarVisibility()
+
+        expect(shouldShow({ editor: editor({ node: card }), element: null })).toBe(true)
+    })
+
+    it('stays away from a picture, a caret and a stretch of text', () => {
+        const shouldShow = fileToolbarVisibility()
+
+        expect(shouldShow({ editor: editor({ node: { type: { name: 'image' } } }), element: null })).toBe(false)
+        expect(shouldShow({ editor: editor({ empty: true }), element: null })).toBe(false)
+        expect(shouldShow({ editor: editor(), element: null })).toBe(false)
+    })
+
+    it('stays while one of its own buttons holds the focus', () => {
+        const shouldShow = fileToolbarVisibility()
+        const element = document.createElement('div')
+        const button = document.createElement('button')
+
+        element.append(button)
+        document.body.append(element)
+        button.focus()
+
+        expect(shouldShow({ editor: editor({ node: card, focused: false }), element })).toBe(true)
+        expect(shouldShow({ editor: editor({ node: card, focused: false }), element: null })).toBe(false)
+
+        element.remove()
+    })
+})
+
+describe('reading a card back', () => {
+    afterEach(() => {
+        delete window.FilamentRichEditor
+    })
+
+    it('is read as a card before the link the same markup also is', () => {
+        // A card is an `<a href>` as much as an `<a download>`, and ProseMirror asks the rules
+        // of marks before those of nodes when their priorities are equal. A save hands the
+        // editor its document back as HTML, so at the default priority the link took it and
+        // the card came back as underlined text - which the next save then stored for good.
+        window.FilamentRichEditor = {
+            tiptap: { core: { Node: { create: (definition) => definition }, mergeAttributes: Object.assign } },
+        }
+
+        const [rule] = fileCardExtension().parseHTML()
+
+        expect(rule.tag).toBe('a[download]')
+        expect(rule.priority).toBeGreaterThan(50)
     })
 })

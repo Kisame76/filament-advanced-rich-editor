@@ -59,6 +59,9 @@ export default ({
     description: '',
     descriptionSaving: false,
     descriptionSaved: false,
+    // The files that were turned away, by name, until somebody dismisses the note. A file
+    // that simply never turned up in the grid reads as the dialog having lost it.
+    rejected: [],
     list: listView,
     // What the server pages by. Guessing it from how many tiles came back read a
     // short last page as a tiny page size, and the footer then divided the whole
@@ -173,6 +176,15 @@ export default ({
         return this.descriptionKey === 'alt' ? this.labels.alt : this.labels.title
     },
 
+    /**
+     * Whether the panel offers the field at all. A document is a card, and a card shows the
+     * file's name - a title typed here would be saved and then read by nothing, which is
+     * worse than no field, because it looks like it worked.
+     */
+    get describable() {
+        return (this.selected?.kind ?? 'image') !== 'file'
+    },
+
     reload() {
         this.page = 1
 
@@ -212,6 +224,12 @@ export default ({
             this.perPage = result?.perPage ?? this.perPage
             this.folders = result?.folders ?? []
             this.parent = result?.parent ?? null
+
+            // Added to rather than replaced: the server says it once, when it lets go of the
+            // file, and the next page must not take the note away before anybody read it.
+            for (const name of result?.rejected ?? []) {
+                this.reject(name)
+            }
         } catch (error) {
             console.error('The advanced rich editor could not read the media library:', error)
         } finally {
@@ -348,8 +366,51 @@ export default ({
             // arrives, which is what makes it survive the dialog closing. So there is
             // nothing to mirror here: the grid simply asks again, and the new picture
             // is in the answer, described by the server like every other one.
-            pond.on('processfile', () => this.revealUploads().then(() => this.selectNewest()))
+            pond.on('processfile', (error, file) => {
+                // Refused on the way, by size or by the server. There is nothing to reveal,
+                // and saying which file it was is the whole of what can be done about it.
+                if (error) {
+                    this.refuse(pond, file)
+
+                    return
+                }
+
+                return this.revealUploads().then(() => this.selectNewest())
+            })
+
+            // Turned away before it travelled, by what the browser says the file is. The
+            // widget draws its own complaint, but the widget is kept off screen.
+            pond.on('addfile', (error, file) => {
+                if (error) {
+                    this.refuse(pond, file)
+                }
+            })
         })
+    },
+
+    /**
+     * Names a refused file, and takes it out of the widget.
+     *
+     * Kept there, it marks the widget's own input invalid - and a form holding an invalid
+     * input refuses to submit without a word, since the input is off screen. Everything
+     * else in the dialog would then look fine and do nothing.
+     */
+    refuse(pond, file) {
+        this.reject(file?.filename)
+
+        if (file?.id) {
+            pond.removeFile(file.id)
+        }
+    },
+
+    reject(name) {
+        if (name && ! this.rejected.includes(name)) {
+            this.rejected = [...this.rejected, name]
+        }
+    },
+
+    dismissRejected() {
+        this.rejected = []
     },
 
     /**
@@ -422,7 +483,11 @@ export default ({
         // button does - so a dropped picture and a chosen one travel one path. Held
         // until it exists, because a drop in the first moment after the dialog opens
         // must not be the one that gets lost.
-        this.whenPond((pond) => pond.addFiles(files))
+        //
+        // A drop holding one refused file rejects the widget's whole promise. The refusal is
+        // told through `addfile` already, so the promise has nothing to add, and left alone
+        // it is an unhandled error in the console on every refused drop.
+        this.whenPond((pond) => pond.addFiles(files)?.catch?.(() => {}))
     },
 
     async copy() {
@@ -553,8 +618,16 @@ export default ({
         return [this.pixels(item), this.bytes(item.size)].filter(Boolean).join(' · ')
     },
 
-    /** The badge on a tile: `PNG`, `MP4`, `MPEG` - or which service an embed is from. */
+    /**
+     * The badge on a tile: `PNG`, `MP4`, `MPEG` - or which service an embed is from. A
+     * document arrives with its own, the letters its card will wear: read off the mime, a
+     * Word document was badged `VND.`.
+     */
     format(item) {
+        if (item?.badge) {
+            return item.badge
+        }
+
         if ((item?.kind ?? '') === 'embed') {
             return (item?.embed?.provider ?? 'embed').toUpperCase().slice(0, 7)
         }
@@ -577,6 +650,16 @@ export default ({
         }
 
         return (item?.kind ?? 'image') === 'image' ? (item?.url ?? null) : null
+    },
+
+    /**
+     * The colour a document's tile is drawn in: its card's, which the server sent with the
+     * row. Everything else keeps the neutral sign the stylesheet draws.
+     */
+    tileStyle(item) {
+        return (item?.kind ?? '') === 'file' && item?.tint
+            ? { backgroundColor: item.tint, color: '#ffffff' }
+            : {}
     },
 
     /** Whether this row is a video somebody else hosts rather than a file of ours. */

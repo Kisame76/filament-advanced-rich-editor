@@ -6,6 +6,30 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Added
 
+- The media browser takes documents. A pdf, a spreadsheet, an archive - anything that is taken
+  away rather than drawn - has a tab of its own, a tile in the colour of the card it becomes,
+  and is inserted as the download card, which until now had no way in at all. Selecting a card
+  puts a bar over it: Replace opens the browser on the documents with that file already picked,
+  and the choice takes the card's place; Remove takes it out. `file` opens the browser on the
+  documents and is in the slash menu. It works the same with a media collection and on a plain
+  disk, and a link to somebody else's document becomes a card too
+
+- Which files the browser takes is one list per family: `media_library.types`, and
+  `->mediaLibraryTypes()` per field, merged one family at a time so a field says only what it
+  changes. Documents are named by their ending and ship as exactly the endings the card has a
+  colour for; `['*']` takes every ending. A document is taken only where its content agrees with
+  its ending, and it is stored under that ending - so what arrives as `.pdf` is served as a pdf -
+  while a short list of endings a server or a browser would run as the site (php and its
+  relatives, html, svg, xml, js) is refused whatever the list says. An upload the browser refuses
+  is named in the dialog rather than simply never turning up
+
+- On a plain disk, what the browser uploads is stored under the name it came with, made safe
+  for an address and followed by six random characters - `quartalsbericht-q3--7kq2xm.pdf` - and
+  shown without them. Filament's forty-character hash is fine for a picture, which is recognised
+  by looking at it, and useless for a document, which has no thumbnail and is found by its name;
+  the random part is what keeps the address from being guessed. Files already on the disk keep
+  the names they have
+
 - The media browser stopped being about pictures, and now shows what is in a file before you
   open it. A film gets its first frame through the `ffmpeg` binary; a sound gets whatever
   cover art its ID3 tag carries, read here rather than through a dependency. Neither is asked
@@ -43,6 +67,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- A film or a sound picked from a media collection pointed at the field's conversion rather than
+  at the file, wherever `spatie.conversion` was set - a still where the reader asked for the
+  film. A conversion is a picture made from a file, so it is now only ever used for a picture;
+  the same rule keeps a document card from pointing at a JPEG of page one
+
 - A field built on this package was a fatal error on `filament/forms` v5.8, before it drew
   anything. v5.8 gives `RichEditor` a `$maxHeight` of its own, declared `string|Closure|null`,
   and the property here has carried `int` since it was written against a version that had
@@ -64,6 +93,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   carrying `T` always did. `x` and `X` stay out, because what they expand is a year
 
 ### Changed
+
+- `media_library.accepted_file_types` and `->mediaLibraryAcceptedFileTypes()` are replaced by
+  `media_library.types` and `->mediaLibraryTypes()`; neither had shipped in a release. Pictures
+  still follow Filament's `fileAttachmentsAcceptedFileTypes()` unless they are named. Video and
+  audio are the formats a browser can play rather than anything `video/*` or `audio/*`, so a
+  `.mkv` - which no browser plays - is no longer taken
 
 - The two inputs under the grid are gone. The alt text moved into the panel beside the file it
   describes, and the address moved into `+ Add` - which is what the grid looked like it was

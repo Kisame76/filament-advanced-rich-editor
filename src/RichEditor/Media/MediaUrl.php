@@ -23,6 +23,29 @@ class MediaUrl
      */
     public static function for(Media $media, ?string $conversion = null, ?string $visibility = null): ?string
     {
+        // A conversion is a picture made from the file. For a picture that is exactly what a
+        // document should point at; for anything else it is a JPEG of page one where the
+        // reader asked for the report, or a still where they asked for the film.
+        if (! str_starts_with((string) $media->getAttributeValue('mime_type'), 'image/')) {
+            $conversion = null;
+        }
+
+        return static::address($media, $conversion, $visibility);
+    }
+
+    /**
+     * The picture a conversion made from a file, whatever the file is.
+     *
+     * The one place that wants a picture of a document rather than the document: a tile in
+     * the browser, where the first page of a pdf says more than the letters `PDF` do.
+     */
+    public static function picture(Media $media, string $conversion, ?string $visibility = null): ?string
+    {
+        return static::address($media, $conversion, $visibility);
+    }
+
+    protected static function address(Media $media, ?string $conversion, ?string $visibility): ?string
+    {
         $conversion ??= '';
 
         // A private disk has no permanent public URL, so mirror Filament's own behaviour for

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -40,65 +41,63 @@ trait HoldsAMediaLibrary
     protected mixed $mediaLibraryUploadsTo = null;
 
     /**
-     * @var array<int, string>|Closure|null
+     * @var array<string, mixed>|Closure|null
      */
-    protected array|Closure|null $mediaLibraryAcceptedFileTypes = null;
+    protected array|Closure|null $mediaLibraryTypes = null;
 
     /**
-     * What the browser lists and what it accepts an upload of.
+     * What the browser lists and what it accepts an upload of, per family.
+     *
+     * Merged over the configuration one family at a time, so a field that only wants PDFs as
+     * documents says that and nothing else: `['file' => ['pdf']]`. An empty list takes a
+     * family away - `['video' => [], 'audio' => []]` is a browser of pictures and documents.
      *
      * A setting of its own rather than Filament's `fileAttachmentsAcceptedFileTypes()`, and
      * the two are deliberately not the same list. Filament's answer governs the stock upload
      * dialog and, more to the point, the drop-and-paste handler in its compiled JavaScript -
      * and that handler inserts an `image` node for anything it accepts. Widening Filament's
-     * list to let a video through would therefore make a dropped film an `<img>` pointing at
-     * an mp4: valid markup, nothing raises, and the page shows a broken picture.
+     * list to let a video or a pdf through would make a dropped film an `<img>` pointing at
+     * an mp4: valid markup, nothing raises, and the page shows a broken picture. Filament's
+     * list is still where the pictures come from, though - see `getMediaLibraryTypes()`.
      *
-     * So the browser carries its own list, wider by default, and Filament's stays as narrow
-     * as Filament left it.
-     *
-     * @param  array<int, string>|Closure|null  $types
+     * @param  array<string, mixed>|Closure|null  $types
      */
-    public function mediaLibraryAcceptedFileTypes(array|Closure|null $types): static
+    public function mediaLibraryTypes(array|Closure|null $types): static
     {
-        $this->mediaLibraryAcceptedFileTypes = $types;
+        $this->mediaLibraryTypes = $types;
 
         return $this;
     }
 
-    /**
-     * @return array<int, string>
-     */
-    public function getMediaLibraryAcceptedFileTypes(): array
+    public function getMediaLibraryTypes(): LibraryTypes
     {
-        $types = $this->evaluate($this->mediaLibraryAcceptedFileTypes)
-            ?? config('filament-advanced-rich-editor.media_library.accepted_file_types');
+        $configured = config('filament-advanced-rich-editor.media_library.types');
+        $field = $this->evaluate($this->mediaLibraryTypes);
 
-        if (! is_array($types) || $types === []) {
-            // Filament's own answer for pictures, widened with the two families it has no
-            // opinion about. A project that narrowed its list to PNGs meant that, and the
-            // browser has no business overruling it - but nothing in that setting was ever
-            // a statement about video, so those come from here.
-            $pictures = $this->getFileAttachmentsAcceptedFileTypes();
+        $types = [
+            ...(is_array($configured) ? $configured : []),
+            ...(is_array($field) ? $field : []),
+        ];
 
-            $types = ($pictures === [])
-                ? MediaKinds::patterns()
-                : [...$pictures, ...MediaKinds::patterns([MediaKinds::VIDEO, MediaKinds::AUDIO])];
+        // Filament's own answer for pictures, unless somebody named the pictures here. A
+        // project that narrowed its list to PNGs meant that, and the browser has no business
+        // overruling it - but nothing in that setting was ever a statement about video or a
+        // pdf, so those come from the families below.
+        // A Filament list left empty restricts nothing, which for the browser is every picture
+        // it can draw - the family's own default.
+        if (($types[MediaKinds::IMAGE] ?? null) === null) {
+            $types[MediaKinds::IMAGE] = $this->getFileAttachmentsAcceptedFileTypes() ?: null;
         }
-
-        $types = array_values(array_filter($types, is_string(...)));
 
         // A field with the player switched off has no node to put a video in, so offering one
         // in the grid would be offering a file nothing can insert. The two switches are one
         // question asked twice, and this is where they meet.
         if (! $this->hasMedia()) {
-            $types = array_values(array_filter(
-                $types,
-                static fn (string $type): bool => MediaKinds::of($type) === MediaKinds::IMAGE,
-            ));
+            $types[MediaKinds::VIDEO] = [];
+            $types[MediaKinds::AUDIO] = [];
         }
 
-        return $types === [] ? MediaKinds::patterns([MediaKinds::IMAGE]) : $types;
+        return LibraryTypes::make($types);
     }
 
     /**
@@ -355,7 +354,7 @@ trait HoldsAMediaLibrary
             disk: $this->getFileAttachmentsDiskName(),
             directory: (string) $directory,
             visibility: $this->getFileAttachmentsVisibility(),
-            acceptedMimeTypes: $this->getMediaLibraryAcceptedFileTypes(),
+            types: $this->getMediaLibraryTypes(),
             isRecordScoped: blank($library),
         );
     }
@@ -379,7 +378,7 @@ trait HoldsAMediaLibrary
             visibility: $provider->getDefaultFileAttachmentVisibility(),
             poolQuery: $this->mediaLibraryQuery,
             getRecordUsing: fn (): mixed => $owner ?? $this->getRecord(),
-            acceptedMimeTypes: $this->getMediaLibraryAcceptedFileTypes(),
+            types: $this->getMediaLibraryTypes(),
             thumbnailConversion: $this->getMediaLibraryThumbnail(),
             scope: $this->getMediaLibraryScope(),
             // Stands in for the record on a create form, which has none yet - otherwise the

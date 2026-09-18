@@ -49,12 +49,16 @@ it('leaves everything outside its directory alone', function (): void {
     expect(array_column(($this->source)()->page()['items'], 'id'))->toBe(['library/mine.png']);
 });
 
-it('lists only what can be drawn as an image', function (): void {
+it('lists only what the field takes', function (): void {
+    // A text file and an archive are documents now, and become cards. A program and a file
+    // with no ending at all are nothing the browser takes, whatever is lying in the folder.
     ($this->put)('library/picture.png');
-    Storage::disk('public')->put('library/notes.txt', 'not a picture');
-    Storage::disk('public')->put('library/archive.zip', 'not a picture either');
+    Storage::disk('public')->put('library/notes.txt', 'a document');
+    Storage::disk('public')->put('library/setup.exe', 'not a document');
+    Storage::disk('public')->put('library/README', 'no ending at all');
 
-    expect(array_column(($this->source)()->page()['items'], 'id'))->toBe(['library/picture.png']);
+    expect(array_column(($this->source)()->page()['items'], 'id'))
+        ->toEqualCanonicalizing(['library/picture.png', 'library/notes.txt']);
 });
 
 it('offers the folders it holds, and the way back up', function (): void {
@@ -98,10 +102,12 @@ it('refuses a path that climbs out of the library', function (): void {
         ->and($source->has('library\\mine.png'))->toBeTrue();
 });
 
-it('refuses a path that is not an image, even inside the library', function (): void {
-    Storage::disk('public')->put('library/secret.txt', 'not a picture');
+it('refuses a path the field does not take, even inside the library', function (): void {
+    Storage::disk('public')->put('library/.env', 'APP_KEY=secret');
+    Storage::disk('public')->put('library/secret.php', '<?php');
 
-    expect(($this->source)()->has('library/secret.txt'))->toBeFalse();
+    expect(($this->source)()->has('library/.env'))->toBeFalse()
+        ->and(($this->source)()->has('library/secret.php'))->toBeFalse();
 });
 
 it('refuses a path to nothing', function (): void {

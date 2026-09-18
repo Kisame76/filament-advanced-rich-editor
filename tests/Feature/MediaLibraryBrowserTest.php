@@ -6,6 +6,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaPost;
@@ -46,12 +47,12 @@ beforeEach(function (): void {
             ->toMediaCollection($collection);
     };
 
-    $this->source = fn (?Closure $poolQuery = null, ?MediaPost $record = null, string $scope = 'collection', ?array $acceptedMimeTypes = null): SpatieMediaSource => SpatieMediaSource::make(
+    $this->source = fn (?Closure $poolQuery = null, ?MediaPost $record = null, string $scope = 'collection', ?array $images = null): SpatieMediaSource => SpatieMediaSource::make(
         collection: 'rich-editor',
         visibility: 'public',
         poolQuery: $poolQuery,
         getRecordUsing: fn (): MediaPost => $record ?? $this->post,
-        acceptedMimeTypes: $acceptedMimeTypes,
+        types: $images === null ? null : LibraryTypes::make(['image' => $images]),
         scope: $scope,
     );
 
@@ -135,12 +136,18 @@ it('narrows to one model when it is told to', function (): void {
         ->and($source->has((string) $theirs->uuid))->toBeFalse();
 });
 
-it('does not list what is not a picture', function (): void {
-    // The image dialog inserts an `<img>`; offering a PDF there is offering a broken image.
-    ($this->attach)($this->post, name: 'notes', contents: '%PDF-1.4 not a picture', extension: 'pdf');
+it('lists a document as a document, and leaves out what the field does not take', function (): void {
+    // A pdf becomes a card rather than a broken `<img>`, so it has a place in the grid now. A
+    // file nothing here takes still has none: offering it would offer something nothing can
+    // insert.
+    $notes = ($this->attach)($this->post, name: 'notes', contents: '%PDF-1.4 not a picture', extension: 'pdf');
+    ($this->attach)($this->post, name: 'setup', contents: "MZ\x90\x00binary", extension: 'exe');
     $image = ($this->attach)($this->post);
 
-    expect(array_column(($this->source)()->page()['items'], 'id'))->toBe([(string) $image->uuid]);
+    $items = collect(($this->source)()->page()['items'])->keyBy('id');
+
+    expect($items->keys()->all())->toEqualCanonicalizing([(string) $image->uuid, (string) $notes->uuid])
+        ->and($items[(string) $notes->uuid]['kind'])->toBe('file');
 });
 
 it('searches the name and the file name', function (): void {
@@ -175,12 +182,12 @@ it('understands a wildcard in the accepted types', function (): void {
     // the list exactly turned its browser permanently, silently empty.
     $image = ($this->attach)($this->post);
 
-    expect(array_column(($this->source)(acceptedMimeTypes: ['image/*'])->page()['items'], 'id'))
+    expect(array_column(($this->source)(images: ['image/*'])->page()['items'], 'id'))
         ->toBe([(string) $image->uuid])
-        ->and(array_column(($this->source)(acceptedMimeTypes: ['image/png'])->page()['items'], 'id'))
+        ->and(array_column(($this->source)(images: ['image/png'])->page()['items'], 'id'))
         ->toBe([(string) $image->uuid])
         // An exact type that does not match still narrows to nothing, as it always did.
-        ->and(($this->source)(acceptedMimeTypes: ['image/webp'])->page()['items'])->toBe([]);
+        ->and(($this->source)(images: ['image/webp'])->page()['items'])->toBe([]);
 });
 
 it('refuses a pool query that hands back something other than the query', function (): void {

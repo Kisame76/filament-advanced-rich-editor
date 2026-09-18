@@ -65,6 +65,9 @@ class Icons
             // that fetches something from somebody else.
             'media_video' => 'heroicon-o-play-circle',
             'media_audio' => 'heroicon-o-musical-note',
+            // A document: the clip that has meant "attached" for as long as mail has had
+            // attachments, and not a page, which would read as the document being written.
+            'media_file' => 'heroicon-o-paper-clip',
             // The date family. The trigger carries the calendar with its days written on
             // it - the sign for "a date" without being either of the two things under it -
             // and the options carry what each one writes: a bare calendar and a clock.
@@ -189,6 +192,11 @@ class Icons
             'image_delete' => 'heroicon-o-trash',
             'image_locked' => 'heroicon-o-lock-closed',
             'image_unlocked' => 'heroicon-o-lock-open',
+
+            // The bar over a selected document card: the arrows every file manager uses for
+            // swapping one file for another, and the bin the picture bar already uses.
+            'file_replace' => 'heroicon-o-arrow-path',
+            'file_delete' => 'heroicon-o-trash',
         ];
     }
 

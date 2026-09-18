@@ -63,6 +63,18 @@ trait FloatsToolbars
             $toolbars['orderedList'] = [ToolbarListPanel::ordered()];
         }
 
+        // The bar over a selected document card, keyed by the node's name the way the
+        // picture's is: a click on a card selects it whole, and that selection is what
+        // `editor.isActive('file')` answers for.
+        //
+        // Replace only where there is a browser to go back to. Without a pool the browser's
+        // button falls back to Filament's own dialog, which takes pictures only - a Replace
+        // that opened it would be a door onto the wrong room.
+        $toolbars['file'] = [
+            ...($this->getMediaSource() !== null ? ['fileReplace'] : []),
+            'fileDelete',
+        ];
+
         if (! $this->hasImageToolbar()) {
             return $toolbars;
         }

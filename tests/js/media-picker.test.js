@@ -1211,3 +1211,155 @@ describe('deleting what is selected', () => {
         expect(deleteMedia).not.toHaveBeenCalled()
     })
 })
+
+describe('a document', () => {
+    const report = (attributes = {}) =>
+        item({
+            kind: 'file',
+            name: 'report.docx',
+            mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            thumbnail: null,
+            url: '/storage/report.docx',
+            badge: 'DOCX',
+            tint: '#2563eb',
+            ...attributes,
+        })
+
+    it('wears the letters its card will wear, not a slice of its mime type', () => {
+        // Read off the mime, a Word document was badged `VND.`.
+        const component = mount(mediaPicker)
+
+        expect(component.format(report())).toBe('DOCX')
+    })
+
+    it('draws a tile in its card\'s colour, and never its own address as a picture', () => {
+        const component = mount(mediaPicker)
+
+        expect(component.thumbnailOf(report())).toBeNull()
+        expect(component.drawable(report())).toBe(false)
+        expect(component.isPicture(report())).toBe(false)
+        expect(component.tileStyle(report())).toEqual({ backgroundColor: '#2563eb', color: '#ffffff' })
+        // Everything else keeps the sign the stylesheet draws.
+        expect(component.tileStyle(item({ kind: 'video' }))).toEqual({})
+    })
+
+    it('has no description field, since nothing would read one', () => {
+        const component = mount(mediaPicker)
+
+        component.items = [report({ id: 'a' })]
+        component.picked = 'a'
+
+        expect(component.describable).toBe(false)
+
+        component.items = [item({ id: 'b' })]
+        component.picked = 'b'
+
+        expect(component.describable).toBe(true)
+    })
+})
+
+describe('an upload that is refused', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+        delete window.Alpine
+    })
+
+    const withPond = () => {
+        const handlers = {}
+        const pond = {
+            browse: vi.fn(),
+            addFiles: vi.fn(async () => []),
+            removeFile: vi.fn(),
+            on: (event, callback) => {
+                handlers[event] = callback
+            },
+        }
+
+        const modal = document.createElement('div')
+        modal.className = 'fi-modal'
+
+        const root = document.createElement('div')
+        const uploader = document.createElement('div')
+        uploader.className = 'fi-arte-media-uploader'
+
+        modal.append(root, uploader)
+        document.body.append(modal)
+
+        window.Alpine = { $data: (element) => (element === uploader ? { pond } : null) }
+
+        return { handlers, pond, root }
+    }
+
+    it('says which files the server let go of, until it is dismissed', async () => {
+        const fetchPage = vi.fn()
+            .mockResolvedValueOnce(page({ rejected: ['page.html'] }))
+            .mockResolvedValueOnce(page({ rejected: [] }))
+        const component = mount(mediaPicker, { fetchPage })
+
+        await component.load()
+
+        expect(component.rejected).toEqual(['page.html'])
+
+        // The server says it once, when it lets go of the file; the next page must not make
+        // the note disappear before anybody read it.
+        await component.load()
+
+        expect(component.rejected).toEqual(['page.html'])
+
+        component.dismissRejected()
+
+        expect(component.rejected).toEqual([])
+    })
+
+    it('names a file the upload widget turned away before it travelled, and lets go of it', () => {
+        // Kept, it would mark the widget's own input invalid - and a form holding an invalid
+        // input refuses to submit, without a word, since the widget is off screen.
+        const { handlers, pond, root } = withPond()
+        const component = mount(mediaPicker, {}, { root })
+
+        component.watchUploads()
+
+        handlers.addfile({ main: 'File is of invalid type' }, { id: 'one', filename: 'setup.exe' })
+        handlers.addfile(null, { id: 'two', filename: 'report.pdf' })
+
+        expect(component.rejected).toEqual(['setup.exe'])
+        expect(pond.removeFile).toHaveBeenCalledExactlyOnceWith('one')
+    })
+
+    it('names a file that failed on its way, lets go of it, and does not go looking for it', async () => {
+        const fetchPage = vi.fn(async () => page())
+        const { handlers, pond, root } = withPond()
+        const component = mount(mediaPicker, { fetchPage }, { root })
+
+        component.watchUploads()
+
+        await handlers.processfile({ main: 'Upload failed' }, { id: 'big', filename: 'huge.zip' })
+
+        expect(component.rejected).toEqual(['huge.zip'])
+        expect(pond.removeFile).toHaveBeenCalledExactlyOnceWith('big')
+        expect(fetchPage).not.toHaveBeenCalled()
+    })
+
+    it('does not leave a refused drop as an error nobody handles', () => {
+        // The widget answers a drop holding one refused file by rejecting the whole promise;
+        // the refusal is already told through `addfile`, so the promise has nothing to add -
+        // and left alone it is an unhandled rejection in the console on every refused drop.
+        const { pond, root } = withPond()
+        const added = { catch: vi.fn() }
+        pond.addFiles = vi.fn(() => added)
+
+        const component = mount(mediaPicker, {}, { root })
+
+        component.onDrop({
+            dataTransfer: { files: [new File(['x'], 'page.html')] },
+            preventDefault: () => {},
+        })
+
+        expect(pond.addFiles).toHaveBeenCalledOnce()
+        expect(added.catch).toHaveBeenCalledOnce()
+    })
+})

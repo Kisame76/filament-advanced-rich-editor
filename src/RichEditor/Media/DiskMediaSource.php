@@ -31,33 +31,35 @@ use Throwable;
 class DiskMediaSource implements MediaSource
 {
     /**
-     * @param  array<int, string>|null  $acceptedMimeTypes  null accepts every family this package draws
+     * @param  LibraryTypes|null  $types  what the pool holds; null is every family at its default
      */
     final public function __construct(
         protected ?string $disk = null,
         protected string $directory = '',
         protected ?string $visibility = null,
-        protected ?array $acceptedMimeTypes = null,
+        protected ?LibraryTypes $types = null,
         protected bool $isRecordScoped = false,
     ) {}
 
-    /**
-     * @param  array<int, string>|null  $acceptedMimeTypes
-     */
     public static function make(
         ?string $disk = null,
         string $directory = '',
         ?string $visibility = null,
-        ?array $acceptedMimeTypes = null,
+        ?LibraryTypes $types = null,
         bool $isRecordScoped = false,
     ): static {
         return app(static::class, [
             'disk' => $disk,
             'directory' => $directory,
             'visibility' => $visibility,
-            'acceptedMimeTypes' => $acceptedMimeTypes,
+            'types' => $types,
             'isRecordScoped' => $isRecordScoped,
         ]);
+    }
+
+    protected function library(): LibraryTypes
+    {
+        return $this->types ??= LibraryTypes::make();
     }
 
     public function hasFolders(): bool
@@ -106,7 +108,7 @@ class DiskMediaSource implements MediaSource
         // Emptied of blanks: an embed has no mime type, and offering one in the filter
         // beside the tabs would be a filter that calls a video a JSON document.
         $types = array_values(array_unique(array_filter(array_map(
-            fn (array $file): string => $this->mimeOf((string) $file['path']),
+            fn (array $file): string => (($file['kind'] ?? null) === MediaKinds::EMBED) ? '' : $this->mimeOf((string) $file['path']),
             $files,
         ))));
 
@@ -373,7 +375,7 @@ class DiskMediaSource implements MediaSource
 
     protected function mimeOf(string $path): string
     {
-        return MediaKinds::mimeOf($path);
+        return $this->library()->mimeOf($path);
     }
 
     public function has(mixed $id): bool
@@ -429,7 +431,7 @@ class DiskMediaSource implements MediaSource
         return $this->item([
             'path' => $path,
             'name' => basename($path),
-            'kind' => MediaKinds::ofPath($path),
+            'kind' => $this->library()->kindOfPath($path),
             'size' => $size,
             'timestamp' => $timestamp,
         ]);
@@ -520,32 +522,17 @@ class DiskMediaSource implements MediaSource
             return false;
         }
 
-        // Only what a browser can draw or play, whatever else is lying in the directory. A
-        // grid is a grid of things that can be inserted, and the ones that cannot are not
-        // hidden out of tidiness - offering them would insert a player nobody can start.
-        $mime = MediaKinds::mimeOf($path);
-
-        if ($mime === '') {
+        // The description written beside a file. Only an issue where a project takes JSON as
+        // a document - otherwise its ending already keeps it out - but then `report.pdf.json`
+        // would be listed as a second, stranger copy of the report.
+        if (Sidecar::isSidecar($path)) {
             return false;
         }
 
-        if ($this->acceptedMimeTypes === null || $this->acceptedMimeTypes === []) {
-            return true;
-        }
-
-        foreach ($this->acceptedMimeTypes as $accepted) {
-            // `image/*` is as valid a value on Filament's own setter as `image/png` is, so both
-            // spellings have to mean what they say here.
-            $matches = str_ends_with($accepted, '/*')
-                ? str_starts_with($mime, substr($accepted, 0, -1))
-                : $mime === $accepted;
-
-            if ($matches) {
-                return true;
-            }
-        }
-
-        return false;
+        // Only what the field offers, whatever else is lying in the directory. A grid is a
+        // grid of things that can be inserted, and a file nothing here takes is not hidden
+        // out of tidiness: it is not in the pool, so a stored id must not reach it either.
+        return $this->library()->kindOfPath($path) !== null;
     }
 
     /**
@@ -625,7 +612,7 @@ class DiskMediaSource implements MediaSource
                     'path' => $path,
                     'name' => basename($path),
                     // Read once here rather than off the name again in three places below.
-                    'kind' => MediaKinds::ofPath($path),
+                    'kind' => $this->library()->kindOfPath($path),
                     'size' => (int) ($entry->fileSize() ?? 0),
                     'timestamp' => (int) ($entry->lastModified() ?? 0),
                 ];
@@ -677,19 +664,25 @@ class DiskMediaSource implements MediaSource
         }
 
         $url = $this->url($path);
-        $kind = MediaKinds::ofPath($path);
+        $kind = $this->library()->kindOfPath($path);
+
+        // What a person reads: the name without the random part an upload was stored with.
+        // The id keeps the whole of it, since that is where the file actually is.
+        $name = FileNames::display((string) $file['name']);
 
         return [
             'id' => $path,
             'url' => $url,
             // A picture is its own thumbnail on a disk, which has no conversions to ask for.
             // A film and a sound get a cover made for them the first time they are listed,
-            // and a badge until then - see `thumbnail()`.
+            // and a badge until then - see `thumbnail()`. A document has neither, and gets
+            // the tile its card will wear.
             'thumbnail' => $this->thumbnail($path, $kind, $covers),
-            'name' => (string) $file['name'],
-            'fileName' => (string) $file['name'],
+            'name' => $name,
+            'fileName' => $name,
             'mime' => $this->mimeOf($path),
             'kind' => $kind,
+            ...($kind === MediaKinds::FILE ? FileTypes::tile($name) : []),
             'size' => (int) ($file['size'] ?? 0),
             'folder' => $this->parentOf($path),
             'createdAt' => $timestamp > 0 ? date('Y-m-d H:i:s', $timestamp) : null,
@@ -718,7 +711,9 @@ class DiskMediaSource implements MediaSource
             return $this->url($path);
         }
 
-        if ($kind === null) {
+        // Only a film and a sound have a picture inside them to find. Anything else would be
+        // copied somewhere local and marked as tried on its first listing, for nothing.
+        if (! in_array($kind, [MediaKinds::VIDEO, MediaKinds::AUDIO], strict: true)) {
             return null;
         }
 

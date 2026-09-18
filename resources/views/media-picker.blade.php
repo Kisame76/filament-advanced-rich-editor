@@ -224,6 +224,24 @@
         </div>
 
         {{--
+            What was turned away, by name, until somebody dismisses it. The upload widget
+            draws its own complaint, but the widget is kept off screen - without this a
+            refused file simply never turned up, which reads as the dialog having lost it.
+        --}}
+        <div x-show="rejected.length > 0" x-cloak class="fi-arte-media-rejected" role="status">
+            <span x-text="`${labels.rejected} ${rejected.join(', ')}`"></span>
+
+            <x-filament::icon-button
+                icon="heroicon-m-x-mark"
+                color="gray"
+                size="sm"
+                x-on:click="dismissRejected()"
+                x-bind:label="labels.dismiss"
+                x-bind:title="labels.dismiss"
+            />
+        </div>
+
+        {{--
             The library is the dropzone. A separate one under it would be a second place to
             look, and it would sit exactly where the pictures somebody is comparing want to be.
         --}}
@@ -306,9 +324,15 @@
                                 `<img>` anyway is a broken-image icon in a grid, which reads
                                 as a broken library rather than as a film.
                             --}}
+                            {{--
+                                A document is drawn in its card's colour, with its card's
+                                letters, so the tile and the card it becomes look like the
+                                same thing.
+                            --}}
                             <span
                                 x-show="! drawable(item)"
                                 x-bind:class="`fi-arte-media-item-sign fi-arte-media-item-sign-${item.kind ?? 'file'}`"
+                                x-bind:style="tileStyle(item)"
                                 class="fi-arte-media-item-sign"
                                 aria-hidden="true"
                             >
@@ -453,6 +477,27 @@
                             ></iframe>
                         </template>
 
+                        {{--
+                            A document has nothing to play and usually nothing to draw: the
+                            tile its card will wear, large - or the picture the model's
+                            conversion made of it, where there is one.
+                        --}}
+                        <img
+                            x-show="(selected.kind ?? '') === 'file' && selected.thumbnail"
+                            x-bind:src="selected.thumbnail"
+                            x-bind:alt="selected.name"
+                            decoding="async"
+                            class="fi-arte-media-preview"
+                        />
+
+                        <span
+                            x-show="(selected.kind ?? '') === 'file' && ! selected.thumbnail"
+                            x-bind:style="tileStyle(selected)"
+                            x-text="format(selected)"
+                            class="fi-arte-media-preview fi-arte-media-preview-file"
+                            aria-hidden="true"
+                        ></span>
+
                         <audio
                             x-show="(selected.kind ?? '') === 'audio'"
                             x-effect="if ((selected?.kind ?? '') !== 'audio') { $el.pause() }"
@@ -472,7 +517,7 @@
                             line, and it is finished the moment focus moves.
                         --}}
                         @if ($isDescribable)
-                            <label class="fi-arte-media-describe">
+                            <label x-show="describable" class="fi-arte-media-describe">
                                 <span x-text="descriptionLabel"></span>
 
                                 <x-filament::input.wrapper>
@@ -503,7 +548,7 @@
                                 <dt x-text="labels.size"></dt>
                                 <dd x-text="bytes(selected.size)"></dd>
                             </div>
-                            <div x-show="! isEmbed(selected)">
+                            <div x-show="! isEmbed(selected) && (selected.kind ?? '') !== 'file'">
                                 <dt x-text="labels.dimensions"></dt>
                                 <dd x-text="pixels(selected) ?? '—'"></dd>
                             </div>

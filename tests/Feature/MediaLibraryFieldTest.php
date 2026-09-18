@@ -283,7 +283,7 @@ it('does not guard a field that is not browsing anything', function (): void {
 
 it('hands the browser an empty page while it is switched off', function (): void {
     expect(editor()->mediaLibrary(false)->getMediaLibraryPageForJs())
-        ->toBe(['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => [], 'perPage' => 40]);
+        ->toBe(['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => [], 'perPage' => 40, 'rejected' => []]);
 });
 
 it('keeps the page size within reach', function (): void {

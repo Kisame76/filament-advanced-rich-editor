@@ -15,8 +15,10 @@ use Filament\Support\Enums\Width;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\MediaPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ByteSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Embeds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ImageAttributes;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MediaUrl;
 
@@ -80,8 +82,51 @@ class MediaLibraryAction
             return $kind;
         }
 
+        $url = is_string($item['url'] ?? null) ? $item['url'] : null;
+
         return MediaKinds::of(is_string($item['mime'] ?? null) ? $item['mime'] : null)
-            ?? MediaUrl::guess(is_string($item['url'] ?? null) ? $item['url'] : null);
+            ?? MediaUrl::guess($url)
+            ?? static::documentAt($url);
+    }
+
+    /**
+     * Whether an address somebody typed names a document: an ending that is not a picture, a
+     * film or a sound, and not one that would run as a site.
+     *
+     * Not measured against the field's list of documents. That list says what may be put in
+     * the library, and a link to somebody else's server puts nothing there - it is a card
+     * pointing away, which is what a link to a pdf is anyway.
+     */
+    protected static function documentAt(?string $url): ?string
+    {
+        $path = is_string($url) ? parse_url($url, PHP_URL_PATH) : null;
+        $ending = LibraryTypes::endingOf(is_string($path) ? $path : null);
+
+        return (($ending !== '') && ! in_array($ending, LibraryTypes::DENIED, strict: true))
+            ? MediaKinds::FILE
+            : null;
+    }
+
+    /**
+     * What a card calls the file: the name it is known by, with its ending.
+     *
+     * A media collection keeps the name without the ending - `Quartalsbericht Q3` - and a card
+     * showing that, or a download saved under it, is a file of no kind. The ending comes off
+     * the file name beside it.
+     *
+     * @param  array<string, mixed>|null  $item
+     */
+    protected static function cardName(?array $item): ?string
+    {
+        $name = $item['name'] ?? null;
+
+        if (! is_string($name) || blank($name)) {
+            return null;
+        }
+
+        $ending = LibraryTypes::endingOf(is_string($item['fileName'] ?? null) ? $item['fileName'] : null);
+
+        return ((LibraryTypes::endingOf($name) === '') && ($ending !== '')) ? "{$name}.{$ending}" : $name;
     }
 
     /**
@@ -250,7 +295,15 @@ class MediaLibraryAction
                     // governs its dialog AND its compiled drop handler, and that handler
                     // inserts an `image` node for anything it accepts - so widening it would
                     // make a dropped film an `<img>` pointing at an mp4.
-                    ->acceptedFileTypes($component->getMediaLibraryAcceptedFileTypes())
+                    //
+                    // A coarse gate: the widget asks what the browser calls a file. What its
+                    // bytes say is checked when the grid adopts it, and a refused one is
+                    // taken out of this field again - see `adoptMountedUploads()`. None where
+                    // documents take every ending, which no list of types can say.
+                    ->when(
+                        $component->getMediaLibraryTypes()->mimeTypes(),
+                        static fn (FileUpload $upload, array $types): FileUpload => $upload->acceptedFileTypes($types),
+                    )
                     ->maxSize($component->getFileAttachmentsMaxSize())
                     // Held as a temporary upload and handed to the provider on save, exactly as
                     // Filament's own dialog does it - the whole upload path is unchanged, it has
@@ -348,6 +401,42 @@ class MediaLibraryAction
 
                     $component->runCommands(
                         [EditorCommand::make('setEmbed', arguments: [$embed])],
+                        editorSelection: $arguments['editorSelection'],
+                    );
+
+                    return;
+                }
+
+                // A document, which becomes a card: something to take away rather than
+                // something drawn. Before the reopen branch for the reason the embed is - a
+                // pdf chosen while the caret is on a picture replaces the picture, since an
+                // `<img>` cannot be turned into a card by writing attributes at it.
+                if ($kind === MediaKinds::FILE) {
+                    if (blank($src)) {
+                        return;
+                    }
+
+                    // Opened from the card's own bar, so the card is what gets replaced. The
+                    // selection can arrive described as a caret just past it rather than as the
+                    // card - the same thing the image branch below corrects - and the new card
+                    // would then land beside the old one instead of in its place.
+                    if ((($arguments['replace'] ?? null) === 'file') && is_array($arguments['editorSelection'] ?? null) && (($arguments['editorSelection']['type'] ?? null) !== 'node')) {
+                        $arguments['editorSelection']['type'] = 'node';
+                        $arguments['editorSelection']['anchor']--;
+
+                        unset($arguments['editorSelection']['head']);
+                    }
+
+                    $component->runCommands(
+                        [EditorCommand::make('setFile', arguments: [[
+                            'src' => $src,
+                            // Carried so the save can tell a file that is still in use from
+                            // one nothing points at any more - the same reason a player has it.
+                            'id' => $id,
+                            'name' => static::cardName($item),
+                            // Written once, as the label a reader sees - see `ByteSize`.
+                            'size' => ByteSize::format($item['size'] ?? null),
+                        ]])],
                         editorSelection: $arguments['editorSelection'],
                     );
 

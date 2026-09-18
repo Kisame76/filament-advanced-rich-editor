@@ -32,6 +32,16 @@ class Sidecar
     }
 
     /**
+     * Whether a path is one of these rather than a file of its own: a JSON document named
+     * after another file, ending and all. Read off the name, because a listing that opened
+     * every JSON file to find out would be a request per row.
+     */
+    public static function isSidecar(string $path): bool
+    {
+        return preg_match('/\.[a-z0-9]{1,16}\.json$/i', basename($path)) === 1;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function read(Filesystem $disk, string $path): array

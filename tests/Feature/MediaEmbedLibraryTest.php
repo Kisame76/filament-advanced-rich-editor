@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Embeds;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaPost;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -195,7 +196,7 @@ it('keeps an embed row out of a library narrowed to pictures', function (): void
         collection: 'rich-editor',
         visibility: 'public',
         getRecordUsing: fn (): MediaPost => $post,
-        acceptedMimeTypes: ['image/png'],
+        types: LibraryTypes::make(['image' => ['image/png']]),
     )->page();
 
     expect($page['items'])->toHaveCount(1);

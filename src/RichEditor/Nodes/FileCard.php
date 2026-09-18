@@ -199,6 +199,10 @@ class FileCard extends Node
         return [
             [
                 'tag' => 'a[download]',
+                // Above the link mark's rule, which takes the same `<a>` by its `href`. This
+                // parser asks nodes first and would not need it; the editor's does not, and the
+                // two halves read a card by the same rule.
+                'priority' => 60,
                 // An address this package will not point at is not a card - it is a link
                 // somebody else owns, and handing it back untouched is the only safe answer.
                 'getAttrs' => static fn ($DOMNode) => ($DOMNode instanceof DOMElement)

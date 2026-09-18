@@ -530,7 +530,7 @@ return [
                 'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
-                'image', 'attachFiles', 'embed', 'video', 'audio', 'table', 'horizontalRule', 'details',
+                'image', 'attachFiles', 'embed', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
                 'emoji', 'characters',
                 'dateTime', 'customBlocks', 'mergeTags',
             ],
@@ -1262,28 +1262,36 @@ return [
     | Media library
     |--------------------------------------------------------------------------
     | The 'mediaBrowser' button — the one on the shipped bar — opens a browser of the
-    | files that are already on the server, with tabs for pictures, video and audio, a
-    | field for an address somebody else hosts, and uploading built into the grid.
-    | 'image' is the same door under its older name, kept so an existing bar does not
-    | break. Neither of them is Filament's 'attachFiles': that action is left alone and
-    | can be put on any bar to get the plain upload dialog beside the browser. A field
-    | with nothing browsable behind it — a foreign attachment provider, a disk with no
-    | directory of its own — registers no browser, and both buttons then name
-    | Filament's dialog. Picking a file stores what an upload
-    | would have stored — a media UUID, or a storage path on a field without a media
-    | collection — so one file can back any number of references and nothing is
-    | copied. Size and rotation stay on the image node, never on the file.
+    | files that are already on the server, with tabs for pictures, video, audio and
+    | documents, a field for an address somebody else hosts, and uploading built into
+    | the grid. 'image' is the same door under its older name, kept so an existing bar
+    | does not break, and 'file' opens it on the documents. None of them is Filament's
+    | 'attachFiles': that action is left alone and can be put on any bar to get the
+    | plain upload dialog beside the browser. A field with nothing browsable behind it —
+    | a foreign attachment provider, a disk with no directory of its own — registers no
+    | browser, and the buttons then name Filament's dialog. Picking a file stores what an
+    | upload would have stored — a media UUID, or a storage path on a field without a
+    | media collection — so one file can back any number of references and nothing is
+    | copied. A picture becomes an image, a film or a sound a player, and a document a
+    | download card. Size and rotation stay on the image node, never on the file.
     |
-    | Out of the box the browser is a shared library: it shows every picture in the
+    | Out of the box the browser is a shared library: it shows every file in the
     | collection the field uploads to, whichever record or model owns it. That is what
-    | the browser is for — a picture uploaded for one article is the picture the next
-    | one wants — and it is the 'scope' setting below. Narrow it with
-    | `'scope' => 'record'` where each record should only see its own.
+    | the browser is for — a pdf uploaded for one article is the pdf the next one links
+    | to, rather than a second copy of it — and it is the 'scope' setting below. Narrow
+    | it with `'scope' => 'record'` where each record should only see its own.
     |
-    | Sharing has one consequence worth knowing before you ship it: removing a picture
-    | from a document no longer deletes the file. It cannot — the uuid may equally be
+    | Without a media collection the browser lists a directory on the field's disk, and
+    | stores what is uploaded through it under the name it came with — made safe for an
+    | address, with six random characters after it: `quartalsbericht-q3--7kq2xm.pdf`. The
+    | name is what the grid, the search and a document card show, and a hash is none of
+    | those; the random part is what keeps the address from being guessed. The browser
+    | shows it without them.
+    |
+    | Sharing has one consequence worth knowing before you ship it: removing a file
+    | from a document no longer deletes it. It cannot — the uuid may equally be
     | sitting in another record's content, which nothing here can see, so deleting it
-    | would take that record's picture away too. A shared library is therefore tidied
+    | would take that record's file away too. A shared library is therefore tidied
     | deliberately, with `spatie/laravel-medialibrary`'s own cleanup commands or by
     | hand. `'scope' => 'record'` restores automatic clean-up, because then nothing
     | else can be holding the uuid.
@@ -1300,19 +1308,45 @@ return [
     | field on its own `fileAttachmentsDirectory()`. Per field: `->mediaLibrary()`.
     */
     'media_library' => [
-        // What the browser lists and accepts an upload of, as mime types or `image/*`
-        // patterns. Null means every family this package can draw: pictures, video, audio.
-        //
-        // Deliberately NOT Filament's `fileAttachmentsAcceptedFileTypes()`. That list also
-        // governs Filament's compiled drop-and-paste handler, which inserts an `image` node
-        // for anything it accepts — so widening it would turn a film dropped into the editor
-        // into an `<img>` pointing at an mp4. Per field: `->mediaLibraryAcceptedFileTypes()`.
-        //
-        // A fresh upload is shown through Livewire's temporary preview URL until the form is
-        // saved, and Livewire only hands one out for the extensions in its own
-        // `temporary_file_upload.preview_mimes`. The package adds every extension it draws to
-        // that list at boot, so nothing has to be copied there by hand.
-        'accepted_file_types' => null,
+        /*
+         * What the browser lists and takes an upload of, one list per family. A family left
+         * out, or set to null, gets the list shown here; an empty list takes it away, tab and
+         * upload together.
+         *
+         *   'image'  null follows Filament's own `fileAttachmentsAcceptedFileTypes()` - a
+         *            project that narrowed its pictures to PNGs meant that. Or name them:
+         *            endings (`'png'`), mime types (`'image/png'`) or `'image/*'`.
+         *   'video'  and 'audio' the same way; shipped as the formats a browser can play.
+         *   'file'   documents, which become a download card. Named by their ending alone,
+         *            because a mime type says nothing a person could pick a document by -
+         *            `application/*` holds a pdf and a program alike. Shipped as exactly the
+         *            endings the card has a colour for. `['*']` takes every ending.
+         *
+         * A document is taken when its content agrees with the ending it came under, and it
+         * is stored under that ending - so what arrives as `.pdf` is served as a pdf. Some
+         * endings are never taken, whatever this list says, because a server or a browser
+         * would run them as your site: php and its relatives, html, svg, xml and js. The full
+         * list is `LibraryTypes::DENIED`.
+         *
+         * Deliberately NOT Filament's `fileAttachmentsAcceptedFileTypes()`. That list also
+         * governs Filament's compiled drop-and-paste handler, which inserts an `image` node
+         * for anything it accepts — so widening it would turn a film or a pdf dropped into the
+         * editor into an `<img>` pointing at it.
+         *
+         * Per field, merged one family at a time: `->mediaLibraryTypes(['file' => ['pdf']])`
+         * keeps pictures, video and audio as they are and takes pdfs as the only documents.
+         */
+        'types' => [
+            'image' => null,
+            'video' => ['mp4', 'webm', 'mov', 'm4v', 'ogv'],
+            'audio' => ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'weba'],
+            'file' => [
+                'pdf', 'doc', 'docx', 'odt', 'rtf', 'pages', 'txt', 'md',
+                'xls', 'xlsx', 'ods', 'csv', 'tsv', 'numbers',
+                'ppt', 'pptx', 'odp', 'key',
+                'zip', '7z', 'rar', 'gz', 'bz2', 'tar',
+            ],
+        ],
 
         'enabled' => true,
 
@@ -1320,10 +1354,10 @@ return [
          * How far the browser looks with a media collection. Three settings, each narrower than
          * the last:
          *
-         *   'collection'  every picture in the collection the field uploads to, whichever
+         *   'collection'  every file in the collection the field uploads to, whichever
          *                 record or model owns it — the default, because the collection *is*
          *                 the library. An article and a post uploading to 'rich-editor' draw
-         *                 from one pool instead of each fetching the same picture again;
+         *                 from one pool instead of each fetching the same file again;
          *                 separate libraries are separate collections.
          *   'model'       only the records of the model being edited.
          *   'record'      only the record in front of you.
@@ -1453,6 +1487,7 @@ return [
         'embed' => 'heroicon-o-film',
         'media_video' => 'heroicon-o-play-circle',
         'media_audio' => 'heroicon-o-musical-note',
+        'media_file' => 'heroicon-o-paper-clip',
         // The date family: the calendar with its days as the sign for the whole thing, and
         // a bare calendar and a clock for the two options under it.
         'date_time' => 'heroicon-o-calendar-days',
@@ -1550,6 +1585,10 @@ return [
         'image_delete' => 'heroicon-o-trash',
         'image_locked' => 'heroicon-o-lock-closed',
         'image_unlocked' => 'heroicon-o-lock-open',
+
+        // The bar over a selected document card.
+        'file_replace' => 'heroicon-o-arrow-path',
+        'file_delete' => 'heroicon-o-trash',
     ],
 
     /*

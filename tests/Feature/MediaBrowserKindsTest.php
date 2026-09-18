@@ -53,21 +53,22 @@ it('spells the families as patterns, which is what an accepted-types list takes'
         ->and(MediaKinds::patterns(['audio', 'image']))->toBe(['image/*', 'audio/*']);
 });
 
-it('lists a video beside a picture, and leaves alone what it cannot draw', function (): void {
+it('lists a video and a document beside a picture, and leaves alone what it does not take', function (): void {
     Storage::fake('public');
     Storage::disk('public')->put('library/sunset.png', 'x');
     Storage::disk('public')->put('library/talk.mp4', 'x');
     Storage::disk('public')->put('library/talk.mp3', 'x');
     Storage::disk('public')->put('library/notes.pdf', 'x');
+    Storage::disk('public')->put('library/clip.mkv', 'x');
 
     $page = editor()->mediaLibraryDirectory('library')->getMediaSource()->page();
 
     $names = array_column($page['items'], 'name');
 
-    expect($names)->toContain('sunset.png', 'talk.mp4', 'talk.mp3')
+    expect($names)->toContain('sunset.png', 'talk.mp4', 'talk.mp3', 'notes.pdf')
         // A player nothing can start is worse than a file that is not offered.
-        ->and($names)->not->toContain('notes.pdf')
-        ->and($page['kinds'])->toBe(['image', 'video', 'audio']);
+        ->and($names)->not->toContain('clip.mkv')
+        ->and($page['kinds'])->toBe(['image', 'video', 'audio', 'file']);
 });
 
 it('says which family each row is, and gives a thumbnail only to a picture', function (): void {
@@ -102,36 +103,37 @@ it('narrows the grid to one family when a tab is chosen', function (): void {
 
 it('keeps the picture rule the field already stated and widens the rest', function (): void {
     // Filament's answer governs pictures and a project may have narrowed it on purpose; it
-    // never said anything about video, so those two families come from here.
-    expect(editor()->getMediaLibraryAcceptedFileTypes())
-        ->toBe(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'video/*', 'audio/*']);
+    // never said anything about video or a pdf, so those families come from here.
+    expect(editor()->getMediaLibraryTypes()->patternsOf('image'))
+        ->toBe(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
+        ->and(editor()->getMediaLibraryTypes()->endingsOf('video'))->toContain('mp4', 'webm');
 
-    expect(editor()->fileAttachmentsAcceptedFileTypes(['image/png'])->getMediaLibraryAcceptedFileTypes())
-        ->toBe(['image/png', 'video/*', 'audio/*']);
+    expect(editor()->fileAttachmentsAcceptedFileTypes(['image/png'])->getMediaLibraryTypes()->patternsOf('image'))
+        ->toBe(['image/png']);
 });
 
-it('offers only pictures where the player is off', function (): void {
+it('offers pictures and documents where the player is off', function (): void {
     // The two switches are one question asked twice: a field with no node to put a video in
-    // has no business offering one in the grid, and what is left is exactly Filament's list.
-    expect(editor()->media(false)->getMediaLibraryAcceptedFileTypes())
-        ->toBe(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+    // has no business offering one in the grid. A document is a card, which needs no player.
+    expect(editor()->media(false)->getMediaLibraryTypes()->kinds())->toBe(['image', 'file']);
 });
 
 it('lets the browser be given a list of its own', function (): void {
-    expect(editor()->mediaLibraryAcceptedFileTypes(['image/png'])->getMediaLibraryAcceptedFileTypes())
+    expect(editor()->mediaLibraryTypes(['image' => ['image/png']])->getMediaLibraryTypes()->patternsOf('image'))
         ->toBe(['image/png']);
 
-    config()->set('filament-advanced-rich-editor.media_library.accepted_file_types', ['video/*']);
+    config()->set('filament-advanced-rich-editor.media_library.types.video', []);
 
-    expect(editor()->getMediaLibraryAcceptedFileTypes())->toBe(['video/*']);
+    expect(editor()->getMediaLibraryTypes()->kinds())->toBe(['image', 'audio', 'file']);
 });
 
 it('keeps Filament its own narrow list, which the drop handler reads', function (): void {
-    // Widening this one would make a film dropped into the editor an `<img>` pointing at an
-    // mp4: Filament's compiled handler inserts an image node for anything it accepts.
+    // Widening this one would make a film or a pdf dropped into the editor an `<img>`
+    // pointing at it: Filament's compiled handler inserts an image node for anything it
+    // accepts.
     expect(editor()->getFileAttachmentsAcceptedFileTypes())
-        ->not->toContain('video/*')
-        ->and(editor()->getMediaLibraryAcceptedFileTypes())->toContain('video/*');
+        ->not->toContain('video/*', 'application/pdf')
+        ->and(editor()->getMediaLibraryTypes()->mimeTypes())->toContain('video/*', 'application/pdf');
 });
 
 it('counts a player as something that carries a file', function (): void {
@@ -203,18 +205,24 @@ it('reads a typed address past its query string', function (): void {
     expect(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/talk.mp4?token=abc']))->toBe('video')
         ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/talk.mp3#t=10']))->toBe('audio')
         ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/photo.png']))->toBe('image')
-        // Nothing in the ending says anything, so nothing is claimed.
-        ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/download']))->toBeNull();
+        // A document somebody else hosts is a card pointing away.
+        ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/files/report.pdf?v=2']))->toBe('file')
+        // Nothing in the ending says anything, so nothing is claimed ...
+        ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/download']))->toBeNull()
+        // ... and a page is not a document to take away.
+        ->and(MediaLibraryAction::kindOf(['url' => 'https://cdn.test/about.html']))->toBeNull();
 });
 
-it('knows three families of file and a fourth thing that is not a file', function (): void {
+it('knows three drawn families, the documents, and a thing that is not a file', function (): void {
     // `families()` is what builds a mime filter; `all()` is what the tabs are drawn from. An
-    // embed has no extension and no mime type, so it may never reach the first of those - a
-    // `LIKE 'embed/%'` matches nothing and would quietly empty a query.
+    // embed has no extension and no mime type, and a document no family prefix, so neither
+    // may ever reach the first of those - a `LIKE 'embed/%'` or a `file/*` matches nothing
+    // and would quietly empty a query.
     expect(MediaKinds::families())->toBe(['image', 'video', 'audio'])
-        ->and(MediaKinds::all())->toBe(['image', 'video', 'audio', 'embed'])
+        ->and(MediaKinds::all())->toBe(['image', 'video', 'audio', 'file', 'embed'])
         ->and(MediaKinds::patterns())->toBe(['image/*', 'video/*', 'audio/*'])
-        ->and(MediaKinds::patterns([MediaKinds::EMBED]))->toBe([])
+        ->and(MediaKinds::patterns([MediaKinds::EMBED, MediaKinds::FILE]))->toBe([])
+        ->and(array_keys(MediaKinds::TYPES))->not->toContain('file')
         // And nothing reads it off a name or a mime type, because there is neither.
         ->and(MediaKinds::of('embed/youtube'))->toBeNull()
         ->and(MediaKinds::ofPath('something.embed.json'))->toBeNull()

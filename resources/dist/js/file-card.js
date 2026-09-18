@@ -188,6 +188,23 @@ export const fileCard = (attrs) => {
     }
 }
 
+/**
+ * The rule for the bar over a selected card, in place of Filament's.
+ *
+ * Filament gives the paragraph's bar the right of way whenever a selection is not empty
+ * inside a paragraph, and a card is inline - always inside one - so under that rule the
+ * card's bar is drawn into the markup and never shown. What matters is simpler: is a card
+ * what is selected. Focus inside the bar counts, so pressing Replace does not take the bar
+ * away before the press lands. The picture's bar is corrected the same way, in
+ * `image-resize.js`.
+ */
+export const fileToolbarVisibility =
+    () =>
+    ({ editor, element }) =>
+        editor?.state?.selection?.node?.type?.name === 'file' &&
+        (editor.isFocused === true ||
+            element?.contains(element.ownerDocument?.activeElement) === true)
+
 /** The text of the one child carrying a class, or null. Mirrors `FileCard::textOf`. */
 const textOf = (element, className) => {
     const span = element?.querySelector?.(`span.${className}`)
@@ -269,6 +286,11 @@ export default () => {
                     // away", so a download link written by hand or by another editor is
                     // already this node and comes back as a card. Nothing to migrate.
                     tag: 'a[download]',
+                    // Above the link mark's rule, which takes the same `<a>` by its `href`.
+                    // ProseMirror asks marks before nodes at equal priority, and a save hands
+                    // the editor its document back as HTML - so at the default the card came
+                    // back as underlined text, and the next save stored that for good.
+                    priority: 60,
                     getAttrs: (element) =>
                         fileSrc(element.getAttribute('href')) === null ? false : null,
                 },
@@ -372,6 +394,22 @@ export default () => {
 
                 return { dom }
             }
+        },
+
+        /*
+         * Hands Filament's bubble menu the rule above, through the plugin's own
+         * `updateOptions` message - the route `image-resize.js` takes for the picture's bar.
+         * A field that registered no bar for cards ignores the message.
+         */
+        onCreate() {
+            const { editor } = this
+
+            editor.view.dispatch(
+                editor.state.tr.setMeta('addToHistory', false).setMeta('floatingToolbar::file', {
+                    type: 'updateOptions',
+                    options: { shouldShow: fileToolbarVisibility() },
+                }),
+            )
         },
 
         addCommands() {

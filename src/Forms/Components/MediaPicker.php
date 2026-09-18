@@ -169,6 +169,8 @@ class MediaPicker extends Field
                 'vimeo' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.vimeo'),
             ],
             'delete' => (string) __($key.'delete'),
+            'rejected' => (string) __($key.'rejected'),
+            'dismiss' => (string) __($key.'dismiss'),
             'confirmDelete' => (string) __($key.'confirm_delete'),
             'copy' => (string) __($key.'copy_url'),
             'copied' => (string) __($key.'copied'),

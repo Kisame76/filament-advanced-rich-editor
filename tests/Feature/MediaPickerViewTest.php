@@ -126,9 +126,9 @@ it('asks for the details of one picture rather than of the grid', function (): v
 });
 
 it('says something different about an empty record and an empty library', function (): void {
-    // "No pictures yet" means "upload one" on a record and "the library is bare" in a shared
+    // "Nothing yet" means "upload one" on a record and "the library is bare" in a shared
     // pool. One message for both would be wrong in one of the two places.
-    expect(renderPicker(isRecordScoped: true))->toContain('No pictures on this record yet')
+    expect(renderPicker(isRecordScoped: true))->toContain('Nothing on this record yet')
         ->and(renderPicker(isRecordScoped: false))->toContain('The library is empty');
 });
 

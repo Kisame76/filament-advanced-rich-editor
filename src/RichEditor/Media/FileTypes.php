@@ -80,6 +80,18 @@ class FileTypes
     }
 
     /**
+     * The tile the media browser draws for a document: the same letters on the same colour
+     * the card will wear, handed over with the row so the grid does not keep a third copy of
+     * the table.
+     *
+     * @return array{badge: string, tint: string}
+     */
+    public static function tile(?string $name, ?string $fallback = null): array
+    {
+        return ['badge' => static::label($name, $fallback), 'tint' => static::tint($name, $fallback)];
+    }
+
+    /**
      * The ending of the name, or of the address behind it.
      *
      * Two readings because a name is allowed not to have one. `<a download>Handbuch</a>`

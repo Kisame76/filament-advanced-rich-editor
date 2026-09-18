@@ -38,7 +38,7 @@ class SpatieMediaSource implements MediaSource
     /**
      * @param  Closure(Builder<Media>): mixed|null  $poolQuery  defined pool, overriding the scope
      * @param  Closure(): mixed|null  $getRecordUsing
-     * @param  array<int, string>|null  $acceptedMimeTypes  null accepts every family this package draws
+     * @param  LibraryTypes|null  $types  what the pool holds; null is every family at its default
      * @param  string|null  $thumbnailConversion  the conversion the grid draws, if the model has one
      * @param  string  $scope  'collection', 'model' or 'record' - each narrower than the last
      * @param  Closure(): mixed|null  $getModelUsing  the model class, for a form with no record yet
@@ -49,7 +49,7 @@ class SpatieMediaSource implements MediaSource
         protected ?string $visibility = null,
         protected ?Closure $poolQuery = null,
         protected ?Closure $getRecordUsing = null,
-        protected ?array $acceptedMimeTypes = null,
+        protected ?LibraryTypes $types = null,
         protected ?string $thumbnailConversion = null,
         protected string $scope = 'collection',
         protected ?Closure $getModelUsing = null,
@@ -58,7 +58,6 @@ class SpatieMediaSource implements MediaSource
     /**
      * @param  Closure(Builder<Media>): mixed|null  $poolQuery
      * @param  Closure(): mixed|null  $getRecordUsing
-     * @param  array<int, string>|null  $acceptedMimeTypes
      */
     public static function make(
         string $collection = 'default',
@@ -66,7 +65,7 @@ class SpatieMediaSource implements MediaSource
         ?string $visibility = null,
         ?Closure $poolQuery = null,
         ?Closure $getRecordUsing = null,
-        ?array $acceptedMimeTypes = null,
+        ?LibraryTypes $types = null,
         ?string $thumbnailConversion = null,
         string $scope = 'collection',
         ?Closure $getModelUsing = null,
@@ -77,11 +76,16 @@ class SpatieMediaSource implements MediaSource
             'visibility' => $visibility,
             'poolQuery' => $poolQuery,
             'getRecordUsing' => $getRecordUsing,
-            'acceptedMimeTypes' => $acceptedMimeTypes,
+            'types' => $types,
             'thumbnailConversion' => $thumbnailConversion,
             'scope' => $scope,
             'getModelUsing' => $getModelUsing,
         ]);
+    }
+
+    protected function library(): LibraryTypes
+    {
+        return $this->types ??= LibraryTypes::make();
     }
 
     public function isRecordScoped(): bool
@@ -130,32 +134,20 @@ class SpatieMediaSource implements MediaSource
         // be the kinds the pool holds, not the one kind that is currently chosen.
         $types = $this->types();
 
-        // The families present, which is what the tabs are drawn from. Read off the same
-        // distinct list as the mime facet, so one query answers both.
-        $kinds = array_values(array_intersect(
-            MediaKinds::all(),
-            array_map(static fn (string $mime): string => (string) MediaKinds::of($mime), $types),
+        // The families present, which is what the tabs are drawn from - asked of the pool one
+        // family at a time, since a document is told apart by its name and not by a mime type
+        // a distinct list could be read off. An embed is asked the same way, having neither.
+        $kinds = array_values(array_filter(
+            [...$this->library()->kinds(), MediaKinds::EMBED],
+            fn (string $kind): bool => (bool) $this->query()
+                ?->where(fn (Builder $query) => $this->constrainToKind($query, $kind))
+                ->exists(),
         ));
-
-        // Computed from the mime types present, and an embed has none - so without this the
-        // tab would never be drawn for a library holding nothing else.
-        if ((clone $query)->where('custom_properties->'.static::EMBED_PROPERTY, true)->exists()) {
-            $kinds = array_values(array_intersect(MediaKinds::all(), [...$kinds, MediaKinds::EMBED]));
-        }
 
         $kind = $filters['kind'] ?? null;
 
         if (is_string($kind) && filled($kind)) {
-            // The embed tab is a property test rather than a mime test, and every other tab
-            // has to say so too - an embed row's `application/json` would not match
-            // `image/%`, but a row whose file happens to be an image would match both.
-            $kind === MediaKinds::EMBED
-                ? $query->where('custom_properties->'.static::EMBED_PROPERTY, true)
-                : $query->where('mime_type', 'like', $kind.'/%')
-                    ->where(static function (Builder $query): void {
-                        $query->whereNull('custom_properties->'.static::EMBED_PROPERTY)
-                            ->orWhere('custom_properties->'.static::EMBED_PROPERTY, '!=', true);
-                    });
+            $query->where(fn (Builder $query) => $this->constrainToKind($query, $kind));
         }
 
         $type = $filters['type'] ?? null;
@@ -236,21 +228,146 @@ class SpatieMediaSource implements MediaSource
             return [];
         }
 
+        // An embed row's file is JSON, and `application/json` in the type filter would be a
+        // filter that shows the embeds and calls them documents. Left out by what the row is
+        // rather than by its type, now that a document may be JSON too.
+        $this->notAnEmbed($query);
+
         $query->select('mime_type');
         $query->distinct();
 
         $types = $query->pluck('mime_type')
             ->filter(static fn (mixed $type): bool => is_string($type) && filled($type))
             ->map(static fn (mixed $type): string => (string) $type)
-            // An embed row's file is JSON, and `application/json` in the type filter would
-            // be a filter that shows the embeds and calls them documents.
-            ->filter(static fn (string $type): bool => MediaKinds::of($type) !== null)
             ->unique()
             ->sort()
             ->values()
             ->all();
 
         return $types;
+    }
+
+    /**
+     * Narrows a query to one family: a tab, or the question whether the pool holds any.
+     *
+     * The embed tab is a property test rather than a mime test, and every other tab has to
+     * say so too - an embed row's `application/json` would not match `image/%`, but it would
+     * match a document list that names JSON.
+     *
+     * @param  Builder<Media>  $query
+     */
+    protected function constrainToKind(Builder $query, string $kind): void
+    {
+        if ($kind === MediaKinds::EMBED) {
+            $query->where('custom_properties->'.static::EMBED_PROPERTY, true);
+
+            return;
+        }
+
+        $this->notAnEmbed($query);
+
+        if ($kind !== MediaKinds::FILE) {
+            $this->takesAsDrawn($query, $kind);
+
+            return;
+        }
+
+        $this->takesAsFile($query);
+
+        // A document is what no drawn family took. The same row is never under two tabs,
+        // which is what `kindOf()` says about it too.
+        $query->whereNot(function (Builder $query): void {
+            foreach (MediaKinds::families() as $family) {
+                if ($this->library()->offers($family)) {
+                    $query->orWhere(fn (Builder $query) => $this->takesAsDrawn($query, $family));
+                }
+            }
+        });
+    }
+
+    /**
+     * A picture, a film or a sound, by the family its type is in and then by what the field
+     * named: a mime type, a pattern or an ending.
+     *
+     * @param  Builder<Media>  $query
+     */
+    protected function takesAsDrawn(Builder $query, string $family): void
+    {
+        $query->where('mime_type', 'like', $family.'/%')
+            ->where(function (Builder $query) use ($family): void {
+                // Matched as patterns rather than exactly, because `image/*` is a value
+                // Filament accepts on `fileAttachmentsAcceptedFileTypes()` and Laravel
+                // validates against - so a field configured that way is configured
+                // correctly, and an exact match turned its browser silently empty.
+                foreach ($this->library()->patternsOf($family) as $pattern) {
+                    str_ends_with($pattern, '/*')
+                        ? $query->orWhere('mime_type', 'like', substr($pattern, 0, -1).'%')
+                        : $query->orWhere('mime_type', $pattern);
+                }
+
+                foreach ($this->library()->endingsOf($family) as $ending) {
+                    $query->orWhereRaw('lower(file_name) like ?', ['%.'.$ending]);
+                }
+            });
+    }
+
+    /**
+     * A document, by its name: an ending the field named, whatever the type says - or for a
+     * star, any ending that is neither drawn nor refused. The same rule `LibraryTypes::kindOf()`
+     * applies to a single row, asked of the table.
+     *
+     * Endings are letters and digits only, so they go into a pattern as they are - there is
+     * no `%` or `_` in one to escape.
+     *
+     * @param  Builder<Media>  $query
+     */
+    protected function takesAsFile(Builder $query): void
+    {
+        $library = $this->library();
+
+        if (! $library->offers(MediaKinds::FILE)) {
+            // An empty group would be dropped from the query and match every row.
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where(function (Builder $query) use ($library): void {
+            foreach ($library->fileTypes() as $ending) {
+                $query->orWhereRaw('lower(file_name) like ?', ['%.'.$ending]);
+            }
+
+            if (! $library->takesAnyFile()) {
+                return;
+            }
+
+            $query->orWhere(function (Builder $query): void {
+                // An ending at all, which is what a star is a statement about.
+                $query->where('file_name', 'like', '%.%');
+
+                $query->whereNot(function (Builder $query): void {
+                    $endings = [
+                        ...array_merge(...array_map(array_keys(...), array_values(MediaKinds::TYPES))),
+                        ...LibraryTypes::DENIED,
+                    ];
+
+                    foreach ($endings as $ending) {
+                        $query->orWhereRaw('lower(file_name) like ?', ['%.'.$ending]);
+                    }
+                });
+            });
+        });
+    }
+
+    /**
+     * @param  Builder<Media>  $query
+     */
+    protected function notAnEmbed(Builder $query): void
+    {
+        $query->where(static function (Builder $query): void {
+            $query->whereNull('custom_properties->'.static::EMBED_PROPERTY)
+                ->orWhere('custom_properties->'.static::EMBED_PROPERTY, '!=', true);
+        });
     }
 
     /**
@@ -527,41 +644,24 @@ class SpatieMediaSource implements MediaSource
 
         $query = Media::query();
 
-        // Narrowed to the families this package can draw rather than to pictures. It used to
-        // be a hard `like 'image/%'` here, applied before everything else - which meant a
-        // video in the collection was invisible in the grid AND unresolvable through the
-        // provider, because this object is both the list and the authoriser.
+        // Narrowed to what the field offers, one family at a time. It used to be a hard
+        // `like 'image/%'` here, applied before everything else - which meant a video in the
+        // collection was invisible in the grid AND unresolvable through the provider, because
+        // this object is both the list and the authoriser. The same holds for a pdf now.
         //
-        // Matched on the family prefix and not against a list of exact mime types, which is
-        // what the old rule did for pictures and has to keep doing: a collection holding an
-        // `image/heic` that nothing here would have uploaded is still holding a picture, and
-        // a row already in the library should be listed under the tab it belongs to.
-        // Two pools in one query. A file is narrowed by its family and then by whatever the
-        // field accepts; an embed is neither - it has no mime type, and an accepted-types
-        // list is a statement about files. Narrowing an embed away with `image/png` would
-        // hide the Embeds tab on every field that names its picture formats.
-        $accepted = $this->acceptedMimeTypes;
-
-        $query->where(static function (Builder $query) use ($accepted): void {
-            $query->where(static function (Builder $query) use ($accepted): void {
-                $query->where(static function (Builder $query): void {
-                    foreach (MediaKinds::families() as $kind) {
-                        $query->orWhere('mime_type', 'like', $kind.'/%');
-                    }
-                });
-
-                if ($accepted !== null && $accepted !== []) {
-                    // Matched as patterns rather than exactly, because `image/*` is a value
-                    // Filament accepts on `fileAttachmentsAcceptedFileTypes()` and Laravel
-                    // validates against - so a field configured that way is configured
-                    // correctly, and an exact match turned its browser silently empty.
-                    $query->where(static function (Builder $query) use ($accepted): void {
-                        foreach ($accepted as $type) {
-                            str_ends_with($type, '/*')
-                                ? $query->orWhere('mime_type', 'like', substr($type, 0, -1).'%')
-                                : $query->orWhere('mime_type', $type);
-                        }
-                    });
+        // A drawn family is matched on its prefix first, which is what the old rule did for
+        // pictures and has to keep doing: a collection holding an `image/heic` nothing here
+        // would have uploaded is still holding a picture. A document is matched on its name,
+        // because a mime type says nothing a person could pick a document by.
+        //
+        // Two pools in one query. Everything above is a file; an embed is neither a family nor
+        // an ending - it has no mime type, and a list of types is a statement about files.
+        // Narrowing an embed away with `image/png` would hide the Embeds tab on every field
+        // that names its picture formats.
+        $query->where(function (Builder $query): void {
+            $query->where(function (Builder $query): void {
+                foreach ($this->library()->kinds() as $kind) {
+                    $query->orWhere(fn (Builder $query) => $this->constrainToKind($query, $kind));
                 }
             })->orWhere('custom_properties->'.static::EMBED_PROPERTY, true);
         });
@@ -718,7 +818,18 @@ class SpatieMediaSource implements MediaSource
             );
         }
 
-        if ($kind === null) {
+        // A document has no picture inside it that this package could find. Where the model
+        // makes the grid's conversion for documents too - the first page of a pdf, with
+        // Imagick installed - that is a better tile than letters; nothing is made for it here.
+        if ($kind === MediaKinds::FILE) {
+            return (filled($this->thumbnailConversion) && $media->hasGeneratedConversion($this->thumbnailConversion))
+                ? MediaUrl::picture($media, $this->thumbnailConversion, $this->visibility)
+                : null;
+        }
+
+        // Only a film and a sound have a picture inside them to find. Anything else would be
+        // copied somewhere local and marked as tried on its first listing, for nothing.
+        if (! in_array($kind, [MediaKinds::VIDEO, MediaKinds::AUDIO], strict: true)) {
             return null;
         }
 
@@ -903,7 +1014,7 @@ class SpatieMediaSource implements MediaSource
         }
 
         $name = (string) $media->getAttributeValue('name');
-        $kind = MediaKinds::of((string) $media->getAttributeValue('mime_type'));
+        $kind = $this->library()->kindOf((string) $media->getAttributeValue('mime_type'), $fileName);
 
         return [
             'id' => (string) $media->getAttributeValue('uuid'),
@@ -928,6 +1039,8 @@ class SpatieMediaSource implements MediaSource
             'fileName' => $fileName,
             'mime' => (string) $media->getAttributeValue('mime_type'),
             'kind' => $kind,
+            // The tile its card will wear, read off the name the file was uploaded under.
+            ...($kind === MediaKinds::FILE ? FileTypes::tile($fileName) : []),
             'size' => (int) $media->getAttributeValue('size'),
             'folder' => null,
             'createdAt' => $media->getAttributeValue('created_at')?->toDateTimeString(),

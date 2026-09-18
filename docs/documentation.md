@@ -2168,16 +2168,17 @@ already on the server, with uploading built into the grid, because uploading is 
 when the file is *not* there yet. Filament's own dialog only ever asks for a file, so the same
 image lands on the disk once per article that shows it.
 
-**One door, three families.** Pictures, video and audio share one browser, with a tab each —
-drawn only where the pool actually holds more than one, so a library of nothing but pictures
-is the dialog it always was. What gets inserted is decided by the file: a picture becomes an
-`<img>` with everything that hangs off it — [caption](#images), float, size, link, decorative
-— and a video or a sound becomes the [player node](#video-and-audio-you-host). Unifying the
-way *in* is the point; the storage stays one node per family.
+**One door, four families.** Pictures, video, audio and documents share one browser, with a
+tab each — drawn only where the pool actually holds more than one, so a library of nothing but
+pictures is the dialog it always was. What gets inserted is decided by the file: a picture
+becomes an `<img>` with everything that hangs off it — [caption](#images), float, size, link,
+decorative — a video or a sound becomes the [player node](#video-and-audio-you-host), and a
+pdf, a spreadsheet or an archive becomes a [download card](#documents). Unifying the way *in*
+is the point; the storage stays one node per family.
 
-`'image'`, `'video'` and `'audio'` are the same door under narrower names: each opens the
-browser on its own tab. `'image'` is kept registered so a bar somebody already wrote keeps
-working. A fourth tab, Embeds, appears where the library holds any.
+`'image'`, `'video'`, `'audio'` and `'file'` are the same door under narrower names: each opens
+the browser on its own tab. `'image'` is kept registered so a bar somebody already wrote keeps
+working. A fifth tab, Embeds, appears where the library holds any.
 
 **What a tile shows.** A picture is its own thumbnail. A film gets its first frame, pulled
 with the `ffmpeg` binary; a sound gets whatever cover art its ID3 tag carries, read without a
@@ -2233,23 +2234,47 @@ standing here can see.
 ],
 ```
 
+**Which files it takes** is one list per family, in `media_library.types`:
+
+```php
+'types' => [
+    'image' => null,   // Filament's own fileAttachmentsAcceptedFileTypes(), as before
+    'video' => ['mp4', 'webm', 'mov', 'm4v', 'ogv'],
+    'audio' => ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'weba'],
+    'file'  => ['pdf', 'doc', 'docx', 'odt', 'rtf', 'pages', 'txt', 'md',
+                'xls', 'xlsx', 'ods', 'csv', 'tsv', 'numbers',
+                'ppt', 'pptx', 'odp', 'key',
+                'zip', '7z', 'rar', 'gz', 'bz2', 'tar'],
+],
+```
+
+A picture, a film or a sound may be named by its ending (`'mp4'`), its mime type
+(`'image/png'`) or its family (`'image/*'`) — the vocabulary of an HTML `accept` attribute. A
+document is named by its ending alone, and `['*']` takes every ending. An empty list takes a
+family away, tab and upload together; a family that is missing or `null` gets the list above.
+Per field it is merged one family at a time, so a field says only what it changes:
+
 ```php
 AdvancedRichEditor::make('content')
-    ->mediaLibraryAcceptedFileTypes(['image/*', 'video/*'])   // default: all three families
-    ->media(false);   // no player node, and the browser then offers pictures only
+    ->mediaLibraryTypes(['file' => ['pdf']])                 // pdfs as the only documents
+    ->mediaLibraryTypes(['video' => [], 'audio' => []])      // pictures and documents
+    ->media(false);   // no player node, so no video or audio in the browser either
 ```
 
 A file uploaded through the browser is shown before the form is saved through Livewire's
 temporary preview URL, and Livewire only issues one for the extensions in its
 `temporary_file_upload.preview_mimes` list — which stops at `mp4`, `mov`, `mp3`, `wav` and
-`m4a`. The package adds every extension it draws to that list at boot, so a `webm` or a
-`flac` shows up like anything else. Only by adding: what a project put there stays.
+`m4a`. The package adds every picture, film and sound it draws to that list at boot, and a
+document the browser took to it when the tile is drawn, so a `webm`, a `flac` or a `docx`
+shows up like anything else. Only by adding: what a project put there stays, and Livewire
+hands a preview out as a download rather than as a page.
 
-`mediaLibraryAcceptedFileTypes()` is deliberately **not** Filament's
-`fileAttachmentsAcceptedFileTypes()`. That one also governs Filament's compiled
-drop-and-paste handler, which inserts an `image` node for anything it accepts — widening it
-would turn a film dropped into the editor into an `<img>` pointing at an mp4. So the browser
-carries its own, wider list and Filament's stays as narrow as Filament left it.
+`mediaLibraryTypes()` is deliberately **not** Filament's `fileAttachmentsAcceptedFileTypes()`.
+That one also governs Filament's compiled drop-and-paste handler, which inserts an `image` node
+for anything it accepts — widening it would turn a film or a pdf dropped into the editor into an
+`<img>` pointing at it. So the browser carries its own, wider list and Filament's stays as
+narrow as Filament left it. Dropping a document straight into the text is therefore still
+Filament's to refuse; the way in for one is the browser.
 
 Picking an existing picture stores exactly what an upload would have stored: the media UUID
 for a field with a media collection, the storage path for one without. **Nothing is copied.**
@@ -2279,9 +2304,67 @@ provider, or a disk field with no directory of its own to tell its pictures apar
 buttons name Filament's dialog, because an empty grid is a worse answer than a working
 upload.
 
+#### Documents
+
+A pdf, a spreadsheet, an archive — anything that is taken away rather than drawn — is listed
+under its own tab, drawn as the tile its card will wear, and inserted as a **download card**:
+the ending in a coloured tile, the name, and the size. The card is inline, so several of them
+sit side by side and wrap; pressing return puts one on a line of its own. It is written into
+the stored markup as an `<a download>` with its shape inline, because the page a document ends
+up on has not loaded this package's stylesheet — and a plain download link written by hand or
+by another editor is read back as a card too, so there is nothing to migrate.
+
+`'file'` opens the browser on the documents, and it is in the slash menu as `/file` — `/datei`
+in a German panel. It is on no bar, the way the film and sound buttons are not; name `'file'` on
+a bar or in [`more`](#the-more-menu) to give it one.
+
+**A card goes back to the browser.** Click one and a bar appears over it: **Replace** opens the
+browser on the documents with this card's file already picked, and whatever is chosen takes the
+card's place rather than landing beside it; **Remove** takes the card out. A field with no pool
+behind it offers only Remove, because its browser button would open Filament's picture dialog.
+
+**What is taken, and what never is.** A document is taken when its ending is on the list and
+its content agrees with that ending — a page sent as `report.pdf` is refused, while a
+spreadsheet `finfo` calls plain text is not. It is then stored under that ending, and a web
+server hands a file out by its ending, so what arrives as `.pdf` is served as a pdf. Some
+endings are refused whatever the list says, because a server or a browser would run them as
+your site: `php` and its relatives, `html`, `svg`, `xml` and `js` among them — the full list is
+`LibraryTypes::DENIED`. A refused upload is named in the dialog rather than quietly left out.
+
+**Names.** A media collection keeps the name a file was uploaded under. On a plain disk,
+Filament stores an upload under forty random characters, which is fine for a picture that is
+recognised by looking at it and useless for a document, which is found by its name. So what the
+browser uploads to a disk is stored under that name, made safe for an address, with six random
+characters after it — `quartalsbericht-q3--7kq2xm.pdf` — and shown, searched and put on the card
+as `quartalsbericht-q3.pdf`. The random part is what keeps the address from being guessed: a pdf
+taken out of a draft again stays in a shared library, and `/storage/gehaltsliste.pdf` is a
+guess where `/storage/gehaltsliste--7kq2xm.pdf` is not. Files already on the disk keep the names
+they have.
+
+**A link to somebody else's document** — typed into **From a link** — becomes a card too, with
+no size line, since nobody on this side knows how big the file is.
+
+With a media collection, a card always points at the **file**, never at a conversion: a
+conversion is a picture made from the file, and a card pointing at one would hand out a JPEG of
+page one where the reader asked for the report. The grid is the one place that wants that
+picture — where the model makes its thumbnail conversion for documents too (a pdf, with Imagick
+and Ghostscript installed), the tile shows the first page instead of the letters. Guard
+`registerMediaConversions()` against non-images if you would rather Spatie did not try:
+
+```php
+public function registerMediaConversions(?Media $media = null): void
+{
+    if ($media !== null && ! str_starts_with((string) $media->mime_type, 'image/')) {
+        return;
+    }
+
+    $this->addMediaConversion('arte-thumb')->fit(Fit::Contain, 320, 320);
+}
+```
+
 #### What it shows
 
-Out of the box the pool is **the collection the field uploads to** — every picture in it,
+Out of the box the pool is **the collection the field uploads to** — every file in it,
 whichever record or model owns it. The collection *is* the library: a picture put in
 `rich-editor` is a picture for rich editors, so an article and a post that both upload there
 draw from one pool instead of each fetching the same file again. Separate libraries are
@@ -4492,6 +4575,7 @@ the whole project; the method sets it for one field and wins.
 | Task lists | `task_list` | `->taskList(false)` |
 | List markers, start and reverse | `list_properties` | `->listProperties(false)` |
 | Media browser | `media_library.enabled` | `->mediaLibrary(false)` |
+| A family of the media browser — documents, say *(see [Media browser](#media-browser))* | `media_library.types.file` | `->mediaLibraryTypes(['file' => []])` |
 | Character count | `character_count.enabled` | `->characterCount(false)` |
 | Font size | `font_size.enabled` | `->fontSize(false)` |
 | Typeface picker *(on, but its token is on no bar — see [Fonts](#fonts))* | `fonts.enabled` | `->fontPicker(false)` |

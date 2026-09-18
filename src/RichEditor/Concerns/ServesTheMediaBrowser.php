@@ -7,6 +7,8 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileTypes;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Livewire\Attributes\Renderless;
@@ -29,7 +31,7 @@ trait ServesTheMediaBrowser
      * Exposed to the front end, so it re-reads the pool from the field on every call rather
      * than trusting anything the browser sends beyond a search term and a page number.
      *
-     * @return array{items: array<int, array<string, mixed>>, folders: array<int, array{name: string, path: string}>, parent: string|null, hasMore: bool}
+     * @return array{items: array<int, array<string, mixed>>, folders: array<int, array{name: string, path: string}>, parent: string|null, hasMore: bool, rejected: array<int, string>}
      */
     #[ExposedLivewireMethod]
     #[Renderless]
@@ -38,7 +40,7 @@ trait ServesTheMediaBrowser
         $source = $this->getMediaSource();
 
         if (! $source) {
-            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => [], 'perPage' => $this->getMediaLibraryPageSize()];
+            return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => [], 'perPage' => $this->getMediaLibraryPageSize(), 'rejected' => []];
         }
 
         // Taken over here rather than as each file lands. Uploading is a request per file, and
@@ -49,7 +51,7 @@ trait ServesTheMediaBrowser
         //
         // Doing it when the browser asks for a page keeps every upload request untouched, and
         // the browser asks as soon as an upload finishes.
-        $this->adoptMountedUploads();
+        $rejected = $this->adoptMountedUploads();
 
         $search = trim($search);
         $page = max(1, $page);
@@ -76,6 +78,11 @@ trait ServesTheMediaBrowser
         // divides the whole library by it - which is how a two-page library grew a footer
         // saying "2 / 41" with a Next button leading to nothing.
         $result['perPage'] = $perPage;
+
+        // Said once, by name. An upload that is refused here has already travelled - the
+        // widget only asks what the browser calls a file, not what its bytes are - and a file
+        // that simply never turned up in the grid reads as the dialog having lost it.
+        $result['rejected'] = $rejected;
 
         // A picture uploaded a moment ago is not in the library yet - Filament holds it as a
         // pending attachment and only writes it on save - so a browser that listed the library
@@ -348,22 +355,48 @@ trait ServesTheMediaBrowser
      *
      * Read out of the mounted actions rather than pushed in by the dialog, so that nothing is
      * written to the component while an upload request is in flight.
+     *
+     * An upload the browser does not take is let go of on the way, out of the dialog's own
+     * field as well - left there, the dialog's Submit would validate a file nobody can see and
+     * refuse to insert anything. Answers with the names of the ones it let go of.
+     *
+     * @return array<int, string>
      */
-    public function adoptMountedUploads(): void
+    public function adoptMountedUploads(): array
     {
-        $mounted = data_get($this->getLivewire(), 'mountedActions');
+        $livewire = $this->getLivewire();
+        $mounted = data_get($livewire, 'mountedActions');
 
         if (! is_array($mounted)) {
-            return;
+            return [];
         }
 
-        foreach ($mounted as $action) {
+        $rejected = [];
+
+        foreach ($mounted as $index => $action) {
             $files = data_get($action, 'data.file');
 
-            if (is_array($files)) {
-                $this->registerPendingUploads($files);
+            if (! is_array($files)) {
+                continue;
             }
+
+            $kept = array_filter(
+                $files,
+                fn (mixed $file): bool => ! ($file instanceof TemporaryUploadedFile) || $this->acceptsMediaLibraryUpload($file),
+            );
+
+            foreach (array_diff_key($files, $kept) as $file) {
+                $rejected[] = (string) $file->getClientOriginalName();
+            }
+
+            if (count($kept) !== count($files)) {
+                data_set($livewire, "mountedActions.{$index}.data.file", $kept);
+            }
+
+            $this->registerPendingUploads($kept);
         }
+
+        return $rejected;
     }
 
     /**
@@ -449,8 +482,8 @@ trait ServesTheMediaBrowser
 
     /**
      * One pending upload as the grid draws an item, or null where it is not one this browser
-     * should offer - a file that failed Filament's own validation, or something that is not a
-     * picture and would insert a broken image.
+     * should offer - a file that failed the validation it came in under, or one Filament's own
+     * dialog is holding, which takes pictures only.
      *
      * @return array<string, mixed>|null
      */
@@ -460,8 +493,8 @@ trait ServesTheMediaBrowser
             return null;
         }
 
-        // Through the field rather than off the file: this is where Filament re-checks the
-        // size and the accepted types, and a rejected upload must not become a tile.
+        // Through the field rather than off the file: this is where the size and the types are
+        // checked again, and a rejected upload must not become a tile.
         $file = $this->getUploadedFileAttachment($id);
 
         if (! $file) {
@@ -469,11 +502,12 @@ trait ServesTheMediaBrowser
         }
 
         $mime = (string) $file->getMimeType();
-        $kind = MediaKinds::of($mime);
+        $name = (string) $file->getClientOriginalName();
 
-        // Any family the browser draws, not only pictures. What is refused is a file that
-        // belongs to none of them, which reaches here when a project widened the accepted
-        // types past what this package can insert.
+        // Any family the field offers - a document too, which becomes a card rather than an
+        // element. Filed the way the pool files it, so a tile cannot change tabs on save.
+        $kind = $this->getMediaLibraryTypes()->kindOf($mime, $name);
+
         if ($kind === null) {
             return null;
         }
@@ -484,13 +518,11 @@ trait ServesTheMediaBrowser
         // browser - so it was measured against Filament's picture-only list and every
         // video and sound came back null. The file was validated against the browser's
         // list a few lines up; this is the one place it is asked for its address.
-        $url = static::temporaryUrlOf($file);
+        $url = static::temporaryUrlOf($file, document: $kind === MediaKinds::FILE);
 
         if (blank($url)) {
             return null;
         }
-
-        $name = (string) $file->getClientOriginalName();
 
         return [
             'id' => $id,
@@ -502,6 +534,7 @@ trait ServesTheMediaBrowser
             'fileName' => $name,
             'mime' => $mime,
             'kind' => $kind,
+            ...($kind === MediaKinds::FILE ? FileTypes::tile($name) : []),
             'size' => (int) $file->getSize(),
             'folder' => null,
             'createdAt' => null,
@@ -529,9 +562,27 @@ trait ServesTheMediaBrowser
      * extends that list, and until it does the upload is held but cannot be shown. Held
      * rather than crashed: an exception here would take the whole page request down for
      * one file that merely cannot be previewed.
+     *
+     * A document is let onto that list for this request, by the ending its content has - which
+     * is what Livewire reads, and which for a spreadsheet written as text is `txt`. It was
+     * checked against the ending it came under already, and Livewire serves a preview as a
+     * download rather than as a page. Asked for here rather than at boot, because the endings
+     * a field takes are the field's, and a single field may name one no configuration does.
      */
-    protected static function temporaryUrlOf(TemporaryUploadedFile $file): ?string
+    protected static function temporaryUrlOf(TemporaryUploadedFile $file, bool $document = false): ?string
     {
+        if ($document) {
+            $ending = Str::lower((string) $file->guessExtension());
+            $previewable = config('livewire.temporary_file_upload.preview_mimes');
+
+            if (($ending !== '') && ! in_array($ending, LibraryTypes::DENIED, strict: true)) {
+                config()->set('livewire.temporary_file_upload.preview_mimes', array_values(array_unique([
+                    ...(is_array($previewable) ? $previewable : []),
+                    $ending,
+                ])));
+            }
+        }
+
         try {
             return $file->temporaryUrl();
         } catch (FileNotPreviewableException $exception) {

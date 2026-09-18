@@ -2353,6 +2353,28 @@ body.fi-arte-fullscreen-lock {
 }
 
 /*
+ * The files that were turned away, named until somebody dismisses the note. Amber rather
+ * than red: nothing broke, a file was simply not one this field takes.
+ */
+.fi-arte-media-rejected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    background-color: var(--fi-arte-media-rejected-bg, rgb(254 243 199));
+    color: var(--fi-arte-media-rejected-text, rgb(146 64 14));
+    font-size: 0.8125rem;
+}
+
+.fi-arte-media-rejected:where(.dark, .dark *) {
+    --fi-arte-media-rejected-bg: rgb(120 53 15 / 0.35);
+    --fi-arte-media-rejected-text: rgb(253 230 138);
+}
+
+/*
  * A sound is a control bar and nothing else. Its height is deliberately NOT set here:
  * `height: auto` on an `<audio>` is zero - the element has no content to size by - and
  * the bar that appears is the browser's own default height for `audio[controls]`.
@@ -3000,6 +3022,22 @@ body.fi-arte-fullscreen-lock {
     height: 3rem;
 }
 
+/*
+ * The sign takes the picture's box. `height: 100%` alone only worked while a picture in the
+ * same row gave the row a height - a tab holding nothing but documents, or nothing but
+ * sounds, drew every tile as a flat strip.
+ */
+.fi-arte-media-grid .fi-arte-media-item-sign {
+    height: auto;
+    aspect-ratio: 1 / 1;
+}
+
+.fi-arte-media-rows .fi-arte-media-item-sign {
+    flex: none;
+    width: 3rem;
+    height: 3rem;
+}
+
 .fi-arte-media-item-text {
     display: flex;
     flex-direction: column;
@@ -3144,6 +3182,27 @@ body.fi-arte-fullscreen-lock {
     aspect-ratio: 16 / 9;
     max-height: none;
     border: 0;
+}
+
+/*
+ * A document in the panel: its card's tile, drawn large. The colour arrives inline with the
+ * row, so this draws the shape - and the neutral sign for an ending the card has no colour for.
+ */
+.fi-arte-media-preview.fi-arte-media-preview-file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 4 / 3;
+    background-color: var(--fi-arte-media-sign-bg, rgb(244 244 245));
+    color: var(--fi-arte-media-sign-text, rgb(113 113 122));
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.fi-arte-media-preview-file:where(.dark, .dark *) {
+    --fi-arte-media-sign-bg: rgb(39 39 42);
+    --fi-arte-media-sign-text: rgb(161 161 170);
 }
 
 /*
