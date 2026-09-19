@@ -467,6 +467,10 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
             $media,
             $this->getConversion(),
             $this->getDefaultFileAttachmentVisibility(),
+            // The source knows which family the row is listed under, and a conversion
+            // belongs to a picture. Without it the type has to answer, and `image/vnd.dwg`
+            // is a drawing nothing draws.
+            ($this->source instanceof SpatieMediaSource) ? $this->source->kindOf($media) : null,
         );
     }
 

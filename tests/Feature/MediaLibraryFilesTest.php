@@ -211,6 +211,7 @@ it('gives a held document a preview address, whatever finfo calls it', function 
 });
 
 it('says which uploads it refused, and lets go of them', function (): void {
+    data_set($this->livewire, 'mountedActions.0.name', 'mediaBrowser');
     data_set($this->livewire, 'mountedActions.0.data.file', [
         'one' => ($this->hold)('page.html', '<!DOCTYPE html><html><body>x</body></html>'),
         'two' => ($this->hold)('report.pdf', $this->pdf),
@@ -376,4 +377,81 @@ it('reads a saved card back into the editor as a card', function (): void {
 
     expect($document['content'][0]['content'][0]['type'] ?? null)->toBe('file')
         ->and($document['content'][0]['content'][0]['attrs'] ?? [])->toMatchArray($card['attrs']);
+});
+
+// What a review of the road found.
+
+it('finds a stored document under the name it shows', function (): void {
+    // The grid, the panel and the card all read the name without the random part, so that
+    // is the name somebody types back into the search box.
+    Storage::disk('public')->put('library/quartalsbericht-q3--7kq2xm.pdf', $this->pdf);
+
+    $names = array_column($this->editor->getMediaSource()->page(search: 'quartalsbericht-q3.pdf')['items'], 'name');
+
+    expect($names)->toBe(['quartalsbericht-q3.pdf']);
+});
+
+it('leaves a name it did not write alone', function (): void {
+    // Two dashes and six characters is a shape, not a signature. A file already on the disk
+    // that happens to wear it is not one this package stored, and showing it under a name no
+    // file has is worse than showing the name it has.
+    Storage::disk('public')->put('library/team--photo1.png', $this->pdf);
+
+    $names = array_column($this->editor->getMediaSource()->page()['items'], 'name');
+
+    expect($names)->toBe(['team--photo1.png']);
+});
+
+it('leaves another action\'s upload where it is', function (): void {
+    // Every mounted action keeps its form state under the same key, so a frame holding a
+    // `file` field is not necessarily this browser's. Measuring somebody else's upload
+    // against this field's list took it out of the form it was attached to.
+    data_set($this->livewire, 'mountedActions.0.name', 'importSpreadsheet');
+    data_set($this->livewire, 'mountedActions.0.data.file', ['theirs' => ($this->hold)('page.html', '<html></html>')]);
+    data_set($this->livewire, 'mountedActions.1.name', 'mediaBrowser');
+    data_set($this->livewire, 'mountedActions.1.data.file', ['mine' => ($this->hold)('report.pdf', $this->pdf)]);
+
+    $page = $this->editor->getMediaLibraryPageForJs();
+
+    expect($page['rejected'])->toBe([])
+        ->and(array_column($page['items'], 'name'))->toBe(['report.pdf'])
+        ->and(array_keys(data_get($this->livewire, 'mountedActions.0.data.file')))->toBe(['theirs']);
+});
+
+it('files a held document under the type its ending names', function (): void {
+    // The listing reads a type off the ending, and a pending row read it off the content -
+    // so filtering by a spreadsheet's own type hid the copy that was just uploaded.
+    ($this->pend)(FileAttachments::PENDING_PREFIX.'prices', ($this->hold)('prices.csv', "name,price\nTea,3\n"));
+
+    $editor = $this->editor->mediaLibraryTypes(['file' => ['csv']]);
+
+    expect($editor->getPendingMediaItems()[0]['mime'] ?? null)->toBe('text/csv');
+});
+
+it('leaves the preview list as it found it', function (): void {
+    // Livewire reads that list for every temporary upload in the request, this field's and
+    // everybody else's. Widening it for one tile and leaving it wide is a door held open.
+    $before = config('livewire.temporary_file_upload.preview_mimes');
+
+    ($this->pend)(FileAttachments::PENDING_PREFIX.'prices', ($this->hold)('prices.csv', "name,price\nTea,3\n"));
+
+    $item = $this->editor->mediaLibraryTypes(['file' => ['csv']])->getPendingMediaItems()[0] ?? [];
+
+    expect($item['url'] ?? null)->toBeString()->not->toBeEmpty()
+        ->and(config('livewire.temporary_file_upload.preview_mimes'))->toBe($before);
+});
+
+it('leaves an address that is not a document as a picture', function (): void {
+    // A dot in the last part of a path is not an ending, and a link to somebody's profile
+    // is not a download. Only what the documents list names becomes a card.
+    ($this->submit)(['src' => 'https://twitter.com/john.doe']);
+
+    expect(($this->command)()['name'] ?? null)->not->toBe('setFile');
+});
+
+it('offers no file button where there is no browser to open', function (): void {
+    // Without a pool the button falls back to Filament's own dialog, which takes pictures
+    // only and inserts them as pictures - a File button that can only make an `<img>`.
+    expect(editor()->getTools())->not->toHaveKey('file')
+        ->and($this->editor->getTools())->toHaveKey('file');
 });

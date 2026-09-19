@@ -48,6 +48,23 @@ class LibraryTypes
     ];
 
     /**
+     * Endings a star never reaches.
+     *
+     * `DENIED` is about this site: a file that would run as your own pages. These run
+     * somewhere else - on the machine of whoever opens the download - and a star is a
+     * statement about documents rather than an invitation to hand out a program. Named
+     * outright they are a project's own call, the way every other ending is.
+     *
+     * @var array<int, string>
+     */
+    public const RISKY = [
+        'exe', 'msi', 'com', 'scr', 'bat', 'cmd', 'hta', 'cpl', 'msc', 'reg', 'lnk', 'scf',
+        'vbs', 'vbe', 'jse', 'wsf', 'wsh', 'ws', 'ps1', 'psm1', 'psd1',
+        'jar', 'apk', 'app', 'dmg', 'pkg', 'deb', 'rpm', 'appimage', 'run',
+        'sh', 'bash', 'zsh', 'ksh', 'csh', 'command',
+    ];
+
+    /**
      * What `finfo` answers for an ending, beside what the ending officially is.
      *
      * A spreadsheet written as text is text to anything reading its bytes, a Word document it
@@ -160,7 +177,10 @@ class LibraryTypes
             return ($this->fileTypes() !== []) || $this->takesAnyFile();
         }
 
-        return ($this->accept[$kind] ?? []) !== [];
+        // What survives the deny list, rather than what was written down. A family whose
+        // whole list is refused offers nothing, and the query behind its tab would be a
+        // group holding no conditions at all - which a database reads as every row.
+        return ($this->patternsOf($kind) !== []) || ($this->endingsOf($kind) !== []);
     }
 
     /**
@@ -212,29 +232,10 @@ class LibraryTypes
      */
     public function kindOfPath(string $path): ?string
     {
-        $ending = static::endingOf($path);
-
-        if ($ending === '') {
-            return null;
-        }
-
-        foreach (MediaKinds::families() as $family) {
-            $mime = MediaKinds::TYPES[$family][$ending] ?? null;
-
-            if ($mime === null) {
-                continue;
-            }
-
-            if ($this->takesDrawable($family, $mime, $ending)) {
-                return $family;
-            }
-
-            // A picture its family refused is not quietly offered as a download instead. Only
-            // an ending the documents name outright makes it one.
-            return $this->takesAsFile($ending, explicitly: true) ? MediaKinds::FILE : null;
-        }
-
-        return $this->takesAsFile($ending) ? MediaKinds::FILE : null;
+        // The same question `kindOf()` answers, with the name standing in for both halves:
+        // a listing has no content to sniff, and the table says what a name of that ending
+        // would have been filed under anyway.
+        return $this->kindOf(MediaKinds::mimeOf($path), $path);
     }
 
     /**
@@ -244,13 +245,31 @@ class LibraryTypes
     public function kindOf(?string $mime, ?string $name): ?string
     {
         $ending = static::endingOf($name);
+
+        // Asked here rather than only on the way in. A refused ending is refused wherever
+        // the question comes up: listing a drawing with a script in it hands it out as
+        // surely as taking one would have, and a stored id resolves through this too.
+        if (in_array($ending, static::DENIED, strict: true)) {
+            return null;
+        }
+
+        $mime = Str::lower((string) $mime);
         $family = MediaKinds::of($mime);
 
-        if (($family !== null) && $this->takesDrawable($family, Str::lower((string) $mime), $ending)) {
+        if (($family !== null) && $this->takesDrawable($family, $mime, $ending)) {
             return $family;
         }
 
-        return $this->takesAsFile($ending, explicitly: static::isDrawnEnding($ending)) ? MediaKinds::FILE : null;
+        // Then the family the ending names, which is not always the one the content is
+        // filed under: an `.m4a` is an MP4 container and `finfo` answers `video/mp4` for
+        // one, so asking the type alone refused a sound the sound list names outright.
+        $named = static::drawnFamilyOf($ending);
+
+        if (($named !== null) && ($named !== $family) && $this->takesDrawable($named, MediaKinds::TYPES[$named][$ending], $ending)) {
+            return $named;
+        }
+
+        return $this->takesAsFile($ending, explicitly: $named !== null) ? MediaKinds::FILE : null;
     }
 
     /**
@@ -279,26 +298,21 @@ class LibraryTypes
      */
     public function accepts(UploadedFile $file): bool
     {
-        $ending = static::endingOf($file->getClientOriginalName());
-
-        // Whatever it turns out to be. A picture sent as `photo.svg` is still sent as
-        // something that runs, and the browser is not the place that should take it.
-        if (in_array($ending, static::DENIED, strict: true)) {
-            return false;
-        }
-
+        $name = $file->getClientOriginalName();
         $mime = Str::lower((string) $file->getMimeType());
-        $family = MediaKinds::of($mime);
 
-        if (($family !== null) && $this->takesDrawable($family, $mime, $ending)) {
-            return true;
-        }
+        // One decision, so what is taken in is what the grid will show it as. A picture
+        // sent as `photo.svg` is refused there, since the deny list is read first.
+        $kind = $this->kindOf($mime, $name);
 
-        if (! $this->takesAsFile($ending, explicitly: static::isDrawnEnding($ending))) {
+        if ($kind === null) {
             return false;
         }
 
-        return $this->fits($mime, $ending);
+        // A document is taken on the ending it was sent under, and then only where its
+        // content agrees with that ending - a page sent as `report.pdf` is refused here
+        // rather than served later. What is drawn was measured on what it is.
+        return ($kind !== MediaKinds::FILE) || $this->fits($mime, static::endingOf($name));
     }
 
     /**
@@ -380,7 +394,9 @@ class LibraryTypes
             return true;
         }
 
-        return (! $explicitly) && in_array(static::ANY, $entries, strict: true);
+        return (! $explicitly)
+            && ! in_array($ending, static::RISKY, strict: true)
+            && in_array(static::ANY, $entries, strict: true);
     }
 
     /**
@@ -393,13 +409,21 @@ class LibraryTypes
      */
     public static function isDrawnEnding(string $ending): bool
     {
-        foreach (MediaKinds::TYPES as $extensions) {
+        return static::drawnFamilyOf($ending) !== null;
+    }
+
+    /**
+     * The family whose table holds an ending, or null where none does.
+     */
+    public static function drawnFamilyOf(string $ending): ?string
+    {
+        foreach (MediaKinds::TYPES as $family => $extensions) {
             if (array_key_exists($ending, $extensions)) {
-                return true;
+                return $family;
             }
         }
 
-        return false;
+        return null;
     }
 
     /**

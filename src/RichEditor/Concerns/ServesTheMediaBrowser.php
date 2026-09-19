@@ -25,6 +25,9 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
  */
 trait ServesTheMediaBrowser
 {
+    /** The dialog these uploads belong to, as Filament files a mounted action under. */
+    protected const MEDIA_BROWSER_ACTION = 'mediaBrowser';
+
     /**
      * One page of the browser, fetched by the grid as it scrolls.
      *
@@ -374,6 +377,19 @@ trait ServesTheMediaBrowser
         $rejected = [];
 
         foreach ($mounted as $index => $action) {
+            // Somebody else's dialog, left alone. Every mounted action keeps its form state
+            // under the same key, so a `file` field further down the stack belongs to
+            // whatever opened it - and measuring those uploads against this field's list
+            // took them out of the form they were attached to, named as refused in a dialog
+            // about something else. A frame that does not say what it is is read as this
+            // one: Filament names every action it mounts, so an unnamed frame is a hand-made
+            // one, and refusing to read it would take the dialog's own uploads away.
+            $name = data_get($action, 'name');
+
+            if (is_string($name) && ($name !== static::MEDIA_BROWSER_ACTION)) {
+                continue;
+            }
+
             $files = data_get($action, 'data.file');
 
             if (! is_array($files)) {
@@ -501,12 +517,18 @@ trait ServesTheMediaBrowser
             return null;
         }
 
-        $mime = (string) $file->getMimeType();
         $name = (string) $file->getClientOriginalName();
+
+        // The type the ending names, the way the pool reads one off a file on a disk. What
+        // the bytes say is the upload check's business and often another answer entirely -
+        // a spreadsheet written as text is `text/plain` - and filing a pending row under
+        // that hid it from a filter set to its own type until the form was saved.
+        $sniffed = (string) $file->getMimeType();
+        $mime = $this->getMediaLibraryTypes()->mimeOf($name) ?: $sniffed;
 
         // Any family the field offers - a document too, which becomes a card rather than an
         // element. Filed the way the pool files it, so a tile cannot change tabs on save.
-        $kind = $this->getMediaLibraryTypes()->kindOf($mime, $name);
+        $kind = $this->getMediaLibraryTypes()->kindOf($sniffed, $name);
 
         if ($kind === null) {
             return null;
@@ -571,15 +593,20 @@ trait ServesTheMediaBrowser
      */
     protected static function temporaryUrlOf(TemporaryUploadedFile $file, bool $document = false): ?string
     {
+        $key = 'livewire.temporary_file_upload.preview_mimes';
+        $previewable = config($key);
+        $widened = false;
+
         if ($document) {
             $ending = Str::lower((string) $file->guessExtension());
-            $previewable = config('livewire.temporary_file_upload.preview_mimes');
 
             if (($ending !== '') && ! in_array($ending, LibraryTypes::DENIED, strict: true)) {
-                config()->set('livewire.temporary_file_upload.preview_mimes', array_values(array_unique([
+                config()->set($key, array_values(array_unique([
                     ...(is_array($previewable) ? $previewable : []),
                     $ending,
                 ])));
+
+                $widened = true;
             }
         }
 
@@ -587,6 +614,13 @@ trait ServesTheMediaBrowser
             return $file->temporaryUrl();
         } catch (FileNotPreviewableException $exception) {
             return null;
+        } finally {
+            // Put back, because that list governs every temporary upload in the request and
+            // not only this tile: widening it for one document and leaving it wide hands out
+            // preview addresses for files no field here has anything to do with.
+            if ($widened) {
+                config()->set($key, $previewable);
+            }
         }
     }
 

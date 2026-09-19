@@ -12,6 +12,7 @@ use Filament\Forms\Components\RichEditor\EditorCommand;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Enums\Width;
+use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\MediaPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
@@ -70,7 +71,7 @@ class MediaLibraryAction
      *
      * @param  array<string, mixed>|null  $item
      */
-    public static function kindOf(?array $item): ?string
+    public static function kindOf(?array $item, ?LibraryTypes $types = null): ?string
     {
         if ($item === null) {
             return null;
@@ -86,7 +87,7 @@ class MediaLibraryAction
 
         return MediaKinds::of(is_string($item['mime'] ?? null) ? $item['mime'] : null)
             ?? MediaUrl::guess($url)
-            ?? static::documentAt($url);
+            ?? static::documentAt($url, $types);
     }
 
     /**
@@ -97,12 +98,16 @@ class MediaLibraryAction
      * the library, and a link to somebody else's server puts nothing there - it is a card
      * pointing away, which is what a link to a pdf is anyway.
      */
-    protected static function documentAt(?string $url): ?string
+    protected static function documentAt(?string $url, ?LibraryTypes $types = null): ?string
     {
         $path = is_string($url) ? parse_url($url, PHP_URL_PATH) : null;
         $ending = LibraryTypes::endingOf(is_string($path) ? $path : null);
 
-        return (($ending !== '') && ! in_array($ending, LibraryTypes::DENIED, strict: true))
+        // What the field takes as a document, not merely what is left after the refusals. A
+        // dot in the last part of a path is not an ending - `twitter.com/john.doe` and
+        // `/guide/v2.0` are links somebody typed, and a card labelled `doe` is not what they
+        // were reaching for.
+        return (($types ?? LibraryTypes::make())->takesAsFile($ending, explicitly: LibraryTypes::isDrawnEnding($ending)))
             ? MediaKinds::FILE
             : null;
     }
@@ -126,7 +131,14 @@ class MediaLibraryAction
 
         $ending = LibraryTypes::endingOf(is_string($item['fileName'] ?? null) ? $item['fileName'] : null);
 
-        return ((LibraryTypes::endingOf($name) === '') && ($ending !== '')) ? "{$name}.{$ending}" : $name;
+        if ($ending === '') {
+            return $name;
+        }
+
+        // Measured against the file's own ending rather than against whether the name holds
+        // a dot at all: `Quartalsbericht Q3.2024` reads as a name ending in `2024` to any
+        // parser, and the card was then labelled - and downloaded - without its `.pdf`.
+        return Str::endsWith(Str::lower($name), '.'.$ending) ? $name : "{$name}.{$ending}";
     }
 
     /**
@@ -382,7 +394,7 @@ class MediaLibraryAction
                 // that picture, which was right while the library held nothing else. Picking
                 // a film there wrote `<img src="...mp4">` - a broken picture on the page and
                 // a video's id on an image node.
-                $kind = static::kindOf($item);
+                $kind = static::kindOf($item, $component->getMediaLibraryTypes());
 
                 // A video somebody else hosts, picked out of the library rather than pasted
                 // into a dialog. What is written is what the embed dialog writes - the same

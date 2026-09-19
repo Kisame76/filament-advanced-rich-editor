@@ -98,7 +98,11 @@ class DiskMediaSource implements MediaSource
             $needle = Str::lower($search);
             $files = array_values(array_filter(
                 $files,
-                static fn (array $item): bool => str_contains(Str::lower($item['name']), $needle),
+                // Both names, because the two can differ: what the grid shows is the stored
+                // name without the random part, and that is the name somebody reads off a
+                // tile and types back in here.
+                static fn (array $item): bool => str_contains(Str::lower((string) $item['name']), $needle)
+                    || str_contains(Str::lower(FileNames::display((string) $item['name'])), $needle),
             ));
             $folders = [];
         }

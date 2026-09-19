@@ -2256,8 +2256,10 @@ Per field it is merged one family at a time, so a field says only what it change
 
 ```php
 AdvancedRichEditor::make('content')
-    ->mediaLibraryTypes(['file' => ['pdf']])                 // pdfs as the only documents
-    ->mediaLibraryTypes(['video' => [], 'audio' => []])      // pictures and documents
+    // One call per field: it replaces what the field said before it, and is merged over the
+    // configuration one family at a time. Pictures keep theirs, documents are pdfs alone,
+    // and the two players are gone.
+    ->mediaLibraryTypes(['file' => ['pdf'], 'video' => [], 'audio' => []])
     ->media(false);   // no player node, so no video or audio in the browser either
 ```
 
@@ -2329,7 +2331,12 @@ spreadsheet `finfo` calls plain text is not. It is then stored under that ending
 server hands a file out by its ending, so what arrives as `.pdf` is served as a pdf. Some
 endings are refused whatever the list says, because a server or a browser would run them as
 your site: `php` and its relatives, `html`, `svg`, `xml` and `js` among them — the full list is
-`LibraryTypes::DENIED`. A refused upload is named in the dialog rather than quietly left out.
+`LibraryTypes::DENIED`, and it is read wherever the question comes up, so an `.svg` already in
+the directory is not listed either. A second list, `LibraryTypes::RISKY`, is what `['*']` does
+not reach: `exe`, `msi`, `bat`, `hta`, `vbs`, `ps1`, `jar`, `sh` and their relatives run on the
+machine of whoever opens the download rather than on yours, and a star is a statement about
+documents. Naming one of them outright still takes it, the way every other ending does. A
+refused upload is named in the dialog rather than quietly left out.
 
 **Names.** A media collection keeps the name a file was uploaded under. On a plain disk,
 Filament stores an upload under forty random characters, which is fine for a picture that is

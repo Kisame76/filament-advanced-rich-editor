@@ -102,7 +102,9 @@ it('takes any ending for a star, and never one that runs as the site', function 
     expect($types->kindOfPath('drawing.dwg'))->toBe('file')
         ->and($types->kindOfPath('page.html'))->toBeNull()
         ->and($types->kindOfPath('shell.php'))->toBeNull()
-        ->and($types->kindOfPath('logo.svg'))->toBe('image');
+        // A drawn family names it too, and the refusal still wins: what is handed out by
+        // listing it runs in the browser exactly as it would have on the way in.
+        ->and($types->kindOfPath('logo.svg'))->toBeNull();
 
     // Named outright, it is still refused: the list is a wish, the refusal is not.
     expect(LibraryTypes::make(['file' => ['html', 'phtml', 'js']])->kindOfPath('page.html'))->toBeNull();
@@ -189,4 +191,54 @@ it('keeps the ending that was checked when a file is stored', function (): void 
         ->and($types->extensionFor(($this->file)('Photo.PNG', $this->png)))->toBe('png')
         // A picture under a page's ending is stored under the picture's own.
         ->and($types->extensionFor(($this->file)('photo.html', $this->png)))->toBe('png');
+});
+
+// What one answer has to say in every direction.
+
+it('files a sound by its ending where finfo names another family', function (): void {
+    // An `.m4a` is an MP4 container, and `finfo` says so: many builds answer `video/mp4`
+    // for one. Reading the family off the type alone then refused a file whose ending the
+    // audio list names outright, while the same file already on a disk played fine.
+    expect(LibraryTypes::make()->kindOf('video/mp4', 'podcast.m4a'))->toBe(MediaKinds::AUDIO)
+        ->and(LibraryTypes::make()->kindOf('video/webm', 'sound.weba'))->toBe(MediaKinds::AUDIO)
+        // And the other way: a film whose type is read as a sound.
+        ->and(LibraryTypes::make()->kindOf('audio/mp4', 'clip.m4v'))->toBe(MediaKinds::VIDEO);
+});
+
+it('never draws an ending that would run as the site', function (): void {
+    // `svg` is both a picture family's ending and on the deny list, and the deny list wins
+    // wherever it is asked - listing a drawing with a script in it is handing it out.
+    expect(LibraryTypes::make()->kindOfPath('library/logo.svg'))->toBeNull()
+        ->and(LibraryTypes::make()->kindOf('image/svg+xml', 'logo.svg'))->toBeNull()
+        ->and(LibraryTypes::make(['image' => ['image/*']])->kindOf('image/svg+xml', 'logo.svg'))->toBeNull();
+});
+
+it('offers no family whose whole list is refused', function (): void {
+    // A tab over it would be a door onto a wall, and the pool query behind it narrows to
+    // nothing - where an empty list of conditions would have matched every picture instead.
+    $types = LibraryTypes::make(['image' => ['svg']]);
+
+    expect($types->offers(MediaKinds::IMAGE))->toBeFalse()
+        ->and($types->kinds())->not->toContain(MediaKinds::IMAGE);
+});
+
+it('keeps a star away from what runs on the reader\'s machine', function (): void {
+    // `['*']` is a statement about documents, not an invitation to hand out a program. The
+    // deny list covers what runs as this site; these run on whoever opens them.
+    $star = LibraryTypes::make(['file' => ['*']]);
+
+    expect($star->takesAsFile('hta'))->toBeFalse()
+        ->and($star->takesAsFile('vbs'))->toBeFalse()
+        ->and($star->takesAsFile('exe'))->toBeFalse()
+        ->and($star->takesAsFile('ps1'))->toBeFalse()
+        // Named outright it is still a project's own call, the way every other ending is.
+        ->and(LibraryTypes::make(['file' => ['exe']])->takesAsFile('exe'))->toBeTrue()
+        // And the ordinary case a star is for stays untouched.
+        ->and($star->takesAsFile('dwg'))->toBeTrue();
+});
+
+it('refuses an upload of what runs on the reader\'s machine', function (): void {
+    $file = ($this->file)('payroll.hta', "<html><script>x</script></html>\n");
+
+    expect(LibraryTypes::make(['file' => ['*']])->accepts($file))->toBeFalse();
 });

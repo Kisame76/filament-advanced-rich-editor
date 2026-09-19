@@ -108,6 +108,10 @@ class SpatieMediaSource implements MediaSource
             return ['items' => [], 'folders' => [], 'parent' => null, 'hasMore' => false, 'total' => 0, 'types' => [], 'kinds' => []];
         }
 
+        // What the field offers, applied to the listing rather than to the pool - see
+        // `query()` for why the two are no longer the same statement.
+        $this->offered($query);
+
         // The term is used as a pattern rather than escaped into a literal, which is what
         // Filament's own table search does too. Escaping `%` and `_` only works alongside an
         // `ESCAPE` clause, and that clause cannot be written portably - the string literal
@@ -228,6 +232,8 @@ class SpatieMediaSource implements MediaSource
             return [];
         }
 
+        $this->offered($query);
+
         // An embed row's file is JSON, and `application/json` in the type filter would be a
         // filter that shows the embeds and calls them documents. Left out by what the row is
         // rather than by its type, now that a document may be JSON too.
@@ -245,6 +251,26 @@ class SpatieMediaSource implements MediaSource
             ->all();
 
         return $types;
+    }
+
+    /**
+     * Narrows a listing to the families this field offers, embeds beside them.
+     *
+     * An embed is neither a family nor an ending - it has no mime type, and a list of types
+     * is a statement about files. Narrowing one away with `image/png` would hide the Embeds
+     * tab on every field that names its picture formats.
+     *
+     * @param  Builder<Media>  $query
+     */
+    protected function offered(Builder $query): void
+    {
+        $query->where(function (Builder $query): void {
+            $query->where(function (Builder $query): void {
+                foreach ($this->library()->kinds() as $kind) {
+                    $query->orWhere(fn (Builder $query) => $this->constrainToKind($query, $kind));
+                }
+            })->orWhere('custom_properties->'.static::EMBED_PROPERTY, true);
+        });
     }
 
     /**
@@ -293,6 +319,15 @@ class SpatieMediaSource implements MediaSource
      */
     protected function takesAsDrawn(Builder $query, string $family): void
     {
+        // Everything the family named is refused, so there is nothing left to match. Said
+        // out loud, because a group holding no conditions is dropped from the query - and
+        // the family would then widen to every row its prefix covers.
+        if (($this->library()->patternsOf($family) === []) && ($this->library()->endingsOf($family) === [])) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
         $query->where('mime_type', 'like', $family.'/%')
             ->where(function (Builder $query) use ($family): void {
                 // Matched as patterns rather than exactly, because `image/*` is a value
@@ -357,6 +392,25 @@ class SpatieMediaSource implements MediaSource
                 });
             });
         });
+    }
+
+    /**
+     * The family a row is listed under: an embed by the flag it carries, everything else by
+     * its type and its name together.
+     *
+     * Public because an address depends on it - a conversion belongs to a picture, and the
+     * row is the only thing that knows whether this is one.
+     */
+    public function kindOf(Media $media): ?string
+    {
+        if (Embeds::describes((array) ($media->getCustomProperty(static::EMBED_DATA_PROPERTY) ?? [])) !== null) {
+            return MediaKinds::EMBED;
+        }
+
+        return $this->library()->kindOf(
+            (string) $media->getAttributeValue('mime_type'),
+            (string) $media->getAttributeValue('file_name'),
+        );
     }
 
     /**
@@ -602,8 +656,11 @@ class SpatieMediaSource implements MediaSource
     /**
      * The media row behind an id, or null when it is outside the pool.
      *
-     * The one method the provider authorises through. It goes through `query()`, so widening
-     * the pool and widening what a saved `data-id` may resolve to are the same act.
+     * The one method the provider authorises through. It goes through `query()`, so the
+     * scope - the collection, the model, the record, or the pool closure where there is one
+     * - is what decides whether a saved `data-id` may resolve. Not the type list: that says
+     * what the browser offers today, and a document written last year must not lose its film
+     * because somebody has since taken `mkv` off the list.
      */
     public function media(mixed $id): ?Media
     {
@@ -634,6 +691,17 @@ class SpatieMediaSource implements MediaSource
      * The pool as a query, or null where there is nothing to query - the package works
      * without `spatie/laravel-medialibrary` installed, and a create form has no record yet.
      *
+     * The scope alone: the collection, the model, the record, or the closure a shared
+     * library was defined with. That is the boundary a stored id is measured against, and
+     * it is the one this object authorises through.
+     *
+     * What the field offers is a second, narrower statement, applied by `offered()` to the
+     * listing only. Fusing the two read well until a list changed: a film uploaded while
+     * `video/*` was the rule stopped resolving the day the families became the formats a
+     * browser plays, and the `<video>` in a published article lost its address with nothing
+     * raised. What may be shown is a question about today; what may be resolved is a
+     * question about what this field already wrote.
+     *
      * @return Builder<Media>|null
      */
     protected function query(): ?Builder
@@ -643,28 +711,6 @@ class SpatieMediaSource implements MediaSource
         }
 
         $query = Media::query();
-
-        // Narrowed to what the field offers, one family at a time. It used to be a hard
-        // `like 'image/%'` here, applied before everything else - which meant a video in the
-        // collection was invisible in the grid AND unresolvable through the provider, because
-        // this object is both the list and the authoriser. The same holds for a pdf now.
-        //
-        // A drawn family is matched on its prefix first, which is what the old rule did for
-        // pictures and has to keep doing: a collection holding an `image/heic` nothing here
-        // would have uploaded is still holding a picture. A document is matched on its name,
-        // because a mime type says nothing a person could pick a document by.
-        //
-        // Two pools in one query. Everything above is a file; an embed is neither a family nor
-        // an ending - it has no mime type, and a list of types is a statement about files.
-        // Narrowing an embed away with `image/png` would hide the Embeds tab on every field
-        // that names its picture formats.
-        $query->where(function (Builder $query): void {
-            $query->where(function (Builder $query): void {
-                foreach ($this->library()->kinds() as $kind) {
-                    $query->orWhere(fn (Builder $query) => $this->constrainToKind($query, $kind));
-                }
-            })->orWhere('custom_properties->'.static::EMBED_PROPERTY, true);
-        });
 
         if ($this->poolQuery instanceof Closure) {
             // The closure is the whole definition of a library pool, collection included.
@@ -1014,13 +1060,13 @@ class SpatieMediaSource implements MediaSource
         }
 
         $name = (string) $media->getAttributeValue('name');
-        $kind = $this->library()->kindOf((string) $media->getAttributeValue('mime_type'), $fileName);
+        $kind = $this->kindOf($media);
 
         return [
             'id' => (string) $media->getAttributeValue('uuid'),
             // The URL the content will be saved with, so what is clicked and what is inserted
             // cannot come apart.
-            'url' => MediaUrl::for($media, $this->conversion, $this->visibility),
+            'url' => MediaUrl::for($media, $this->conversion, $this->visibility, $kind),
             // A separate, smaller conversion where the model has one: a grid of two hundred
             // full-size photographs is a dialog that takes seconds to open and megabytes to
             // fill, for pictures drawn at 120 pixels wide.

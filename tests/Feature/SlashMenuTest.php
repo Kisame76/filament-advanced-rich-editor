@@ -46,8 +46,13 @@ it('separates what a block is from what gets added to the document', function ()
         'bulletList', 'orderedList', 'taskList',
         'blockquote', 'codeBlock',
         'calloutNote', 'calloutTip', 'calloutWarning', 'calloutDanger',
-        'image', 'attachFiles', 'embed', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
+        'image', 'attachFiles', 'embed', 'video', 'audio', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
     ]);
+
+    // `file` is in the same group and needs somewhere to pick a document from: without a
+    // pool its button would open Filament's picture dialog, so it is absent here and
+    // present the moment a library is.
+    expect(slashNames(editor()->mediaLibraryDirectory('library')))->toContain('file');
 
     // The date tools are in the same group and behind a switch that ships off, so they are
     // absent from the list above rather than missing from it.

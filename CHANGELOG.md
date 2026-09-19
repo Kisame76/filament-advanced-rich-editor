@@ -67,6 +67,56 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- A film or a sound already in a media collection keeps resolving when the browser stops
+  offering its format. The pool was both the list and the authoriser, so the day video became
+  the formats a browser plays, an `.mkv` embedded in a published article lost its address with
+  nothing raised. The scope - the collection, the model, the record, or a shared library's own
+  closure - is what a stored id is measured against now; what the browser offers narrows the
+  listing alone
+
+- A document stored on a disk is found by the name the grid shows it under. The search ran
+  against the stored name, so typing `quartalsbericht-q3.pdf` - which is what the tile, the
+  panel and the card all read - matched nothing
+
+- A file already on the disk keeps the name it has. Any name holding two dashes and six
+  characters before its ending was read as one this package had written and shown shortened, so
+  `team--photo1.png` was listed, and inserted, as `team.png`. What this package stores now
+  always opens its random part with a digit
+
+- A card is labelled with its file's ending where the media row's name carries a dot of its
+  own: `Quartalsbericht Q3.2024` was read as a name ending in `2024`, and the card lost its
+  `.pdf` - on the label, on the download, and on the badge
+
+- An upload is filed under the family its ending names where `finfo` names another. An `.m4a`
+  is an MP4 container and is often read as `video/mp4`, which refused a sound the audio list
+  names outright while an identical file already on the disk played
+
+- A family whose whole list is refused - `['image' => ['svg']]` - narrows to nothing rather
+  than to everything. The conditions behind its tab were empty, and a database reads an empty
+  group of conditions as every row
+
+- A conversion is handed to a picture rather than to anything whose type starts with `image/`.
+  A CAD drawing is `image/vnd.dwg` to `finfo`, so its card pointed at a picture nothing had
+  made, and a picture whose type was never recorded lost the conversion it should have had
+
+- An address typed into **From a link** becomes a card only where its ending is one the field
+  takes. A dot in the last part of a path is not an ending, and `twitter.com/john.doe` was
+  inserted as a download called `doe`
+
+- The media browser leaves the uploads of other mounted actions alone. Any open action holding
+  a `file` field had its uploads measured against this field's list, named as refused in a
+  dialog about something else, and taken out of the form they were attached to
+
+- The Livewire preview list is put back after a pending document has been drawn. It governs
+  every temporary upload in the request, and widening it for one tile left it wide
+
+- `['*']` does not take an ending that runs on the reader's machine - `exe`, `bat`, `hta`,
+  `vbs`, `ps1`, `jar` and their relatives - and an `.svg` is refused by the listing as well as
+  by the upload, the way the deny list says. Naming one outright is still a project's own call
+
+- A field with no pool to browse offers no `file` button. It fell back to Filament's own
+  dialog, which takes four picture formats and inserts them as pictures
+
 - A film or a sound picked from a media collection pointed at the field's conversion rather than
   at the file, wherever `spatie.conversion` was set - a still where the reader asked for the
   film. A conversion is a picture made from a file, so it is now only ever used for a picture;

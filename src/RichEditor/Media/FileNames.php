@@ -23,7 +23,9 @@ class FileNames
 {
     /**
      * What separates the readable name from the random part. A slug never holds two dashes in
-     * a row, so a name carrying them is one this class wrote.
+     * a row, and the random part always opens with a digit - a file already on the disk that
+     * wears the shape by accident keeps the name it has, because reading `team--photo1.png`
+     * as `team.png` would show a name no file there answers to.
      */
     public const MARKER = '--';
 
@@ -34,7 +36,13 @@ class FileNames
         // Long enough to recognise, short enough to leave room for the rest of a path.
         $slug = rtrim(Str::limit($slug, 80, ''), '-');
 
-        return ($slug === '' ? 'file' : $slug).static::MARKER.Str::lower(Str::random(6)).'.'.$extension;
+        // A digit first, and that is what makes the part readable as a marker rather than as
+        // a word: `report--abc123.pdf` is a name somebody typed, `report--7kq2xm.pdf` is one
+        // this class wrote, and `display()` has to be able to tell them apart on a disk it
+        // did not fill by itself.
+        $random = Str::lower((string) random_int(0, 9).Str::random(5));
+
+        return ($slug === '' ? 'file' : $slug).static::MARKER.$random.'.'.$extension;
     }
 
     /**
@@ -43,6 +51,6 @@ class FileNames
      */
     public static function display(string $name): string
     {
-        return (string) preg_replace('/'.preg_quote(static::MARKER, '/').'[a-z0-9]{6}(?=\.[a-z0-9]+$)/i', '', $name);
+        return (string) preg_replace('/'.preg_quote(static::MARKER, '/').'[0-9][a-z0-9]{5}(?=\.[a-z0-9]+$)/i', '', $name);
     }
 }
