@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import {
+import { afterEach, describe, expect, it } from 'vitest'
+import typographyExtension, {
     TYPOGRAPHY,
     doubleQuoteFor,
     singleQuoteFor,
@@ -123,5 +123,97 @@ describe('the case that needs more than the character in front', () => {
 
     it('does not mistake an apostrophe earlier in the line for an open quotation', () => {
         expect(singleQuoteFor('geht’s und dann wort', de)).toBe('’')
+    })
+})
+
+describe('the rules while typing', () => {
+    /*
+     * TipTap's input rule runner, reduced to what these rules rely on: the text before the
+     * caret with the typed character appended is matched, the range covers the part of the
+     * match already in the document, the first rule that matches wins, and one that matches
+     * swallows the keystroke. Offsets are into the line, which is all a range here spans.
+     */
+    const typing = (before, typed, table = de) => {
+        window.FilamentRichEditor = {
+            tiptap: {
+                core: {
+                    Extension: { create: (definition) => definition },
+                    InputRule: class {
+                        constructor(config) {
+                            Object.assign(this, config)
+                        }
+                    },
+                },
+            },
+        }
+
+        const rules = typographyExtension().addInputRules.call({ storage: { table } })
+        const text = before + typed
+        const caret = before.length
+
+        for (const rule of rules) {
+            const match = rule.find.exec(text)
+
+            if (!match) {
+                continue
+            }
+
+            let written = null
+
+            rule.handler({
+                state: {
+                    tr: {
+                        insertText: (value, from, to) => {
+                            written = { value, from, to }
+                        },
+                    },
+                },
+                range: { from: caret - (match[0].length - typed.length), to: caret },
+                match,
+            })
+
+            return before.slice(0, written.from) + written.value + before.slice(written.to)
+        }
+
+        return text
+    }
+
+    afterEach(() => {
+        delete window.FilamentRichEditor
+    })
+
+    it('sets the dash between two spaces once the second one is typed', () => {
+        // How a German Gedankenstrich stands, and how most people type a dash at all.
+        expect(typing('Wort -', '-')).toBe('Wort --')
+        expect(typing('Wort --', ' ')).toBe('Wort – ')
+        expect(typing('word --', ' ', en)).toBe('word — ')
+    })
+
+    it('keeps a non-breaking space in front of the dash', () => {
+        expect(typing('Wort --', ' ')).toBe('Wort – ')
+    })
+
+    it('sets the dash straight away between two words written together', () => {
+        expect(typing('9-', '-')).toBe('9–')
+        expect(typing('word-', '-', en)).toBe('word—')
+    })
+
+    it('leaves a command line option in a sentence alone', () => {
+        expect(typing('use --', 'f')).toBe('use --f')
+    })
+
+    it('leaves a line opening with two hyphens alone', () => {
+        expect(typing('-', '-')).toBe('--')
+        expect(typing('--', ' ')).toBe('-- ')
+        expect(typing('  --', ' ')).toBe('  -- ')
+    })
+
+    it('adds a quote at the caret without eating what was typed before it', () => {
+        expect(typing('er sagte ', '"')).toBe('er sagte „')
+        expect(typing('Ende.', '"')).toBe('Ende.“')
+    })
+
+    it('turns three dots into an ellipsis', () => {
+        expect(typing('und dann..', '.')).toBe('und dann…')
     })
 })

@@ -212,7 +212,11 @@ trait CountsCharacters
                 : ['characters' => 0, 'words' => 0];
         }
 
-        $editor = $this->getTipTapEditor()->setContent($content);
+        // Through `toDocument()`, which hands back the tree the editor holds whatever shape
+        // the content arrived in. `getState()` is the markup a save writes, and parsed as it
+        // stands it reads every card's kind, name and size as words - which the editor, and
+        // the counter under it, do not.
+        $editor = $this->getTipTapEditor()->setContent($this->toDocument($content) ?? ['type' => 'doc', 'content' => []]);
         $text = $editor->getText();
 
         // Words are counted on what was written rather than on what was escaped: nobody

@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Closure;
+use Filament\Forms\Components\RichEditor\MentionProvider as BaseMentionProvider;
+use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionRow;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
+use Livewire\Attributes\Renderless;
 
 /**
  * The two menus that open on a keystroke: `/` for blocks and `@` for mentions.
@@ -99,15 +103,88 @@ trait OpensMenus
         foreach ($triggers as $index => $trigger) {
             $provider = $providers[$index] ?? null;
 
-            if ($provider instanceof MentionProvider && $provider->hasRows()) {
-                $triggers[$index]['items'] = $provider->getRows();
-            }
+            $triggers[$index]['items'] = $provider instanceof MentionProvider && $provider->hasRows()
+                ? $provider->getRows()
+                : static::mentionRowsFrom($trigger['items']);
         }
 
         return [
             'key' => $this->getKey(),
             'triggers' => $triggers,
         ];
+    }
+
+    /**
+     * What a search for a mention answers with.
+     *
+     * Filament 5.8.3 started sending mention items to its script as a list of `{id, label}`
+     * pairs instead of an `id => label` map, and typed the conversion for labels only: a
+     * row carrying a picture and a second line is a TypeError there, so every search this
+     * package's provider answered with rows became a 500 and the menu said "no results".
+     * This menu reads every shape Filament has ever sent, so it is answered here, with rows,
+     * in the order the provider gave them - an `id => label` map loses its order in the
+     * browser the moment its ids are numbers.
+     *
+     * Filament's own menu, wherever this one is switched off, is left to Filament: it gets
+     * whatever the installed version's script expects.
+     *
+     * @return array<mixed>
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function getMentionSearchResultsForJs(?string $search = null, ?string $char = '@'): array
+    {
+        if (! $this->hasMentionMenu()) {
+            return parent::getMentionSearchResultsForJs($search, $char);
+        }
+
+        $provider = $this->getMentionProviderFor($char ?? '@');
+
+        if ($provider === null) {
+            return [];
+        }
+
+        return static::mentionRowsFrom($provider->getSearchResults($search ?? ''));
+    }
+
+    /**
+     * The provider a trigger character belongs to, found the way Filament finds it: by its
+     * character, or the first one where none claims it.
+     */
+    protected function getMentionProviderFor(string $char): ?BaseMentionProvider
+    {
+        $providers = array_values($this->getMentionProviders());
+
+        foreach ($providers as $provider) {
+            if ($provider->getChar() === $char) {
+                return $provider;
+            }
+        }
+
+        return $providers[0] ?? null;
+    }
+
+    /**
+     * Mention items as a list of rows, whichever shape they arrived in: this package's rows,
+     * Filament 5.8.3's `{id, label}` pairs, or the `id => label` map every earlier version
+     * sends.
+     *
+     * @param  array<mixed>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function mentionRowsFrom(array $items): array
+    {
+        $rows = [];
+
+        foreach ($items as $id => $item) {
+            $rows[] = match (true) {
+                $item instanceof MentionRow => $item->toArray(),
+                is_array($item) => $item,
+                default => ['id' => (string) $id, 'label' => (string) $item],
+            };
+        }
+
+        return $rows;
     }
 
     /**

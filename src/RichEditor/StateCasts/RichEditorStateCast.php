@@ -7,6 +7,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts;
 use Filament\Forms\Components\RichEditor\StateCasts\RichEditorStateCast as BaseRichEditorStateCast;
 use Illuminate\Contracts\Support\Htmlable;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 
 /**
@@ -41,7 +42,7 @@ class RichEditorStateCast extends BaseRichEditorStateCast
             $state = null;
         }
 
-        return $this->resolveMediaSources(parent::set($state));
+        return FileCard::withoutDrawnContent($this->resolveMediaSources(parent::set($state)));
     }
 
     /**

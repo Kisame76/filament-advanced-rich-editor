@@ -6,6 +6,8 @@ use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ByteSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileTypes;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts\RichEditorStateCast;
 
 /**
  * An uploaded document, drawn as a card rather than as an address: what the markup says,
@@ -181,4 +183,78 @@ it('keeps the parts of a card apart in plain text', function () use ($render): v
 
     expect($text)->toContain('Quartalsbericht Q3.pdf')
         ->and($text)->not->toContain('Q3.pdf88');
+});
+
+/*
+ * What the editor is handed.
+ *
+ * `tiptap-php` gives every element with children a `content`, so a stored card is parsed
+ * with its kind, its name and its size inside it as text - which `toText()` relies on, see
+ * above. The editor's node is an atom and cannot hold that text: ProseMirror kept it until
+ * it read the paragraph again, then rebuilt the card without it, so a document opened and
+ * left alone came back changed - a draft was written, "leave site?" asked about nothing,
+ * and the counter and the statistics dialog disagreed about the same document.
+ */
+$storedCard = '<p>Zwei Worte</p><p><a href="/storage/q3.pdf" download="Quartalsbericht Q3.pdf">'
+    .'<span class="fi-arte-file-kind">PDF</span> '
+    .'<span class="fi-arte-file-text"><span class="fi-arte-file-name">Quartalsbericht Q3.pdf</span> '
+    .'<span class="fi-arte-file-size">88 KB</span></span></a></p>';
+
+it('hands the editor a card with nothing drawn inside it', function () use ($storedCard): void {
+    $state = app(RichEditorStateCast::class, ['richEditor' => editor()])->set($storedCard);
+
+    $card = $state['content'][1]['content'][0];
+
+    expect($card['type'])->toBe('file')
+        ->and($card)->not->toHaveKey('content')
+        // Everything the card is drawn from is still there to draw it.
+        ->and($card['attrs'])->toMatchArray([
+            'src' => '/storage/q3.pdf',
+            'name' => 'Quartalsbericht Q3.pdf',
+            'size' => '88 KB',
+        ]);
+});
+
+it('counts what was written, not what a card draws', function () use ($storedCard): void {
+    $editor = editor();
+    $state = app(RichEditorStateCast::class, ['richEditor' => $editor])->set($storedCard);
+
+    // The same answer from the stored markup and from the state the editor holds, and both
+    // are the two words somebody typed.
+    expect($editor->measureDocument($state)['words'])->toBe(2)
+        ->and($editor->toDocument($storedCard))->toBe($state);
+});
+
+it('still writes the card it was handed', function () use ($storedCard): void {
+    $editor = editor();
+    $cast = app(RichEditorStateCast::class, ['richEditor' => $editor]);
+
+    expect($cast->get($cast->set($storedCard)))->toContain('>Quartalsbericht Q3.pdf</span>')
+        ->and($cast->get($cast->set($storedCard)))->toContain('>88 KB</span>');
+});
+
+it('clears a card that was stored as a document with its label inside', function (): void {
+    // A field that stores JSON kept whatever the editor held, and the editor held the label
+    // until this change.
+    $document = ['type' => 'doc', 'content' => [[
+        'type' => 'paragraph',
+        'content' => [[
+            'type' => 'file',
+            'attrs' => ['src' => '/storage/q3.pdf', 'name' => 'Q3.pdf', 'size' => '88 KB'],
+            'content' => [['type' => 'text', 'text' => 'PDF Q3.pdf 88 KB']],
+        ]],
+    ]]];
+
+    expect(FileCard::withoutDrawnContent($document)['content'][0]['content'][0])->not->toHaveKey('content');
+});
+
+it('counts the markup a save writes the way it counts the state the editor holds', function () use ($storedCard): void {
+    // The statistics dialog and the counter's first render measure `getState()`, which is
+    // the stored markup rather than the tree - and parsed as it stands, that read every
+    // card's kind, name and size as words the counter under the field did not see.
+    $editor = editor();
+    $state = app(RichEditorStateCast::class, ['richEditor' => $editor])->set($storedCard);
+
+    expect($editor->measureDocument($storedCard))->toBe($editor->measureDocument($state))
+        ->and($editor->measureCharacterCount($storedCard))->toBe($editor->measureCharacterCount($state));
 });

@@ -374,9 +374,10 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      *
      * The two scopes are a union, and each is there for its own reason. The record's own
      * collection is what this field uploaded and has always been able to resolve. The pool is
-     * whatever the media browser was configured to list - and because it is the same object
-     * the grid lists from, opening the browser wider and allowing a wider `data-id` are one
-     * act rather than two that can drift apart.
+     * the scope the media browser was configured with - and because the grid lists from the
+     * same object, opening the browser wider and allowing a wider `data-id` are one act rather
+     * than two that can drift apart. What the field offers narrows the grid alone: a type
+     * taken off the list must not cut a published document off from its file.
      */
     protected function resolveMedia(mixed $file): ?Media
     {

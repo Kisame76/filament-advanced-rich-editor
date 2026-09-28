@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import {
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import textCaseExtension, {
     CASE_MODES,
     applyCase,
     caseEditsIn,
@@ -200,5 +200,111 @@ describe('the edits a selection produces', () => {
 
     it('has nothing to do for an empty selection', () => {
         expect(caseEditsIn(doc([[text('hello')]]), 3, 3, 'upper')).toEqual([])
+    })
+})
+
+/*
+ * The commands, run the way TipTap runs them: handed a transaction to write into, and a
+ * `dispatch` that says whether this is a run or only a question.
+ *
+ * A command that dispatched a transaction of its own ran ahead of the chain it was part of.
+ * `chain().focus().setTextCase()` then applied the chain's transaction on top of a document
+ * it was not built from, which ProseMirror refuses with "Applying a mismatched
+ * transaction" - and `can()`, which must not change anything, changed the text.
+ */
+describe('the commands', () => {
+    const editable = (blocks) => ({
+        ...doc(blocks),
+        nodeAt: () => ({ marks: ['bold'] }),
+        type: { schema: { text: (value, marks) => ({ text: value, marks }) } },
+    })
+
+    const transaction = (document, from, to) => {
+        const tr = {
+            doc: document,
+            selection: { from, to, empty: from === to },
+            written: [],
+            replaceWith(start, end, node) {
+                tr.written.push({ from: start, to: end, text: node.text, marks: node.marks })
+
+                return tr
+            },
+            setSelection(selection) {
+                tr.selection = selection
+
+                return tr
+            },
+        }
+
+        return tr
+    }
+
+    const run = (name, args, tr, dispatch) => {
+        window.FilamentRichEditor = {
+            tiptap: {
+                core: { Extension: { create: (definition) => definition } },
+                pmState: {
+                    TextSelection: { create: (_doc, from, to) => ({ from, to, empty: from === to }) },
+                },
+            },
+        }
+
+        const editor = {
+            storage: { arteTextCase: { lastMode: null, lastAt: null } },
+            view: { dispatch: vi.fn() },
+        }
+
+        const commands = textCaseExtension().addCommands.call({ editor })
+
+        return { result: commands[name](...args)({ tr, dispatch, editor }), editor }
+    }
+
+    afterEach(() => {
+        delete window.FilamentRichEditor
+    })
+
+    it('writes into the transaction it is handed and dispatches nothing of its own', () => {
+        const tr = transaction(editable([[text('straße')]]), 1, 7)
+        const { result, editor } = run('setTextCase', ['upper'], tr, () => undefined)
+
+        expect(result).toBe(true)
+        expect(tr.written).toEqual([{ from: 1, to: 7, text: 'STRASSE', marks: ['bold'] }])
+        // `ß` became two letters, and the selection grew with it.
+        expect(tr.selection).toEqual({ from: 1, to: 8, empty: false })
+        expect(editor.view.dispatch).not.toHaveBeenCalled()
+    })
+
+    it('changes nothing when it is only asked', () => {
+        const tr = transaction(editable([[text('hello')]]), 1, 6)
+        const { result, editor } = run('setTextCase', ['upper'], tr, undefined)
+
+        expect(result).toBe(true)
+        expect(tr.written).toEqual([])
+        expect(editor.storage.arteTextCase.lastMode).toBe(null)
+        expect(editor.view.dispatch).not.toHaveBeenCalled()
+    })
+
+    it('refuses an empty selection either way', () => {
+        expect(run('setTextCase', ['upper'], transaction(editable([[text('hello')]]), 3, 3), () => undefined).result).toBe(false)
+        expect(run('cycleTextCase', [], transaction(editable([[text('hello')]]), 3, 3), undefined).result).toBe(false)
+    })
+
+    it('cycles through the same transaction and remembers the selection it grew to', () => {
+        const tr = transaction(editable([[text('straße')]]), 1, 7)
+        const { result, editor } = run('cycleTextCase', [], tr, () => undefined)
+
+        expect(result).toBe(true)
+        expect(tr.written.map((edit) => edit.text)).toEqual([applyCase('straße', nextCaseMode(null), true).text])
+        expect(editor.storage.arteTextCase.lastAt).toBe(`${tr.selection.from}:${tr.selection.to}`)
+        expect(editor.view.dispatch).not.toHaveBeenCalled()
+    })
+
+    it('leaves the cycle alone when it is only asked', () => {
+        const tr = transaction(editable([[text('hello')]]), 1, 6)
+        const { result, editor } = run('cycleTextCase', [], tr, undefined)
+
+        expect(result).toBe(true)
+        expect(tr.written).toEqual([])
+        expect(editor.storage.arteTextCase).toEqual({ lastMode: null, lastAt: null })
     })
 })

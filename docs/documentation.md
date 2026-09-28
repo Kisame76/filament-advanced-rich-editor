@@ -106,7 +106,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.2+ with the `intl` extension
 - Filament v5.7+
 
 ## Installation
@@ -362,12 +362,12 @@ the only way to put a picture in. A preset named alongside answers instead
 (`->notion()->preset('comment')` takes uploads with it), and `->fileAttachments(false)`
 overrules both.
 
-**One limit, and it is Filament's rather than this package's.** The bar over a selection is
-registered under the `paragraph` key, and Filament's compiled bundle shows it only while
-`editor.isActive('paragraph')`. Inside a heading it does not appear, so with no toolbar the
-link, the colours and the styles cannot be reached there. Any field with
-`->toolbarButtons([])` has had the same hole all along; a field that needs those tools in a
-heading wants a preset rather than the bare mode.
+**The bar over a selection is the way to a link and the colours here**, and it appears
+wherever a mark means something — a heading, a list item, a quote, a callout and a table cell
+as well as a paragraph. Filament's own rule shows it in a paragraph and nowhere else, which
+left a heading with no link, no colours and no styles on a field without a toolbar. This
+package replaces that rule on every field — see
+[Toolbar over a selection](#toolbar-over-a-selection) — so the mode has no such hole.
 
 ### Rearranging the toolbar
 
@@ -552,15 +552,16 @@ in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one 
 ### The tools menu
 
 `'tools'` is a second overflow for the other half of a toolbar: what a field *does* rather
-than what it writes - searching, the accessibility check, the source view, the shortcut
-list.
+than what it writes - searching, the accessibility check, the statistics, the preview, the
+source view, the shortcut list.
 
 What the menu holds is `tools_menu` in the config file, shipped as
-`['find', 'accessibility', 'sourceCode', 'help']`. Per field, `->toolsMenu(['find', 'help'])`
-replaces that list; an empty list drops the button altogether.
+`['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help']`. Per field,
+`->toolsMenu(['find', 'help'])` replaces that list; an empty list drops the button altogether.
 
-It is the shipped corner: `['tools', 'fullscreen']`, with the menu holding
-`['find', 'accessibility', 'sourceCode', 'help']`.
+It is the shipped corner: `['tools', 'fullscreen']`, with the menu holding that list. On a
+field that switched nothing on it shows find, the statistics and the help - the accessibility
+check and the source view ship off, and the preview waits for a stylesheet.
 
 ```php
 // A project that would rather have the buttons names them individually.
@@ -578,15 +579,15 @@ has to be told which once rather than guess every time.
 
 Shipped that way the corner never changes shape. The accessibility check and the source
 view are both off by default and drop out of the menu while they are; switching either on
-puts it *in* the menu rather than adding a third and fourth icon beside it, and the preview,
-statistics, focus mode and export tools still to come go the same way.
+puts it *in* the menu rather than adding a third and fourth icon beside it. The statistics
+and the preview went the same way, and so will whatever joins them.
 
 The cost is that finding is one click deeper on a field that has switched nothing on -
 `Ctrl+F` is unaffected, and the help dialog lists it.
 
 An empty menu is dropped rather than drawn, and emptiness counts what survived rather than
 what was asked for: every tool in the list belongs to a feature that can be switched off, so
-all four can be gone while the list naming them is as long as it ever was.
+every one of them can be gone while the list naming them is as long as it ever was.
 
 ### The more menu
 
@@ -1802,16 +1803,21 @@ nothing.
 
 **Language and timezone.** Formats are rendered with Carbon's `translatedFormat()`, so month
 and day names come out in the application's language — never the browser's, which this
-package does not consult anywhere. Two tokens behave differently from `date()`: `S` is the
-ordinal suffix of that language rather than the English one, and `e`, `p`, `x` and `X` are not
-translated and arrive as the bare letter, so name a zone with `T`, `O` or `P`. Every other
-unescaped letter is a token, which is why a literal needs a backslash: `'\\H\\e\\u\\t\\e, j. F Y'`.
+package does not consult anywhere. `S` behaves differently from `date()`: it is the ordinal
+suffix of that language rather than the English one. `e`, `p`, `x` and `X` depend on the
+installed Carbon — before 3.14 they arrive as the bare letter, from 3.14 on they print what
+`date()` prints — so a format that has to read the same on every installation names a zone
+with `T`, `O` or `P`. Every other unescaped letter is a token, which is why a literal needs a
+backslash: `'\\H\\e\\u\\t\\e, j. F Y'`.
 
 A format carrying a time is rendered in Filament's display timezone
 (`FilamentTimezone::set()`); a date on its own is not. That exemption is Filament's own and
 it is not cosmetic: an offset applied to a date moves it a whole day for every instant near
 midnight. Which of the two a format is gets read off the format itself, since that is all
-there is to read.
+there is to read — and a zone counts as a time, because a zone only means something about an
+instant: `Y-m-d T` follows the display timezone and can land on another day than `Y-m-d`.
+`e` and `p` count as well, whichever Carbon is installed; `x` and `X` do not, since what they
+expand is a year.
 
 **Why it asks the server.** The string is fetched when the button is clicked rather than
 carried in the button. A date written in at render time is the date the page was opened, and
@@ -2500,17 +2506,24 @@ This also works on create pages, where there is no record for a media row to bel
 
 #### One rule
 
-**What the browser lists is what a stored `data-id` is allowed to resolve to.** The grid and
-the lookup are the same object, so they cannot drift into a gap: opening the browser wider and
+**A stored `data-id` resolves only inside the pool the browser draws from.** The pool is the
+scope — the collection, the model, the record, or the query a shared library was defined with
+— and the grid and the lookup read it from the same object, so opening the browser wider and
 widening what saved content may point at are one act rather than two.
+
+What the field offers takes no part in that. The family lists under `media_library.types` say
+what the browser shows and takes today, and a document written last year must not lose its
+film because `mkv` has since come off the list — so on a media collection they narrow the
+listing and nothing else.
 
 On a media collection the file attachment provider enforces it — every lookup Filament makes
 goes through the provider, and it resolves a UUID against the record's own collection *and*
 the pool, and nothing else. On a plain disk there is no provider to enforce anything, so the
 browser switches on Filament's own `preventFileAttachmentPathTampering()` and answers it from
-the same pool. Two things stay valid regardless, and both have to: a path that is already in
-the saved content, so nothing anyone has published breaks, and a file uploaded a moment ago,
-which is a pending attachment rather than a path.
+what the grid lists: the directory, and in it the endings the field takes. Two things stay
+valid regardless, and both have to: a path that is already in the saved content, so nothing
+anyone has published breaks, and a file uploaded a moment ago, which is a pending attachment
+rather than a path.
 
 A field that calls `preventFileAttachmentPathTampering()` itself overrides this.
 
@@ -2969,8 +2982,10 @@ AdvancedRichEditor::make('content')
 ```
 
 Straight quotes become the ones the language uses as they are typed, `...` becomes `…`, and
-`--` becomes that language's dash. Nothing is stored as anything but characters, so switching
-it off later leaves every quotation already written exactly as it is.
+`--` becomes that language's dash: straight away where it follows a word (`9--17`), and as the
+space after it is typed where it stands between spaces (`Wort -- Wort`). So `--force` in a
+sentence is left alone, and so is a line opening with `--`. Nothing is stored as anything but
+characters, so switching it off later leaves every quotation already written exactly as it is.
 
 **Shipped off**, unlike most of what this package adds. Everything else here gives a field
 something it can do; this one changes what somebody typed, and what it changes ends up in the
@@ -3250,10 +3265,10 @@ colour of: shipped on, every project whose pages are not white would be handed f
 are wrong - which is the surest way to teach somebody to stop reading a panel.
 
 The shipped place for it is the tools menu, not the bar: `tools_menu` is
-`['find', 'accessibility', 'sourceCode', 'help']`, and that place fills itself in as soon as
-the check is switched on. A project that has published the config file therefore needs to
-change nothing to see the button. Naming `'accessibility'` in `toolbar` instead gives it a
-button of its own on the bar.
+`['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help']`, and that place
+fills itself in as soon as the check is switched on. A project that has published the config
+file therefore needs to change nothing to see the button. Naming `'accessibility'` in
+`toolbar` instead gives it a button of its own on the bar.
 
 The whole of it in the published config:
 

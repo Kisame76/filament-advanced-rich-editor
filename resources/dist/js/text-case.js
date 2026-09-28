@@ -175,31 +175,41 @@ export default () => {
         },
 
         addCommands() {
-            const applyTo = (editor, mode) => {
-                const { state } = editor
-                const { from, to } = state.selection
+            /*
+             * The edits, written into the transaction the command was handed.
+             *
+             * Never into one of its own. A command that dispatches by itself runs ahead of
+             * the chain it is part of: `chain().focus().setTextCase()` - which is what the
+             * toolbar calls - dispatched the chain's transaction after this one, built on the
+             * document from before it, and ProseMirror refused it outright. The case changed,
+             * the RangeError went to the console, and the rest of the click never ran, so the
+             * dropdown stayed open. And `can()`, which only asks, changed the text. Nothing is
+             * written without `dispatch`, which is how a command is told it is really running.
+             */
+            const applyTo = (tr, dispatch, mode) => {
+                const { from, to } = tr.selection
+                const doc = tr.doc
 
-                const edits = caseEditsIn(state.doc, from, to, mode)
+                const edits = caseEditsIn(doc, from, to, mode)
 
-                if (edits.length === 0) {
-                    // Still a success: the selection is already in that case, and reporting
-                    // failure would let the key fall through to the browser.
+                if (!dispatch || edits.length === 0) {
+                    // Still a success where there is nothing to write: the selection is already
+                    // in that case, and reporting failure would let the key fall through to
+                    // the browser.
                     return true
                 }
-
-                const tr = state.tr
 
                 for (const edit of edits) {
                     // The marks are taken from the node rather than left to the transaction
                     // to infer. `insertText()` reads them off the position, and a position
                     // that sits exactly between two differently marked nodes is the one case
                     // where that answers with the wrong node's marks.
-                    const node = state.doc.nodeAt(edit.from)
+                    const node = doc.nodeAt(edit.from)
 
                     tr.replaceWith(
                         edit.from,
                         edit.to,
-                        state.schema.text(edit.text, node ? node.marks : null),
+                        doc.type.schema.text(edit.text, node ? node.marks : null),
                     )
                 }
 
@@ -213,32 +223,36 @@ export default () => {
 
                 tr.setSelection(TextSelection.create(tr.doc, from, to + grew))
 
-                editor.view.dispatch(tr)
-
                 return true
             }
 
             return {
                 setTextCase:
                     (mode) =>
-                    ({ editor }) => {
-                        if (editor.state.selection.empty) {
+                    ({ tr, dispatch, editor }) => {
+                        if (tr.selection.empty) {
                             return false
                         }
 
-                        editor.storage.arteTextCase.lastMode = mode
-                        editor.storage.arteTextCase.lastAt = null
+                        if (dispatch) {
+                            editor.storage.arteTextCase.lastMode = mode
+                            editor.storage.arteTextCase.lastAt = null
+                        }
 
-                        return applyTo(editor, mode)
+                        return applyTo(tr, dispatch, mode)
                     },
 
                 cycleTextCase:
                     () =>
-                    ({ editor }) => {
-                        const { from, to, empty } = editor.state.selection
+                    ({ tr, dispatch, editor }) => {
+                        const { from, to, empty } = tr.selection
 
                         if (empty) {
                             return false
+                        }
+
+                        if (!dispatch) {
+                            return true
                         }
 
                         const storage = editor.storage.arteTextCase
@@ -246,17 +260,14 @@ export default () => {
                         const mode = nextCaseMode(storage.lastAt === at ? storage.lastMode : null)
 
                         storage.lastMode = mode
-                        storage.lastAt = at
 
-                        const applied = applyTo(editor, mode)
+                        applyTo(tr, dispatch, mode)
 
                         // The selection may have grown, so the next press has to recognise
                         // the same selection under its new measurements.
-                        const next = editor.state.selection
+                        storage.lastAt = `${tr.selection.from}:${tr.selection.to}`
 
-                        storage.lastAt = `${next.from}:${next.to}`
-
-                        return applied
+                        return true
                     },
             }
         },

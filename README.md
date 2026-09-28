@@ -60,7 +60,7 @@ list of the ones that did not need one.
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.2+ with the `intl` extension
 - Filament v5.7+
 
 ## Installation

@@ -9,6 +9,7 @@ use Filament\Forms\Components\RichEditor\StateCasts\RichEditorStateCast as BaseR
 use Filament\Schemas\Components\StateCasts\Contracts\StateCast;
 use Illuminate\Contracts\Support\Htmlable;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts\RichEditorStateCast;
 
 /**
@@ -119,11 +120,12 @@ trait CastsItsContent
             return null;
         }
 
+        // A card's drawn label is not text anybody wrote, and the editor does not count it.
         if (is_string($state)) {
-            return $this->getTipTapEditor()->setContent($state)->getDocument();
+            return FileCard::withoutDrawnContent($this->getTipTapEditor()->setContent($state)->getDocument());
         }
 
-        return is_array($state) ? $state : null;
+        return is_array($state) ? FileCard::withoutDrawnContent($state) : null;
     }
 
     /**

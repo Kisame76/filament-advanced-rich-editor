@@ -30,8 +30,10 @@ return [
     | 'highlight', 'small', 'lead', 'attachFiles', 'mergeTags', 'customBlocks',
     | 'ltr', 'rtl' and the table editing ones. 'attachFiles' is Filament's own upload
     | dialog and stays Filament's — this package no longer registers the library
-    | browser under that name, so naming it here gets the plain dialog. Per field: `->toolbarButtons([...])`, or
-    | `->preset('blog')` for a named starting point - see 'toolbar_presets' below.
+    | browser under that name, so naming it here gets the plain dialog.
+    |
+    | Per field: `->toolbarButtons([...])`, or `->preset('blog')` for a named starting
+    | point - see 'toolbar_presets' below.
     */
     'toolbar' => [
         ['undo', 'redo'],
@@ -117,11 +119,10 @@ return [
     | otherwise says yes to. It has to: the upload answer is read off the bar, this mode has
     | no bar, and the slash menu's insert group ships 'image' and 'attachFiles'.
     |
-    | One limit, and it is Filament's: the bar over a selection is registered under the
-    | 'paragraph' key and its compiled bundle shows it only while the caret is in a
-    | paragraph. Inside a heading it does not appear, so with no toolbar the link, the
-    | colours and the styles are out of reach there. Any field with `->toolbarButtons([])`
-    | has the same hole today.
+    | The bar over a selection is the way to a link and the colours here, and it appears
+    | wherever a mark means something - a heading, a list item, a quote and a table cell as
+    | well as a paragraph. Filament's own rule shows it in a paragraph only; this package
+    | replaces that rule on every field.
     */
 
     /*
@@ -203,8 +204,8 @@ return [
     |
     | It is in the shipped toolbar, as ['tools', 'fullscreen']. Shipped that way the
     | corner never changes shape: switching the accessibility check or the source view on
-    | puts them in the menu rather than adding a fourth and fifth icon beside it, and the
-    | preview, statistics and export tools still to come go the same way.
+    | puts them in the menu rather than adding a fourth and fifth icon beside it. The
+    | statistics and the preview live there for the same reason.
     |
     | The cost is that finding is one click deeper than it was on a field that switched
     | nothing on - Ctrl+F is unaffected, and the help dialog lists it. A project that
@@ -244,11 +245,12 @@ return [
     | Accessibility check
     |--------------------------------------------------------------------------
     | The 'accessibility' tool and the panel behind it: a picture nobody described, a
-    | link whose text is "click here", a heading level jumped over, a table with no
-    | header row, a link with nothing in it, and a colour that cannot be read on the
-    | page it is going to. Every finding is a row that selects what it is about.
+    | picture marked decorative that is the whole of a link, a link whose text is "click
+    | here", a heading level jumped over, a table with no header row, a link with nothing
+    | in it, and a colour that cannot be read on the page it is going to. Every finding is
+    | a row that selects what it is about.
     |
-    | 'rules' is which of the six are asked; a name left out is not reported.
+    | 'rules' is which of the seven are asked; a name left out is not reported.
     |
     | Contrast is the one rule with two assumptions in it, and they are stated rather
     | than hidden: the editor cannot know what colour the page will be, nor what colour
@@ -269,9 +271,9 @@ return [
     | Shipped off. It is a review tool rather than a way of writing, and the contrast
     | rule is measured against a page this package has to be told the colour of - on by
     | default, every project whose pages are not white would be handed findings that are
-    | wrong. Switch it on here or per field with `->accessibility()`, and the button
-    | appears where the shipped toolbar already reserves a place for it, between 'find'
-    | and 'sourceCode'. Nothing about any of it is stored.
+    | wrong. Switch it on here or per field with `->accessibility()`, and the entry
+    | appears where the tools menu already reserves a place for it, after 'find'. Nothing
+    | about any of it is stored.
     |
     | Per field: `->accessibility()`, `->accessibilityRules()`.
     */
@@ -500,25 +502,6 @@ return [
     | `'callouts'` expand to what the field offers - its heading levels and its kinds of
     | callout. Per field: `->slashMenu()`.
     */
-    /*
-    |--------------------------------------------------------------------------
-    | Mentions
-    |--------------------------------------------------------------------------
-    |
-    | Whose menu opens when a trigger is typed. This package's own has room for a picture
-    | and a line of context under the name, which is what tells two people called the same
-    | thing apart; Filament's draws the name and nothing else.
-    |
-    | The mention itself is unchanged either way - the same node, the same `data-id`, the
-    | same markup on the page - so this can be switched at any time without touching
-    | anything already written. Per field: `->mentionMenu()`.
-    |
-    */
-
-    'mentions' => [
-        'menu' => true,
-    ],
-
     'slash' => [
         'enabled' => true,
         'char' => '/',
@@ -539,6 +522,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mentions
+    |--------------------------------------------------------------------------
+    | Whose menu opens when a trigger is typed. This package's own has room for a picture
+    | and a line of context under the name, which is what tells two people called the same
+    | thing apart; Filament's draws the name and nothing else.
+    |
+    | The mention itself is unchanged either way - the same node, the same `data-id`, the
+    | same markup on the page - so this can be switched at any time without touching
+    | anything already written. Per field: `->mentionMenu()`.
+    */
+    'mentions' => [
+        'menu' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Link attributes
     |--------------------------------------------------------------------------
     | Whether the link dialog offers `rel`, `referrerpolicy`, `hreflang` and an anchor on
@@ -555,12 +554,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Help
+    | Statistics
     |--------------------------------------------------------------------------
-    | The question mark at the end of the toolbar, listing the keyboard shortcuts that
-    | field answers to. `help_more` adds a second tab for whatever the project wants to
-    | tell the people writing; a plain string is escaped and keeps its line breaks.
-    | Per field: `->help()` and `->helpMore()`, which also takes an `Htmlable`.
+    | The 'statistics' entry in the tools menu: words, characters with and without
+    | spaces, blocks and a reading time, counted the way the counter under the field
+    | counts. Nothing about it is stored. Per field: `->statistics()`.
     */
     'statistics' => [
         'enabled' => true,
@@ -626,6 +624,15 @@ return [
         'wrapper_class' => null,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Help
+    |--------------------------------------------------------------------------
+    | The question mark at the end of the toolbar, listing the keyboard shortcuts that
+    | field answers to. `help_more` adds a second tab for whatever the project wants to
+    | tell the people writing; a plain string is escaped and keeps its line breaks.
+    | Per field: `->help()` and `->helpMore()`, which also takes an `Htmlable`.
+    */
     'help' => true,
 
     'help_more' => null,
@@ -777,15 +784,16 @@ return [
     | here, and note that Filament's own date pickers do not read it.
     |
     | Formats are rendered with Carbon's `translatedFormat()`, so month and day names come
-    | out in the application's language. Two things it does differently from `date()`: `S`
-    | is the ordinal suffix of that language rather than the English one, and `e`, `p`, `x`
-    | and `X` are not translated and arrive as the bare letter — use `T`, `O` or `P` to
-    | name a zone. Every other unescaped letter is a token, so literals need a backslash:
-    | `'\H\e\u\t\e, j. F Y'`.
+    | out in the application's language. `S` is the ordinal suffix of that language rather
+    | than the English one. `e`, `p`, `x` and `X` arrive as the bare letter before Carbon
+    | 3.14 and as what `date()` prints from 3.14 on — use `T`, `O` or `P` to name a zone
+    | the same way everywhere. Every other unescaped letter is a token, so literals need a
+    | backslash: `'\H\e\u\t\e, j. F Y'`.
     |
     | A format carrying a time is rendered in Filament's display timezone
     | (`FilamentTimezone::set()`); a date on its own is not, because an offset applied to a
-    | date moves it a whole day either side of midnight.
+    | date moves it a whole day either side of midnight. A zone counts as a time - `e` and
+    | `p` included - so `Y-m-d T` follows the display timezone and can land on another day.
     |
     | Ships off, and nothing ships on a bar either. A date typed once is a date; a button
     | for it is worth having where a template is filled in daily and worth nothing in a
@@ -810,6 +818,11 @@ return [
     | Keeps the toolbar pinned while a long document is scrolled. `offset` is any CSS
     | length and should match whatever sits above the form — usually the topbar.
     */
+    'sticky' => [
+        'enabled' => true,
+        'offset' => '4rem',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Maximum height
@@ -823,11 +836,6 @@ return [
     | Per field: `->maxHeight()`.
     */
     'max_height' => null,
-
-    'sticky' => [
-        'enabled' => true,
-        'offset' => '4rem',
-    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -1064,11 +1072,12 @@ return [
     |
     | Per field: `->textCase()`.
     */
+    'text_case' => true,
+
     /*
     |--------------------------------------------------------------------------
     | Format brush
     |--------------------------------------------------------------------------
-    |
     | The brush from Word, TinyMCE's permanent pen: pick the formatting up at one
     | passage and put it down on another. One click arms it for a single stroke,
     | a second keeps it armed, a third puts it away.
@@ -1083,20 +1092,17 @@ return [
     | which is a thing to hand somebody deliberately. Switching it on is this line
     | plus a place for the button: `formatBrush` on the bar, in the selection
     | bubble or in `more`. Per field: `->formatBrush()`.
-    |
     */
-
     'format_brush' => false,
-
-    'text_case' => true,
 
     /*
     |--------------------------------------------------------------------------
     | Typography while typing
     |--------------------------------------------------------------------------
     | Straight quotes become the ones the language uses, three dots become an ellipsis, and
-    | two hyphens become that language's dash. None of it is stored as anything but
-    | characters, so switching it off later leaves every quotation already written as it is.
+    | two hyphens become that language's dash - after a word, or between two spaces once the
+    | second is typed. None of it is stored as anything but characters, so switching it off
+    | later leaves every quotation already written as it is.
     |
     | Which characters are right is a question about a language and not about typography in
     | general: German opens with `„` and closes with `“` - the shape English uses to open -
@@ -1301,8 +1307,9 @@ return [
     |   ->mediaLibraryQuery(fn (Builder $query) => $query->where('collection_name', 'library'))
     |   ->mediaLibraryDirectory('library')   // fields storing plain files on a disk
     |
-    | Whatever the pool lists is also what a stored `data-id` is allowed to resolve
-    | to — the browser and the lookup are the same object, so they cannot drift apart.
+    | The pool is also what a stored `data-id` is allowed to resolve to — the browser and
+    | the lookup are the same object, so they cannot drift apart. The type lists below
+    | narrow what the browser offers, never what a document already written points at.
     |
     | 'directory' is the project-wide default for the disk pool; null keeps every
     | field on its own `fileAttachmentsDirectory()`. Per field: `->mediaLibrary()`.
@@ -1362,8 +1369,8 @@ return [
          *   'model'       only the records of the model being edited.
          *   'record'      only the record in front of you.
          *
-         * Whatever it lists is also what a stored `data-id` may resolve to, so the two can
-         * never drift apart. Per field: `->mediaLibraryScope()`, or `->mediaLibraryQuery()`.
+         * It is also what a stored `data-id` may resolve to, so the two can never drift
+         * apart. Per field: `->mediaLibraryScope()`, or `->mediaLibraryQuery()`.
          */
         'scope' => 'collection',
 

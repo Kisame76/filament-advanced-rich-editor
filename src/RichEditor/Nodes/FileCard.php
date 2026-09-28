@@ -411,4 +411,37 @@ class FileCard extends Node
 
         return null;
     }
+
+    /**
+     * A document with every card's drawn insides taken out, for the editor to hold.
+     *
+     * `tiptap-php` gives every element with children a `content`, `$atom` or not, so a stored
+     * card is parsed with its kind, its name and its size as text inside it - which is what
+     * lets `toText()` put the name in a search index, and why the parse is left alone. The
+     * editor's node is an atom and cannot hold any of it. ProseMirror keeps the text until
+     * something makes it read the paragraph again, then rebuilds the card without it: the
+     * document has changed with nobody touching it, a draft is written, "leave site?" asks
+     * about work that does not exist, and the counts read the three spans as words. What the
+     * editor is handed, and what its rules count, is the card as the editor holds it.
+     *
+     * @param  array<string, mixed>  $document
+     * @return array<string, mixed>
+     */
+    public static function withoutDrawnContent(array $document): array
+    {
+        if (($document['type'] ?? null) === static::$name) {
+            unset($document['content']);
+
+            return $document;
+        }
+
+        if (is_array($document['content'] ?? null)) {
+            $document['content'] = array_map(
+                static fn (mixed $node): mixed => is_array($node) ? static::withoutDrawnContent($node) : $node,
+                $document['content'],
+            );
+        }
+
+        return $document;
+    }
 }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Composer\InstalledVersions;
 use Filament\Forms\Components\RichEditor;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 
@@ -41,7 +42,45 @@ const OPTION_ACCESSOR_DIVERGENCES = [
     // Inside the view, `$this` already is the Livewire component that upstream has to
     // reach through `getLivewire()`.
     'livewireId' => ['upstream' => ['getLivewire'], 'fork' => []],
+    // Accessors Filament only has from 5.9 on. The fork asks whether the closure is there
+    // before calling it, which is what lets one view render on 5.7 and 5.8 as well.
+    'hasMinimalCustomBlockControls' => ['upstream' => [], 'fork' => ['isset']],
+    'hasStickyToolbar' => ['upstream' => [], 'fork' => ['isset']],
 ];
+
+/**
+ * Options the fork passes ahead of the installed Filament, keyed by the release that added
+ * them upstream.
+ *
+ * The package supports a range of Filament releases with one view, so the fork carries the
+ * newest release's options - each fed where its accessor exists and answered the way an
+ * older release behaves where it does not. Against an older release these are the only
+ * keys allowed to be missing upstream; against the release that added them they are held
+ * to upstream like every other option.
+ *
+ * @var array<string, string>
+ */
+const LATER_UPSTREAM_OPTIONS = [
+    'deleteCustomBlockButtonLabel' => '5.9.0',
+    'editCustomBlockButtonLabel' => '5.9.0',
+    'hasMinimalCustomBlockControls' => '5.9.0',
+    'hasStickyToolbar' => '5.9.0',
+];
+
+/**
+ * The options in `LATER_UPSTREAM_OPTIONS` the installed Filament does not have yet.
+ *
+ * @return array<int, string>
+ */
+function optionsAheadOfUpstream(): array
+{
+    $installed = (string) InstalledVersions::getVersion('filament/forms');
+
+    return array_keys(array_filter(
+        LATER_UPSTREAM_OPTIONS,
+        static fn (string $release): bool => version_compare($installed, $release, '<'),
+    ));
+}
 
 /**
  * The body of `RichEditor::toEmbeddedHtml()`, read off the installed Filament.
@@ -199,7 +238,7 @@ it('offers the Alpine component exactly the options upstream offers it', functio
     $fork = array_keys(richEditorOptions(forkedEditorSource()));
 
     $missing = array_values(array_diff($upstream, $fork));
-    $extra = array_values(array_diff($fork, $upstream));
+    $extra = array_values(array_diff($fork, $upstream, optionsAheadOfUpstream()));
 
     expect($missing)->toBe([], 'Upstream passes these and the fork does not, so they arrive as undefined: '.implode(', ', $missing))
         ->and($extra)->toBe([], 'The fork passes these and upstream does not, so nothing reads them: '.implode(', ', $extra));
@@ -241,6 +280,11 @@ it('lists no accessor divergence that has since gone away', function (): void {
     $stale = [];
 
     foreach (OPTION_ACCESSOR_DIVERGENCES as $option => $allowed) {
+        // An option the installed release does not have yet cannot have caught up.
+        if (in_array($option, optionsAheadOfUpstream(), true)) {
+            continue;
+        }
+
         if (! array_key_exists($option, $upstream) || ! array_key_exists($option, $fork)) {
             $stale[] = $option.' (no longer an option at all)';
 
@@ -286,11 +330,22 @@ it('is looking at the code it claims to be looking at', function (): void {
     // guard passes while seeing nothing at all.
     $upstream = richEditorOptions(upstreamEditorSource());
 
-    expect($upstream)->toHaveCount(count(richEditorOptions(forkedEditorSource())))
+    expect($upstream)->toHaveCount(count(richEditorOptions(forkedEditorSource())) - count(optionsAheadOfUpstream()))
         ->and(count($upstream))->toBeGreaterThan(20)
         ->and($upstream)->toHaveKey('statePath')
         ->and($upstream)->toHaveKey('extensions')
         ->and(upstreamClasses(upstreamEditorSource()))->toContain('fi-fo-rich-editor-toolbar');
+});
+
+it('passes every option it claims to be ahead with', function (): void {
+    // The allowance above is only honest while the fork really carries what it lists; an
+    // entry for an option that has since been dropped would excuse nothing and hide nothing.
+    $missing = array_values(array_diff(
+        array_keys(LATER_UPSTREAM_OPTIONS),
+        array_keys(richEditorOptions(forkedEditorSource())),
+    ));
+
+    expect($missing)->toBe([], 'Listed as ahead of upstream but not passed by the fork: '.implode(', ', $missing));
 });
 
 it('still renders the fork rather than the embedded HTML', function (): void {

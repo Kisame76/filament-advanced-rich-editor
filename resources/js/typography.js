@@ -59,6 +59,21 @@ const BEFORE_AN_OPENING = /[\s([{<„“‘‚«‹—–]$/u
 const A_SHORTENED_WORD = /[\p{L}\p{N}]$/u
 
 /**
+ * Two hyphens straight after a word - `9--17`, `word--word` - set as the second is typed.
+ * Something has to stand in front of them, so a line opening with `--` is left alone.
+ */
+export const DASH_AFTER_A_WORD = /(?<=\S)--$/u
+
+/**
+ * Two hyphens standing between spaces after a word, which is how a German Gedankenstrich is
+ * set and how most people type a dash in any language. Set as the space after them is typed
+ * and not before: `--` after a space is also how a command line option begins, and `--force`
+ * in a sentence is not a dash. A non-breaking space counts as a space and is kept, since
+ * whoever typed one before a dash meant it.
+ */
+export const DASH_BETWEEN_SPACES = /(?<=\S)([  ])--([  ])$/u
+
+/**
  * The table for a locale, however it is spelled. `app()->getLocale()` answers `de_DE` as
  * readily as `de`, and a browser says `de-AT`; only the language in front matters here.
  */
@@ -193,9 +208,20 @@ export default () => {
                 quote('"', doubleQuoteFor),
                 quote("'", singleQuoteFor),
                 replaceWith(/\.\.\.$/, () => ELLIPSIS),
-                // Two hyphens with something in front of them, so a line opening with `--`
-                // is left alone.
-                replaceWith(/(?<=\S)--$/u, () => this.storage.table.dash),
+                replaceWith(DASH_AFTER_A_WORD, () => this.storage.table.dash),
+                new InputRule({
+                    find: DASH_BETWEEN_SPACES,
+                    // The spaces are part of the match and are written back as they were
+                    // typed, the one after the dash included: the rule consumes the keystroke
+                    // that fired it.
+                    handler: ({ state, range, match }) => {
+                        state.tr.insertText(
+                            `${match[1]}${this.storage.table.dash}${match[2]}`,
+                            range.from,
+                            range.to,
+                        )
+                    },
+                }),
             ]
         },
     })

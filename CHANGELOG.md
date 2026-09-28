@@ -65,7 +65,143 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   file to delete - and its Copy link hands over the watch address rather than the frame one.
   Its still is shown with a play mark, and only pressing it loads a player
 
+- Five named toolbar presets, `->preset('minimal' | 'comment' | 'blog' | 'default' | 'full')`,
+  each answering for the main bar, the overflow, the tools menu, the bar over a selection and
+  whether uploads are taken - four decisions a comment box needs made together, which until
+  now meant copying the shipped arrays and shrinking them by hand. `default` is the shipped bar
+  under a name; `full` also places `fontFamily`, `textCase`, `language` and `strike`. Add your
+  own, or replace a shipped one, under `toolbar_presets`. A field's own `->toolbarButtons()`,
+  `->moreTools()`, `->toolsMenu()`, `->textToolbarButtons()` and `->fileAttachments()` still
+  win, one bar at a time
+
+- `->notion()`, the mode with no toolbar: the slash menu, the block grip and the bar over a
+  selection carry the field. It takes uploads, because the slash menu is its only way to a
+  picture, and a preset named beside it puts a bar back
+
+- A statistics dialog in the tools menu: words, characters, characters without spaces, blocks
+  and a reading time (`statistics.words_per_minute`, 200 by default). Counted the way the
+  counter under the field counts, so its characters are the number `maxLength()` refuses a
+  save over
+
+- A preview in the tools menu that draws the document the way the page will: through the same
+  renderer and sanitiser `AdvancedRichEntry`, `AdvancedRichColumn` and `<x-arte-content>` use,
+  in a sandboxed `<iframe srcdoc>` that loads your stylesheet - `->previewStylesheets([...])`
+  and `->previewWrapperClass()`. A field given no stylesheet gets no button: the package has
+  no front-end CSS to lend it. `->configureRenderer()` and `getRichContentRenderer()` on the
+  field build that renderer once, for the preview and for what a save parses
+
+- `->enforceMaxLength()`: the editor refuses a keystroke that would take the document past
+  `maxLength()` instead of letting the save be refused later. Off by default - a comment box
+  blocks, an article warns. A document already over the limit still opens and can be
+  shortened, and an undo is never refused
+
+- Rules about what a document holds: `->minWords()`, `->maxWords()` and
+  `->mustContain(['heading', 'image', 'link'])`, by TipTap's own node and mark names. They
+  stand down on an empty field, which is `required()`'s business, and a word rule turns words
+  on in the counter. `DocumentContent::contains()` asks the same of a column without a field
+
+- `RichContentSaved`, dispatched once per rich content column that changed on a model using
+  `FiresRichContentEvents` - the hook for optimising pictures, checking links or clearing a
+  render cache. It carries the record, the attribute, the content before and after, and
+  whether the save created the record. A save that changed another column says nothing
+
+- A link can point at a record instead of a typed address:
+  `->linkSources([LinkSource::make('articles')->using(fn (string $search): array => ...)])`
+  puts a search above the URL field of the link dialog, and picking a result fills in the URL,
+  which stays what the link stores
+
+- `AdvancedRichContentRenderer::make()->fromMarkdown($markdown)`, the mirror of
+  `toMarkdown()`. GitHub-flavoured, with footnotes kept as text, loose content put back into a
+  paragraph, task lists kept apart from plain bullets and `allow_unsafe_links` off. Nothing to
+  install: `league/commonmark` comes with Laravel
+
+- A format brush: pick the formatting up at one passage and put it down on another, once, or
+  kept armed with a second click. It carries the marks this field's schema declares and never
+  a code run, a link or a language. Ships off: `->formatBrush()`, then put `formatBrush` on a
+  bar, over a selection or in `more`
+
+- Changing the case of a selection - Sentence case, lower case and UPPER CASE - and Shift+F3 to
+  cycle through them the way Word does. Nothing is stored but the letters. Registered without
+  a button: `textCaseSentence`, `textCaseLower` and `textCaseUpper` for `more`, or the
+  `textCase` token on a bar or over a selection
+
+- Today's date, the time, or both written into the document, in the formats the schema already
+  uses for dates unless `date_time.formats` or `->dateTimeFormats()` name others. Ships off:
+  `->dateTime()`. The way in is the slash menu (`/date`, `/heute`), or `insertDate`,
+  `insertTime` and `insertDateTime` in `more`, or the `dateTime` token on a bar
+
+- A block steps in and out with Mod+] and Mod+[, written as `margin-inline-start` so it holds
+  on the page. Ships off: `->indent()`, with `->indentStep()` and `->indentMax()`, and
+  `indent` and `outdent` to give it buttons
+
+- Typography while typing: straight quotes become the ones the language uses, `...` becomes
+  `…` and `--` becomes the language's dash - straight after a word (`9--17`), or between two
+  spaces once the second is typed (`Wort -- Wort`). English and German ship, others go
+  under `typography.languages`. Ships off, because it rewrites what somebody types into what
+  is stored: `->typography()`, and `->typographyLanguage()` where the app's locale is not the
+  document's
+
+- Video and audio from your own server: `video` and `audio` place a `<video>` or an `<audio>`
+  with an address, a poster, a title, a preload hint and a loop. Registered without a button -
+  the media browser and the slash menu (`/video`, `/audio`) are the way in - and
+  `->media(false)` takes the node and the buttons away. Players already stored keep rendering
+  either way
+
+- `->fileAttachmentProvider()` on `AdvancedRichEntry` and `AdvancedRichColumn`, beside the disk
+  and visibility they already took, so a view page resolves an upload the way the field does
+
 ### Fixed
+
+- **A mention searched on the server answered "No results match your search." from Filament
+  5.8.3 on.** Filament 5.8.3 sends mention items to its script as `{id, label}` pairs and typed
+  the conversion for labels only, so the rows this package's `MentionProvider` answers with - a
+  picture and a second line beside the label - were a `TypeError`, and every search a 500.
+  The field answers the search itself now, with rows in the order the provider gave them, on
+  every Filament release from 5.7 on; Filament's own menu, wherever this one is switched off,
+  still gets the shape its version expects. v1.4.0 has the same failure on Filament 5.8.3 and
+  later
+
+- The editor view carries what Filament 5.9 added to its own: the `hasStickyToolbar`,
+  `hasMinimalCustomBlockControls` and custom block label options its script now reads,
+  `->searchableCustomBlocks()` and `->customBlocksGrid()` with block icons, `->stickyPanels()`,
+  and a label on the panels' close buttons. Each is asked for only where the installed
+  Filament has it, so the view still renders on 5.7 and 5.8. Its `--max-height` is left out on
+  purpose: Filament turns it into a cap on the box the floating toolbars are positioned in,
+  which clips them, and this package caps the document one element in
+
+- Opening a document with a file card in it changed the document with nobody touching it.
+  `tiptap-php` parsed the card's drawn kind, name and size as text inside a node the editor
+  holds as an atom, and the editor dropped that text the first time it read the paragraph
+  again - which the broken-image check made happen on every load, by writing its mark onto the
+  paragraph around ProseMirror's own placeholder image. So a draft was saved for every such
+  document, the next visit offered to restore it, "leave site?" asked about work that did not
+  exist, and the counter, the statistics dialog and the word rules disagreed about the same
+  document - the dialog counting a card's `PDF` and `88 KB` as words. The editor is handed the
+  card as it holds it, every count reads what was written, and the broken-image mark is only
+  ever set on a picture's own wrapper. `toText()` still puts a card's name in plain text
+
+- Changing the case from the toolbar threw `RangeError: Applying a mismatched transaction` and
+  left the dropdown open. The command dispatched a transaction of its own inside the chain the
+  toolbar runs, and `editor.can().setTextCase()`, which only asks, changed the text. It writes
+  into the transaction it is handed now
+
+- `->embeds(false)` with `embed` on the bar threw a `LogicException`, and the field did not
+  render at all: the name stayed on the bar after its tool was gone. `embed` is a token that
+  disappears with its feature now, the way `characters`, `find` and `help` always were
+
+- A picture uploaded through a media library was rendered as an `<img>` with its measurements
+  and no source wherever the renderer had no attachment provider: Filament's pass assigns the
+  resolved address unconditionally, so "nothing resolved" erased a good one. The stored
+  source is kept where the id resolves to nothing
+
+- A caption under a resized picture was centred on the column rather than under the picture,
+  and centring a picture did nothing at all - a `<figure>` is a block as wide as the column.
+  The figure is boxed to its picture along the axis the text runs now, written inline so it
+  holds on the page too
+
+- The character counter read `1,234` before the first keystroke and `1.234` after it; both
+  halves format in the app's locale now. And a `maxLength()` of `0` - no limit - no longer
+  reads `0 / 0 characters` in red
 
 - A film or a sound already in a media collection keeps resolving when the browser stops
   offering its format. The pool was both the list and the authoriser, so the day video became
@@ -143,6 +279,40 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   carrying `T` always did. `x` and `X` stay out, because what they expand is a year
 
 ### Changed
+
+- **A field refuses to render where Livewire's nesting limit would break it.** Text inside a
+  list item is eleven levels deep in the document the editor entangles, and Livewire answers
+  anything deeper than `payload.max_nesting_depth` - ten unless a project raised it - with a
+  500 the first time somebody types in a list. The field reads the effective limit when it
+  renders and throws, naming both numbers and the fix, instead. An installation that never
+  raised the limit and never used a list worked until now and will not render after this
+  update: raise it to 32 (see Installation), take the check off with `->nestingCheck(false)`
+  or `nesting_check`, or ask for less with `->nestingCheck(16)`. A limit of `null` - Livewire's
+  "no limit" - passes
+
+- The shipped bar has one `mediaBrowser` button where `image` and `embed` stood. The embed stays
+  registered: the slash menu has it, and `embed` named on a bar still draws it. A published
+  config keeps the bar it has
+
+- The library browser answers to `image` and `mediaBrowser`, and no longer to `attachFiles`,
+  which is Filament's own upload dialog again - taking that name had left a project no way to
+  get the plain dialog back. A bar naming `attachFiles` to reach the library should name
+  `mediaBrowser`
+
+- `ext-intl` is required. The counter formats its number through `Number::format()`, which needs
+  it, and did so without saying; `filament/support` requires it as well, so few installations
+  will notice. `symfony/mime` is required too: the media browser reads its table of endings and
+  types
+
+- The bar over a selection appears wherever a mark means something - in a heading, a list item,
+  a quote and a table cell - rather than in a paragraph only, and no longer over a selected
+  picture. On a field without a toolbar it is the only way to a link or a colour
+
+- The tools menu ships as `['find', 'accessibility', 'statistics', 'preview', 'sourceCode',
+  'help']`. A published config keeps the list it has
+
+- The help dialog, and the statistics dialog beside it, close with the cross, Escape or a click
+  beside them; the Close button in their footer is gone
 
 - `media_library.accepted_file_types` and `->mediaLibraryAcceptedFileTypes()` are replaced by
   `media_library.types` and `->mediaLibraryTypes()`; neither had shipped in a release. Pictures
