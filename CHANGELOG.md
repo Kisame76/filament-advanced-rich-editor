@@ -2,7 +2,7 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
-## Unreleased
+## 1.5.0 - 2026-09-28
 
 ### Added
 
