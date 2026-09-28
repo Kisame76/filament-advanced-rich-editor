@@ -28,12 +28,19 @@ class HelpAction
             ->label(__('filament-advanced-rich-editor::advanced-rich-editor.help.label'))
             ->modalHeading(__('filament-advanced-rich-editor::advanced-rich-editor.help.heading'))
             ->modalWidth(Width::TwoExtraLarge)
-            // Nothing to submit, and nothing to type into: the dialog is read. Letting the
-            // focus trap grab something inside it scrolls the page to wherever the modal
-            // markup sits, which is the very bottom.
+            // Nothing to submit and nothing to cancel: a footer holding one button called
+            // Close is furniture beside the cross that already closes the dialog. The ways
+            // out that matter stay, and are stated rather than inherited - a project may
+            // have changed Filament's own defaults for modals that do have something to
+            // answer, and this one still has to be closable without a mouse.
             ->modalSubmitAction(false)
+            ->modalCancelAction(false)
+            ->modalCloseButton()
+            ->closeModalByClickingAway()
+            // Nothing to type into either. Letting the focus trap grab something inside the
+            // dialog scrolls the page to wherever the modal markup sits, which is the very
+            // bottom.
             ->modalAutofocus(false)
-            ->modalCancelActionLabel(__('filament-advanced-rich-editor::advanced-rich-editor.help.close'))
             ->schema(function (AdvancedRichEditor $component): array {
                 $table = ShortcutTable::make()->rows(Shortcuts::for($component));
 

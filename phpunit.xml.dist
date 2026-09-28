@@ -15,6 +15,14 @@
         </include>
     </source>
     <!--
+        The suite runs in one process and peaks at a little over the 128M a stock php.ini
+        allows, so a plain `composer test` ran out of memory partway through while CI, whose
+        PHP has no limit, stayed green. Stated here so both run the same suite.
+    -->
+    <php>
+        <ini name="memory_limit" value="512M"/>
+    </php>
+    <!--
         No database environment is declared here on purpose. `Tests\TestCase` defaults to
         SQLite in memory and reads DB_CONNECTION and friends only when they are set, which
         is what lets the suite be pointed at MySQL or PostgreSQL from the command line:

@@ -85,12 +85,29 @@ class ImageCaptions
 
         $figure = $document->createElement('figure');
         $figure->setAttribute('class', static::CLASS_NAME);
+        // Two repairs, both inline for the same reason: the page this lands on does not
+        // load this package's stylesheet, and without either of them the picture is placed
+        // wrongly rather than merely styled plainly.
+        //
         // Browsers indent `<figure>` by 40px on both sides, which pushes a captioned image
         // out of line with every paragraph around it. That is a user agent default rather
-        // than anyone's design decision, and the page this lands on does not load this
-        // package's stylesheet - so it comes off here. Everything else about how a caption
-        // looks is left to `.fi-arte-figure`.
-        $figure->setAttribute('style', 'margin-inline: 0;');
+        // than anyone's design decision, so it comes off here.
+        //
+        // And a figure is a block, so it fills the column whatever the picture inside it
+        // measures. Two things quietly break on that. A caption is centred, so over a
+        // picture somebody resized it drifts off to the side of it - centred on the column
+        // rather than under the picture. And `moveFloat()` below centres a picture by
+        // moving `margin-inline: auto` onto this element, which does nothing at all to a
+        // block that is already as wide as its container. Boxing the figure to its contents
+        // is what makes both work, and it is placement rather than decoration - everything
+        // else about how a caption looks is still left to `.fi-arte-figure`.
+        //
+        // Logical rather than physical, like the `margin-inline` beside it and like the
+        // stylesheet half of the same repair. `width` names the horizontal axis; this names
+        // the one the text runs along, and the two stop agreeing the moment a document is
+        // set in a vertical writing mode - which is a thing a package carrying a direction
+        // tool has to assume somebody will do.
+        $figure->setAttribute('style', 'margin-inline: 0; inline-size: fit-content; max-inline-size: 100%;');
 
         // A `<figure>` is a block, and placing a picture inside a block places it within
         // the block rather than placing the block - a float reads as a caption sitting in a

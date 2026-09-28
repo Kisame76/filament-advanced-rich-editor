@@ -19,13 +19,23 @@ export default ({
     hasFolders,
     listView,
     pageSize,
+    kind: initialKind = '',
     picked,
     fetchPage,
     fetchDetails,
+    saveMetadata,
+    deleteMedia,
+    canDelete = false,
 }) => ({
     items: [],
     folders: [],
     types: [],
+    // The families the pool holds, which is what the tabs are drawn from. A tab over an
+    // empty family is a door onto a wall, so a library of nothing but pictures shows no
+    // tabs at all.
+    kinds: [],
+    // The tab the dialog opened on, which is which button was pressed.
+    kind: initialKind,
     parent: null,
     folder: null,
     search: '',
@@ -39,14 +49,31 @@ export default ({
     dropping: false,
     details: null,
     detailsFor: null,
+    // Whether the panel's embed has been asked to play. Off again whenever the selection
+    // moves: a player left running in a hidden element is a video you can hear and cannot
+    // stop.
+    playing: false,
+    // What the panel's one field holds. Kept beside `details` rather than read out of it,
+    // because it is being typed into: binding an input straight at the fetched row would
+    // have every keystroke fight whatever the last request answered.
+    description: '',
+    descriptionSaving: false,
+    descriptionSaved: false,
+    // The files that were turned away, by name, until somebody dismisses the note. A file
+    // that simply never turned up in the grid reads as the dialog having lost it.
+    rejected: [],
     list: listView,
     // What the server pages by. Guessing it from how many tiles came back read a
     // short last page as a tiny page size, and the footer then divided the whole
     // library by it - inventing pages that led to an empty grid.
     perPage: pageSize,
+    // Set while a tab change is clearing the mime filter, so the filter's own watcher knows
+    // the reload is already on its way.
+    _clearedByKind: false,
     picked,
     labels,
     hasFolders,
+    canDelete,
 
     init() {
         // Which layout somebody browses in is a habit rather than a setting, so it is
@@ -61,7 +88,7 @@ export default ({
         this.$watch('list', (value) => {
             try {
                 window.localStorage?.setItem('arte-media-view', value ? 'list' : 'grid')
-            } catch (error) {
+            } catch {
                 // Private browsing, or a full quota. Not remembering is survivable.
             }
         })
@@ -69,6 +96,8 @@ export default ({
         this.load()
 
         this.watchUploads()
+
+        this.watchAdded()
 
         // Debounced by hand rather than with `x-model.debounce`, because a folder or a
         // filter change has to reload at once while typing must not fire a request per
@@ -78,8 +107,31 @@ export default ({
             this._timer = setTimeout(() => this.reload(), 300)
         })
 
-        this.$watch('type', () => this.reload())
+        this.$watch('type', () => {
+            // Swallowed once when a tab change cleared it, or the two watchers would send
+            // two overlapping requests and the later answer would win by luck.
+            if (this._clearedByKind) {
+                this._clearedByKind = false
+
+                return
+            }
+
+            this.reload()
+        })
+
         this.$watch('sort', () => this.reload())
+
+        // A tab narrows the pool, so the mime filter under it has to let go of a value that
+        // is no longer in the pool - otherwise switching from Pictures to Video leaves
+        // `image/png` selected and the grid is empty for a reason nothing on screen explains.
+        this.$watch('kind', () => {
+            if (this.type !== '') {
+                this._clearedByKind = true
+                this.type = ''
+            }
+
+            this.reload()
+        })
 
         // The panel follows the selection rather than the click, so it is also right
         // when the selection was restored from an image already in the document.
@@ -97,7 +149,7 @@ export default ({
     },
 
     get isFiltered() {
-        return this.type !== '' || this.sort !== 'newest'
+        return this.type !== '' || this.kind !== '' || this.sort !== 'newest'
     },
 
     get selected() {
@@ -109,6 +161,28 @@ export default ({
         }
 
         return this.items.find((item) => item.id === this.picked) ?? null
+    },
+
+    /**
+     * Which field this is. A picture is described by an alt text - what a screen reader
+     * reads instead of it - and a film or a sound by a title, which is what a screen reader
+     * reads instead of the file name. One input, one label, decided by what is selected.
+     */
+    get descriptionKey() {
+        return (this.selected?.kind ?? 'image') === 'image' ? 'alt' : 'title'
+    },
+
+    get descriptionLabel() {
+        return this.descriptionKey === 'alt' ? this.labels.alt : this.labels.title
+    },
+
+    /**
+     * Whether the panel offers the field at all. A document is a card, and a card shows the
+     * file's name - a title typed here would be saved and then read by nothing, which is
+     * worse than no field, because it looks like it worked.
+     */
+    get describable() {
+        return (this.selected?.kind ?? 'image') !== 'file'
     },
 
     reload() {
@@ -133,15 +207,29 @@ export default ({
                 page: this.page,
                 type: this.type || null,
                 sort: this.sort,
+                kind: this.kind || null,
             })
 
             this.items = result?.items ?? []
             this.hasMore = result?.hasMore ?? false
             this.total = result?.total ?? this.items.length
             this.types = result?.types ?? []
+
+            // Taken as answered, tab or no tab. Both sources read the families off the pool
+            // BEFORE the tab narrows it, so the list does not collapse to the tab you are
+            // standing on - and a guard here that kept the previous list instead never
+            // populated it at all when the dialog opened on a tab, which left the row
+            // hidden and no way back to All.
+            this.kinds = result?.kinds ?? []
             this.perPage = result?.perPage ?? this.perPage
             this.folders = result?.folders ?? []
             this.parent = result?.parent ?? null
+
+            // Added to rather than replaced: the server says it once, when it lets go of the
+            // file, and the next page must not take the note away before anybody read it.
+            for (const name of result?.rejected ?? []) {
+                this.reject(name)
+            }
         } catch (error) {
             console.error('The advanced rich editor could not read the media library:', error)
         } finally {
@@ -153,6 +241,7 @@ export default ({
         if (! id) {
             this.details = null
             this.detailsFor = null
+            this.playing = false
 
             return
         }
@@ -163,12 +252,15 @@ export default ({
 
         this.details = this.items.find((item) => item.id === id) ?? null
         this.detailsFor = id
+        this.playing = false
+        this.description = this.details?.[this.descriptionKey] ?? ''
 
         try {
             const result = await fetchDetails(id)
 
             if (result && this.detailsFor === id) {
                 this.details = result
+                this.description = this.details?.[this.descriptionKey] ?? ''
             }
         } catch (error) {
             console.error('The advanced rich editor could not read that picture:', error)
@@ -236,14 +328,89 @@ export default ({
         }
     },
 
+    /**
+     * Something was added that is not an upload - an embed, or an address.
+     *
+     * Both are written by a dialog on top of this one, so there is no `processfile` event
+     * to hang off: the dialog says so itself when it closes.
+     *
+     * On `window`, and that is not a shortcut. Livewire dispatches a component event as a
+     * `CustomEvent` on the window; a listener on this component's own element never hears
+     * it, because events go up from where they are fired and this element is below. Bound
+     * here so `destroy()` can take it off again - the dialog is built fresh every time it
+     * opens, and a listener left behind is one more reload per opening.
+     */
+    watchAdded() {
+        this._onAdded = (event) => {
+            const id = event.detail?.id ?? null
+
+            this.revealUploads().then(() => {
+                if (id) {
+                    this.picked = id
+                }
+            })
+        }
+
+        window.addEventListener('arte-media-added', this._onAdded)
+    },
+
+    destroy() {
+        if (this._onAdded) {
+            window.removeEventListener('arte-media-added', this._onAdded)
+        }
+    },
+
     watchUploads() {
         this.whenPond((pond) => {
             // An upload does not stay in this dialog - it is handed to the editor as it
             // arrives, which is what makes it survive the dialog closing. So there is
             // nothing to mirror here: the grid simply asks again, and the new picture
             // is in the answer, described by the server like every other one.
-            pond.on('processfile', () => this.revealUploads().then(() => this.selectNewest()))
+            pond.on('processfile', (error, file) => {
+                // Refused on the way, by size or by the server. There is nothing to reveal,
+                // and saying which file it was is the whole of what can be done about it.
+                if (error) {
+                    this.refuse(pond, file)
+
+                    return
+                }
+
+                return this.revealUploads().then(() => this.selectNewest())
+            })
+
+            // Turned away before it travelled, by what the browser says the file is. The
+            // widget draws its own complaint, but the widget is kept off screen.
+            pond.on('addfile', (error, file) => {
+                if (error) {
+                    this.refuse(pond, file)
+                }
+            })
         })
+    },
+
+    /**
+     * Names a refused file, and takes it out of the widget.
+     *
+     * Kept there, it marks the widget's own input invalid - and a form holding an invalid
+     * input refuses to submit without a word, since the input is off screen. Everything
+     * else in the dialog would then look fine and do nothing.
+     */
+    refuse(pond, file) {
+        this.reject(file?.filename)
+
+        if (file?.id) {
+            pond.removeFile(file.id)
+        }
+    },
+
+    reject(name) {
+        if (name && ! this.rejected.includes(name)) {
+            this.rejected = [...this.rejected, name]
+        }
+    },
+
+    dismissRejected() {
+        this.rejected = []
     },
 
     /**
@@ -316,7 +483,11 @@ export default ({
         // button does - so a dropped picture and a chosen one travel one path. Held
         // until it exists, because a drop in the first moment after the dialog opens
         // must not be the one that gets lost.
-        this.whenPond((pond) => pond.addFiles(files))
+        //
+        // A drop holding one refused file rejects the widget's whole promise. The refusal is
+        // told through `addfile` already, so the promise has nothing to add, and left alone
+        // it is an unhandled error in the console on every refused drop.
+        this.whenPond((pond) => pond.addFiles(files)?.catch?.(() => {}))
     },
 
     async copy() {
@@ -333,6 +504,92 @@ export default ({
             setTimeout(() => (this.copied = false), 1500)
         } catch (error) {
             console.error('The advanced rich editor could not copy that link:', error)
+        }
+    },
+
+    /**
+     * Saves the description as the field is left.
+     *
+     * On blur rather than on a button, because a button beside one input is a button
+     * somebody has to notice - and the value is a single line that is finished the moment
+     * focus moves. Unchanged values are not sent: the field is left every time anything else
+     * in the dialog is clicked.
+     */
+    async saveDescription() {
+        const id = this.picked
+
+        if (!id) {
+            return
+        }
+
+        const key = this.descriptionKey
+        const previous = this.details?.[key] ?? ''
+        const value = this.description.trim()
+
+        if (value === previous) {
+            return
+        }
+
+        this.descriptionSaving = true
+
+        try {
+            const saved = await saveMetadata(id, { [key]: value })
+
+            if (!saved) {
+                // Refused - a read-only disk, a row that is gone, a value the server would
+                // not take. Showing the value it did take is the only honest thing left.
+                this.description = previous
+
+                return
+            }
+
+            // Written into the details as well, so leaving the file and coming back shows
+            // what was saved rather than what the last fetch happened to carry.
+            if (this.details && this.detailsFor === id) {
+                this.details = { ...this.details, [key]: value }
+            }
+
+            this.descriptionSaved = true
+            setTimeout(() => (this.descriptionSaved = false), 2000)
+        } catch (error) {
+            console.error('The advanced rich editor could not save that description:', error)
+
+            this.description = previous
+        } finally {
+            this.descriptionSaving = false
+        }
+    },
+
+    /**
+     * Throws the selected file away.
+     *
+     * The browser's own `confirm()` rather than a Filament dialog: a second modal on top of
+     * a modal that is itself on top of the editor is three layers deep, and what is being
+     * asked is one sentence.
+     */
+    async remove() {
+        const id = this.picked
+
+        if (!id || !this.canDelete) {
+            return
+        }
+
+        if (!window.confirm(this.labels.confirmDelete)) {
+            return
+        }
+
+        try {
+            if (!(await deleteMedia(id))) {
+                return
+            }
+
+            this.picked = null
+            this.details = null
+            this.detailsFor = null
+
+            await this.reload()
+        } catch (error) {
+            console.error('The advanced rich editor could not delete that file:', error)
         }
     },
 
@@ -361,8 +618,76 @@ export default ({
         return [this.pixels(item), this.bytes(item.size)].filter(Boolean).join(' · ')
     },
 
-    kind(item) {
-        return (item?.mime ?? '').split('/')[1]?.toUpperCase().slice(0, 4) || 'IMG'
+    /**
+     * The badge on a tile: `PNG`, `MP4`, `MPEG` - or which service an embed is from. A
+     * document arrives with its own, the letters its card will wear: read off the mime, a
+     * Word document was badged `VND.`.
+     */
+    format(item) {
+        if (item?.badge) {
+            return item.badge
+        }
+
+        if ((item?.kind ?? '') === 'embed') {
+            return (item?.embed?.provider ?? 'embed').toUpperCase().slice(0, 7)
+        }
+
+        return (item?.mime ?? '').split('/')[1]?.toUpperCase().slice(0, 4) || 'FILE'
+    },
+
+    /**
+     * The picture a tile draws, or null where it has none and needs a sign instead.
+     *
+     * A film and a sound have a cover once one has been made for them, and that cover is
+     * the whole point of making it - so the tile draws whatever `thumbnail` it was given,
+     * whatever family the row is. Only a picture falls back to its own address: doing that
+     * for a film would put an mp4 in an `<img>`, which is the broken-image icon this is
+     * here to avoid.
+     */
+    thumbnailOf(item) {
+        if (item?.thumbnail) {
+            return item.thumbnail
+        }
+
+        return (item?.kind ?? 'image') === 'image' ? (item?.url ?? null) : null
+    },
+
+    /**
+     * The colour a document's tile is drawn in: its card's, which the server sent with the
+     * row. Everything else keeps the neutral sign the stylesheet draws.
+     */
+    tileStyle(item) {
+        return (item?.kind ?? '') === 'file' && item?.tint
+            ? { backgroundColor: item.tint, color: '#ffffff' }
+            : {}
+    },
+
+    /** Whether this row is a video somebody else hosts rather than a file of ours. */
+    isEmbed(item) {
+        return (item?.kind ?? '') === 'embed'
+    },
+
+    /** Which service an embed comes from, in the reader's own language. */
+    providerOf(item) {
+        const provider = item?.embed?.provider ?? ''
+
+        return this.labels.providers?.[provider] ?? provider ?? '—'
+    },
+
+    /** Whether a tile has a picture to draw, or needs a sign standing in for one. */
+    drawable(item) {
+        return Boolean(this.thumbnailOf(item))
+    },
+
+    /**
+     * Whether the panel should draw this in an `<img>`.
+     *
+     * Not the same question as `drawable()`, and the difference matters: the panel draws a
+     * film in a `<video>` so it can be played, and a film with a cover would otherwise get
+     * both - the player and an `<img>` pointing at the mp4 beside it.
+     */
+    isPicture(item) {
+        return (item?.kind ?? 'image') === 'image' && Boolean(item?.thumbnail ?? item?.url)
     },
 
     when(value) {

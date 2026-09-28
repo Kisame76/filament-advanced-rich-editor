@@ -29,11 +29,17 @@ return [
             'horizontalRule' => 'hr, trenner, linie',
             'details' => 'akkordeon, aufklappen, ausklappen',
             'embed' => 'video, youtube, vimeo, einbetten, iframe',
+            'video' => 'mp4, webm, film, clip, player, medien',
+            'audio' => 'mp3, ton, musik, podcast, player, medien',
+            'file' => 'datei, dokument, pdf, anhang, download, word, excel, zip',
             'image' => 'bild, foto, img',
             'table' => 'tabelle, raster, spalten',
-            'attachFiles' => 'datei, anhang, hochladen',
+            'attachFiles' => 'hochladen, bild hochladen',
             'emoji' => 'smiley, symbol',
             'characters' => 'sonderzeichen, zeichen, strich, pfeil, währung, akzent',
+            'insertDate' => 'datum, heute, tag',
+            'insertTime' => 'uhrzeit, zeit, uhr, jetzt, stunde',
+            'insertDateTime' => 'datum und uhrzeit, zeitstempel, jetzt',
             'customBlocks' => 'block, baustein',
             'mergeTags' => 'platzhalter, variable',
         ],
@@ -51,6 +57,7 @@ return [
     ],
     'tools' => [
         'image' => 'Bild',
+        'media_browser' => 'Medien',
         'link' => [
             'target' => [
                 'label' => 'Öffnet in',
@@ -67,6 +74,10 @@ return [
             'referrerpolicy' => 'Referrer-Richtlinie',
             'hreflang' => 'Sprache der Zielseite',
             'id' => 'Anker',
+            'internal' => [
+                'label' => 'Auf einen Datensatz verlinken',
+                'hint' => 'Die Auswahl füllt die URL darunter - das ist, was der Link speichert.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Reiner Text',
@@ -85,6 +96,41 @@ return [
                 'vimeo' => 'Vimeo',
             ],
         ],
+        'media' => [
+            'label' => 'Video oder Audio',
+            'heading' => 'Video oder Audio vom eigenen Server',
+            'src' => 'Adresse',
+            'src_hint' => 'Ein Pfad auf diesem Server, etwa /storage/clips/vortrag.mp4, oder ein vollständiger https-Link.',
+            'kind' => 'Art',
+            'kinds' => [
+                'video' => 'Videodatei',
+                'audio' => 'Audiodatei',
+            ],
+            'poster' => 'Vorschaubild',
+            'poster_hint' => 'Zu sehen, bevor jemand auf Abspielen drückt. Ohne eines ist das Video ein schwarzes Rechteck.',
+            'title' => 'Titel',
+            'title_hint' => 'Wird von einem Screenreader statt des Dateinamens vorgelesen.',
+            'preload' => 'Vorab laden',
+            'preload_hint' => 'Wie viel ein Browser holt, bevor auf Abspielen gedrückt wird.',
+            'preloads' => [
+                'none' => 'Nichts',
+                'metadata' => 'Nur Länge und Größe',
+                'auto' => 'So viel, wie der Browser mag',
+            ],
+            'loop' => 'Nach dem Ende von vorn beginnen',
+            'unsupported' => 'Von dieser Adresse spielt ein Browser keine Datei ab.',
+        ],
+        'file' => [
+            'label' => 'Datei',
+            'replace' => 'Datei ersetzen',
+            'delete' => 'Entfernen',
+        ],
+        'format_brush' => [
+            'label' => 'Format übertragen',
+            'once' => 'Für einen Strich scharf',
+            'sticky' => 'Scharf, bis du es abschaltest',
+        ],
+
         'task_list' => 'Aufgabenliste',
         'callouts' => 'Infobox',
         'language' => 'Sprache',
@@ -147,6 +193,31 @@ return [
             'double' => 'Doppelt (2,0)',
             'value' => ':value',
         ],
+        /*
+         * Die Datums-Werkzeuge. Der Schlüssel ist der des konfigurierten Formats; ein
+         * Projekt, das ein viertes Format ergänzt, übersetzt es durch einen Schlüssel hier.
+         * Ohne Übersetzung trägt der Eintrag das Format selbst, so gesetzt wie es aussehen
+         * wird.
+         */
+        'date_time' => [
+            'label' => 'Datum und Uhrzeit',
+            // Die konfigurierten Schlüssel stehen unter einem eigenen Schlüssel und nicht
+            // neben 'label', damit ein Format namens `label` nicht die Beschriftung des
+            // Auslösers trifft.
+            'formats' => [
+                'date' => 'Datum',
+                'time' => 'Uhrzeit',
+                'date_time' => 'Datum und Uhrzeit',
+            ],
+        ],
+        'text_case' => [
+            'label' => 'Schreibweise ändern',
+            // Jede in der Schreibweise, die sie herstellt - die Liste zeigt damit, was sie
+            // tut, statt es zu behaupten.
+            'sentence' => 'Erster Buchstabe groß',
+            'lower' => 'kleinbuchstaben',
+            'upper' => 'GROSSBUCHSTABEN',
+        ],
         'align' => [
             'start' => 'Links',
             'center' => 'Zentriert',
@@ -184,22 +255,46 @@ return [
         'image_rotate_right' => 'Nach rechts drehen',
         'media_library' => [
             'label' => 'Bild',
-            'heading' => 'Bild einfügen',
+            'heading' => 'Aus der Bibliothek einfügen',
             'search' => 'Dateien durchsuchen …',
-            'empty_record' => 'Noch keine Bilder an diesem Datensatz. Unten eins hochladen.',
-            'empty_library' => 'Die Mediathek ist leer. Unten ein Bild hochladen.',
-            'empty_search' => 'Dazu passt kein Bild.',
+            'empty_record' => 'An diesem Datensatz ist noch nichts. Eine Datei hochladen, um anzufangen.',
+            'empty_library' => 'Die Mediathek ist leer. Eine Datei hochladen, um sie zu füllen.',
+            'empty_search' => 'Dazu passt nichts.',
             'up' => 'Eine Ebene höher',
             'pending' => 'Noch nicht gespeichert',
             'upload' => 'Hochladen',
             'view_grid' => 'Kacheln',
             'view_list' => 'Liste',
             'filter' => 'Filter',
+            'from_url' => 'Von einem Link',
+            'from_url_heading' => 'Über einen Link hinzufügen',
+            'from_url_label' => 'Link',
+            'from_url_hint' => 'Ein YouTube- oder Vimeo-Link wandert in deine Bibliothek und ist später wieder wählbar. Jede andere Adresse — eine Datei auf fremdem Server — wird eingefügt, wie sie ist, ein Dokument als Karte, und nicht hier abgelegt.',
+            'from_url_hint_files' => 'Eine Datei auf fremdem Server. Sie wird eingefügt, wie sie ist, ein Dokument als Karte, deine Bibliothek bleibt unberührt.',
+            'from_url_no_embeds' => 'Videos von YouTube und Vimeo sind für dieses Feld abgeschaltet.',
             'all_types' => 'Alle Typen',
+            'all_kinds' => 'Alle',
+            'kinds' => [
+                'image' => 'Bilder',
+                'video' => 'Video',
+                'audio' => 'Audio',
+                'file' => 'Dateien',
+                'embed' => 'Einbettungen',
+            ],
             'sort' => 'Sortierung',
             'previous' => 'Vorherige Seite',
             'next' => 'Nächste Seite',
-            'nothing_selected' => 'Ein Bild auswählen, um die Details zu sehen.',
+            'nothing_selected' => 'Eine Datei auswählen, um die Details zu sehen.',
+            // Steht vor den Namen der Uploads, die der Browser abgelehnt hat.
+            'rejected' => 'Hier nicht angenommen:',
+            'dismiss' => 'Ausblenden',
+            'alt' => 'Alt-Text',
+            'title' => 'Titel',
+            'saved' => 'Gespeichert',
+            'download' => 'Herunterladen',
+            'play' => 'Hier abspielen',
+            'delete' => 'Löschen',
+            'confirm_delete' => 'Diese Datei endgültig löschen? Was noch darauf zeigt, ist danach kaputt.',
             'copy_url' => 'Link kopieren',
             'copied' => 'Kopiert',
             'drop' => 'Zum Hochladen loslassen',
@@ -279,6 +374,30 @@ return [
             'ltr' => 'Links nach rechts',
             'rtl' => 'Rechts nach links',
         ],
+        'indent' => [
+            'indent' => 'Einrücken',
+            'outdent' => 'Ausrücken',
+        ],
+    ],
+
+    'preview' => [
+        'label' => 'Vorschau',
+        'heading' => 'Vorschau',
+        'description' => 'Das Dokument, wie das eigene Stylesheet es zeichnet. Die Gestaltung des Editors ist hier nicht geladen.',
+        'frame' => 'Vorschau des Dokuments',
+    ],
+
+    'statistics' => [
+        'label' => 'Statistik',
+        'heading' => 'Statistik',
+        'words' => 'Wörter',
+        'characters' => 'Zeichen',
+        'characters_without_spaces' => 'Zeichen ohne Leerzeichen',
+        'paragraphs' => 'Blöcke',
+        'reading_time' => 'Lesezeit',
+        'reading_time_none' => '—',
+        'reading_time_under' => 'unter einer Minute',
+        'reading_time_minutes' => ':minutes Min.',
     ],
 
     'help' => [
@@ -286,12 +405,14 @@ return [
         'heading' => 'Hilfe',
         'shortcuts' => 'Tastenkürzel',
         'more' => 'Weiteres',
-        'close' => 'Schließen',
         'editing' => [
             'line_break' => 'Zeilenumbruch ohne neuen Absatz',
             'paste_plain' => 'Als reinen Text einfügen',
             'indent_list' => 'Listenpunkt einrücken',
             'outdent_list' => 'Listenpunkt ausrücken',
+            'indent_block' => 'Einrücken',
+            'outdent_block' => 'Ausrücken',
+            'change_case' => 'Schreibweise der Auswahl durchwechseln',
             'find' => 'Suchen',
             'find_replace' => 'Suchen und Ersetzen',
             'next_cell' => 'Nächste Tabellenzelle',
@@ -356,6 +477,32 @@ return [
         'words' => [
             'one' => ':count Wort',
             'other' => ':count Wörter',
+        ],
+    ],
+
+    'validation' => [
+        'min_words' => ':attribute muss mindestens :min Wörter enthalten.',
+        'max_words' => ':attribute darf höchstens :max Wörter enthalten.',
+        'must_contain' => ':attribute muss :content enthalten.',
+
+        /*
+         * Wie ein Knoten oder eine Marke in diesem Satz heißt. Ein Typ ohne Eintrag fällt auf
+         * seinen eigenen Namen zurück - das ist es, was einen projekteigenen Knoten
+         * abfragbar macht, ohne dass hier etwas geändert werden muss.
+         */
+        'content' => [
+            'blockquote' => 'ein Zitat',
+            'bulletList' => 'eine Aufzählung',
+            'callout' => 'einen Hinweiskasten',
+            'codeBlock' => 'einen Codeblock',
+            'embed' => 'ein eingebettetes Video',
+            'heading' => 'eine Überschrift',
+            'horizontalRule' => 'eine Trennlinie',
+            'image' => 'ein Bild',
+            'link' => 'einen Link',
+            'orderedList' => 'eine nummerierte Liste',
+            'table' => 'eine Tabelle',
+            'taskList' => 'eine Aufgabenliste',
         ],
     ],
 ];

@@ -11,7 +11,11 @@ use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\FileCardConverter;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\ImportedMarkup;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\LooseText;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontFamily;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
@@ -19,8 +23,11 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Language;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
@@ -33,6 +40,8 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\TextDirection;
+use League\CommonMark\Extension\ExtensionInterface;
+use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\HTMLToMarkdown\HtmlConverter;
 use RuntimeException;
 use Tiptap\Core\Extension;
@@ -130,6 +139,20 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     ];
 
     /**
+     * What this package asks the Markdown parser for on the way back in.
+     *
+     * A `javascript:` url is the one thing CommonMark writes that a document has no
+     * business keeping. The schema already drops it from a link, because a link is a mark
+     * and a mark is checked; an image's address is an attribute and is stored exactly as
+     * written. Nothing executes either way - browsers stopped running `javascript:` in a
+     * `src` long ago - but a column is not the place for it. Anything passed to
+     * `fromMarkdown()` wins over this, the same as on the way out.
+     */
+    public const MARKDOWN_IMPORT_OPTIONS = [
+        'allow_unsafe_links' => false,
+    ];
+
+    /**
      * Makes this the renderer the container hands out for Filament's own.
      *
      * Call it from a service provider where the additions should apply everywhere,
@@ -213,14 +236,6 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     }
 
     /**
-     * Whether links carry `hreflang`, `referrerpolicy` and an `id` on top of what Filament
-     * declares.
-     *
-     * On by default: content that already holds those attributes should keep them. Turning
-     * it off matches a field that was set up the same way, and strips them on the next
-     * render.
-     */
-    /**
      * The named styles this render knows about, overriding the project's.
      *
      * A field passes its own list here so that the schema a save is parsed through is the
@@ -236,6 +251,14 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         return $this;
     }
 
+    /**
+     * Whether links carry `hreflang`, `referrerpolicy` and an `id` on top of what Filament
+     * declares.
+     *
+     * On by default: content that already holds those attributes should keep them. Turning
+     * it off matches a field that was set up the same way, and strips them on the next
+     * render.
+     */
     public function linkAttributes(bool $condition = true): static
     {
         $this->hasLinkAttributes = $condition;
@@ -501,6 +524,12 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // embed node is one that silently drops every video in a document the day
             // somebody forgets to tell it.
             app(Embed::class),
+            app(Media::class),
+            // And once more, for the reason above it: an uploaded document is a card in
+            // the markup, so a render that had to be told about the node would hand a
+            // reader three bare spans - a file name with a word after it, which is what
+            // the card exists not to be.
+            app(FileCard::class),
             // And the same again: a note somebody wrote is a note that belongs on the page,
             // whether or not this render was told the field had callouts switched on.
             app(Callout::class),
@@ -645,9 +674,94 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         return $this->remember('markdown.'.Fingerprint::of($options), function () use ($options): string {
             $converter = new HtmlConverter([...static::MARKDOWN_OPTIONS, ...$options]);
             $converter->getEnvironment()->addConverter(new TaskItemConverter);
+            $converter->getEnvironment()->addConverter(new FileCardConverter);
 
             return trim($converter->convert($this->toUnsafeHtml()));
         });
+    }
+
+    /**
+     * A Markdown document, read into the document this editor stores.
+     *
+     * The mirror of `toMarkdown()`, and the more dangerous direction: what the export gets
+     * wrong is a string somebody reads, and what this gets wrong is a column somebody
+     * keeps. Markdown says more than any rich text schema can hold, and every one of those
+     * things arrives looking like content.
+     *
+     * `league/commonmark` is not an optional dependency the way the export's converter is -
+     * `laravel/framework` requires it - so nothing has to be installed for this. `Str::markdown()`
+     * is the GitHub-flavoured converter, which brings tables, strikethrough, bare urls and
+     * `- [x]` along with it; tables in particular need no permission from the toolbar,
+     * because Filament's renderer declares them unconditionally.
+     *
+     * Three things are done on top of it, and none of them is a preference:
+     *
+     * - Footnotes are parsed. Without the extension CommonMark reads `[^1]: The note.` as a
+     *   link reference definition: the note's text disappears from the document and the
+     *   marker before it becomes a link pointing at what used to be the note. A footnote
+     *   *with* the extension is something this schema can hold - a superscript marker, a
+     *   rule and a numbered list - so the extension turns a silent loss into a document.
+     * - `ImportedMarkup` translates the markup CommonMark writes for a construct this
+     *   schema has no node for.
+     * - `LooseText` repairs the document afterwards, because raw HTML - which is part of
+     *   Markdown - can leave text with no block around it, which the field and the page
+     *   then disagree about.
+     *
+     * The result is the document itself rather than a renderer holding it, because the one
+     * thing anybody wants it for is the column:
+     *
+     * ```php
+     * $article->content = AdvancedRichContentRenderer::make()->fromMarkdown($markdown);
+     * ```
+     *
+     * Nothing has to be registered for any of it, task lists included: the nodes are
+     * declared here unconditionally, on the rule this class states six times over - a
+     * renderer that has to be told is one that drops the thing the day somebody forgets to
+     * say so.
+     *
+     * @param  array<string, mixed>  $options
+     * @param  array<int, ExtensionInterface>  $extensions
+     * @return array<string, mixed>
+     */
+    public function fromMarkdown(string $markdown, array $options = [], array $extensions = []): array
+    {
+        $html = Str::markdown(
+            $markdown,
+            [...static::MARKDOWN_IMPORT_OPTIONS, ...$options],
+            $this->markdownExtensions($extensions),
+        );
+
+        $html = (new ImportedMarkup)->apply($html);
+
+        // TipTap's PHP parser reads the body of a parsed document without checking that
+        // there is one, so an empty string raises rather than answering. An empty paragraph
+        // is the answer rather than an empty `content` array because it is what Filament's
+        // own state cast puts in a field nobody has typed into.
+        $document = $this->getEditor()->setContent(blank($html) ? '<p></p>' : $html)->getDocument();
+
+        return (new LooseText)->apply((array) $document);
+    }
+
+    /**
+     * The parser extensions, with the one this package insists on unless it was named.
+     *
+     * Named again rather than added twice: CommonMark registers a parser per extension and
+     * a second copy of the footnote one raises while the environment is built. A caller
+     * passing their own configured `FootnoteExtension` is the case that matters, and it is
+     * theirs to configure.
+     *
+     * @param  array<int, ExtensionInterface>  $extensions
+     * @return array<int, ExtensionInterface>
+     */
+    protected function markdownExtensions(array $extensions): array
+    {
+        foreach ($extensions as $extension) {
+            if ($extension instanceof FootnoteExtension) {
+                return $extensions;
+            }
+        }
+
+        return [new FootnoteExtension, ...$extensions];
     }
 
     /**
@@ -882,6 +996,48 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             'type' => 'text',
             'text' => ($node->attrs->char ?? '@').$label,
         ];
+    }
+
+    /**
+     * The upstream pass, with one condition added: an attachment that resolves to nothing
+     * leaves the stored source alone.
+     *
+     * Filament assigns unconditionally - `$node->attrs->src = $this->getFileAttachmentUrl(…)`
+     * - which is right while a provider is there and destructive when one is not. Without
+     * one, every picture that came from an upload loses the `src` it was written with, and
+     * the page draws an empty box of exactly the right size, because the measurements do
+     * survive. Nothing about it looks like a configuration problem: the document is intact,
+     * the file is on the disk, the URL works if you paste it into a browser.
+     *
+     * The attachment id stays the truth wherever it can be resolved - it has to, because a
+     * private disk hands out URLs that expire. This only decides what happens when there is
+     * no answer at all, and there "keep what was written" beats "erase it". The stored
+     * source may be stale, which is the same risk every picture without an attachment id
+     * already carries; losing a good one is not a risk but a certainty.
+     */
+    protected function processFileAttachments(Editor $editor): void
+    {
+        $editor->descendants(function (object &$node): void {
+            // Every node that can carry an attachment, not only the picture. A video picked
+            // out of the library points at its file the same way, and a renderer that walked
+            // past it would draw a player whose address is whatever the document happened to
+            // be saved with - stale on a private disk, and empty on a fresh upload.
+            if (! FileAttachments::carriedBy($node->type ?? null)) {
+                return;
+            }
+
+            if (blank($node->attrs->id ?? null)) {
+                return;
+            }
+
+            $url = $this->getFileAttachmentUrl($node->attrs->id);
+
+            if (blank($url)) {
+                return;
+            }
+
+            $node->attrs->src = $url;
+        });
     }
 
     protected function processNodes(Editor $editor): void

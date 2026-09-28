@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
+use Illuminate\Contracts\Support\Htmlable;
+
 /**
  * Whether a TipTap document puts anything on the page.
  *
@@ -45,10 +47,41 @@ final class DocumentContent
     private const BLANK_CHARACTERS = '/[\s\x{00A0}\x{200B}\x{FEFF}]+/u';
 
     /**
-     * @param  array<string, mixed>  $document
+     * Whether a stored document puts anything on the page, in whichever shape it is held.
+     *
+     * A column may hold either form and the caller is usually in no position to know which:
+     * an observer, a queued job or a model hook has the value the cast handed it, which is a
+     * `doc` array on a JSON column and markup on a `text` one. Answering only for the array
+     * would make this the right question asked of half the records, which is worse than a
+     * wrong one - the half it cannot read would silently be called content.
+     *
+     * A column value rather than a document, so `mixed` and no narrower annotation beside it:
+     * what a cast hands back is not this package's to promise, and a caller holding an
+     * attribute cannot narrow it first without already knowing the answer it came here for.
+     * The three shapes read are a `doc` array, markup, and nothing; anything else is believed.
      */
-    public static function isBlank(array $document): bool
+    public static function isBlank(mixed $document): bool
     {
+        if ($document instanceof Htmlable) {
+            $document = $document->toHtml();
+        }
+
+        if (blank($document)) {
+            return true;
+        }
+
+        if (is_string($document)) {
+            return self::isBlankMarkup($document);
+        }
+
+        if (! is_array($document)) {
+            // A shape this cannot read - an object a project put in the column, a number.
+            // Believed, which is the direction an unknown node is believed in: reporting
+            // content that turns out to be nothing costs a wasted listener, and the other
+            // way round costs the one save somebody cared about.
+            return false;
+        }
+
         foreach (self::nodes($document) as $node) {
             $type = $node['type'] ?? null;
 
@@ -62,6 +95,97 @@ final class DocumentContent
         }
 
         return true;
+    }
+
+    /**
+     * The same rule, said in markup rather than in nodes.
+     *
+     * Read rather than parsed, deliberately. Parsing here would mean a TipTap editor, and the
+     * only one that knows a project's own nodes is the one a *field* assembles - which is
+     * exactly what the caller of this does not have. A parser built without them would answer
+     * that a document holding nothing but a callout is empty, which is the one mistake this
+     * class is written to avoid.
+     *
+     * So the blank list above becomes a blank tag list, and everything else counts. That is
+     * coarser in one direction only: an empty `<strong></strong>` is called content here where
+     * the parsed document would call it blank. Erring that way is the point - the other way
+     * throws somebody's work out.
+     */
+    private static function isBlankMarkup(string $markup): bool
+    {
+        $rest = (string) preg_replace('#</?(?:p|br)\b[^>]*>#i', '', $markup);
+
+        // A tag start rather than a bare `<`, so that "a < b" stays text the way a reader
+        // reads it.
+        if (preg_match('/<[a-z!\/]/i', $rest) === 1) {
+            return false;
+        }
+
+        return ! self::hasVisibleText(html_entity_decode($rest));
+    }
+
+    /**
+     * How many blocks a reader would count in this document.
+     *
+     * The top level only, and only what `isBlank()` would not throw away: the paragraph
+     * TipTap always keeps at the end is not one, and neither is the empty one somebody left
+     * behind by pressing return twice. Everything else at that level is - a heading, a
+     * list, a table, a picture - because what is being counted is how many things the
+     * document is made of rather than how many of them happen to be prose.
+     *
+     * The rule is `isBlank()`'s, deliberately, so the two answers cannot drift: a document
+     * this calls empty is one that reports zero blocks.
+     *
+     * @param  array<string, mixed>  $document
+     */
+    public static function countBlocks(array $document): int
+    {
+        $content = $document['content'] ?? [];
+
+        if (! is_array($content)) {
+            return 0;
+        }
+
+        return count(array_filter(
+            $content,
+            static fn (mixed $node): bool => is_array($node) && (! self::isBlank($node)),
+        ));
+    }
+
+    /**
+     * Whether a node or a mark of a given type is anywhere in the document.
+     *
+     * Marks are searched alongside nodes and by the same name, because the difference is
+     * TipTap's rather than a reader's: somebody asking whether the document has a link in it
+     * does not care that a link is stored as a mark on text and a picture as a node.
+     *
+     * The type is taken as given and never checked against a list of known ones. A node this
+     * package has never heard of is exactly what a project adds, and a rule that only worked
+     * for the shipped types would be one that quietly did nothing for everybody else.
+     *
+     * @param  array<string, mixed>  $document
+     */
+    public static function contains(array $document, string $type): bool
+    {
+        foreach (self::nodes($document) as $node) {
+            if (($node['type'] ?? null) === $type) {
+                return true;
+            }
+
+            $marks = $node['marks'] ?? [];
+
+            if (! is_array($marks)) {
+                continue;
+            }
+
+            foreach ($marks as $mark) {
+                if (is_array($mark) && ($mark['type'] ?? null) === $type) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

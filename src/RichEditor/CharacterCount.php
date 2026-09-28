@@ -8,7 +8,6 @@ use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Illuminate\Support\Js;
-use Illuminate\Support\Number;
 
 /**
  * The line under the editor that says how long the text is.
@@ -37,6 +36,13 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
     protected ?int $words = null;
 
     protected ?int $limit = null;
+
+    /**
+     * Whether the field refuses input past the limit, which changes what full means:
+     * the count cannot pass a limit that is held, so `over` would never be reached and
+     * the line would stay on `almost` while the keyboard stopped answering.
+     */
+    protected bool $isEnforced = false;
 
     protected string $evaluationIdentifier = 'characterCount';
 
@@ -74,9 +80,18 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
         return $this->words;
     }
 
+    /**
+     * Below one is not a limit, and is taken as none at all.
+     *
+     * Normalised here rather than answered at each of the places that read it, because the
+     * line has three of them and they have to agree: the wording picks a phrase that names
+     * a limit, the initial class paints the line red, and the browser half is handed the
+     * number. A `maxLength(0)` - a config value that arrived empty, a computed limit that
+     * came back zero - otherwise reads "0 / 0 characters" in red on an empty document.
+     */
     public function limit(?int $limit): static
     {
-        $this->limit = $limit;
+        $this->limit = ($limit !== null && $limit >= 1) ? $limit : null;
 
         return $this;
     }
@@ -117,6 +132,7 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
                 characters: {$this->characters},
                 words: {$this->js($words)},
                 limit: {$this->js($limit)},
+                thresholds: {$this->js($this->getStateThresholds())},
                 templates: {$this->js($templates)},
                 formatter: new Intl.NumberFormat({$this->js(str_replace('_', '-', app()->getLocale()))}),
                 // The editor is the only thing that knows what it holds, so it says so, and
@@ -141,15 +157,17 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
                         .replace(':limit', this.formatter.format(this.limit ?? 0))
                 },
                 get state() {
-                    if (this.limit === null) {
+                    // The two numbers are worked out in PHP and handed over, so the line
+                    // cannot say one thing before the first keystroke and another after it.
+                    if (this.thresholds === null) {
                         return null
                     }
 
-                    if (this.characters > this.limit) {
+                    if (this.characters >= this.thresholds.danger) {
                         return 'danger'
                     }
 
-                    return this.characters >= this.limit * {$this->js(static::WARNING_THRESHOLD)} ? 'warning' : null
+                    return this.characters >= this.thresholds.warning ? 'warning' : null
                 },
             }
             JS;
@@ -187,22 +205,73 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
         return str_replace(
             [':count', ':limit'],
-            [Number::format($count), Number::format($this->limit ?? 0)],
+            [static::number($count), static::number($this->limit ?? 0)],
             $templates[$kind][$count === 1 ? 'one' : 'other'],
         );
     }
 
+    /**
+     * A number the way this line writes one.
+     *
+     * `Numbers` is where the package decided that, and this is the seam a project reaches
+     * for to decide otherwise - the component is resolved through `app(static::class)`, so
+     * a binding replaces it. Called late-bound rather than written out at the two places
+     * above, because a subclass that changed only one of them would say 1,234 and 1.234 on
+     * the same line.
+     */
+    protected static function number(int $value): string
+    {
+        return Numbers::format($value);
+    }
+
+    public function enforced(bool $condition = true): static
+    {
+        $this->isEnforced = $condition;
+
+        return $this;
+    }
+
+    /**
+     * The two counts at which the line changes what it says, or null where there is no
+     * limit to say anything about.
+     *
+     * Worked out once and read by both halves. The rule used to be written twice - here for
+     * the first render and again in the Alpine getter for every render after - which is two
+     * places to edit and one number that can disagree with itself while somebody watches.
+     *
+     * `danger` starts *at* the limit on a field that refuses more, because the count can
+     * never pass a limit that is held: a line that only turned red above it would never turn
+     * red at all, and somebody would sit on "almost full" while the keyboard stopped
+     * answering.
+     *
+     * @return array{danger: int, warning: float}|null
+     */
+    public function getStateThresholds(): ?array
+    {
+        // Nothing below one reaches this: `limit()` has already taken it as no limit.
+        if ($this->limit === null) {
+            return null;
+        }
+
+        return [
+            'danger' => $this->isEnforced ? $this->limit : $this->limit + 1,
+            'warning' => $this->limit * static::WARNING_THRESHOLD,
+        ];
+    }
+
     protected function getInitialStateClass(): string
     {
-        if ($this->limit === null) {
+        $thresholds = $this->getStateThresholds();
+
+        if ($thresholds === null) {
             return '';
         }
 
-        if ($this->characters > $this->limit) {
+        if ($this->characters >= $thresholds['danger']) {
             return 'fi-arte-character-count-danger';
         }
 
-        return $this->characters >= $this->limit * static::WARNING_THRESHOLD
+        return $this->characters >= $thresholds['warning']
             ? 'fi-arte-character-count-warning'
             : '';
     }

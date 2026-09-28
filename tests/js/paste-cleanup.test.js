@@ -189,7 +189,7 @@ describe("Word's lists, which are not lists", () => {
     })
 
     it('ends a run at anything that is not a list item', () => {
-        const html = item(1, '·', 'One') + '<p class=MsoNormal>A paragraph</p>' + item(1, '·', 'Two')
+        const html = `${item(1, '·', 'One')}<p class=MsoNormal>A paragraph</p>${item(1, '·', 'Two')}`
 
         expect(clean(html)).toBe('<ul><li>One</li></ul><p>A paragraph</p><ul><li>Two</li></ul>')
     })

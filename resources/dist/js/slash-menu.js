@@ -427,7 +427,7 @@ export default () => {
                 new Plugin({
                     key: new PluginKey('arteSlashMenu'),
                     props: {
-                        handleKeyDown: (view, event) => menu.handleKeyDown(event),
+                        handleKeyDown: (_view, event) => menu.handleKeyDown(event),
                     },
                     view: () => ({
                         update: () => menu.update(),

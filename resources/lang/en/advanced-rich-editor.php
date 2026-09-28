@@ -29,11 +29,17 @@ return [
             'horizontalRule' => 'hr, divider, separator, rule',
             'details' => 'accordion, collapse, toggle',
             'embed' => 'video, youtube, vimeo, iframe, media',
+            'video' => 'mp4, webm, movie, clip, player, media',
+            'audio' => 'mp3, sound, music, podcast, player, media',
+            'file' => 'document, pdf, attachment, download, word, excel, zip',
             'image' => 'img, picture, photo',
             'table' => 'grid, rows, columns',
-            'attachFiles' => 'file, upload, attachment',
+            'attachFiles' => 'upload, image upload',
             'emoji' => 'smiley, icon',
             'characters' => 'symbol, special character, dash, arrow, currency, accent',
+            'insertDate' => 'date, today, day',
+            'insertTime' => 'time, clock, now, hour',
+            'insertDateTime' => 'date and time, timestamp, now',
             'customBlocks' => 'block, component',
             'mergeTags' => 'tag, variable, placeholder',
         ],
@@ -51,6 +57,9 @@ return [
     ],
     'tools' => [
         'image' => 'Image',
+        // The library button. Named for the library rather than for pictures, because that
+        // is what it opens onto and what it will hold more of.
+        'media_browser' => 'Media',
         'link' => [
             'target' => [
                 'label' => 'Opens in',
@@ -67,6 +76,10 @@ return [
             'referrerpolicy' => 'Referrer policy',
             'hreflang' => 'Language of the linked page',
             'id' => 'Anchor',
+            'internal' => [
+                'label' => 'Link to a record',
+                'hint' => 'Picking one fills the URL below, which is what the link stores.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Plain text',
@@ -85,6 +98,49 @@ return [
                 'vimeo' => 'Vimeo',
             ],
         ],
+        /*
+         * A file on this server rather than one somebody else hosts. The two buttons open
+         * this one dialog, so the strings are shared and `kinds` names both of them.
+         */
+        'media' => [
+            'label' => 'Video or audio',
+            'heading' => 'Video or audio from your server',
+            'src' => 'Address',
+            'src_hint' => 'A path on this server, such as /storage/clips/talk.mp4, or a full https link.',
+            'kind' => 'Kind',
+            'kinds' => [
+                'video' => 'Video file',
+                'audio' => 'Audio file',
+            ],
+            'poster' => 'Poster image',
+            'poster_hint' => 'Shown before anyone presses play. Without one the video is a black rectangle.',
+            'title' => 'Title',
+            'title_hint' => 'Read out instead of the file name by a screen reader.',
+            'preload' => 'Load ahead',
+            'preload_hint' => 'How much a browser fetches before play is pressed.',
+            'preloads' => [
+                'none' => 'Nothing',
+                'metadata' => 'Length and size only',
+                'auto' => 'As much as the browser likes',
+            ],
+            'loop' => 'Play again when it ends',
+            'unsupported' => 'That address is not one a browser will play a file from.',
+        ],
+        /*
+         * A document in the text, drawn as a card: the button that opens the browser on the
+         * documents, and the bar over a card that is selected.
+         */
+        'file' => [
+            'label' => 'File',
+            'replace' => 'Replace file',
+            'delete' => 'Remove',
+        ],
+        'format_brush' => [
+            'label' => 'Format brush',
+            'once' => 'Armed for one stroke',
+            'sticky' => 'Armed until you switch it off',
+        ],
+
         'task_list' => 'Task list',
         'callouts' => 'Callout',
         'language' => 'Language',
@@ -147,6 +203,29 @@ return [
             'double' => 'Double (2.0)',
             'value' => ':value',
         ],
+        /*
+         * The date tools. The key is the configured format's own key, so a project that
+         * adds a fourth format translates it by adding a key here; one without a
+         * translation is labelled with the format itself, rendered as it will read.
+         */
+        'date_time' => [
+            'label' => 'Date and time',
+            // The configured keys live under their own key rather than beside 'label', so a
+            // format keyed `label` cannot resolve to the dropdown's own text.
+            'formats' => [
+                'date' => 'Date',
+                'time' => 'Time',
+                'date_time' => 'Date and time',
+            ],
+        ],
+        'text_case' => [
+            'label' => 'Change case',
+            // Each one is set in the case it applies, so the list says what it does without
+            // three icons that would all have to mean "the letter A, but differently".
+            'sentence' => 'Sentence case',
+            'lower' => 'lower case',
+            'upper' => 'UPPER CASE',
+        ],
         'align' => [
             'start' => 'Left',
             'center' => 'Center',
@@ -184,22 +263,46 @@ return [
         'image_rotate_right' => 'Rotate right',
         'media_library' => [
             'label' => 'Image',
-            'heading' => 'Insert an image',
+            'heading' => 'Insert from the library',
             'search' => 'Search files...',
-            'empty_record' => 'No pictures on this record yet. Upload one below.',
-            'empty_library' => 'The library is empty. Upload a picture below.',
-            'empty_search' => 'No picture matches that.',
+            'empty_record' => 'Nothing on this record yet. Upload a file to start.',
+            'empty_library' => 'The library is empty. Upload a file to start it.',
+            'empty_search' => 'Nothing matches that.',
             'up' => 'Up one folder',
             'pending' => 'Not saved yet',
             'upload' => 'Upload',
             'view_grid' => 'Tiles',
             'view_list' => 'List',
             'filter' => 'Filter',
+            'from_url' => 'From a link',
+            'from_url_heading' => 'Add from a link',
+            'from_url_label' => 'Link',
+            'from_url_hint' => 'A YouTube or Vimeo link is added to your library and can be used again. Any other address — a file on somebody else\'s server — is inserted as it is, a document as a card, and not stored here.',
+            'from_url_hint_files' => 'A file somebody else hosts. It is inserted as it is, a document as a card, and nothing is added to your library.',
+            'from_url_no_embeds' => 'Videos from YouTube and Vimeo are switched off for this field.',
             'all_types' => 'All types',
+            'all_kinds' => 'All',
+            'kinds' => [
+                'image' => 'Pictures',
+                'video' => 'Video',
+                'audio' => 'Audio',
+                'file' => 'Files',
+                'embed' => 'Embeds',
+            ],
             'sort' => 'Sort',
             'previous' => 'Previous page',
             'next' => 'Next page',
-            'nothing_selected' => 'Pick a picture to see its details.',
+            'nothing_selected' => 'Pick a file to see its details.',
+            // Put in front of the names of the uploads the browser refused.
+            'rejected' => 'Not accepted here:',
+            'dismiss' => 'Dismiss',
+            'alt' => 'Alt text',
+            'title' => 'Title',
+            'saved' => 'Saved',
+            'download' => 'Download',
+            'play' => 'Play it here',
+            'delete' => 'Delete',
+            'confirm_delete' => 'Delete this file for good? Anything still pointing at it will break.',
             'copy_url' => 'Copy link',
             'copied' => 'Copied',
             'drop' => 'Drop to upload',
@@ -281,6 +384,35 @@ return [
             'ltr' => 'Left to right',
             'rtl' => 'Right to left',
         ],
+        /*
+         * The indent pair. Named for the move rather than for a state, because that is
+         * what the buttons are: a block is not "indented" the way it is bold, it is one
+         * step further in than it was.
+         */
+        'indent' => [
+            'indent' => 'Increase indent',
+            'outdent' => 'Decrease indent',
+        ],
+    ],
+
+    'preview' => [
+        'label' => 'Preview',
+        'heading' => 'Preview',
+        'description' => 'The document as your own stylesheet draws it. The editor\'s styling is not loaded here.',
+        'frame' => 'Preview of the document',
+    ],
+
+    'statistics' => [
+        'label' => 'Statistics',
+        'heading' => 'Statistics',
+        'words' => 'Words',
+        'characters' => 'Characters',
+        'characters_without_spaces' => 'Characters without spaces',
+        'paragraphs' => 'Blocks',
+        'reading_time' => 'Reading time',
+        'reading_time_none' => '—',
+        'reading_time_under' => 'under a minute',
+        'reading_time_minutes' => ':minutes min',
     ],
 
     'help' => [
@@ -288,12 +420,14 @@ return [
         'heading' => 'Help',
         'shortcuts' => 'Shortcuts',
         'more' => 'More',
-        'close' => 'Close',
         'editing' => [
             'line_break' => 'Line break without a new paragraph',
             'paste_plain' => 'Paste as plain text',
             'indent_list' => 'Indent list item',
             'outdent_list' => 'Outdent list item',
+            'indent_block' => 'Increase indent',
+            'outdent_block' => 'Decrease indent',
+            'change_case' => 'Cycle the case of the selection',
             'next_cell' => 'Next table cell',
             'find' => 'Find',
             'find_replace' => 'Find and replace',
@@ -357,6 +491,32 @@ return [
         'words' => [
             'one' => ':count word',
             'other' => ':count words',
+        ],
+    ],
+
+    'validation' => [
+        'min_words' => 'The :attribute must have at least :min words.',
+        'max_words' => 'The :attribute must not have more than :max words.',
+        'must_contain' => 'The :attribute must contain :content.',
+
+        /*
+         * What a node or a mark is called in that sentence. A type with no entry here falls
+         * back to its own name, which is what makes a project's own node askable for without
+         * an edit to this file.
+         */
+        'content' => [
+            'blockquote' => 'a quote',
+            'bulletList' => 'a bulleted list',
+            'callout' => 'a callout',
+            'codeBlock' => 'a code block',
+            'embed' => 'an embedded video',
+            'heading' => 'a heading',
+            'horizontalRule' => 'a horizontal rule',
+            'image' => 'an image',
+            'link' => 'a link',
+            'orderedList' => 'a numbered list',
+            'table' => 'a table',
+            'taskList' => 'a task list',
         ],
     ],
 ];

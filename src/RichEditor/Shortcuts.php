@@ -142,8 +142,27 @@ class Shortcuts
             $rows[] = $line('outdent_list', ['Shift', 'Tab']);
         }
 
+        // Two keys, one pair of buttons and two meanings: inside a list they nest the item,
+        // and everywhere else they move the block's own margin. The row names the move rather
+        // than either meaning, because the key does whichever one the caret is standing in -
+        // and, like the case row, it is the only way to reach the feature on a field that
+        // was given no buttons for it.
+        if ($editor->hasIndent()) {
+            $rows[] = $line('indent_block', ['Mod', ']']);
+            $rows[] = $line('outdent_block', ['Mod', '[']);
+        }
+
         if (array_key_exists('table', $tools)) {
             $rows[] = $line('next_cell', ['Tab']);
+        }
+
+        // One key, three tools, and no row is called what any of them is called: it walks
+        // Sentence case, lower case and UPPER CASE the way Word does. It is also the only
+        // way to reach the feature on a field that has not been given a button for it,
+        // which is most of them - so a row here is not a nicety, it is the whole of how
+        // anybody finds out the field can do this.
+        if ($editor->hasTextCase()) {
+            $rows[] = $line('change_case', ['Shift', 'F3']);
         }
 
         // One window, two ways in: the first opens it to search, the second opens it with

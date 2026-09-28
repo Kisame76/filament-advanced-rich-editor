@@ -51,6 +51,16 @@ it('keeps what was written when nobody named a plugin', function (string $stored
     'a picture marked decorative' => ['<p><img src="/a.png" alt="" role="presentation" /></p>', 'role="presentation"'],
     'a linked picture' => ['<p><img src="/a.png" data-href="/somewhere" /></p>', '<a href="/somewhere">'],
     'a caption' => ['<p><img src="/a.png" data-caption="Untertitel" /></p>', '<figcaption>Untertitel</figcaption>'],
+    // Every other picture here is written by hand, and none of them carries the one attribute
+    // an uploaded picture always has. That is how a whole failure mode hid from this file:
+    // Filament resolves the source from `data-id` and, before this case existed, assigned the
+    // answer even when there was none - so a good source was deleted rather than improved, and
+    // the page drew an empty box of exactly the right size. The dataset was built from the
+    // attributes this package writes; the source is Filament's, and so it was never listed.
+    'a picture from an upload' => [
+        '<p><img src="/storage/1/foto.png" data-id="cd606c96-74b3-418b-8787-b1efc1ed5405" width="200" height="255" /></p>',
+        'src="/storage/1/foto.png"',
+    ],
     'a video' => [
         '<div data-type="embed" style="aspect-ratio: 16 / 9"><iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe></div>',
         'youtube-nocookie.com/embed/dQw4w9WgXcQ',

@@ -2,6 +2,18 @@
     Forked from Filament v5.6.7:
     vendor/filament/forms/resources/views/components/rich-editor.blade.php
 
+    That file is gone. Since v5.7 Filament renders the editor out of PHP, from
+    \Filament\Forms\Components\RichEditor::toEmbeddedHtml(), and the Blade view it was
+    forked from was deleted along the way - so there is nothing left on disk to diff
+    this file against. `ForkParityTest` is the replacement for that diff: it reads the
+    options out of toEmbeddedHtml() and holds them against the ones below, so the next
+    upstream release cannot add a key here without saying so.
+
+    This is not a deprecated path. ViewComponent::toHtml() renders $view whenever
+    hasView() is true, before it looks at publishedViewOverrideCheckPath or falls
+    through to toEmbeddedHtml(), and AdvancedRichEditor sets $view - so the fork keeps
+    its Blade file for as long as ViewComponent has one.
+
     Kept byte-for-byte identical to upstream apart from the changes listed below,
     so that a future Filament release can be diffed against the original file and
     the fork re-applied mechanically. The list is the whole of it: a change that
@@ -14,7 +26,8 @@
       - top-of-file PHP block: the settings each of this package's TipTap extensions reads
         off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
         $codeBlockSettings, $findSettings, $pasteSettings, $dragHandleSettings,
-        $autosaveSettings, $accessibilitySettings), resolved alongside them
+        $autosaveSettings, $accessibilitySettings, $typographySettings,
+        $characterCountSettings, $indentSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -30,9 +43,23 @@
         so dropping this block on a re-fork leaves every one of those features mounted and
         silent rather than broken
 
+    Carried over from Filament v5.9, which added them to toEmbeddedHtml(): the
+    deleteCustomBlockButtonLabel, editCustomBlockButtonLabel, hasMinimalCustomBlockControls
+    and hasStickyToolbar options, x-ref="toolbar" and the sticky toolbar and sticky panel
+    classes, the custom block search, grid, icons and no-results message, data-block-id,
+    and the close buttons' aria-label. The accessors behind them only exist from v5.9 on
+    and this view renders on v5.7 and v5.8 as well, so each one is asked for through
+    isset() on the closure Filament hands the view, and answered the way an older release
+    behaves where it is not there. The close buttons' label is the same question asked of
+    the translation.
+
     Deliberately NOT changed: x-load-src still points at Filament's own compiled
     'rich-editor' Alpine component, because this package extends the upstream editor
-    rather than shipping a second TipTap bundle.
+    rather than shipping a second TipTap bundle. Nor are v5.9's --min-height and
+    --max-height written onto the wrapper: Filament's stylesheet turns --max-height into a
+    cap on .fi-fo-rich-editor-content, which is the box the floating toolbars are
+    positioned in and clips them at its edge - this package caps the document one element
+    in, through --fi-arte-max-height, for exactly that reason.
 --}}
 
 @php
@@ -74,6 +101,24 @@
     $dragHandleSettings = $getDragHandleSettingsForJs();
     $autosaveSettings = $getAutosaveSettingsForJs();
     $accessibilitySettings = $getAccessibilitySettingsForJs();
+    $characterCountSettings = $getCharacterCountSettingsForJs();
+    $typographySettings = $getTypographySettingsForJs();
+    $indentSettings = $getIndentSettingsForJs();
+    // Filament v5.9. Each closure exists only where the installed release has the method.
+    $hasUpstreamStickyToolbar = isset($hasStickyToolbar) && $hasStickyToolbar();
+    $hasUpstreamStickyPanels = isset($hasStickyPanels) && $hasStickyPanels();
+    $upstreamStickyOffset = isset($getStickyOffset) ? $getStickyOffset() : null;
+    $isCustomBlockSearchable = isset($hasSearchableCustomBlocks) && $hasSearchableCustomBlocks();
+    $isCustomBlockGrid = isset($hasCustomBlocksGrid) && $hasCustomBlocksGrid();
+    $customBlockSearchLabels = $isCustomBlockSearchable
+        ? $groupedCustomBlocks->flatMap(static fn (\Illuminate\Support\Collection $groupBlocks, string $groupLabel): array => [
+            $groupLabel,
+            ...$groupBlocks->map(static fn (string $block): string => $block::getLabel())->all(),
+        ])->all()
+        : [];
+    $closePanelLabel = \Illuminate\Support\Facades\Lang::has('filament-forms::components.rich_editor.actions.close_panel.label')
+        ? __('filament-forms::components.rich_editor.actions.close_panel.label')
+        : null;
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -87,6 +132,7 @@
                 ->style([
                     '--fi-arte-max-height: ' . $maxHeight => filled($maxHeight),
                     '--fi-arte-image-float-gap: ' . $imageFloatGap => filled($imageFloatGap),
+                    '--fi-fo-rich-editor-sticky-offset: ' . $upstreamStickyOffset => filled($upstreamStickyOffset),
                 ])
         "
     >
@@ -99,7 +145,9 @@
                         activePanel: @js($getActivePanel()),
                         canAttachFiles: @js($hasFileAttachments()),
                         deleteCustomBlockButtonIconHtml: @js(\Filament\Support\generate_icon_html(\Filament\Support\Icons\Heroicon::Trash, alias: \Filament\Forms\View\FormsIconAlias::COMPONENTS_RICH_EDITOR_PANELS_CUSTOM_BLOCK_DELETE_BUTTON)->toHtml()),
+                        deleteCustomBlockButtonLabel: @js(__('filament-forms::components.rich_editor.custom_blocks.actions.delete.label')),
                         editCustomBlockButtonIconHtml: @js(\Filament\Support\generate_icon_html(\Filament\Support\Icons\Heroicon::PencilSquare, alias: \Filament\Forms\View\FormsIconAlias::COMPONENTS_RICH_EDITOR_PANELS_CUSTOM_BLOCK_EDIT_BUTTON)->toHtml()),
+                        editCustomBlockButtonLabel: @js(__('filament-forms::components.rich_editor.custom_blocks.actions.edit.label')),
                         extensions: @js($getTipTapJsExtensions()),
                         floatingToolbars: @js($floatingToolbars),
                         getMentionLabelsUsing: async (mentions) => {
@@ -117,6 +165,8 @@
                             )
                         },
                         hasResizableImages: @js($hasResizableImages()),
+                        hasMinimalCustomBlockControls: @js(isset($hasMinimalCustomBlockControls) && $hasMinimalCustomBlockControls()),
+                        hasStickyToolbar: @js(isset($hasStickyToolbar) && $hasStickyToolbar()),
                         isDisabled: @js($isDisabled),
                         label: @js($label),
                         isLiveDebounced: @js($isLiveDebounced()),
@@ -148,8 +198,10 @@
         >
             @if ((! $isDisabled) && filled($toolbarButtons))
                 <div
+                    x-ref="toolbar"
                     @class([
                         'fi-fo-rich-editor-toolbar',
+                        'fi-fo-rich-editor-sticky-toolbar' => $hasUpstreamStickyToolbar,
                         'fi-arte-sticky' => $isStickyToolbar,
                         "fi-arte-toolbar-align-{$toolbarAlignment}",
                         'fi-arte-toolbar-split' => filled($pinnedToolbarButtons),
@@ -246,6 +298,9 @@
                     @if ($dragHandleSettings) data-arte-drag-handle="{{ json_encode($dragHandleSettings) }}" @endif
                     @if ($autosaveSettings) data-arte-autosave="{{ json_encode($autosaveSettings) }}" @endif
                     @if ($accessibilitySettings) data-arte-accessibility="{{ json_encode($accessibilitySettings) }}" @endif
+                    @if ($characterCountSettings) data-arte-character-count="{{ json_encode($characterCountSettings) }}" @endif
+                    @if ($typographySettings) data-arte-typography="{{ json_encode($typographySettings) }}" @endif
+                    @if ($indentSettings) data-arte-indent="{{ json_encode($indentSettings) }}" @endif
                 >
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div
@@ -267,7 +322,10 @@
                     <div
                         x-show="isPanelActive()"
                         x-cloak
-                        class="fi-fo-rich-editor-panels"
+                        @class([
+                            'fi-fo-rich-editor-panels',
+                            'fi-fo-rich-editor-sticky-panels' => $hasUpstreamStickyPanels,
+                        ])
                     >
                         <div
                             x-show="isPanelActive('customBlocks')"
@@ -286,16 +344,41 @@
                                         type="button"
                                         x-on:click="togglePanel()"
                                         class="fi-icon-btn"
+                                        @if (filled($closePanelLabel)) aria-label="{{ $closePanelLabel }}" @endif
                                     >
                                         {{ \Filament\Support\generate_icon_html(\Filament\Support\Icons\Heroicon::XMark, alias: \Filament\Forms\View\FormsIconAlias::COMPONENTS_RICH_EDITOR_PANELS_CUSTOM_BLOCKS_CLOSE_BUTTON) }}
                                     </button>
                                 </div>
                             </div>
 
+                            @if ($isCustomBlockSearchable)
+                                <div class="fi-fo-rich-editor-custom-blocks-search">
+                                    {{ \Filament\Support\generate_icon_html(\Filament\Support\Icons\Heroicon::MagnifyingGlass) }}
+
+                                    <input
+                                        type="search"
+                                        x-model="customBlockSearch"
+                                        x-on:keydown.enter.prevent
+                                        aria-label="{{ __('filament-forms::components.rich_editor.custom_blocks.search_label') }}"
+                                        placeholder="{{ __('filament-forms::components.rich_editor.custom_blocks.search_prompt') }}"
+                                        class="fi-fo-rich-editor-custom-blocks-search-input"
+                                    />
+                                </div>
+                            @endif
+
                             <div class="fi-fo-rich-editor-custom-blocks-ctn">
                                 @foreach ($groupedCustomBlocks as $customBlockGroupLabel => $groupBlocks)
+                                    @php
+                                        $groupSearchLabels = $isCustomBlockSearchable
+                                            ? [$customBlockGroupLabel, ...$groupBlocks->map(static fn (string $block): string => $block::getLabel())->all()]
+                                            : [];
+                                    @endphp
+
                                     @if (filled($customBlockGroupLabel))
                                         <h4
+                                            @if ($isCustomBlockSearchable)
+                                                x-show="matchesCustomBlockSearch(@js($groupSearchLabels))"
+                                            @endif
                                             class="fi-fo-rich-editor-custom-blocks-group-header"
                                         >
                                             {{ $customBlockGroupLabel }}
@@ -303,17 +386,28 @@
                                     @endif
 
                                     <div
-                                        class="fi-fo-rich-editor-custom-blocks-list"
+                                        @if ($isCustomBlockSearchable)
+                                            x-show="matchesCustomBlockSearch(@js($groupSearchLabels))"
+                                        @endif
+                                        @class([
+                                            'fi-fo-rich-editor-custom-blocks-list',
+                                            'fi-fo-rich-editor-custom-blocks-grid' => $isCustomBlockGrid,
+                                        ])
                                     >
                                         @foreach ($groupBlocks as $block)
                                             @php
                                                 $blockId = $block::getId();
+                                                $blockIcon = method_exists($block, 'getIcon') ? $block::getIcon() : null;
                                             @endphp
 
                                             <button
                                                 draggable="true"
                                                 type="button"
+                                                data-block-id="{{ $blockId }}"
                                                 x-data="{ isLoading: false }"
+                                                @if ($isCustomBlockSearchable)
+                                                    x-show="matchesCustomBlockSearch(@js([$customBlockGroupLabel, $block::getLabel()]))"
+                                                @endif
                                                 x-on:click="
                                                     isLoading = true
 
@@ -328,17 +422,35 @@
                                                 x-on:run-rich-editor-commands.window="isLoading = false"
                                                 class="fi-fo-rich-editor-custom-block-btn"
                                             >
+                                                @if ($blockIcon)
+                                                    <span x-show="! isLoading" class="fi-fo-rich-editor-custom-block-icon">
+                                                        {{ \Filament\Support\generate_icon_html($blockIcon) }}
+                                                    </span>
+                                                @endif
+
                                                 {{
                                                     \Filament\Support\generate_loading_indicator_html((new \Illuminate\View\ComponentAttributeBag([
                                                         'x-show' => 'isLoading',
+                                                        'x-cloak' => true,
                                                     ])))
                                                 }}
 
-                                                {{ $block::getLabel() }}
+                                                <span>{{ $block::getLabel() }}</span>
                                             </button>
                                         @endforeach
                                     </div>
                                 @endforeach
+
+                                @if ($isCustomBlockSearchable)
+                                    <p
+                                        x-show="! matchesCustomBlockSearch(@js($customBlockSearchLabels))"
+                                        x-cloak
+                                        role="status"
+                                        class="fi-fo-rich-editor-custom-blocks-no-results"
+                                    >
+                                        {{ __('filament-forms::components.rich_editor.custom_blocks.no_search_results_message') }}
+                                    </p>
+                                @endif
                             </div>
                         </div>
 
@@ -359,6 +471,7 @@
                                         type="button"
                                         x-on:click="togglePanel()"
                                         class="fi-icon-btn"
+                                        @if (filled($closePanelLabel)) aria-label="{{ $closePanelLabel }}" @endif
                                     >
                                         {{ \Filament\Support\generate_icon_html(\Filament\Support\Icons\Heroicon::XMark, alias: \Filament\Forms\View\FormsIconAlias::COMPONENTS_RICH_EDITOR_PANELS_MERGE_TAGS_CLOSE_BUTTON) }}
                                     </button>

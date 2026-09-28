@@ -2,10 +2,15 @@
 
 declare(strict_types=1);
 
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\MentionProvider;
+use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Support\Facades\Blade;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionProvider as RowsMentionProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MentionRow;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
+use Livewire\Attributes\Renderless;
 
 /**
  * The editor half of a mention: whose menu opens when a trigger is typed.
@@ -46,11 +51,74 @@ it('hands the script the triggers the field was given', function (): void {
             'char', 'items', 'isSearchable', 'extraAttributes',
             'noOptionsMessage', 'noSearchResultsMessage', 'searchPrompt', 'searchingMessage',
         ])
-        ->and($menu['triggers'][0]['items'])->toBe(['2' => 'Ada Lovelace'])
+        // A list of rows whatever Filament sent - an `id => label` map before 5.8.3, `{id, label}`
+        // pairs since - because a map loses its order in the browser once its ids are numbers.
+        ->and($menu['triggers'][0]['items'])->toBe([['id' => '2', 'label' => 'Ada Lovelace']])
         // Which trigger searches on the server and which was handed its whole list decides
         // whether the menu asks at all.
         ->and($menu['triggers'][0]['isSearchable'])->toBeFalse()
         ->and($menu['triggers'][1]['isSearchable'])->toBeTrue();
+});
+
+it('answers a search with rows, in the order the provider gave them', function (): void {
+    // Filament 5.8.3 sends its script `{id, label}` pairs and types the conversion for labels
+    // only, so a row with a picture in it was a TypeError there and the menu said "no
+    // results" for every search. The answer is built here for that reason.
+    $editor = editor()->mentions([
+        RowsMentionProvider::make('@')->getSearchResultsUsing(fn (): array => [
+            MentionRow::make(9, 'Zed')->hint('zed@example.com'),
+            MentionRow::make(2, 'Ada Lovelace')->avatar('/ada.jpg'),
+        ]),
+    ]);
+
+    expect($editor->getMentionSearchResultsForJs('a', '@'))->toBe([
+        ['id' => '9', 'label' => 'Zed', 'hint' => 'zed@example.com'],
+        ['id' => '2', 'label' => 'Ada Lovelace', 'avatar' => '/ada.jpg'],
+    ]);
+});
+
+it('answers a provider written against Filament with rows too, keeping its order', function (): void {
+    $editor = editor()->mentions([
+        MentionProvider::make('@')->getSearchResultsUsing(fn (): array => ['9' => 'Zed', '2' => 'Ada Lovelace']),
+    ]);
+
+    expect($editor->getMentionSearchResultsForJs('a', '@'))->toBe([
+        ['id' => '9', 'label' => 'Zed'],
+        ['id' => '2', 'label' => 'Ada Lovelace'],
+    ]);
+});
+
+it('asks the provider the character belongs to, and the first one where none claims it', function (): void {
+    $editor = editor()->mentions([
+        MentionProvider::make('@')->getSearchResultsUsing(fn (): array => ['2' => 'Ada Lovelace']),
+        MentionProvider::make('#')->getSearchResultsUsing(fn (): array => ['7' => 'Backend']),
+    ]);
+
+    expect($editor->getMentionSearchResultsForJs('', '#'))->toBe([['id' => '7', 'label' => 'Backend']])
+        ->and($editor->getMentionSearchResultsForJs('', '!'))->toBe([['id' => '2', 'label' => 'Ada Lovelace']])
+        ->and(editor()->getMentionSearchResultsForJs('', '@'))->toBe([]);
+});
+
+it('leaves the search to Filament where its own menu is drawn', function (): void {
+    // Its script reads the shape its own version sends - a map before 5.8.3, pairs since - so
+    // whatever the installed Filament answers is the only right answer.
+    $providers = fn (): array => [
+        MentionProvider::make('@')->getSearchResultsUsing(fn (): array => ['9' => 'Zed', '2' => 'Ada Lovelace']),
+    ];
+
+    $upstream = RichEditor::make('content')->container(testSchema())->mentions($providers());
+
+    expect(editor()->mentionMenu(false)->mentions($providers())->getMentionSearchResultsForJs('a', '@'))
+        ->toBe($upstream->getMentionSearchResultsForJs('a', '@'));
+});
+
+it('keeps the search reachable from the browser', function (): void {
+    // Filament answers `callSchemaComponentMethod()` only for a method carrying the
+    // attribute, and an override does not inherit it.
+    $method = new ReflectionMethod(AdvancedRichEditor::class, 'getMentionSearchResultsForJs');
+
+    expect($method->getAttributes(ExposedLivewireMethod::class))->toHaveCount(1)
+        ->and($method->getAttributes(Renderless::class))->toHaveCount(1);
 });
 
 it('carries the key the script calls back with', function (): void {

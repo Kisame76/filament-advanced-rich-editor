@@ -232,13 +232,13 @@ export default () => {
                         .run()
                 })
 
-                Object.entries(this.options.HTMLAttributes).forEach(
-                    ([name, value]) => listItem.setAttribute(name, value),
-                )
+                Object.entries(this.options.HTMLAttributes).forEach(([name, value]) => {
+                    listItem.setAttribute(name, value)
+                })
 
-                Object.entries(HTMLAttributes).forEach(([name, value]) =>
-                    listItem.setAttribute(name, value),
-                )
+                Object.entries(HTMLAttributes).forEach(([name, value]) => {
+                    listItem.setAttribute(name, value)
+                })
 
                 // Applied last so a `class` coming from the attributes above
                 // cannot overwrite the styling hook.
@@ -258,7 +258,7 @@ export default () => {
                 const syncLineHeight = () => {
                     const target = content.firstElementChild ?? content
 
-                    if (!target || !target.isConnected) {
+                    if (!target?.isConnected) {
                         return
                     }
 
@@ -271,7 +271,7 @@ export default () => {
                         // The first client rect covers the first line, whatever mix of
                         // font sizes it happens to contain.
                         rect = range.getClientRects()[0] ?? null
-                    } catch (error) {
+                    } catch {
                         rect = null
                     }
 

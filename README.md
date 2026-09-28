@@ -23,34 +23,36 @@ checked against the current Filament v5 release:
 
 | | Filament v5 `RichEditor` | This package |
 | --- | --- | --- |
-| **Toolbar** | A fixed default row. Groups and dropdowns exist, but each one is assembled by hand | [Tokens](docs/documentation.md#rearranging-the-toolbar) that expand into whole groups, [dividers](docs/documentation.md#dividers), [two overflow menus](docs/documentation.md#the-tools-menu), a [pinned corner](docs/documentation.md#pinned-buttons), [start, centre, end or spread across the width](docs/documentation.md#toolbar-alignment), [sticky while scrolling](docs/documentation.md#sticky-toolbar), and [one config file](docs/documentation.md#configuration) for every field in the project |
+| **Toolbar** | A fixed default row. Groups and dropdowns exist, but each one is assembled by hand | [Five named presets](docs/documentation.md#toolbar-presets) covering all four bars at once, [tokens](docs/documentation.md#rearranging-the-toolbar) that expand into whole groups, [dividers](docs/documentation.md#dividers), [two overflow menus](docs/documentation.md#the-tools-menu), a [pinned corner](docs/documentation.md#pinned-buttons), [start, centre, end or spread across the width](docs/documentation.md#toolbar-alignment), [sticky while scrolling](docs/documentation.md#sticky-toolbar), and [one config file](docs/documentation.md#configuration) for every field in the project |
 | **Your own toolbar entries** | `->tools()` registers a tool, and you place it by hand in every toolbar array that wants it | [A token of your own](docs/documentation.md#custom-tokens) that expands wherever it is named, and [replaces a built-in one](docs/documentation.md#custom-tools) when it takes its key — `headings` defined in your config *is* the headings dropdown |
 | **Headings** | All six exist; the default row offers `h2` and `h3`, and every level is a separate button | [One dropdown](docs/documentation.md#heading-levels) of the levels *this* field allows, with the plain paragraph in front of them as the way back out |
 | **Lists** | Bullets and numbers | [Task lists](docs/documentation.md#lists-and-task-lists) too, plus [markers, a starting number and counting backwards](docs/documentation.md#lists-markers-numbering-and-direction) |
-| **Block layout** | Four separate alignment buttons, three of them in the default row | [One alignment dropdown](docs/documentation.md#alignment) showing the alignment the caret is in, and [line spacing](docs/documentation.md#line-spacing) beside it |
+| **Block layout** | Four separate alignment buttons, three of them in the default row | [One alignment dropdown](docs/documentation.md#alignment) showing the alignment the caret is in, [line spacing](docs/documentation.md#line-spacing) beside it, and [indenting](docs/documentation.md#indenting) that steps a paragraph in and nests a list item — same two buttons, same two keys, one line to switch on |
 | **Writing direction** | — | [`dir` on the block the caret sits in](docs/documentation.md#text-direction), so a Hebrew paragraph inside a German article reads the right way round — registered on every field, and named `ltr` / `rtl` when you want the buttons |
 | **Character look** | `textColor` with an optional free picker, `highlight`, `small`, `lead` | + [a background colour with a palette of its own](docs/documentation.md#colours), [font size](docs/documentation.md#font-size), [your design system's own named styles](docs/documentation.md#styles), [a typeface picker](docs/documentation.md#fonts) |
-| **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](docs/documentation.md#media-browser), [a caption beside the alt text](docs/documentation.md#images), and [Spatie Media Library](docs/documentation.md#spatie-media-library) as an option |
+| **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the files already on the server](docs/documentation.md#media-browser) — pictures, video, audio and [documents](docs/documentation.md#documents) behind one button, with or without Spatie, a still on every tile, an alt text saved against the file rather than the insert, a pdf or a spreadsheet inserted as a download card, and YouTube or Vimeo embeds kept in the library beside everything else — [a caption beside the alt text](docs/documentation.md#images), and [Spatie Media Library](docs/documentation.md#spatie-media-library) as an option |
 | **Sizing a picture** | `->resizableImages()`, off by default, and the drag always keeps the ratio | [On by default, with the pixel size beside the pointer](docs/documentation.md#images) — a ratio lock you can open, quarter turns, a panel to type the two numbers into, and a download |
 | **Laying a picture out** | Alt text, and the size you dragged it to | + [the side the text runs past](docs/documentation.md#where-a-picture-sits), [a caption](docs/documentation.md#captions), [the measured size](docs/documentation.md#size-and-lazy-loading) so the page stops jumping when it loads, [an address to point at](docs/documentation.md#a-picture-that-points-somewhere), and [a mark for the ones that carry nothing](docs/documentation.md#a-picture-that-carries-nothing) — which is what stops the accessibility check reporting a deliberate empty `alt` as a forgotten one |
-| **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](docs/documentation.md#links), with `noopener noreferrer` added automatically to anything opening in a new window |
-| **Video** | — | [Paste a YouTube or Vimeo link](docs/documentation.md#video-embeds) and get a player, timestamp included, through the cookie-free host |
+| **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](docs/documentation.md#links), with `noopener noreferrer` added automatically to anything opening in a new window, and [a search over your own records](docs/documentation.md#linking-to-a-record-instead-of-typing-a-url) instead of a typed URL |
+| **Video** | — | [Paste a YouTube or Vimeo link](docs/documentation.md#video-embeds) and get a player, timestamp included, through the cookie-free host — or [point at a file on your own server](docs/documentation.md#video-and-audio-you-host), video or audio, with a poster and no third party involved |
 | **Code** | A code block with no language | [A language picker on the block](docs/documentation.md#code-blocks), and syntax colours rendered in PHP |
 | **Callouts** | — | [Note, tip, warning and danger](docs/documentation.md#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
 | **Finding text** | The browser's `Ctrl+F` — which finds, and stops there | [Find and replace inside the field](docs/documentation.md#find-and-replace) — every hit marked at once, whole words and case optional, and replacing all of them is one undo |
 | **Reaching a tool** | Aim at the bar | [Type `/`](docs/documentation.md#slash-menu) for the commands *this* field offers, or use [the grip in the margin](docs/documentation.md#drag-handle) to move a block and the plus to start one |
-| **Formatting what you selected** | `->floatingToolbars()` exists; the only bar Filament ships is the one over a table cell | [A bar over the selected text](docs/documentation.md#toolbar-over-a-selection) carrying the styles, the marks, the link and both colour pickers — taking the same tokens the main toolbar does |
+| **Formatting what you selected** | `->floatingToolbars()` exists; the only bar Filament ships is the one over a table cell | [A bar over the selected text](docs/documentation.md#toolbar-over-a-selection) carrying the styles, the marks, the link and both colour pickers — in a heading and a list item as well as a paragraph, taking the same tokens the main toolbar does |
+| **Repeating formatting** | — | [The brush from Word](docs/documentation.md#format-brush) — pick the look up at one passage and put it down on another, for one stroke or until you switch it off. Character formatting, read off *this* field's schema rather than a list, and it declines the three marks that cannot be carried honestly: a code run takes every other mark off with it, a link is an address rather than a look, and a language is what a passage *is* |
 | **Pasting from Word** | What Word wrote, minus what the sanitiser strips on save | [Cleaned on the way in](docs/documentation.md#pasting-from-word-and-google-docs): the list Word writes as twelve paragraphs is a list again, and somebody else's fonts, sizes and colours stay behind |
 | **Accessibility** | — | [A check](docs/documentation.md#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read — and [`lang` on a passage](docs/documentation.md#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
 | **Closing the tab** | The text is gone | [A draft kept in the browser](docs/documentation.md#drafts-in-the-browser), offered back the next time the field is opened, and a warning before the tab closes |
 | **Seeing the HTML** | — | [The document in Filament's own code editor](docs/documentation.md#source-code) |
-| **How long it is** | `minLength()` / `maxLength()`, and an untouched field still stores one empty paragraph | [A visible counter](docs/documentation.md#character-count) in characters or words, [an empty document that fails `required`](docs/documentation.md#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](docs/documentation.md#storing-nothing-instead-of-pp) when you ask for it |
+| **Seeing the page** | — | [A preview in an isolated frame](docs/documentation.md#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
+| **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](docs/documentation.md#character-count) in characters or words, [word counts and rules about what the document holds](docs/documentation.md#rules-about-the-content) — `->maxWords(60)`, `->mustContain('image')` — [an empty document that fails `required`](docs/documentation.md#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](docs/documentation.md#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](docs/documentation.md#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
-| **Editor chrome** | — | [Fullscreen](docs/documentation.md#fullscreen), [a maximum height](docs/documentation.md#maximum-height), [a shortcut list](docs/documentation.md#help), [emoji](docs/documentation.md#emoji) and [special characters](docs/documentation.md#special-characters) |
-| **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](docs/documentation.md#anchors), [a table of contents](docs/documentation.md#table-of-contents) from the same slug pass, [column widths that reach the page](docs/documentation.md#table-column-widths), [Markdown](docs/documentation.md#markdown) with the checkboxes intact, and [an excerpt](docs/documentation.md#excerpts) for the meta description — plus the two repairs that made one possible, a sentence that stops breaking apart at a link and entities that are spelled out |
+| **Editor chrome** | — | [Fullscreen](docs/documentation.md#fullscreen), [a maximum height](docs/documentation.md#maximum-height), [a shortcut list](docs/documentation.md#help), [emoji](docs/documentation.md#emoji), [special characters](docs/documentation.md#special-characters) and [today's date](docs/documentation.md#date-and-time) in the application's language and Filament's display timezone |
+| **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](docs/documentation.md#anchors), [a table of contents](docs/documentation.md#table-of-contents) from the same slug pass, [column widths that reach the page](docs/documentation.md#table-column-widths), [Markdown](docs/documentation.md#markdown) with the checkboxes intact — in both directions, and the way back in is the one that has to be careful, because a footnote read as a link reference definition deletes the note and leaves valid markup behind — and [an excerpt](docs/documentation.md#excerpts) for the meta description — plus the two repairs that made one possible, a sentence that stops breaking apart at a link and entities that are spelled out |
 | **Showing it outside the form** | Assemble a renderer by hand in every template, entry and column | [`<x-arte-content>`](docs/documentation.md#blade-component) for a page, [`AdvancedRichEntry`](docs/documentation.md#on-a-view-page) for a view page and [`AdvancedRichColumn`](docs/documentation.md#in-a-table) for a table — each reading what the model already declares about the attribute, and [a cache](docs/documentation.md#caching-a-render) keyed on the content *and* the configuration |
 | **Adding a node of your own** | A plugin reaches the editor; the page is on you | [One line in a service provider](docs/documentation.md#extending-the-renderer) and every render declares it — plus a pass over the finished markup for the half a schema cannot do, turning an attribute into a structure |
-| **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](docs/documentation.md#floating-toolbars), [normalising imported HTML through the field's own schema](docs/documentation.md#source-code), [the character and word counts as numbers](docs/documentation.md#character-count), [asking a stored document whether it is blank](docs/documentation.md#required-and-what-counts-as-empty), and [swapping any icon](docs/documentation.md#icons) or [translating any label](docs/documentation.md#translations). The [contents list](docs/documentation.md#contents) is the whole of it |
+| **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](docs/documentation.md#floating-toolbars), [normalising imported HTML through the field's own schema](docs/documentation.md#source-code), [the character and word counts as numbers](docs/documentation.md#character-count), [asking a stored document whether it is blank](docs/documentation.md#required-and-what-counts-as-empty), [an event when one is written](docs/documentation.md#being-told-a-document-was-saved), and [swapping any icon](docs/documentation.md#icons) or [translating any label](docs/documentation.md#translations). The [contents list](docs/documentation.md#contents) is the whole of it |
 
 Everything is off, on or replaceable per field, and the defaults live in one config file. The
 [documentation](docs/documentation.md) has a section per row above, and the last row is a
@@ -58,7 +60,7 @@ list of the ones that did not need one.
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.2+ with the `intl` extension
 - Filament v5.7+
 
 ## Installation
@@ -104,6 +106,13 @@ php artisan livewire:publish --config
 Change that one line rather than pasting a whole `payload` block — a published `payload`
 replaces the vendor one outright, and its other keys differ between Livewire releases.
 
+Since 1.5.0 the package no longer only writes this down: a field checks the effective limit
+when it renders and refuses with a message naming both numbers and this step, rather than
+letting Livewire answer the first keystroke in a list with a 500 that mentions neither the
+editor nor the setting. A field that will never hold a list can opt out with
+`->nestingCheck(false)`, and one that knows its own documents can ask for less with
+`->nestingCheck(16)`.
+
 Upgrading does not help: every release from 4.1 to 4.4.1 ships the same default. Nor is this
 package the cause — a stock Filament `RichEditor` with a plain bullet list does the same. It
 just ships the task lists, tables and details that make documents deep, so you meet it here
@@ -123,7 +132,7 @@ AdvancedRichEditor::make('content')
         'divider',
         ['headings', 'bold', 'italic'],
         'divider',
-        ['lists', 'link', 'image', 'embed'],
+        ['lists', 'link', 'mediaBrowser'],
         'pin',
         ['fullscreen', 'help'],
     ])
@@ -159,7 +168,7 @@ AdvancedRichColumn::make('content')->excerptLength(80)->searchable();
 
 **[Read the full documentation](https://github.com/Kisame76/filament-advanced-rich-editor/blob/main/docs/documentation.md)** for every option: the toolbar tokens and dropdowns,
 the media browser, the slash menu, video embeds, code blocks, mentions, the table of contents,
-Markdown export and the config file.
+Markdown in and out, and the config file.
 
 ## What's next
 

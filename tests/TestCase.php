@@ -90,6 +90,14 @@ abstract class TestCase extends Orchestra
      */
     protected function defineEnvironment($app): void
     {
+        // Covers are off unless a test asks for them. Generating one means an ffmpeg
+        // process or a file read per listed row, and almost every test in this suite lists
+        // rows without caring what their tiles show - so leaving the shipped default on
+        // would make the suite slow, and its speed dependent on whether the machine running
+        // it happens to have ffmpeg. `MediaCoversTest` switches them on, and pins that the
+        // shipped default is the other way round.
+        $app['config']->set('filament-advanced-rich-editor.media_library.covers.enabled', false);
+
         $driver = env('DB_CONNECTION', 'sqlite');
 
         $app['config']->set('database.default', 'testing');

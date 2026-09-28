@@ -49,12 +49,16 @@ it('leaves everything outside its directory alone', function (): void {
     expect(array_column(($this->source)()->page()['items'], 'id'))->toBe(['library/mine.png']);
 });
 
-it('lists only what can be drawn as an image', function (): void {
+it('lists only what the field takes', function (): void {
+    // A text file and an archive are documents now, and become cards. A program and a file
+    // with no ending at all are nothing the browser takes, whatever is lying in the folder.
     ($this->put)('library/picture.png');
-    Storage::disk('public')->put('library/notes.txt', 'not a picture');
-    Storage::disk('public')->put('library/archive.zip', 'not a picture either');
+    Storage::disk('public')->put('library/notes.txt', 'a document');
+    Storage::disk('public')->put('library/setup.exe', 'not a document');
+    Storage::disk('public')->put('library/README', 'no ending at all');
 
-    expect(array_column(($this->source)()->page()['items'], 'id'))->toBe(['library/picture.png']);
+    expect(array_column(($this->source)()->page()['items'], 'id'))
+        ->toEqualCanonicalizing(['library/picture.png', 'library/notes.txt']);
 });
 
 it('offers the folders it holds, and the way back up', function (): void {
@@ -98,10 +102,12 @@ it('refuses a path that climbs out of the library', function (): void {
         ->and($source->has('library\\mine.png'))->toBeTrue();
 });
 
-it('refuses a path that is not an image, even inside the library', function (): void {
-    Storage::disk('public')->put('library/secret.txt', 'not a picture');
+it('refuses a path the field does not take, even inside the library', function (): void {
+    Storage::disk('public')->put('library/.env', 'APP_KEY=secret');
+    Storage::disk('public')->put('library/secret.php', '<?php');
 
-    expect(($this->source)()->has('library/secret.txt'))->toBeFalse();
+    expect(($this->source)()->has('library/.env'))->toBeFalse()
+        ->and(($this->source)()->has('library/secret.php'))->toBeFalse();
 });
 
 it('refuses a path to nothing', function (): void {
@@ -173,4 +179,25 @@ it('browses the whole disk when it is given no directory', function (): void {
 
     expect($source->has('anywhere/one.png'))->toBeTrue()
         ->and($source->has('../outside.png'))->toBeFalse();
+});
+
+it('never lists the companions it writes beside a file', function (): void {
+    // A `.json` is dropped already, because nothing here draws one. A `.cover.jpg` is a
+    // picture by its extension, and without this it would sit in the grid as a tile of its
+    // own - the same film twice, once as itself and once as its first frame.
+    ($this->put)('library/talk.mp4.cover.jpg');
+    ($this->put)('library/sunset.png');
+    Storage::disk('public')->put('library/sunset.png.json', '{"alt":"x"}');
+    Storage::disk('public')->put('library/youtube-dQw4w9WgXcQ.embed.json', '{}');
+
+    expect(array_column(($this->source)()->page()['items'], 'id'))->toBe(['library/sunset.png']);
+});
+
+it('refuses to resolve a companion through a stored id', function (): void {
+    // The listing and the lookup are one object: something that cannot be listed must not be
+    // reachable by hand-writing its path into a document either.
+    ($this->put)('library/talk.mp4.cover.jpg');
+
+    expect(($this->source)()->has('library/talk.mp4.cover.jpg'))->toBeFalse()
+        ->and(($this->source)()->find('library/talk.mp4.cover.jpg'))->toBeNull();
 });

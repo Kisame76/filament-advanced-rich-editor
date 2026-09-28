@@ -38,6 +38,11 @@ class Icons
             // there is nothing to swap it for and it is the only thing saying what they
             // measure - lines, and the room between them.
             'line_height' => 'arte-line-spacing',
+            // The indent pair. Both drawings carry the same three lines of text with an
+            // arrow beside them, pointing the way the block is about to move - which is the
+            // one thing that separates the two buttons and the only thing worth drawing.
+            'indent' => 'arte-indent-increase',
+            'outdent' => 'arte-indent-decrease',
             'task_list' => 'arte-task-list',
             'blockquote' => 'arte-message-square-quote',
             // The callouts. The dropdown's own trigger is the circled i - the sign for the
@@ -50,7 +55,25 @@ class Icons
             'callout_warning' => 'heroicon-o-exclamation-triangle',
             'callout_danger' => 'heroicon-o-shield-exclamation',
             'image' => 'heroicon-o-photo',
+            // The library button, and the same drawing as the picture button on purpose:
+            // they are one door under two names, and a second icon would say otherwise.
+            'media_browser' => 'heroicon-o-photo',
             'embed' => 'heroicon-o-film',
+            // A file on this server, which is a different thing from an embed and gets a
+            // different sign: the button a player carries, and the note a sound is drawn
+            // with everywhere. The film reel stays with the embed, because that is the one
+            // that fetches something from somebody else.
+            'media_video' => 'heroicon-o-play-circle',
+            'media_audio' => 'heroicon-o-musical-note',
+            // A document: the clip that has meant "attached" for as long as mail has had
+            // attachments, and not a page, which would read as the document being written.
+            'media_file' => 'heroicon-o-paper-clip',
+            // The date family. The trigger carries the calendar with its days written on
+            // it - the sign for "a date" without being either of the two things under it -
+            // and the options carry what each one writes: a bare calendar and a clock.
+            'date_time' => 'heroicon-o-calendar-days',
+            'date_time_date' => 'heroicon-o-calendar',
+            'date_time_time' => 'heroicon-o-clock',
             // The colour tools carry the thing they paint, not the instrument: a bare `A`
             // for the letters - the trigger already draws the current colour as a bar
             // under it, so Lucide's baseline would only repeat that stroke - a highlighter
@@ -65,6 +88,8 @@ class Icons
             // they are, or the bar has two doors with the same sign on them.
             'tools_menu' => 'heroicon-o-wrench-screwdriver',
             'source_code' => 'heroicon-o-code-bracket',
+            'statistics' => 'heroicon-o-chart-bar',
+            'preview' => 'heroicon-o-eye',
             // Searching. The magnifier is the button, and the three inside the bar are the
             // chrome around it: two chevrons for the way through the hits and a cross for
             // the way out. The arrow curving back is the replacement, which is one thing
@@ -118,6 +143,14 @@ class Icons
             // The letter this package already draws, put to a second use: the Latin tab is
             // the one holding letters.
             'characters_latin' => 'arte-letter-a',
+            // Changing the case. Lucide draws the three as what they produce - Aa, AB, ab -
+            // which is the one set of drawings that tells them apart without a tooltip. The
+            // dropdown's trigger is the mixed one, because that is the family's sign.
+            'format_brush' => 'heroicon-o-paint-brush',
+            'text_case' => 'arte-case-sensitive',
+            'text_case_sentence' => 'arte-case-sensitive',
+            'text_case_upper' => 'arte-case-upper',
+            'text_case_lower' => 'arte-case-lower',
             'characters_greek' => 'heroicon-o-academic-cap',
             // The emoji picker's tabs. Drawn icons, not emoji: nine coloured faces in a row
             // read as things to pick rather than as the chrome around them.
@@ -159,6 +192,11 @@ class Icons
             'image_delete' => 'heroicon-o-trash',
             'image_locked' => 'heroicon-o-lock-closed',
             'image_unlocked' => 'heroicon-o-lock-open',
+
+            // The bar over a selected document card: the arrows every file manager uses for
+            // swapping one file for another, and the bin the picture bar already uses.
+            'file_replace' => 'heroicon-o-arrow-path',
+            'file_delete' => 'heroicon-o-trash',
         ];
     }
 

@@ -240,7 +240,7 @@ it('leaves a turned picture its own margins when a caption wraps it', function (
     expect(imageStyle($rendered))
         ->toContain('margin-block: 50px')
         ->toContain('margin-inline: -50px')
-        ->and(figureStyle($rendered))->toBe(['margin-inline: 0']);
+        ->and(figureStyle($rendered))->toBe(['inline-size: fit-content', 'margin-inline: 0', 'max-inline-size: 100%']);
 });
 
 it('still moves the centring of a turned picture that is also centred', function (): void {

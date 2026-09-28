@@ -241,9 +241,15 @@ export default () => {
                          * is marked on the resize wrapper for the stylesheet to draw.
                          */
                         const markImage = (image) => {
-                            const wrapper =
-                                image.closest('[data-resize-wrapper]') ??
-                                image.parentElement
+                            // Only a picture inside a resize wrapper, which is the one place
+                            // the stylesheet reads the mark. Anything else hands the mark to
+                            // an element ProseMirror renders itself - the paragraph around
+                            // the `<img class="ProseMirror-separator">` it puts after an
+                            // inline node at the end of a line, which has no source and
+                            // reads as broken. ProseMirror takes that attribute for an edit
+                            // and parses the paragraph again, and a document opened and left
+                            // alone came back changed.
+                            const wrapper = image.closest('[data-resize-wrapper]')
 
                             if (!wrapper) {
                                 return

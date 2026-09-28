@@ -26,6 +26,9 @@
     $hasFolders = $hasFolders();
     $isListView = $isListView();
     $pageSize = $getPageSize();
+    $isDescribable = $isDescribable();
+    $isRecordScoped = $isRecordScoped();
+    $fromUrlAction = $getFromUrlAction();
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
@@ -37,6 +40,7 @@
             hasFolders: @js($hasFolders),
             listView: @js($isListView),
             pageSize: @js($pageSize),
+            kind: @js($getKind()),
             picked: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')") }},
             fetchPage: (query) => $wire.callSchemaComponentMethod(
                 @js($editorKey),
@@ -48,16 +52,45 @@
                 'getMediaDetailsForJs',
                 { id },
             ),
+            saveMetadata: (id, data) => $wire.callSchemaComponentMethod(
+                @js($editorKey),
+                'saveMediaMetadataForJs',
+                { id, data },
+            ),
+            deleteMedia: (id) => $wire.callSchemaComponentMethod(
+                @js($editorKey),
+                'deleteMediaForJs',
+                { id },
+            ),
+            canDelete: @js($isRecordScoped),
         })"
         class="fi-arte-media"
     >
         <div class="fi-arte-media-header">
-            <x-filament::button
-                icon="heroicon-m-arrow-up-tray"
-                x-on:click="upload()"
-            >
-                <span x-text="labels.upload"></span>
-            </x-filament::button>
+            {{--
+                The two ways of putting something in, side by side. They used to be a row
+                under the grid, which was wrong twice: it sat below the *tallest* column - the
+                details panel - so there was a field of nothing under a short list, and
+                "add something" is not a thing you look for at the bottom of what you are
+                looking through.
+            --}}
+            <div class="fi-arte-media-add">
+                <x-filament::button
+                    icon="heroicon-m-arrow-up-tray"
+                    x-on:click="upload()"
+                >
+                    <span x-text="labels.upload"></span>
+                </x-filament::button>
+
+                {{--
+                    The object rather than `->toHtml()`: Blade renders anything `Htmlable`
+                    as markup and escapes a plain string, so calling the method here put an
+                    escaped `<button>` on screen as text.
+                --}}
+                @if ($fromUrlAction)
+                    {{ $fromUrlAction }}
+                @endif
+            </div>
 
             <div class="fi-arte-media-header-end">
                 <x-filament::input.wrapper class="fi-arte-media-search">
@@ -152,6 +185,63 @@
         </div>
 
         {{--
+            The tabs, under the toolbar and over the grid rather than inside the filter
+            dropdown beside it. They were in the dropdown first, which was wrong twice:
+            a tab is where you are, not a setting you went looking for, and a person
+            sent to the Video tab by the video button would have had to open a funnel
+            menu to find out there was a way back.
+
+            Drawn where the pool holds more than one family, so a library of nothing but
+            pictures is the dialog it always was and does not grow a row of buttons that
+            all say the same thing.
+
+            And drawn whenever a tab is chosen, whatever the pool holds: the video
+            button opens straight onto Video, and a library with no video in it would
+            otherwise be an empty grid with no way back to All.
+        --}}
+        <div class="fi-arte-media-tabs" x-show="kinds.length > 1 || kind !== ''" role="tablist">
+            <button
+                type="button"
+                role="tab"
+                x-bind:aria-selected="kind === ''"
+                x-bind:class="{ 'fi-active': kind === '' }"
+                x-on:click="kind = ''"
+                class="fi-arte-media-tab"
+                x-text="labels.allKinds"
+            ></button>
+
+            <template x-for="entry in kinds" :key="entry">
+                <button
+                    type="button"
+                    role="tab"
+                    x-bind:aria-selected="kind === entry"
+                    x-bind:class="{ 'fi-active': kind === entry }"
+                    x-on:click="kind = entry"
+                    class="fi-arte-media-tab"
+                    x-text="labels.kinds[entry] ?? entry"
+                ></button>
+            </template>
+        </div>
+
+        {{--
+            What was turned away, by name, until somebody dismisses it. The upload widget
+            draws its own complaint, but the widget is kept off screen - without this a
+            refused file simply never turned up, which reads as the dialog having lost it.
+        --}}
+        <div x-show="rejected.length > 0" x-cloak class="fi-arte-media-rejected" role="status">
+            <span x-text="`${labels.rejected} ${rejected.join(', ')}`"></span>
+
+            <x-filament::icon-button
+                icon="heroicon-m-x-mark"
+                color="gray"
+                size="sm"
+                x-on:click="dismissRejected()"
+                x-bind:label="labels.dismiss"
+                x-bind:title="labels.dismiss"
+            />
+        </div>
+
+        {{--
             The library is the dropzone. A separate one under it would be a second place to
             look, and it would sit exactly where the pictures somebody is comparing want to be.
         --}}
@@ -213,7 +303,7 @@
                             x-bind:title="item.name"
                             class="fi-arte-media-item"
                         >
-                            <span x-show="list" x-text="kind(item)" class="fi-arte-media-kind"></span>
+                            <span x-show="list" x-text="format(item)" class="fi-arte-media-kind"></span>
 
                             {{--
                                 Lazy, because a library is a long list and a dialog that opens
@@ -221,12 +311,33 @@
                                 slowly.
                             --}}
                             <img
-                                x-bind:src="item.thumbnail ?? item.url"
+                                x-show="drawable(item)"
+                                x-bind:src="thumbnailOf(item)"
                                 x-bind:alt="item.name"
                                 loading="lazy"
                                 decoding="async"
                                 class="fi-arte-media-item-image"
                             />
+
+                            {{--
+                                A video or a sound with no cover yet. Drawing one in an
+                                `<img>` anyway is a broken-image icon in a grid, which reads
+                                as a broken library rather than as a film.
+                            --}}
+                            {{--
+                                A document is drawn in its card's colour, with its card's
+                                letters, so the tile and the card it becomes look like the
+                                same thing.
+                            --}}
+                            <span
+                                x-show="! drawable(item)"
+                                x-bind:class="`fi-arte-media-item-sign fi-arte-media-item-sign-${item.kind ?? 'file'}`"
+                                x-bind:style="tileStyle(item)"
+                                class="fi-arte-media-item-sign"
+                                aria-hidden="true"
+                            >
+                                <span x-text="format(item)"></span>
+                            </span>
 
                             <span class="fi-arte-media-item-text">
                                 <span x-text="item.name" class="fi-arte-media-item-label"></span>
@@ -295,28 +406,155 @@
                 <template x-if="selected">
                     <div class="fi-arte-media-details-inner">
                         <img
+                            x-show="isPicture(selected)"
                             x-bind:src="selected.url"
                             x-bind:alt="selected.name"
                             decoding="async"
                             class="fi-arte-media-preview"
                         />
 
+                        {{--
+                            The real element for a film and a sound, because the panel is
+                            where somebody checks they picked the right one - and for a video
+                            that means watching a second of it. `preload="metadata"` fetches
+                            a few kilobytes; nothing streams until play is pressed.
+                        --}}
+                        {{--
+                            Stopped as well as hidden. `x-show` only sets `display: none`, so
+                            a film left playing would go on playing out of an invisible
+                            element the moment the panel moved to another file - audible, and
+                            with no control left on screen to stop it.
+                        --}}
+                        <video
+                            x-show="(selected.kind ?? '') === 'video'"
+                            x-effect="if ((selected?.kind ?? '') !== 'video') { $el.pause() }"
+                            x-bind:src="(selected.kind ?? '') === 'video' ? selected.url : ''"
+                            controls
+                            preload="metadata"
+                            class="fi-arte-media-preview"
+                        ></video>
+
+                        {{--
+                            An embed, and the panel is where somebody checks they picked the
+                            right video - so it plays, but only when asked. Until then it is
+                            the still this package fetched and stored itself: drawing an
+                            iframe straight away would call YouTube from every editor that
+                            opens the dialog, which is the tracking the cookie-free host is
+                            there to avoid.
+                        --}}
+                        <template x-if="(selected.kind ?? '') === 'embed' && ! playing">
+                            <button
+                                type="button"
+                                x-on:click="playing = true"
+                                x-bind:title="labels.play"
+                                x-bind:aria-label="labels.play"
+                                class="fi-arte-media-play"
+                            >
+                                <img
+                                    x-show="selected.thumbnail"
+                                    x-bind:src="selected.thumbnail"
+                                    x-bind:alt="selected.name"
+                                    decoding="async"
+                                    class="fi-arte-media-preview"
+                                />
+
+                                <span class="fi-arte-media-play-mark" aria-hidden="true">
+                                    <svg viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M6.3 2.8A1.5 1.5 0 0 0 4 4.1v11.8a1.5 1.5 0 0 0 2.3 1.3l9.3-5.9a1.5 1.5 0 0 0 0-2.6L6.3 2.8Z" />
+                                    </svg>
+                                </span>
+                            </button>
+                        </template>
+
+                        <template x-if="(selected.kind ?? '') === 'embed' && playing">
+                            <iframe
+                                x-bind:src="selected.frame"
+                                x-bind:title="selected.name"
+                                allowfullscreen
+                                loading="lazy"
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                class="fi-arte-media-preview fi-arte-media-preview-embed"
+                            ></iframe>
+                        </template>
+
+                        {{--
+                            A document has nothing to play and usually nothing to draw: the
+                            tile its card will wear, large - or the picture the model's
+                            conversion made of it, where there is one.
+                        --}}
+                        <img
+                            x-show="(selected.kind ?? '') === 'file' && selected.thumbnail"
+                            x-bind:src="selected.thumbnail"
+                            x-bind:alt="selected.name"
+                            decoding="async"
+                            class="fi-arte-media-preview"
+                        />
+
+                        <span
+                            x-show="(selected.kind ?? '') === 'file' && ! selected.thumbnail"
+                            x-bind:style="tileStyle(selected)"
+                            x-text="format(selected)"
+                            class="fi-arte-media-preview fi-arte-media-preview-file"
+                            aria-hidden="true"
+                        ></span>
+
+                        <audio
+                            x-show="(selected.kind ?? '') === 'audio'"
+                            x-effect="if ((selected?.kind ?? '') !== 'audio') { $el.pause() }"
+                            x-bind:src="(selected.kind ?? '') === 'audio' ? selected.url : ''"
+                            controls
+                            preload="metadata"
+                            class="fi-arte-media-preview fi-arte-media-preview-audio"
+                        ></audio>
+
+                        {{--
+                            The description, beside the thing it describes. It used to sit
+                            under the grid, where it read as part of the picker and was asked
+                            again for every insert - which is how one picture ends up
+                            described three different ways in three documents.
+
+                            Saved as the field is left rather than on a button: it is one
+                            line, and it is finished the moment focus moves.
+                        --}}
+                        @if ($isDescribable)
+                            <label x-show="describable" class="fi-arte-media-describe">
+                                <span x-text="descriptionLabel"></span>
+
+                                <x-filament::input.wrapper>
+                                    <x-filament::input
+                                        type="text"
+                                        maxlength="1000"
+                                        x-model="description"
+                                        x-on:blur="saveDescription()"
+                                        x-bind:aria-label="descriptionLabel"
+                                    />
+                                </x-filament::input.wrapper>
+
+                                <span
+                                    x-show="descriptionSaved"
+                                    x-cloak
+                                    x-text="labels.saved"
+                                    class="fi-arte-media-describe-saved"
+                                ></span>
+                            </label>
+                        @endif
+
                         <dl class="fi-arte-media-facts">
                             <div>
                                 <dt x-text="labels.name"></dt>
                                 <dd x-text="selected.name"></dd>
                             </div>
-                            <div>
+                            <div x-show="! isEmbed(selected)">
                                 <dt x-text="labels.size"></dt>
                                 <dd x-text="bytes(selected.size)"></dd>
                             </div>
-                            <div>
+                            <div x-show="! isEmbed(selected) && (selected.kind ?? '') !== 'file'">
                                 <dt x-text="labels.dimensions"></dt>
                                 <dd x-text="pixels(selected) ?? '—'"></dd>
                             </div>
                             <div>
                                 <dt x-text="labels.type"></dt>
-                                <dd x-text="selected.mime || '—'"></dd>
+                                <dd x-text="isEmbed(selected) ? providerOf(selected) : (selected.mime || '—')"></dd>
                             </div>
                             <div>
                                 <dt x-text="labels.modified"></dt>
@@ -324,14 +562,52 @@
                             </div>
                         </dl>
 
-                        <x-filament::button
-                            color="gray"
-                            size="sm"
-                            icon="heroicon-m-link"
-                            x-on:click="copy()"
-                        >
-                            <span x-text="copied ? labels.copied : labels.copy"></span>
-                        </x-filament::button>
+                        <div class="fi-arte-media-actions">
+                            <x-filament::button
+                                color="gray"
+                                size="sm"
+                                icon="heroicon-m-link"
+                                x-on:click="copy()"
+                            >
+                                <span x-text="copied ? labels.copied : labels.copy"></span>
+                            </x-filament::button>
+
+                            {{--
+                                A plain anchor, because saving a file is what an anchor with
+                                `download` does and nothing here can do it better. On a
+                                private disk `url` is already the temporary signed address,
+                                so this needs to know nothing about visibility.
+                            --}}
+                            <x-filament::button
+                                tag="a"
+                                x-show="! isEmbed(selected)"
+                                x-cloak
+                                color="gray"
+                                size="sm"
+                                icon="heroicon-m-arrow-down-tray"
+                                x-bind:href="selected.url"
+                                x-bind:download="selected.fileName ?? selected.name"
+                            >
+                                <span x-text="labels.download"></span>
+                            </x-filament::button>
+
+                            {{--
+                                Only where the library is this record's own attachments. In a
+                                shared library the file may be in another record's content
+                                that nobody standing here can see, and a button that cannot
+                                know that is a button that quietly breaks somebody's page.
+                            --}}
+                            <x-filament::button
+                                x-show="canDelete"
+                                x-cloak
+                                color="danger"
+                                size="sm"
+                                icon="heroicon-m-trash"
+                                x-on:click="remove()"
+                            >
+                                <span x-text="labels.delete"></span>
+                            </x-filament::button>
+                        </div>
                     </div>
                 </template>
 

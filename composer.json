@@ -29,6 +29,7 @@
   ],
   "require": {
     "php": "^8.2",
+    "ext-intl": "*",
     "filament/actions": "^5.7",
     "filament/forms": "^5.7",
     "filament/schemas": "^5.7",
@@ -37,6 +38,7 @@
     "illuminate/database": "^11.0||^12.0||^13.0",
     "illuminate/support": "^11.0||^12.0||^13.0",
     "spatie/laravel-package-tools": "^1.16",
+    "symfony/mime": "^7.0||^8.0",
     "ueberdosis/tiptap-php": "^2.0"
   },
   "require-dev": {

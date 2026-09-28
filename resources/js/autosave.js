@@ -64,7 +64,7 @@ export function readDraft(storage, key, { now = 0, ttl = 0 } = {}) {
 
     try {
         draft = JSON.parse(storage.getItem(key) ?? 'null')
-    } catch (error) {
+    } catch {
         draft = null
     }
 
@@ -135,7 +135,7 @@ export function writeDraft(storage, key, content, { now = 0 } = {}) {
         storage.setItem(key, draft)
 
         return true
-    } catch (error) {
+    } catch {
         // Everything of ours except this field's own, oldest first, until it fits.
         const others = []
 
@@ -156,8 +156,8 @@ export function writeDraft(storage, key, content, { now = 0 } = {}) {
                 storage.setItem(key, draft)
 
                 return true
-            } catch (retry) {
-                continue
+            } catch {
+                // Still too big. Drop the next oldest draft and try again.
             }
         }
 
@@ -211,7 +211,7 @@ function storageOf() {
         storage.removeItem(probe)
 
         return storage
-    } catch (error) {
+    } catch {
         return null
     }
 }

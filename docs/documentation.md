@@ -19,9 +19,9 @@ on top of it, checked against the current Filament v5 release:
 | **Block layout** | Four separate alignment buttons, three of them in the default row | [One alignment dropdown](#alignment) showing the alignment the caret is in, and [line spacing](#line-spacing) beside it |
 | **Writing direction** | — | [`dir` on the block the caret sits in](#text-direction), so a Hebrew paragraph inside a German article reads the right way round — registered on every field, and named `ltr` / `rtl` when you want the buttons |
 | **Character look** | `textColor` with an optional free picker, `highlight`, `small`, `lead` | + [a background colour with a palette of its own](#colours), [font size](#font-size), [your design system's own named styles](#styles), [a typeface picker](#fonts) |
-| **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser), [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
+| **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser) on its own button, with Filament's dialog left untouched beside it, [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
 | **Sizing a picture** | `->resizableImages()`, off by default, and the drag always keeps the ratio | [On by default, with the pixel size beside the pointer](#images) — a ratio lock you can open, quarter turns, a panel to type the two numbers into, and a download |
-| **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window |
+| **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window, and [a search over your own records](#linking-to-a-record-instead-of-typing-a-url) instead of a typed URL |
 | **Video** | — | [Paste a YouTube or Vimeo link](#video-embeds) and get a player, timestamp included, through the cookie-free host |
 | **Code** | A code block with no language | [A language picker on the block](#code-blocks), and syntax colours rendered in PHP |
 | **Callouts** | — | [Note, tip, warning and danger](#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
@@ -32,11 +32,12 @@ on top of it, checked against the current Filament v5 release:
 | **Accessibility** | — | [A check](#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read — and [`lang` on a passage](#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
 | **Closing the tab** | The text is gone | [A draft kept in the browser](#drafts-in-the-browser), offered back the next time the field is opened, and a warning before the tab closes |
 | **Seeing the HTML** | — | [The document in Filament's own code editor](#source-code) |
-| **How long it is** | `minLength()` / `maxLength()`, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
+| **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
+| **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [word counts and rules about what the document holds](#rules-about-the-content), [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
-| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji) and [special characters](#special-characters) |
+| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
-| **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
+| **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
 Everything is off, on or replaceable per field, and the defaults live in one config file.
 
@@ -46,24 +47,27 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Raise Livewire's nesting limit](#raise-livewires-nesting-limit) · [Usage](#usage)
 
 **[The toolbar](#the-toolbar)** — [The default toolbar](#the-default-toolbar) ·
+[Presets](#toolbar-presets) · [No toolbar](#the-mode-with-no-toolbar) ·
 [Rearranging it](#rearranging-the-toolbar) · [Dividers](#dividers) · [Dropdowns](#dropdowns) ·
 [Custom tokens](#custom-tokens) · [Custom tools](#custom-tools) ·
 [Toolbar alignment](#toolbar-alignment) · [Pinned buttons](#pinned-buttons) ·
 [The tools menu](#the-tools-menu) · [The more menu](#the-more-menu) ·
 [Sticky toolbar](#sticky-toolbar) · [Toolbar over a selection](#toolbar-over-a-selection) ·
 [Floating toolbars](#floating-toolbars) · [Maximum height](#maximum-height) ·
-[Fullscreen](#fullscreen) · [Help](#help)
+[Fullscreen](#fullscreen) · [A hard limit](#a-hard-limit) ·
+[Statistics](#statistics) · [Help](#help)
 
 **[Blocks](#blocks)** — [Heading levels](#heading-levels) ·
 [Lists and task lists](#lists-and-task-lists) ·
 [List markers, numbering and direction](#lists-markers-numbering-and-direction) ·
 [Callouts](#callouts) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
-[Text direction](#text-direction) · [Code blocks](#code-blocks)
+[Indenting](#indenting) · [Text direction](#text-direction) · [Code blocks](#code-blocks)
 
 **[Characters](#characters)** — [Styles](#styles) · [Fonts](#fonts) ·
 [Font size](#font-size) · [Colours](#colours) ·
 [Language of a passage](#language-of-a-passage) · [Emoji](#emoji) ·
-[Special characters](#special-characters)
+[Special characters](#special-characters) · [Format brush](#format-brush) ·
+[Changing the case](#changing-the-case) · [Date and time](#date-and-time)
 
 **[Media and links](#media-and-links)** — [Images](#images) ·
 [Where a picture sits](#where-a-picture-sits) ·
@@ -72,14 +76,19 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [A picture that points somewhere](#a-picture-that-points-somewhere) ·
 [Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
 [Links](#links) · [Video embeds](#video-embeds) ·
+[Video and audio you host](#video-and-audio-you-host) ·
 [Anchors in the editor](#anchors-in-the-editor)
 
 **[Typing instead of aiming](#typing-instead-of-aiming)** — [Slash menu](#slash-menu) ·
-[Drag handle](#drag-handle) · [Find and replace](#find-and-replace) ·
+[Typography while typing](#typography-while-typing) · [Drag handle](#drag-handle) ·
+[Find and replace](#find-and-replace) ·
 [Pasting from Word and Google Docs](#pasting-from-word-and-google-docs)
 
 **[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
 [Drafts in the browser](#drafts-in-the-browser) · [Character count](#character-count) ·
+[Rules about the content](#rules-about-the-content) ·
+[Being told a document was saved](#being-told-a-document-was-saved) ·
+[Preview](#preview) ·
 [Required, and what counts as empty](#required-and-what-counts-as-empty) ·
 [Source code](#source-code)
 
@@ -97,7 +106,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 
 ## Requirements
 
-- PHP 8.2+
+- PHP 8.2+ with the `intl` extension
 - Filament v5.7+
 
 ## Installation
@@ -143,6 +152,13 @@ php artisan livewire:publish --config
 Change that one line rather than pasting a whole `payload` block — a published `payload`
 replaces the vendor one outright, and its other keys differ between Livewire releases.
 
+Since 1.5.0 the package no longer only writes this down: a field checks the effective limit
+when it renders and refuses with a message naming both numbers and this step, rather than
+letting Livewire answer the first keystroke in a list with a 500 that mentions neither the
+editor nor the setting. A field that will never hold a list can opt out with
+`->nestingCheck(false)`, and one that knows its own documents can ask for less with
+`->nestingCheck(16)`.
+
 Upgrading does not help: every release from 4.1 to 4.4.1 ships the same default. Nor is this
 package the cause — a stock Filament `RichEditor` with a plain bullet list does the same. It
 just ships the task lists, tables and details that make documents deep, so you meet it here
@@ -176,7 +192,7 @@ Out of the box the field renders the layout from `config/filament-advanced-rich-
     'divider',
     ['alignment', 'lineHeight'],
     'divider',
-    ['lists', 'image', 'embed', 'table', 'callouts'],
+    ['lists', 'mediaBrowser', 'table', 'callouts'],
     'divider',
     ['more'],
     'pin',
@@ -245,6 +261,113 @@ AdvancedRichEditor::make('content')
     ->textToolbarButtons([..., 'language']);          // the language of a passage
 // the quote ships inside the `more` menu already
 ```
+
+### Toolbar presets
+
+Five named starting points, each covering all four bars at once:
+
+```php
+AdvancedRichEditor::make('content')->preset('comment');
+```
+
+| Preset | The bar | Uploads |
+| --- | --- | --- |
+| `minimal` | bold, italic, underline · link, lists | off |
+| `comment` | bold, italic · link, lists, quote · emoji | off |
+| `blog` | undo · headings, styles · bold, italic, underline, link · lists, media, callouts · more ⟨pin⟩ tools | on |
+| `default` | the shipped bar above, unchanged | on |
+| `full` | `default` plus `fontFamily`, `textCase` and `language` on the bar and `strike` in the overflow | on |
+
+`minimal` and `comment` also empty the overflow and the tools menu and cut the selection
+bubble down to bold, italic and link. That is the point of a preset: a comment box whose
+main bar has three buttons and whose bubble still offers the style picker and both colour
+pickers is not a comment box.
+
+**Uploads are named, not inferred.** Without a preset the field answers
+`hasFileAttachments()` from whether the bar carries `mediaBrowser`, `image` or `attachFiles`,
+so a hand-cut bar naming none of them takes the upload, the drop *and* the paste-upload with
+it and says nothing. Each preset
+states its own answer instead, and `->fileAttachments(true)` overrules it.
+
+That answer holds only while the preset still describes what is on screen. A field that
+replaces the bar outright with `->toolbarButtons([...])` is no longer drawing the preset's
+toolbar, so the picture button answers again — the same way it does on a field with no
+preset at all.
+
+**A preset is a fixed list, not a copy of the config.** `->preset('default')` stays the bar
+this package ships even in a project that has rebuilt `toolbar` into something else — which
+is what makes it a starting point rather than a second name for the current state.
+
+Everything the field says itself still wins. The order is field → preset → config → shipped
+default, one bar at a time:
+
+```php
+AdvancedRichEditor::make('content')
+    ->preset('blog')                       // structure, pictures, both menus
+    ->toolsMenu(['find', 'help'])          // …but this menu, not the preset's
+    ->fileAttachments(false);              // …and no uploads after all
+```
+
+A preset may answer only some of the five keys — `toolbar`, `more`, `tools_menu`,
+`text_toolbar_buttons`, `file_attachments`. What it leaves out falls through to the config
+file, so a house preset is free to speak about the main bar and leave the rest alone. Add
+one, or replace a shipped one under its own name, in `toolbar_presets`:
+
+```php
+// config/filament-advanced-rich-editor.php
+'toolbar_presets' => [
+    'house' => [
+        'toolbar' => [['bold', 'italic'], 'divider', ['link']],
+        'file_attachments' => false,
+    ],
+],
+```
+
+The name may be a closure, so a field can pick its bar from the record it is editing.
+`->preset(null)` means no preset; every other name that is not registered — an empty string
+included — raises with the known ones in the message rather than quietly falling back to the
+shipped bar. A preset registered under a key nothing reads, or registered as something other
+than an array, raises too: a misspelled `more_tools` would otherwise leave the overflow menu
+falling through to the config file as though the preset had said nothing about it.
+
+### The mode with no toolbar
+
+```php
+AdvancedRichEditor::make('content')->notion();
+```
+
+The bar above the field is not drawn. What is left is what a document needs anyway and what
+this package already ships: `/` opens the slash menu, which knows this field's own tools;
+the grip in the margin rearranges blocks and its plus starts new ones; selecting text raises
+the bar with the marks, the link and both colour pickers.
+
+All three are on by default, so the mode is not a shortcut for three calls. It is the
+statement that this field is a document, and it holds that statement against a project that
+switched one of them off globally — the field with nothing else left to reach a block with
+is not the field that setting was written for. The order is field → mode → config:
+
+```php
+->notion()->dragHandle(false)   // no grip: the field overrules the mode
+// 'drag_handle.enabled' => false in the config no longer reaches a ->notion() field
+```
+
+Naming a preset alongside puts a bar back, because a preset says something more specific
+about the bar than "there is none" — `->notion()->preset('minimal')` is a document with a
+five-button bar, and everything else the mode stands for.
+
+**The mode says yes to uploads**, and has to. Without a preset the field reads that answer
+off the bar, this mode has no bar, and the slash menu's insert group ships `image` and
+`attachFiles` — so inferring it would switch the upload off on the one field where `/` is
+the only way to put a picture in. A preset named alongside answers instead
+(`->notion()->preset('comment')` takes uploads with it), and `->fileAttachments(false)`
+overrules both.
+
+**The bar over a selection is the way to a link and the colours here**, and it appears
+wherever a mark means something — a heading, a list item, a quote, a callout and a table cell
+as well as a paragraph. Filament's own rule shows it in a paragraph and nowhere else, which
+left a heading with no link, no colours and no styles on a field without a toolbar. This
+package replaces that rule on every field — see
+[Toolbar over a selection](#toolbar-over-a-selection) — so the mode has no such hole.
 
 ### Rearranging the toolbar
 
@@ -429,15 +552,16 @@ in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one 
 ### The tools menu
 
 `'tools'` is a second overflow for the other half of a toolbar: what a field *does* rather
-than what it writes - searching, the accessibility check, the source view, the shortcut
-list.
+than what it writes - searching, the accessibility check, the statistics, the preview, the
+source view, the shortcut list.
 
 What the menu holds is `tools_menu` in the config file, shipped as
-`['find', 'accessibility', 'sourceCode', 'help']`. Per field, `->toolsMenu(['find', 'help'])`
-replaces that list; an empty list drops the button altogether.
+`['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help']`. Per field,
+`->toolsMenu(['find', 'help'])` replaces that list; an empty list drops the button altogether.
 
-It is the shipped corner: `['tools', 'fullscreen']`, with the menu holding
-`['find', 'accessibility', 'sourceCode', 'help']`.
+It is the shipped corner: `['tools', 'fullscreen']`, with the menu holding that list. On a
+field that switched nothing on it shows find, the statistics and the help - the accessibility
+check and the source view ship off, and the preview waits for a stylesheet.
 
 ```php
 // A project that would rather have the buttons names them individually.
@@ -455,15 +579,15 @@ has to be told which once rather than guess every time.
 
 Shipped that way the corner never changes shape. The accessibility check and the source
 view are both off by default and drop out of the menu while they are; switching either on
-puts it *in* the menu rather than adding a third and fourth icon beside it, and the preview,
-statistics, focus mode and export tools still to come go the same way.
+puts it *in* the menu rather than adding a third and fourth icon beside it. The statistics
+and the preview went the same way, and so will whatever joins them.
 
 The cost is that finding is one click deeper on a field that has switched nothing on -
 `Ctrl+F` is unaffected, and the help dialog lists it.
 
 An empty menu is dropped rather than drawn, and emptiness counts what survived rather than
 what was asked for: every tool in the list belongs to a feature that can be switched off, so
-all four can be gone while the list naming them is as long as it ever was.
+every one of them can be gone while the list naming them is as long as it ever was.
 
 ### The more menu
 
@@ -533,9 +657,28 @@ there is no room below it. The bar hangs under the text it belongs to, so near t
 document a menu would otherwise be cut off by the editor's own scrolling content box.
 
 The bar is keyed `'paragraph'` rather than `'text'`, which is not a naming choice: Filament's
-JavaScript treats that one key as a special case and shows its toolbar on a non-empty
-selection inside a paragraph, where every other key waits for a node to be active. A key
-called anything else would be drawn and never shown.
+JavaScript treats that one key as a special case, where every other key waits for a node to
+be active. A key called anything else would be drawn and never shown.
+
+**Where it appears.** Anywhere a stretch of text is selected and a mark means something:
+a paragraph, a heading, a list item, a quote, a callout, a table cell. Filament's own rule
+asks for `isActive('paragraph')` and so shows the bar in a paragraph and nowhere else, which
+leaves a heading with no link, no colours and no styles at all - and on a field with no
+toolbar, no way to reach them. This package replaces that rule rather than adding a second
+bar, because a bar registered under `heading` would appear on a click into the heading
+instead of on a selection inside it.
+
+Two places it stays away from, both on purpose. A code block, because bold, italic, a colour
+and a link have nothing to do in one - asked of the schema, so a project's own code-ish block
+gets the same answer. And a selected node: a picture, an embed or a callout selected whole is
+not a selection of text, and the bar for laying that node out is the one that belongs there.
+
+Asked of everything the selection covers rather than of the block it starts in, and the
+difference is not academic. A selection across two table cells resolves its first position to
+the cell rather than to a paragraph, so read from that one block the bar would vanish the
+moment a selection crossed a cell boundary - on text every button still applies to. One block
+that takes marks is enough, which is also why a selection leaving a code block for ordinary
+prose keeps the bar.
 
 ### Floating toolbars
 
@@ -546,7 +689,7 @@ one, over a table cell. This package ships three more.
 
 | Key | Shows while | Holds |
 | --- | --- | --- |
-| `paragraph` | text is selected | [the selection bar](#toolbar-over-a-selection) — styles, marks, link, both colour pickers |
+| `paragraph` | text is selected, in any block that takes marks | [the selection bar](#toolbar-over-a-selection) — styles, marks, link, both colour pickers |
 | `image` | an image is selected | the aspect lock, the size panel, the two quarter turns, the alt and caption panel, download, delete |
 | `bulletList` / `orderedList` | the caret is in a list | [the marker, start number and reverse panel](#lists-markers-numbering-and-direction) |
 
@@ -628,6 +771,79 @@ the top layer, and Filament renders its modals at the end of the body, so the fi
 dialog would be invisible while the editor was expanded. The overlay deliberately sits
 below Filament's modal layer, so those dialogs still work. While expanded the editor body
 is the scroll container, and a sticky toolbar pins to it rather than to the page.
+
+### A hard limit
+
+`maxLength()` is a rule the save is checked against. Whether the editor also refuses the
+keystroke is a separate decision — a comment box wants to block, an article wants to warn —
+so it is a switch of its own:
+
+```php
+AdvancedRichEditor::make('content')
+    ->maxLength(280)
+    ->enforceMaxLength();
+```
+
+Off by default; `character_count.enforce` turns it on for a whole project.
+
+**What is held is `maxLength()`**, not `->characterCountLimit()`. The second falls back to
+the first but may be set on its own, and it is a number with no rule behind it — enforcing
+that would refuse a keystroke the server would have accepted.
+
+**What is refused is growth past the limit, and nothing else.** Three things stay possible,
+and they are the difference between a limit and a trap:
+
+| Situation | What happens |
+| --- | --- |
+| Typing at the limit | refused |
+| A paste that would go past it | refused whole, rather than silently cut in half |
+| A document that is *already* too long | opens, and can be shortened — every edit that does not make it longer is allowed |
+| Loading, the source dialog, a restored draft, undo | always allowed |
+
+The last row is why the rule looks at more than the size. Those all arrive as one
+replacement of the whole document, which is a shape no keystroke makes; without recognising
+it, a record saved before the limit existed could not even be opened.
+
+The counter under the field reads as full rather than nearly full on a field that enforces —
+the count can never pass a limit that is held, so a line that only turned red *above* it
+would never turn red at all.
+
+### Statistics
+
+```php
+AdvancedRichEditor::make('content')->statistics();      // on by default
+AdvancedRichEditor::make('content')->statistics(false); // take it out of the tools menu
+```
+
+How long the document is, in a dialog: words, characters, characters without spaces,
+blocks, and an estimated reading time. It lives in the [tools menu](#the-tools-menu) rather
+than on the bar — the things a field *does* belong together, and a dropdown drops an entry
+whose tool was switched off instead of raising on it.
+
+The numbers are the field's own. **Characters** is the number `maxLength()` refuses a save
+over, which is Filament's `Str::length($editor->getText())` — so a single `&` costs the five
+characters of `&amp;`, and every nesting level joins with a blank line. That is the number
+the counter under the field shows too; a friendlier one here would give a reader two answers
+to one question. **Characters without spaces** is measured off that same string, for the
+same reason.
+
+**Blocks** counts what a reader would count at the top level of the document — a paragraph,
+a heading, a list, a table, a picture. The empty paragraph TipTap always keeps at the end is
+not one, and neither is one somebody left behind by pressing return twice; the rule is the
+one [`required`](#required-and-what-counts-as-empty) uses, so a document called empty there
+reports zero blocks here.
+
+**Reading time** is `words ÷ words per minute`, rounded up, and it says so rather than
+pretending to precision: under a minute is shown as "under a minute". The rate lives in the
+config file, because a project knows its own readers better than a default does:
+
+```php
+// config/filament-advanced-rich-editor.php
+'statistics' => [
+    'enabled' => true,
+    'words_per_minute' => 200,   // the usual figure for prose; technical writing is slower
+],
+```
 
 ### Help
 
@@ -913,6 +1129,50 @@ one its button carries.
 Paragraphs, headings, quotes and list items carry a spacing. Turning the dropdown off drops
 the extension with it, so a field that has none stops declaring the attribute — and content
 that already carries one loses it on the next save, the same way the text direction does.
+
+### Indenting
+
+`'indent'` and `'outdent'` move a block one step further in and one step back out, and
+answer <kbd>Mod</kbd>+<kbd>]</kbd> and <kbd>Mod</kbd>+<kbd>[</kbd> on every field that has
+them — buttons or no buttons.
+
+**Ships off**, and nothing ships on a bar either. Most documents indent nothing, and the
+ones that do are a kind rather than a majority — a contract, a report, minutes — so this is
+a decision rather than a default. Switching it on is one line, and the two keys work from
+that moment; put the names in [`more`](#the-more-menu), or the `'indent'` and `'outdent'`
+tokens on a bar, to give them buttons as well.
+
+```php
+AdvancedRichEditor::make('content')
+    ->indent()               // the keys; no buttons until the names are placed
+    ->indentStep('2.5rem')   // default: config('...indent.step')
+    ->indentMax(8)           // default: config('...indent.max')
+    ->moreTools([..., 'indent', 'outdent']);
+```
+
+The step is stored as a `margin-inline-start` in the block's inline style. Logical rather
+than `margin-left`, so an indent on a right-to-left paragraph sits on its right; a style
+rather than a class, because a class means nothing without a stylesheet this package does
+not ship over your rendered pages, and a `data-*` would not survive Filament's sanitiser at
+all — it would be visible while editing and gone for the reader. A `margin-left` written by
+another editor is read on the way in and converted.
+
+What a document keeps is the *number of steps*, not the length, so both buttons always land
+on the grid. Two things follow from that. A length written in another unit is read onto the
+grid — a `36pt` pasted from Word is a step and a fifth at the shipped `2.5rem`, so it
+becomes one step — and anything under half a step is read as no indent at all. And changing
+`indentStep` re-measures existing documents on their next save, which is the price of never
+drifting off the grid.
+
+`indentStep` takes any absolute CSS length — `'2.5rem'`, `'1.27cm'`, `'40px'` — and a bare
+number is read as `rem`. A percentage, an unknown unit or a zero is not a step this can
+multiply, so the shipped `2.5rem` is used instead: a field whose step is nothing would have
+two buttons that do nothing. `indentMax` is 1 to 40 steps.
+
+Paragraphs, headings and quotes carry an indent. **List items do not** — with the caret
+inside a list the same two buttons and the same two keys nest the item instead, which is
+where a list's numbering and bullets come from. A margin beside that would be a second
+indent the list knows nothing about.
 
 ### Text direction
 
@@ -1396,6 +1656,192 @@ One entry is invisible and is drawn as `␣` — the non-breaking space, which G
 needs several times a page ("10 %", "Nr. 5", "S. 12"). A blank button is one nobody can aim
 at.
 
+### Format brush
+
+Word's format painter, TinyMCE's permanent pen: pick the formatting up at one passage and
+put it down on another.
+
+```php
+AdvancedRichEditor::make('content')
+    ->formatBrush();                   // default: config('…format_brush')
+```
+
+**Ships off.** A brush is a mode: it changes what the next click does, and that is a thing to
+hand somebody deliberately rather than something to find. Switching it on is the line above,
+and it then arrives registered but with no button — the same as the case switcher and for the
+same reason, the overflow menu is finite. Put `formatBrush` where you want it: on the bar, in
+the selection bubble, or in `moreTools()`.
+
+**One button, three states.** A click picks the formatting up and arms it for one stroke; a
+second click keeps it armed; a third puts it away. Plain clicks rather than click-versus-
+double-click, which is the gesture every editor copies from Word and the one part of this
+that could not be built honestly — telling the two apart means reading `event.detail`, and
+the second half of a double-click is indistinguishable from a deliberate second click.
+Escape puts it away too.
+
+While it is armed the pointer is a copy cursor, and the button carries `data-arte-brush`
+with `once` or `sticky` in it, so a theme can draw the two states apart.
+
+**It carries character formatting.** Bold, italic, underline, strikethrough, super- and
+subscript, highlight, small, colour, background, size and typeface — whichever of those
+*this field's* schema declares, read at the moment the brush is used rather than from a list
+written here. Two editors on one page do not have the same schema: the styles plugin is on
+for one and off for the other, and a written-out list would promise a mark that is not there.
+
+Three marks are refused, and only the last one by name:
+
+- **A code run.** It declares `excludes: "_"`, so applying it takes every other mark back
+  off. A brush carrying it would put down something other than what it picked up — measured
+  in both orders.
+- **A link.** A destination rather than a look, and it carries an `id` that has to stay
+  unique; brushed onto a second passage, two elements answer to one `#name` and the second
+  is unreachable. Refused by what the mark declares, so a plugin's own anchor-carrying mark
+  is refused on the same grounds without an entry anywhere.
+- **A language.** What a passage *is*, not how it looks — it is what a screen reader
+  switches voice on. Nothing structural gives it away, so this one is named.
+
+**It replaces rather than adds**, the way Word does — but only within what it carries. A
+hyperlink, a language and a code run on the target survive a stroke, because they were never
+on the list. That is why the stroke is made mark by mark instead of with `unsetAllMarks`,
+which was measured taking the hyperlink off as well.
+
+**What it refuses to do.** It will not arm where there is nothing to take, so the button
+cannot light for a brush that is empty. It will not pick up from a selected picture: an image
+declares no marks of its own, so ProseMirror's default lets every mark onto it — the chain
+returns true, `can()` returns true, and the document quietly gains a bold picture. And a
+selection is read through all of its ranges rather than through `from`/`to`, because a
+selection across table cells has one range per cell and `from`/`to` are the ends of one of
+them.
+
+Paragraph formatting — alignment, line spacing, direction — is **not** carried. A mark
+applies to a range of characters and a block attribute applies to a whole node, so brushing
+one over half a sentence would change the whole paragraph: more than was selected.
+
+### Changing the case
+
+```php
+AdvancedRichEditor::make('content')
+    ->textCase();                      // default: config('…text_case')
+```
+
+Sentence case, lower case and UPPER CASE over the selection, plus `Shift+F3` to walk the
+three the way Word does. The cycle starts over on a different selection: pressing the key on
+a new word means "change this one", not "carry on from whatever the last one ended up as".
+
+**Nothing is shipped on the toolbar, and nothing in the overflow menu either.** Most documents
+never change the case of anything, and `'more'` is finite: a slot spent here is one not spent on
+something a writer reaches for weekly. What ships is the shortcut, and the shortcut is named in
+the help dialog so it can be found at all.
+
+Put it where you want it. Either the three names in `'more'`:
+
+```php
+'more' => [..., 'textCaseSentence', 'textCaseLower', 'textCaseUpper'],
+```
+
+or the `textCase` token, which puts them behind one trigger - on the bar, or over a selection:
+
+```php
+'text_toolbar_buttons' => ['styles', 'bold', 'italic', 'textCase', 'link'],
+```
+
+Each label is set in the case it produces, and each carries Lucide's drawing of that case -
+`Aa`, `AB`, `ab`. The two say the same thing twice on purpose: in the overflow menu the label
+does the work, on the bar the icon does.
+
+Nothing about it touches the schema - a raised letter is a letter - so switching it off later
+leaves every word already changed exactly as it is.
+
+Two things it does that a simpler version would get wrong. Each text node is written back on
+its own, with its own marks, so a bold word inside the selection stays bold and a selection
+across two paragraphs stays two paragraphs; replacing the whole range in one step would flatten
+both. And the edits are applied last first, because uppercasing `ß` yields `SS` and an edit that
+grows moves everything after it.
+
+### Date and time
+
+Writing today's date, or the time, into the document.
+
+```php
+AdvancedRichEditor::make('content')
+    ->dateTime()                       // default: config('…date_time.enabled'), off
+    ->dateTimeFormats(['date' => 'j. F Y', 'stamp' => '\\S\\t\\a\\n\\d: j.n.Y, H:i']);
+                                       // default: config('…date_time.formats')
+```
+
+One tool per configured format, named `insert` plus the key: `insertDate`, `insertTime`,
+`insertDateTime`, and `insertStamp` for the example above. That is the shape rather than one
+tool taking a format, because a toolbar array carries names and nothing else — they are
+matched by exact equality out of the configuration, so `'d.m.Y H:i'` cannot be one. A key is
+therefore a bare identifier: a lower-case letter, then letters and digits. Anything else
+registers no tool.
+
+**Ships off**, and nothing ships on a bar either. A date button is worth having where a
+template is filled in daily and worth nothing in a blog, so this is a decision rather than a
+default. Switched on, the way in is the slash menu, where `/date`, `/heute` or `/timestamp`
+all find it. To give them buttons as well, name them in `'more'` or put the `'dateTime'`
+token on a bar — it draws a dropdown of everything the field offers, and disappears with the
+feature.
+
+**Where the format comes from.** `null` means *whatever this schema says a date looks like*,
+and that is a question Filament already answers three times over — for a date, a time and
+both together. Its answer is inherited rather than replaced, which is the precedence
+Filament's own columns and entries follow. The settings live on the schema rather than on the
+panel, so an application-wide answer is a `Schema::configureUsing()` in a service provider:
+
+```php
+Schema::configureUsing(fn (Schema $schema) => $schema
+    ->defaultDateDisplayFormat('j. F Y')
+    ->defaultDateTimeDisplayFormat('j. F Y, H:i'));
+```
+
+Worth knowing when the two disagree: Filament's own `DateTimePicker` does **not** read those
+settings — it carries its own defaults — so a project that sets them reaches this field and
+not its pickers. Only the three keys above may stand as `null`; a fourth key naming no format
+has nothing to fall back on and is dropped rather than registering a button that inserts
+nothing.
+
+**Language and timezone.** Formats are rendered with Carbon's `translatedFormat()`, so month
+and day names come out in the application's language — never the browser's, which this
+package does not consult anywhere. `S` behaves differently from `date()`: it is the ordinal
+suffix of that language rather than the English one. `e`, `p`, `x` and `X` depend on the
+installed Carbon — before 3.14 they arrive as the bare letter, from 3.14 on they print what
+`date()` prints — so a format that has to read the same on every installation names a zone
+with `T`, `O` or `P`. Every other unescaped letter is a token, which is why a literal needs a
+backslash: `'\\H\\e\\u\\t\\e, j. F Y'`.
+
+A format carrying a time is rendered in Filament's display timezone
+(`FilamentTimezone::set()`); a date on its own is not. That exemption is Filament's own and
+it is not cosmetic: an offset applied to a date moves it a whole day for every instant near
+midnight. Which of the two a format is gets read off the format itself, since that is all
+there is to read — and a zone counts as a time, because a zone only means something about an
+instant: `Y-m-d T` follows the display timezone and can land on another day than `Y-m-d`.
+`e` and `p` count as well, whichever Carbon is installed; `x` and `X` do not, since what they
+expand is a year.
+
+**Why it asks the server.** The string is fetched when the button is clicked rather than
+carried in the button. A date written in at render time is the date the page was opened, and
+a field left open across an afternoon would insert an afternoon-old timestamp. The click
+therefore makes one request — over the same seam the media browser and the mention menu use
+— and what comes back is already in the right language and the right timezone. The
+alternative that needs no request is the browser's own clock and the browser's own idea of a
+language, and this package takes neither anywhere else. What crosses is the configured key
+and never a format: the field looks it up in its own list, so a crafted request cannot make
+the server render a format nobody configured. An answer that does not come back inserts
+nothing.
+
+Nothing about it touches the schema — a date is text — so it needs no extension on either
+side, survives the sanitiser and `RichContentRenderer` like any other letter, and switching it
+off later leaves every date already written where it is. It is the only tool in the package
+with no JavaScript module at all: `insertContent` is one of TipTap's own commands. That
+command's text path takes the marks at the caret, so a date written inside a bold sentence
+comes out bold, the way a typed one would.
+
+The dropdown labels the three shipped formats by name and anything else by drawing the format
+itself — a format a project added has no name anybody wrote down. That example is rendered
+with the page, which is worth knowing for a format that is only a clock: the menu then shows
+the hour the page was opened while the insert writes the hour it was clicked.
+
 ## Media and links
 
 ### Images
@@ -1723,10 +2169,120 @@ Per field: `->imageLink(false)`; project-wide: the `images.link` key.
 
 ### Media browser
 
-The image button opens the pictures that are already on the server, with uploading as the
-second tab — because uploading is what you do when the picture is *not* there yet. Filament's
-own dialog only ever asks for a file, so the same image lands on the disk once per article
-that shows it.
+The `'mediaBrowser'` button — the one on the shipped bar — opens the **files** that are
+already on the server, with uploading built into the grid, because uploading is what you do
+when the file is *not* there yet. Filament's own dialog only ever asks for a file, so the same
+image lands on the disk once per article that shows it.
+
+**One door, four families.** Pictures, video, audio and documents share one browser, with a
+tab each — drawn only where the pool actually holds more than one, so a library of nothing but
+pictures is the dialog it always was. What gets inserted is decided by the file: a picture
+becomes an `<img>` with everything that hangs off it — [caption](#images), float, size, link,
+decorative — a video or a sound becomes the [player node](#video-and-audio-you-host), and a
+pdf, a spreadsheet or an archive becomes a [download card](#documents). Unifying the way *in*
+is the point; the storage stays one node per family.
+
+`'image'`, `'video'`, `'audio'` and `'file'` are the same door under narrower names: each opens
+the browser on its own tab. `'image'` is kept registered so a bar somebody already wrote keeps
+working. A fifth tab, Embeds, appears where the library holds any.
+
+**What a tile shows.** A picture is its own thumbnail. A film gets its first frame, pulled
+with the `ffmpeg` binary; a sound gets whatever cover art its ID3 tag carries, read without a
+dependency. Neither is asked for twice: a file that cannot produce a cover is marked and
+skipped from then on, and one listing makes at most three of them, so a first opening never
+stalls and the library fills itself in over a few visits. Install ffmpeg later and
+`php artisan arte:media-covers --retry` forgets every mark.
+
+**A description that belongs to the file.** The panel on the right carries one field — alt
+text for a picture, title for anything else — saved against the *medium* as you leave the
+field, and used as the default every time that medium is inserted. The image toolbar still
+edits one insert, which is the point: global is the default, never a lock. On a disk the
+description lives in a `sunset.png.json` beside the file; with a media collection it is the
+`arte_alt` and `arte_title` custom properties. A description typed against an upload that is
+not saved yet is held on the component and written the moment the file becomes real.
+
+**A link, whatever kind of link it is.** **From a link** sits beside Upload — the two ways of
+putting something in, side by side. One field takes the address and the package works out
+what it is: a YouTube or Vimeo link becomes an entry in your **library**, with the service's
+own still on its tile and a tab of its own, there to be picked again tomorrow; any other
+address is a file on somebody else's server, which is **inserted as a link and stored
+nowhere**, because it is not yours to keep. The helper text says which is which.
+
+Asking somebody to choose between two dialogs before they know which one their link belongs
+in was the wrong question, so there is one door. What follows from the link is still two
+different things, and that difference is real rather than cosmetic.
+
+Picking an embed and pressing Submit runs exactly what the [embed dialog](#video-embeds)
+runs — same node, same attributes — so nothing about what a document stores has changed. That
+dialog keeps the aspect ratio; this one asks only for the link and a title, because a file
+address has no ratio to state.
+
+**The panel knows what it is looking at.** An embed has no bytes, so it offers no download and
+no size; Copy link hands over the address a person recognises — the watch link, not the frame
+one. Its still is shown with a play mark, and pressing it swaps in the player: drawing an
+iframe as soon as something is selected would call the video service from every editor that
+opens the dialog, which is the tracking the cookie-free host exists to avoid.
+
+**Deleting.** Where the library is this record's own attachments, the panel also offers
+Delete, which takes the file and everything written beside it. In a shared library it does
+not, and that is not an oversight: the file may be in another record's content that nobody
+standing here can see.
+
+```php
+'media_library' => [
+    'covers' => [
+        'enabled' => true,
+        'ffmpeg' => 'ffmpeg',            // binary name, or an absolute path
+        'timeout' => 5,                  // seconds per file
+        'per_page' => 3,                 // how many one listing may make
+        'max_picture_bytes' => 5242880,  // the biggest cover worth lifting out of a tag
+    ],
+],
+```
+
+**Which files it takes** is one list per family, in `media_library.types`:
+
+```php
+'types' => [
+    'image' => null,   // Filament's own fileAttachmentsAcceptedFileTypes(), as before
+    'video' => ['mp4', 'webm', 'mov', 'm4v', 'ogv'],
+    'audio' => ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'weba'],
+    'file'  => ['pdf', 'doc', 'docx', 'odt', 'rtf', 'pages', 'txt', 'md',
+                'xls', 'xlsx', 'ods', 'csv', 'tsv', 'numbers',
+                'ppt', 'pptx', 'odp', 'key',
+                'zip', '7z', 'rar', 'gz', 'bz2', 'tar'],
+],
+```
+
+A picture, a film or a sound may be named by its ending (`'mp4'`), its mime type
+(`'image/png'`) or its family (`'image/*'`) — the vocabulary of an HTML `accept` attribute. A
+document is named by its ending alone, and `['*']` takes every ending. An empty list takes a
+family away, tab and upload together; a family that is missing or `null` gets the list above.
+Per field it is merged one family at a time, so a field says only what it changes:
+
+```php
+AdvancedRichEditor::make('content')
+    // One call per field: it replaces what the field said before it, and is merged over the
+    // configuration one family at a time. Pictures keep theirs, documents are pdfs alone,
+    // and the two players are gone.
+    ->mediaLibraryTypes(['file' => ['pdf'], 'video' => [], 'audio' => []])
+    ->media(false);   // no player node, so no video or audio in the browser either
+```
+
+A file uploaded through the browser is shown before the form is saved through Livewire's
+temporary preview URL, and Livewire only issues one for the extensions in its
+`temporary_file_upload.preview_mimes` list — which stops at `mp4`, `mov`, `mp3`, `wav` and
+`m4a`. The package adds every picture, film and sound it draws to that list at boot, and a
+document the browser took to it when the tile is drawn, so a `webm`, a `flac` or a `docx`
+shows up like anything else. Only by adding: what a project put there stays, and Livewire
+hands a preview out as a download rather than as a page.
+
+`mediaLibraryTypes()` is deliberately **not** Filament's `fileAttachmentsAcceptedFileTypes()`.
+That one also governs Filament's compiled drop-and-paste handler, which inserts an `image` node
+for anything it accepts — widening it would turn a film or a pdf dropped into the editor into an
+`<img>` pointing at it. So the browser carries its own, wider list and Filament's stays as
+narrow as Filament left it. Dropping a document straight into the text is therefore still
+Filament's to refuse; the way in for one is the browser.
 
 Picking an existing picture stores exactly what an upload would have stored: the media UUID
 for a field with a media collection, the storage path for one without. **Nothing is copied.**
@@ -1741,14 +2297,87 @@ disturbing the others.
 AdvancedRichEditor::make('content')->mediaLibrary(false);   // default: config('...media_library.enabled')
 ```
 
-Switching it off restores Filament's own upload dialog exactly. Everything that opens the
-dialog — the toolbar button, the slash menu entry, clicking an image that is already in the
-text — keeps working either way, because the browser replaces that one action rather than
-adding a second one beside it.
+Switching it off leaves both buttons naming Filament's own dialog, which is what they did
+before any of this existed. Everything that opens a dialog — the toolbar button, the slash
+menu entry, clicking an image that is already in the text — keeps working either way.
+
+**Filament's `attachFiles` is left alone.** The browser used to be registered *as*
+`attachFiles`, replacing Filament's action by name, which meant a project that wanted the
+plain upload dialog could not have it on any field: the name it answers to was taken. The
+browser is its own action now, so both exist side by side — put `'attachFiles'` on a bar or
+in [`more`](#the-more-menu) and you get Filament's dialog, unchanged, next to the browser.
+
+A field with nothing browsable behind it registers no browser at all — a foreign attachment
+provider, or a disk field with no directory of its own to tell its pictures apart. There both
+buttons name Filament's dialog, because an empty grid is a worse answer than a working
+upload.
+
+#### Documents
+
+A pdf, a spreadsheet, an archive — anything that is taken away rather than drawn — is listed
+under its own tab, drawn as the tile its card will wear, and inserted as a **download card**:
+the ending in a coloured tile, the name, and the size. The card is inline, so several of them
+sit side by side and wrap; pressing return puts one on a line of its own. It is written into
+the stored markup as an `<a download>` with its shape inline, because the page a document ends
+up on has not loaded this package's stylesheet — and a plain download link written by hand or
+by another editor is read back as a card too, so there is nothing to migrate.
+
+`'file'` opens the browser on the documents, and it is in the slash menu as `/file` — `/datei`
+in a German panel. It is on no bar, the way the film and sound buttons are not; name `'file'` on
+a bar or in [`more`](#the-more-menu) to give it one.
+
+**A card goes back to the browser.** Click one and a bar appears over it: **Replace** opens the
+browser on the documents with this card's file already picked, and whatever is chosen takes the
+card's place rather than landing beside it; **Remove** takes the card out. A field with no pool
+behind it offers only Remove, because its browser button would open Filament's picture dialog.
+
+**What is taken, and what never is.** A document is taken when its ending is on the list and
+its content agrees with that ending — a page sent as `report.pdf` is refused, while a
+spreadsheet `finfo` calls plain text is not. It is then stored under that ending, and a web
+server hands a file out by its ending, so what arrives as `.pdf` is served as a pdf. Some
+endings are refused whatever the list says, because a server or a browser would run them as
+your site: `php` and its relatives, `html`, `svg`, `xml` and `js` among them — the full list is
+`LibraryTypes::DENIED`, and it is read wherever the question comes up, so an `.svg` already in
+the directory is not listed either. A second list, `LibraryTypes::RISKY`, is what `['*']` does
+not reach: `exe`, `msi`, `bat`, `hta`, `vbs`, `ps1`, `jar`, `sh` and their relatives run on the
+machine of whoever opens the download rather than on yours, and a star is a statement about
+documents. Naming one of them outright still takes it, the way every other ending does. A
+refused upload is named in the dialog rather than quietly left out.
+
+**Names.** A media collection keeps the name a file was uploaded under. On a plain disk,
+Filament stores an upload under forty random characters, which is fine for a picture that is
+recognised by looking at it and useless for a document, which is found by its name. So what the
+browser uploads to a disk is stored under that name, made safe for an address, with six random
+characters after it — `quartalsbericht-q3--7kq2xm.pdf` — and shown, searched and put on the card
+as `quartalsbericht-q3.pdf`. The random part is what keeps the address from being guessed: a pdf
+taken out of a draft again stays in a shared library, and `/storage/gehaltsliste.pdf` is a
+guess where `/storage/gehaltsliste--7kq2xm.pdf` is not. Files already on the disk keep the names
+they have.
+
+**A link to somebody else's document** — typed into **From a link** — becomes a card too, with
+no size line, since nobody on this side knows how big the file is.
+
+With a media collection, a card always points at the **file**, never at a conversion: a
+conversion is a picture made from the file, and a card pointing at one would hand out a JPEG of
+page one where the reader asked for the report. The grid is the one place that wants that
+picture — where the model makes its thumbnail conversion for documents too (a pdf, with Imagick
+and Ghostscript installed), the tile shows the first page instead of the letters. Guard
+`registerMediaConversions()` against non-images if you would rather Spatie did not try:
+
+```php
+public function registerMediaConversions(?Media $media = null): void
+{
+    if ($media !== null && ! str_starts_with((string) $media->mime_type, 'image/')) {
+        return;
+    }
+
+    $this->addMediaConversion('arte-thumb')->fit(Fit::Contain, 320, 320);
+}
+```
 
 #### What it shows
 
-Out of the box the pool is **the collection the field uploads to** — every picture in it,
+Out of the box the pool is **the collection the field uploads to** — every file in it,
 whichever record or model owns it. The collection *is* the library: a picture put in
 `rich-editor` is a picture for rich editors, so an article and a post that both upload there
 draw from one pool instead of each fetching the same file again. Separate libraries are
@@ -1877,17 +2506,24 @@ This also works on create pages, where there is no record for a media row to bel
 
 #### One rule
 
-**What the browser lists is what a stored `data-id` is allowed to resolve to.** The grid and
-the lookup are the same object, so they cannot drift into a gap: opening the browser wider and
+**A stored `data-id` resolves only inside the pool the browser draws from.** The pool is the
+scope — the collection, the model, the record, or the query a shared library was defined with
+— and the grid and the lookup read it from the same object, so opening the browser wider and
 widening what saved content may point at are one act rather than two.
+
+What the field offers takes no part in that. The family lists under `media_library.types` say
+what the browser shows and takes today, and a document written last year must not lose its
+film because `mkv` has since come off the list — so on a media collection they narrow the
+listing and nothing else.
 
 On a media collection the file attachment provider enforces it — every lookup Filament makes
 goes through the provider, and it resolves a UUID against the record's own collection *and*
 the pool, and nothing else. On a plain disk there is no provider to enforce anything, so the
 browser switches on Filament's own `preventFileAttachmentPathTampering()` and answers it from
-the same pool. Two things stay valid regardless, and both have to: a path that is already in
-the saved content, so nothing anyone has published breaks, and a file uploaded a moment ago,
-which is a pending attachment rather than a path.
+what the grid lists: the directory, and in it the endings the field takes. Two things stay
+valid regardless, and both have to: a path that is already in the saved content, so nothing
+anyone has published breaks, and a file uploaded a moment ago, which is a pending attachment
+rather than a path.
 
 A field that calls `preventFileAttachmentPathTampering()` itself overrides this.
 
@@ -2018,7 +2654,65 @@ change every other package's links too.
 Everything the dialog writes survives Filament's sanitiser: `rel`, `target`, `hreflang`,
 `referrerpolicy` and `id` all reach the page as written.
 
+#### Linking to a record instead of typing a URL
+
+Give the field somewhere to pick from and the dialog grows a search above the URL field.
+This is the thing a Filament editor can do that a generic one never will: the records are
+already here.
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
+
+AdvancedRichEditor::make('content')->linkSources([
+    LinkSource::make('articles')
+        ->label('Articles')
+        ->using(fn (string $search): array => Article::query()
+            ->when($search, fn ($query) => $query->whereLike('title', "%{$search}%"))
+            ->limit(20)
+            ->get()
+            ->mapWithKeys(fn (Article $article): array => [
+                route('articles.show', $article) => $article->title,
+            ])
+            ->all()),
+
+    LinkSource::make('categories')
+        ->using(fn (string $search): array => /* ... */ []),
+]);
+```
+
+**A source answers with `url => label`.** The URL is the value of the option, so picking one
+fills the URL field below — and that field stays the thing the link stores. The picker is a
+way of writing a URL, not a second way of storing a link.
+
+That is not a simplification, it is the only shape that works. `tiptap-php`'s link mark
+matches `a[href]` and returns `false` for an empty one, so a link carrying a reference and no
+`href` is not a link the next hydration recognises: the markup survives, the linking quietly
+does not, and nothing reports it. A resolved URL is therefore always what is written.
+
+The query is yours. What the package needs is a name, a heading and somewhere to be asked;
+which models are linkable, how their URLs are built and who may see them are decisions it has
+no business making. That is also why there is no config key for this — a source is a closure,
+and the config file is cacheable.
+
+A source with no label is headed by its own name read as a title, so `LinkSource::make('articles')`
+is "Articles". With one source the list is flat: a heading over the only group in it is a
+heading over everything. With two or more, each source's records sit under their own. A source
+that finds nothing is left out rather than drawn as an empty heading.
+
+Re-opening a link does not preselect the record it points at. Finding the record behind a URL
+means storing a reference next to it, which is exactly what the mark cannot carry.
+
 ### Video embeds
+
+**Registered and on, but not on the shipped bar.** The
+[media browser](#media-browser) covers video from your own server, and two video-shaped
+buttons beside each other is one door too many for a bar with a finite number of places. The
+way in is the slash menu — `/video`, `/youtube`, `/vimeo` — and a bar or
+[`more`](#the-more-menu) that names `'embed'` gets the button back.
+
+An embed can also live in the [media browser](#media-browser), where `+ Add → Embed` puts it
+in the library and it is picked from a grid instead of pasted again. The same node either
+way: a library entry is a shortcut to this dialog, not a second way of storing a video.
 
 The `embed` tool takes a link and puts a video in the document. Paste the link from the
 address bar or the share button — every shape either of them produces is understood:
@@ -2112,6 +2806,59 @@ are written into the markup as inline styles, because this package's stylesheet 
 into the admin panel and the page the content ends up on is somebody else's - an embed
 arriving there with only a class on it is a 300×150 box in the corner. `.fi-arte-embed` is
 still on the wrapper for styling beyond that.
+
+### Video and audio you host
+
+The other half of the question [embeds](#video-embeds) answer. `'video'` and `'audio'`
+place a `<video>` or an `<audio>` pointing at a file on your own server; one node draws
+both, and which of the two it is stays an attribute you can correct.
+
+**Registered and unplaced**, the way the case tools are. The way in is the
+[media browser](#media-browser) — its own button on the bar, or the slash menu's `/video`,
+`/audio`, `/mp4`, `/podcast`, each of which opens the browser on the right tab.
+
+```php
+AdvancedRichEditor::make('content')
+    ->moreTools([..., 'video', 'audio'])
+    // ->media(false);   // no node, no buttons, and the browser offers pictures only
+```
+
+Which of the two elements is drawn is read off the file — `.mp4` is a video, `.mp3` a sound
+— and it is stored as an attribute of its own, so a container that holds either (`.ogg`,
+`.webm`) can be corrected rather than renamed.
+
+`controls` is always written and is not a setting. A player nobody can start is a file
+nobody can play and nobody can see is there. `autoplay` is not offered either: it is on
+Symfony's *unsafe* attribute list, so the sanitiser would strip it on the way to the
+database — a setting that never survives a save is worse than no setting.
+
+Addresses are checked on both sides, and the whole of the check is the scheme. A path with
+no scheme — `/storage/clips/talk.mp4` — is the ordinary case; `http` and `https` are
+allowed; anything else is refused while the dialog is still open, because a `javascript:`
+or a `data:` in a `src` is what turns a player into a script. Whitespace and control
+characters are refused rather than stripped, since `java\nscript:` is `javascript:` to a
+browser.
+
+Nothing has to be unlocked in your sanitiser. `video`, `audio` and `source` are on
+Symfony's safe element list, and so are `src`, `controls`, `preload`, `poster` and `loop` —
+which is what made this a smaller job than the embed, where the `iframe` host list had to
+be built.
+
+The editor draws the real element rather than a card, which is where this parts company
+with the embed: there is no third party to call, `preload="metadata"` fetches a few
+kilobytes, and pressing play is how anyone finds out the path was wrong before the page
+ships. It sits inside a block you can select and drag — a media element answers every click
+with its own controls, so without something around it there would be nowhere left to click.
+
+Reading is wider than writing. A `<video><source src="…"></video>` written by hand or by
+another editor becomes a node with that address; only the first source is kept, because this
+node plays one file.
+
+A player picked out of the library carries a `data-id` exactly as a picture does, and it is
+walked by the same bookkeeping — which is not a nicety. The list of ids a save collects is the
+list the clean-up **spares**, so an id nothing walks is a file deleted by the next save of the
+same record, with the document still pointing at it. `RichEditor/Media/FileAttachments.php`
+is where a node type joins that lifecycle.
 
 ### Anchors in the editor
 
@@ -2225,6 +2972,65 @@ always code.
 The panel is drawn on `document.body` rather than inside the editor, because a field with
 [`maxHeight()`](#maximum-height) scrolls and a menu clipped by that box would be unusable on
 the last line. Style it through `.fi-arte-slash` and the classes under it.
+
+### Typography while typing
+
+```php
+AdvancedRichEditor::make('content')
+    ->typography()                     // default: off
+    ->typographyLanguage('en');        // default: the application's locale
+```
+
+Straight quotes become the ones the language uses as they are typed, `...` becomes `…`, and
+`--` becomes that language's dash: straight away where it follows a word (`9--17`), and as the
+space after it is typed where it stands between spaces (`Wort -- Wort`). So `--force` in a
+sentence is left alone, and so is a line opening with `--`. Nothing is stored as anything but
+characters, so switching it off later leaves every quotation already written exactly as it is.
+
+**Shipped off**, unlike most of what this package adds. Everything else here gives a field
+something it can do; this one changes what somebody typed, and what it changes ends up in the
+database. The two mistakes are not the same size: switching it on costs a line, while
+switching it off afterwards does not un-write the quotation marks already stored. An editor
+may well expect a word processor's behaviour — the developer installing a rich text field does
+not expect it to rewrite characters. Switch it on per field, or under
+`config('…typography.enabled')` for all of them.
+
+**Which characters are right is a question about a language, not about typography.** German
+opens with `„` and closes with `“` — the shape English uses to *open* — and sets the shorter
+dash, `–`, where English sets `—`. An editor with one hard-coded pair writes correct English
+and wrong German. TipTap's own Typography extension is that editor, which is why reaching it
+would not have been enough even if this package could.
+
+Shipped for the two languages the package is translated into. Anything else falls back to the
+English convention, and a language you know better is described rather than guessed at:
+
+```php
+'typography' => [
+    'languages' => [
+        'fr' => ['open' => '«', 'close' => '»', 'openSingle' => '‹',
+                 'closeSingle' => '›', 'dash' => '—'],
+    ],
+],
+```
+
+The same key overrides a shipped language — German is also set with inward guillemets, and
+which of the two a house uses is not this package's decision.
+
+The language comes from `app()->getLocale()` unless the field says otherwise, which it has to
+be able to: a German site may hold one field of English copy, and the quotation marks belong
+to the text rather than to the panel around it.
+
+One case is harder than it looks, and it is the reason this reads the whole line rather than
+the character in front of the caret. German closes a single quotation with `‘` and
+apostrophises with `’` — two different characters, both following a letter. `geht's` and a
+closed quotation cannot be told apart from what precedes them. What decides is whether a
+single quotation is still open earlier in the same text. English never notices, because its
+closing single quote and its apostrophe are the same character; a rule written against English
+gets German wrong and looks fine doing it.
+
+Three things this did *not* have to solve, because the framework already does: the input rule
+runner steps aside inside `code`, never runs on a paste, and `Backspace` undoes a rule that
+just fired.
 
 ### Drag handle
 
@@ -2459,10 +3265,10 @@ colour of: shipped on, every project whose pages are not white would be handed f
 are wrong - which is the surest way to teach somebody to stop reading a panel.
 
 The shipped place for it is the tools menu, not the bar: `tools_menu` is
-`['find', 'accessibility', 'sourceCode', 'help']`, and that place fills itself in as soon as
-the check is switched on. A project that has published the config file therefore needs to
-change nothing to see the button. Naming `'accessibility'` in `toolbar` instead gives it a
-button of its own on the bar.
+`['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help']`, and that place
+fills itself in as soon as the check is switched on. A project that has published the config
+file therefore needs to change nothing to see the button. Naming `'accessibility'` in
+`toolbar` instead gives it a button of its own on the bar.
 
 The whole of it in the published config:
 
@@ -2609,11 +3415,147 @@ The counter's numbers are available without the counter:
 
 ```php
 $field->measureCharacterCount($post->content);   // ['characters' => 812, 'words' => 137]
+
+// And everything the statistics dialog says, measured the same way in one go. Kept apart
+// from the two above because the counter under the field shows two and would otherwise pay
+// for a second walk of the document on every render.
+$field->measureDocument($post->content);
+// ['characters' => 812, 'words' => 137, 'charactersWithoutSpaces' => 689,
+//  'paragraphs' => 6, 'readingMinutes' => 1]
 ```
 
 Deliberately the same counting rule Filament's `maxLength` validation uses, so a reading-time
 estimate, an excerpt check or a table column agrees with the number the author was shown
 while writing.
+
+### Rules about the content
+
+`minLength()` and `maxLength()` measure characters, and Filament measures them on the
+serialised text rather than on the markup — which is right, and is also all they measure.
+Two other things are ordinary to ask of a document: how many **words** it holds, and what it
+has to **have in it**.
+
+```php
+AdvancedRichEditor::make('teaser')
+    ->minWords(20)
+    ->maxWords(60);
+
+AdvancedRichEditor::make('content')
+    ->mustContain('image')                 // one
+    ->mustContain(['heading', 'image']);   // or several - a later call replaces the earlier
+```
+
+Words are counted the way the counter under the field counts them, deliberately: the number
+that refuses a save is the number the author was watching while they wrote. Setting either
+half turns the words on in that counter, since a field that validates words and reports
+characters underneath is a field reporting the wrong number. `->characterCountWords(false)`
+still overrules it.
+
+Neither has a config key. A word count is a statement about one field, the way `maxLength()`
+is; a project-wide "every editor needs fifty words" is not a thing anybody means.
+
+#### What `mustContain()` takes
+
+Node and mark names, as TipTap knows them — `image`, `heading`, `table`, `blockquote`,
+`bulletList`, `orderedList`, `codeBlock`, and this package's own `callout`, `embed` and
+`taskList`. Marks count as well as nodes, so `'link'` works: somebody asking whether the
+document has a link in it does not care that TipTap stores one as a mark on text.
+
+Names rather than a method per kind, because the list of kinds is not this package's to
+close. A project's own node is asked for by its own name and needs no entry anywhere:
+
+```php
+AdvancedRichEditor::make('content')->mustContain('productCard');
+```
+
+The message says it in words — "must contain an image", not "must contain image" — from
+`validation.content.<type>` in the translation file. A type with no entry there falls back to
+its own name, which is what makes the line above work without an edit to this package.
+
+#### Both stand down on an empty field
+
+An empty field is `required()`'s business, and only its. A `minWords(50)` on an optional
+field must not refuse a save nobody typed into, and on a required one it must not complain a
+second time about the same emptiness.
+
+Empty here is [the same question `required()` asks](#required-and-what-counts-as-empty) —
+`hasContent()`, not `blank()`. The two differ on exactly the state that matters: an untouched
+editor hands over a document holding one empty paragraph, which is present, not blank, and
+holds no words at all.
+
+The rules also exist without a field, for an observer or a job that only has the column:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
+
+DocumentContent::contains($post->content, 'image');   // nodes and marks, any depth
+```
+
+### Being told a document was saved
+
+Optimise the pictures in a document, check its links, clear the cache that renders it — three
+jobs an application eventually wants, and none of them the editor's. Put the trait on the
+model and it says so:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Models\Concerns\FiresRichContentEvents;
+
+class Article extends Model implements HasRichContent
+{
+    use InteractsWithRichContent;
+    use FiresRichContentEvents;
+}
+```
+
+`RichContentSaved` is then dispatched once per rich content column that changed:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Events\RichContentSaved;
+
+Event::listen(function (RichContentSaved $event): void {
+    $event->record;              // the model
+    $event->attribute;           // which column
+    $event->content;             // what is in it now
+    $event->previousContent;     // what it replaced - null on a create
+    $event->wasRecentlyCreated;  // whether this save created the record
+});
+```
+
+Which columns count is what the model already declares through `registerRichContent()`. A
+model storing a document in a column it never declared can name its own by overriding
+`richContentEventAttributes()`.
+
+**On the model rather than on the field**, and that is the design rather than a preference.
+Filament holds exactly one `saveRelationshipsUsing()` closure, so a field registering a second
+one replaces the file attachment save without a word. And on an edit page that hook runs
+inside `getState()`, before `handleRecordUpdate()` writes anything — which is why Filament's
+own use of it bails out unless the record `wasRecentlyCreated`. A field cannot answer "was
+this saved". A model can, and it answers for an import, a queued job and a tinker session too,
+none of which ever go near a field.
+
+**A trait rather than something the package installs for you.** This is behaviour a project
+opts into; a package has no business hooking every save an application makes on the chance
+that one of them is a document.
+
+#### What it does not announce
+
+- A save that changed another column. A listener that re-optimises every picture whenever
+  somebody fixes a typo in the title is a listener nobody keeps.
+- A record created with nothing in the column. Clearing a document later is news; never
+  having had one is not.
+- A record created through an editor nobody typed into. That is the same case, and saying it
+  twice is the point: an untouched editor does not store nothing, it stores `<p></p>` — which
+  is present, not blank, and empty. Emptiness here is
+  [the question the rest of the package asks](#required-and-what-counts-as-empty),
+  `DocumentContent::isBlank()`, so a create page saved without a word in the field announces
+  nothing, and one holding a single picture and no words announces it.
+
+Clearing a document **is** announced, with the old content in `previousContent`.
+
+There is a trap behind the first of those, and it is why the trait hangs on `created` and
+`updated` rather than on `saved`: `wasRecentlyCreated` is set on insert and never cleared, so
+on the instance that created a record, every later save still answers true to it. Asked on
+`saved`, a typo fix in the title would announce a document nobody wrote.
 
 ### Required, and what counts as empty
 
@@ -2657,8 +3599,19 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
 DocumentContent::isBlank($post->content);   // true for a document of empty paragraphs
 ```
 
-It treats non-breaking spaces, zero-width spaces and byte order marks as blank, which is what
-makes it agree with what the author sees rather than with `strlen()`.
+It takes the column in whichever shape it is stored — a `doc` array from a JSON column,
+markup from a `text` one, or nothing — because a job or an observer holding an attribute is
+in no position to narrow it first. It treats non-breaking spaces, zero-width spaces and byte
+order marks as blank, which is what makes it agree with what the author sees rather than with
+`strlen()`.
+
+On markup it reads rather than parses, and that is deliberate: the only parser that knows
+*your* nodes is the one a field assembles, which is exactly what a job does not have, and a
+parser built without them would call a document holding nothing but a callout empty. So the
+blank list becomes a blank tag list — a paragraph and a line break — and every other tag
+counts. That is coarser in one direction only: an empty `<strong></strong>` is content here
+where the parsed document would call it blank. Erring that way is the point; the other way
+throws somebody's work out.
 
 #### Storing nothing instead of `<p></p>`
 
@@ -2685,6 +3638,95 @@ null - an empty string went to TipTap's DOM parser, which reached for a `<body>`
 never built and threw `DOMParser::getDocumentBody(): Return value must be of type
 DOMElement, null returned` out of a form that was only being rendered. This package treats a
 blank string as no content, so such a record opens on an empty editor like any other.
+
+### Preview
+
+What the document looks like on the site, in a dialog. Everything else this package shows an
+author is a view of the editor; this is the one view of the page.
+
+```php
+AdvancedRichEditor::make('content')
+    ->previewStylesheets([asset('build/site.css')])
+    ->previewWrapperClass('prose dark:prose-invert mx-auto max-w-2xl');
+```
+
+The tool appears in the [tools menu](#toolbars) once a stylesheet is named, and not before.
+That is the whole shape of the feature, so it is worth being blunt about it: **the package
+supplies the frame, your project supplies the CSS.** A front end's stylesheet is not this
+package's to invent — it has said so twice already, once about [styles](#styles) and once
+about [rendering outside Filament](#callouts) — and a frame with no stylesheet draws unstyled
+markup. A button labelled "preview" opening onto that would lie about what it did, so a field
+with nothing named gets no button.
+
+**It is a real frame, not a styled box.** The panel has already loaded this package's whole
+stylesheet, and the content rules in it are deliberately unscoped so that they apply wherever
+content is rendered — including inside anything drawn in the panel. A `<div>` preview inherits
+the editor's idea of how content looks by construction, whatever it is labelled. The dialog
+holds an `<iframe srcdoc>` because that is the only boundary a browser enforces.
+
+Which has a consequence worth expecting rather than discovering: **nothing from the panel
+reaches inside.** Filament's colour tokens are gone, and so are this package's own callout,
+task list and figure rules. That is not a gap, it is the point — those rules load in the panel
+only, and the documentation tells you to copy them into your own stylesheet. The preview is
+where you find out whether that was done.
+
+Point it at the file the site actually loads rather than a copy of it. A preview built on a
+second copy of the rules can drift from the page without anybody noticing, which is the one
+failure a preview cannot survive.
+
+**The wrapper class goes on the frame's `<body>`.** A stylesheet on its own usually draws very
+little: rendered content normally sits inside a container that sets the measure and inside a
+`prose` class that styles the bare tags at all, and a dark theme is usually a class on an
+ancestor. One string on the body covers all three; a class on an inner wrapper could not carry
+the theme.
+
+**What it shows is what you typed, not what is stored.** The document is read out of the
+browser and sent back through the field's own schema, the same channel and the same reasoning
+as the [source view](#source-code): the last keystrokes may not have been synced yet, and they
+are usually the ones somebody opened a preview to look at. Anything the schema cannot hold is
+already gone in the frame — visibly, and before the record is written.
+
+**The frame runs no scripts.** `sandbox` carries `allow-same-origin` but never `allow-scripts`;
+the two together are what would let a frame lift its own sandbox, and nothing lifts anything
+with no script to lift it. Keeping the origin is what lets a relative `/storage/…` picture
+resolve and a web font be served. Links open in a new tab rather than navigating the frame,
+because a preview a single click destroys is one nobody uses twice.
+
+**Point it at the same rendering your page uses.** A field knows its own plugins, mentions and
+disk, and knows nothing at all about the decisions a page makes on top of them — heading
+anchors, a table of contents, syntax colours are named where the document is rendered, which
+is somewhere the field has never seen. Without this the preview is truthful about the field
+and wrong about the page:
+
+```php
+AdvancedRichEditor::make('content')
+    ->previewStylesheets([asset('build/site.css')])
+    // The same call your page renders through, not a copy of it.
+    ->configureRenderer(Rendering::configure(...));
+```
+
+`configureRenderer()` is the hook [`AdvancedRichEntry`](#on-a-view-page) and
+[`AdvancedRichColumn`](#in-a-table) already carry, and it is applied last — what the field was
+told about rendering wins over what it worked out about itself. It reaches the field's own
+schema too, so a closure adding a plugin adds it to what a save is parsed through: a node the
+renderer draws and the parser strips is a node that disappears on the next save.
+
+Both halves have a config default, and a field overrules either:
+
+```php
+'preview' => [
+    'enabled' => true,
+    'stylesheets' => [],
+    'wrapper_class' => null,
+],
+```
+
+`->preview(false)` takes the tool away from a field that has a stylesheet and does not want it.
+
+One caveat, and it is the front end's rather than the preview's: a stylesheet built by a
+purging Tailwind may not carry this package's class names at all, because they live in this
+package's config rather than in your templates. The frame then shows the document nearly
+unstyled — which is the preview being right about a stylesheet that is missing the rules.
 
 ### Source code
 
@@ -3118,9 +4160,94 @@ task lists agree on:
 
 ```php
 AdvancedRichContentRenderer::make($article->content)
-    ->plugins([TaskListPlugin::make()])              // so task items parse at all
     ->toMarkdown(['header_style' => 'setext']);      // overrules the default
 ```
+
+Nothing has to be registered for it. `TaskListPlugin` puts the button on a toolbar; the
+renderer declares the two nodes whether or not anything asked for them, so a plain render
+of a stored document keeps its boxes.
+
+#### Reading Markdown back in
+
+```php
+$article->content = AdvancedRichContentRenderer::make()->fromMarkdown($markdown);
+```
+
+The mirror of `toMarkdown()`, and the more dangerous direction: what the export gets wrong
+is a string somebody reads, and what this gets wrong is a column somebody keeps. It returns
+the document itself rather than a renderer holding it, because the column is the one thing
+anybody wants it for.
+
+The parser is `Str::markdown()`, so **nothing has to be installed** — `league/commonmark`
+comes with the framework, unlike the converter the export needs. It is the
+GitHub-flavoured one, which brings tables, strikethrough, bare urls and `- [x]` along with
+it. Tables in particular need no permission from the toolbar.
+
+Markdown says more than any rich text schema can hold, and each of those things arrives
+looking like content. Four decisions cover them, and the first three are not preferences:
+
+- **Footnotes are parsed.** Without the extension CommonMark reads `[^1]: The note.` as a
+  link reference definition: the note's text disappears from the document and the marker
+  before it becomes a link pointing at what used to be the note. Both halves are wrong and
+  neither shows up as an error, because a link is perfectly valid markup. With it, a
+  footnote is something this schema *can* hold — a superscript marker, a rule, and a
+  numbered list of notes.
+- **Its plumbing is not.** The extension links marker and note to each other by id, and ids
+  are not attributes this schema keeps — so the anchors would arrive pointing at nothing
+  and the `↩` would be a glyph to delete by hand. Both go; the marker stays.
+- **Loose content is put back into a paragraph.** Raw HTML is part of Markdown, so
+  `Ein <div>roh</div> Wort` converts to `<p>Ein <div>roh</div> Wort</p>` — and a `<div>`
+  inside a `<p>` closes that paragraph while the markup is parsed, which leaves the words
+  after it with no block around them. Nothing raises over it, which is the point: the editor
+  coerces the stray text into a paragraph while it loads and the renderer writes it out as
+  it found it, so the same document is two paragraphs in the field and one paragraph plus a
+  bare text node on the page — where none of the styling a paragraph gets can reach it. That
+  markup parses back to the same document, so it stays that way until somebody opens the
+  record and saves it.
+
+  Text is not the only thing this happens to. Images and mentions are **inline** nodes here,
+  so a picture written as raw `<img>` rather than as `![]()` lands beside the blocks in the
+  same way — four of the 433 Markdown files in a typical `vendor` tree open with exactly
+  that.
+
+  Below the document's own children the repair asks for a **paragraph** beside the loose
+  run, and nothing weaker, because a paragraph closed early always leaves its first half
+  behind as one. The near miss is worth knowing about if you are reading the code: "inline
+  content sitting beside a block" reads like the same rule and is not. A nested list is
+  `listItem[text, bulletList]`, a README title with a badge is `heading[text, image]`, a
+  picture in a sentence is `paragraph[image, text]` — all three are inline beside
+  non-inline, none is damaged, and all three are what the editor holds too. Measured over
+  those 433 files, the wider rule rewrites 27 of them and the one shipped here fires once.
+- **A list keeps the kind of list it is.** Markdown lets an author put a box on some items
+  and not others; `taskList` holds `taskItem+` and cannot. A list that mixes them is split
+  into runs, so each item stays what it was written as — a plain bullet is not an unticked
+  task. Boxes are read at the front of an item and at the front of its first block, which is
+  where GitHub-flavoured Markdown puts them, and nowhere else: a checkbox is legal raw HTML,
+  and one further inside an item would otherwise promote the whole list to something nobody
+  wrote. `1. [x]` keeps its text but loses its state — a task list is a `<ul>`, so a numbered
+  one has nowhere to put it.
+
+- **`allow_unsafe_links` defaults to `false`.** A `javascript:` url in a *link* is already
+  dropped, because a link is a mark and marks are checked; an image's address is an
+  attribute and is stored exactly as written. Nothing executes either way — browsers
+  stopped running `javascript:` in a `src` long ago — but a column is not the place for it.
+
+Options and extensions are passed through, and anything named there wins:
+
+```php
+AdvancedRichContentRenderer::make()->fromMarkdown(
+    $markdown,
+    ['html_input' => 'escape'],          // overrules the default
+    [new SmartPunctExtension],           // added to the parser
+);
+```
+
+Naming a `FootnoteExtension` of your own replaces the one above rather than adding a second
+— CommonMark registers a parser per extension, and two of them raise while the environment
+is built.
+
+An empty string reads as an empty **document** rather than an empty array, which is what
+Filament stores for a field nobody typed into.
 
 ### Excerpts
 
@@ -3215,6 +4342,33 @@ Where the record declares the attribute — Filament's `HasRichContent` — the 
 from what the model already says about it: its plugins, its merge tags, its mention
 providers, the disk its pictures are on. Anything set on the entry wins over that; the model
 describes the field, the entry describes one place it is shown.
+
+> **If your uploads go through a media library, the model has to say so.** `->spatieMediaLibrary()`
+> on the field configures the *writing* half only. On the reading side an uploaded picture is
+> an attachment id, and only its provider knows what that id points at — so a view page
+> without one shows an `<img>` with its measurements and no source, which a browser draws as
+> an empty box of exactly the right size. Nothing about it looks like a misconfiguration: the
+> document is intact, the file is on the disk, the URL works if you paste it into a browser.
+>
+> Declare it once, where every reading path finds it:
+>
+> ```php
+> use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
+>
+> public function setUpRichContent(): void
+> {
+>     $this->registerRichContent('content')
+>         ->plugins([SpatieMediaLibraryPlugin::make('rich-editor')]);
+> }
+> ```
+>
+> Where that is not possible — a document rendered outside its model, or one attribute shown
+> two different ways — the entry, the column and the renderer each take
+> `->fileAttachmentProvider(...)`.
+>
+> Since 1.5.0 a source that cannot be resolved is left as it was found rather than erased, so
+> a document written with a working URL still draws. That is a safety net and not the
+> configuration: a media library URL is derived from the id, and on a private disk it expires.
 
 The document is drawn in `fi-prose`, Filament's own class for rich content — the same one
 the editor draws it in, so the view page and the form agree.
@@ -3443,6 +4597,7 @@ the whole project; the method sets it for one field and wins.
 | Task lists | `task_list` | `->taskList(false)` |
 | List markers, start and reverse | `list_properties` | `->listProperties(false)` |
 | Media browser | `media_library.enabled` | `->mediaLibrary(false)` |
+| A family of the media browser — documents, say *(see [Media browser](#media-browser))* | `media_library.types.file` | `->mediaLibraryTypes(['file' => []])` |
 | Character count | `character_count.enabled` | `->characterCount(false)` |
 | Font size | `font_size.enabled` | `->fontSize(false)` |
 | Typeface picker *(on, but its token is on no bar — see [Fonts](#fonts))* | `fonts.enabled` | `->fontPicker(false)` |

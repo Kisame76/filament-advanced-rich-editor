@@ -2,15 +2,44 @@
 
 declare(strict_types=1);
 
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 
-it('offers the embed button by default', function (): void {
-    expect(toolbarGroup(editor(), 'embed'))->toContain('image')
-        ->and(editor()->getTools())->toHaveKey('embed');
+/** Every name the slash menu offers, flattened out of its groups. */
+function slashNamesOf(AdvancedRichEditor $editor): array
+{
+    return array_merge(...array_map(
+        static fn (array $group): array => array_column($group['items'], 'name'),
+        SlashMenu::for($editor)['groups'],
+    ));
+}
+
+it('ships registered and on, but not on the bar', function (): void {
+    // Off the shipped bar since the media browser arrived: that button covers video from
+    // your own server, and two video-shaped buttons beside each other is one door too many
+    // for a bar with a finite number of places. The tool itself is untouched - the slash
+    // menu still finds it, and a bar that names it still gets it.
+    expect(editor()->hasEmbeds())->toBeTrue()
+        ->and(editor()->getTools())->toHaveKey('embed')
+        ->and(array_merge(...toolbarShape(editor())))->not->toContain('embed')
+        ->and(slashNamesOf(editor()))->toContain('embed');
+});
+
+it('goes back on a bar that names it', function (): void {
+    expect(toolbarShape(editor()->toolbarButtons([['bold', 'embed']])))
+        ->toBe([['bold', 'embed']]);
 });
 
 it('takes the button away where the field says so', function (): void {
     expect(editor()->embeds(false)->getTools())->not->toHaveKey('embed');
+});
+
+it('takes the name off the toolbar with the button', function (): void {
+    // The tool and the name on the bar are two halves of one switch. Leaving the name
+    // behind is not a stale button - the view throws on a name it cannot resolve, so the
+    // field that switched embeds off is the field that no longer renders.
+    expect(array_merge(...toolbarShape(editor()->embeds(false))))->not->toContain('embed');
 });
 
 it('reads whether embeds are offered from the config file', function (): void {

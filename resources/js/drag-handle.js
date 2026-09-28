@@ -110,7 +110,7 @@ function slashChar(editor) {
 
     try {
         return JSON.parse(raw)?.char ?? null
-    } catch (error) {
+    } catch {
         return null
     }
 }

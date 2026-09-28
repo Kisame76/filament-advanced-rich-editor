@@ -16,15 +16,24 @@ return [
     |   'headings'   dropdown of `heading_levels`      'lists'  dropdown of `lists`
     |   'alignment'  dropdown of `alignments`          'more'   overflow dropdown
     |   'lineHeight' dropdown of `line_height.values`
+    |   'dateTime'   dropdown of `date_time.formats`, absent while it is switched off
     |   'callouts'   dropdown of `callouts.variants`
     |   'language'   dropdown of `languages.values`
     |   'characters' the special characters picker, absent while it is switched off
+    |   'emoji'      the emoji picker, absent while it is switched off
+    |   'indent'     one step in, and 'outdent' one step out, both absent while
+    |                indenting is switched off
     |   'styles'     dropdown of `styles`, absent while that list is empty
     |
     | Tokens work at any depth, and a ToolbarDropdown or RichEditorTool may be mixed
     | in. Every other Filament tool is registered too and can be named anywhere:
     | 'highlight', 'small', 'lead', 'attachFiles', 'mergeTags', 'customBlocks',
-    | 'ltr', 'rtl' and the table editing ones. Per field: `->toolbarButtons([...])`.
+    | 'ltr', 'rtl' and the table editing ones. 'attachFiles' is Filament's own upload
+    | dialog and stays Filament's — this package no longer registers the library
+    | browser under that name, so naming it here gets the plain dialog.
+    |
+    | Per field: `->toolbarButtons([...])`, or `->preset('blog')` for a named starting
+    | point - see 'toolbar_presets' below.
     */
     'toolbar' => [
         ['undo', 'redo'],
@@ -35,12 +44,86 @@ return [
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'image', 'embed', 'table', 'callouts'],
+        ['lists', 'mediaBrowser', 'table', 'callouts'],
         'divider',
         ['more'],
         'pin',
         ['tools', 'fullscreen'],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Toolbar presets
+    |--------------------------------------------------------------------------
+    | Named starting points for all four bars at once, asked for with `->preset('blog')`.
+    | Five are shipped, from the shortest bar to the longest:
+    |
+    |   'minimal'  bold, italic, underline, link and lists. Nothing else, no uploads
+    |   'comment'  the same plus the quote and the emoji picker, no uploads
+    |   'blog'     structure, pictures and both menus, without the typographic controls
+    |   'default'  the bar above, under a name
+    |   'full'     the longest bar this package draws: 'fontFamily', 'textCase' and
+    |              'language' on it, 'strike' in 'more'. Not literally everything - the
+    |              features that ship switched off (the format brush, the date tools) are
+    |              a decision per project rather than a preset's to make
+    |
+    | A preset answers five things - 'toolbar', 'more', 'tools_menu',
+    | 'text_toolbar_buttons' and 'file_attachments' - and may answer only some of them.
+    | What it leaves out falls through to the keys in this file, so a preset is free to
+    | speak about the main bar and leave the rest alone.
+    |
+    | 'file_attachments' is named rather than inferred on purpose. Without it a shrinking
+    | bar takes the upload, the drop and the paste-upload with it, because the field's
+    | answer is otherwise read off the presence of the picture button. It holds only while
+    | the preset still describes what is on screen: a field that replaces the bar with
+    | `->toolbarButtons()` is answered by the picture button again, the way an unpreset
+    | field is.
+    |
+    | A preset is a fixed list and not a copy of the keys in this file: `->preset('default')`
+    | stays the bar this package ships even where a project has rebuilt 'toolbar' into
+    | something else. That is what makes it a starting point rather than a second name for
+    | the current state.
+    |
+    | Add your own here, or replace a shipped one by naming it again:
+    |
+    |   'toolbar_presets' => [
+    |       'house' => [
+    |           'toolbar' => [['bold', 'italic'], 'divider', ['link']],
+    |           'file_attachments' => false,
+    |       ],
+    |   ],
+    |
+    | A field always wins: 'toolbar_presets' sets defaults, and `->toolbarButtons()`,
+    | `->moreTools()`, `->toolsMenu()`, `->textToolbarButtons()` and `->fileAttachments()`
+    | each override the preset's answer for their own bar.
+    */
+    'toolbar_presets' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | The mode with no toolbar
+    |--------------------------------------------------------------------------
+    | `->notion()` takes the bar away and leaves the document to carry the editor: the
+    | slash menu knows this field's own tools, the grip rearranges blocks, and the bar over
+    | a selection holds the marks.
+    |
+    | There is no key here, on purpose. All three of those are on by default already, so a
+    | switch in this file would only be a second name for switching them off - and the
+    | point of the mode is that it holds them on for the one field that has nothing else
+    | left to reach a block with. It sits between the field and this file: `->notion()
+    | ->dragHandle(false)` still takes the grip away, and 'drag_handle.enabled' => false
+    | no longer does.
+    |
+    | Naming a preset alongside it puts a bar back, because a preset says something more
+    | specific about the bar than "there is none" - and answers for uploads, which the mode
+    | otherwise says yes to. It has to: the upload answer is read off the bar, this mode has
+    | no bar, and the slash menu's insert group ships 'image' and 'attachFiles'.
+    |
+    | The bar over a selection is the way to a link and the colours here, and it appears
+    | wherever a mark means something - a heading, a list item, a quote and a table cell as
+    | well as a paragraph. Filament's own rule shows it in a paragraph only; this package
+    | replaces that rule on every field.
+    */
 
     /*
     |--------------------------------------------------------------------------
@@ -121,8 +204,8 @@ return [
     |
     | It is in the shipped toolbar, as ['tools', 'fullscreen']. Shipped that way the
     | corner never changes shape: switching the accessibility check or the source view on
-    | puts them in the menu rather than adding a fourth and fifth icon beside it, and the
-    | preview, statistics and export tools still to come go the same way.
+    | puts them in the menu rather than adding a fourth and fifth icon beside it. The
+    | statistics and the preview live there for the same reason.
     |
     | The cost is that finding is one click deeper than it was on a field that switched
     | nothing on - Ctrl+F is unaffected, and the help dialog lists it. A project that
@@ -132,7 +215,7 @@ return [
     |
     | An empty menu is dropped rather than drawn. Per field: `->toolsMenu()`.
     */
-    'tools_menu' => ['find', 'accessibility', 'sourceCode', 'help'],
+    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help'],
 
     /*
     |--------------------------------------------------------------------------
@@ -162,11 +245,12 @@ return [
     | Accessibility check
     |--------------------------------------------------------------------------
     | The 'accessibility' tool and the panel behind it: a picture nobody described, a
-    | link whose text is "click here", a heading level jumped over, a table with no
-    | header row, a link with nothing in it, and a colour that cannot be read on the
-    | page it is going to. Every finding is a row that selects what it is about.
+    | picture marked decorative that is the whole of a link, a link whose text is "click
+    | here", a heading level jumped over, a table with no header row, a link with nothing
+    | in it, and a colour that cannot be read on the page it is going to. Every finding is
+    | a row that selects what it is about.
     |
-    | 'rules' is which of the six are asked; a name left out is not reported.
+    | 'rules' is which of the seven are asked; a name left out is not reported.
     |
     | Contrast is the one rule with two assumptions in it, and they are stated rather
     | than hidden: the editor cannot know what colour the page will be, nor what colour
@@ -187,9 +271,9 @@ return [
     | Shipped off. It is a review tool rather than a way of writing, and the contrast
     | rule is measured against a page this package has to be told the colour of - on by
     | default, every project whose pages are not white would be handed findings that are
-    | wrong. Switch it on here or per field with `->accessibility()`, and the button
-    | appears where the shipped toolbar already reserves a place for it, between 'find'
-    | and 'sourceCode'. Nothing about any of it is stored.
+    | wrong. Switch it on here or per field with `->accessibility()`, and the entry
+    | appears where the tools menu already reserves a place for it, after 'find'. Nothing
+    | about any of it is stored.
     |
     | Per field: `->accessibility()`, `->accessibilityRules()`.
     */
@@ -362,6 +446,10 @@ return [
     | Per field: `->embeds()`.
     */
     'embed' => [
+        // On, but not on the shipped bar: the 'mediaBrowser' button covers video from your
+        // own server, and two video-shaped buttons beside each other is one door too many
+        // for a bar with a finite number of places. The slash menu still finds it, and a bar
+        // or 'more' that names 'embed' gets the button back.
         'enabled' => true,
         'sanitizer' => true,
         'youtube_nocookie' => true,
@@ -370,6 +458,34 @@ return [
             'youtube.com',
             'vimeo.com',
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Video and audio from your own server
+    |--------------------------------------------------------------------------
+    | Two buttons, 'video' and 'audio', that place a `<video>` or an `<audio>` pointing at
+    | a file you host — the other half of the question the embed answers. One node draws
+    | both, and the dialog takes an address, a poster, a title, how much to load ahead and
+    | whether to loop.
+    |
+    | Nothing has to be unlocked in your sanitiser for this: `video`, `audio` and `source`
+    | are on Symfony's safe element list and so are `src`, `controls`, `preload`, `poster`
+    | and `loop`. `autoplay` is marked unsafe there and is not offered here either.
+    | `controls` is always written — a player nobody can start is a file nobody can play.
+    |
+    | Addresses are checked on both sides: a path with no scheme is the ordinary case, an
+    | `http`/`https` link is allowed, and anything else — `javascript:`, `data:` — is
+    | refused while the dialog is still open.
+    |
+    | The buttons ship registered and unplaced, the way the case tools do: the way in is
+    | the slash menu, and putting 'video' or 'audio' in 'more' or on a bar gives them
+    | buttons. Switching this off takes the buttons and the script away and leaves stored
+    | players alone — the renderer declares the node whatever a field says.
+    | Per field: `->media(false)`.
+    */
+    'media' => [
+        'enabled' => true,
     ],
 
     /*
@@ -386,25 +502,6 @@ return [
     | `'callouts'` expand to what the field offers - its heading levels and its kinds of
     | callout. Per field: `->slashMenu()`.
     */
-    /*
-    |--------------------------------------------------------------------------
-    | Mentions
-    |--------------------------------------------------------------------------
-    |
-    | Whose menu opens when a trigger is typed. This package's own has room for a picture
-    | and a line of context under the name, which is what tells two people called the same
-    | thing apart; Filament's draws the name and nothing else.
-    |
-    | The mention itself is unchanged either way - the same node, the same `data-id`, the
-    | same markup on the page - so this can be switched at any time without touching
-    | anything already written. Per field: `->mentionMenu()`.
-    |
-    */
-
-    'mentions' => [
-        'menu' => true,
-    ],
-
     'slash' => [
         'enabled' => true,
         'char' => '/',
@@ -416,10 +513,27 @@ return [
                 'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
-                'image', 'attachFiles', 'embed', 'table', 'horizontalRule', 'details', 'emoji', 'characters',
-                'customBlocks', 'mergeTags',
+                'image', 'attachFiles', 'embed', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
+                'emoji', 'characters',
+                'dateTime', 'customBlocks', 'mergeTags',
             ],
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mentions
+    |--------------------------------------------------------------------------
+    | Whose menu opens when a trigger is typed. This package's own has room for a picture
+    | and a line of context under the name, which is what tells two people called the same
+    | thing apart; Filament's draws the name and nothing else.
+    |
+    | The mention itself is unchanged either way - the same node, the same `data-id`, the
+    | same markup on the page - so this can be switched at any time without touching
+    | anything already written. Per field: `->mentionMenu()`.
+    */
+    'mentions' => [
+        'menu' => true,
     ],
 
     /*
@@ -436,6 +550,78 @@ return [
     */
     'link' => [
         'attributes' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Statistics
+    |--------------------------------------------------------------------------
+    | The 'statistics' entry in the tools menu: words, characters with and without
+    | spaces, blocks and a reading time, counted the way the counter under the field
+    | counts. Nothing about it is stored. Per field: `->statistics()`.
+    */
+    'statistics' => [
+        'enabled' => true,
+        // How fast a reader is assumed to be. 200 is the usual figure for prose in a
+        // European language; technical writing is slower and a project that knows its own
+        // readers should say so. The dialog rounds up, so this only has to be roughly
+        // right - it is an estimate presented as one, not a measurement.
+        'words_per_minute' => 200,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Preview
+    |--------------------------------------------------------------------------
+    | The document drawn the way the site draws it, in an isolated frame. The panel
+    | cannot answer that question in place: it has already loaded this package's whole
+    | stylesheet, and the content rules in it are deliberately unscoped so that they apply
+    | wherever content is rendered - including inside anything drawn here. A frame is the
+    | only boundary the browser enforces.
+    |
+    | Which is why this is a seam rather than a feature: the package supplies the frame,
+    | the project supplies the CSS. Per field: `->preview(false)`, `->previewStylesheets()`
+    | and `->previewWrapperClass()`.
+    */
+    'preview' => [
+        /*
+         * Not what switches the preview on, despite reading like it: `stylesheets` below
+         * ships empty, and without one named there is no button on any field. A default
+         * installation draws `find`, `statistics` and `help` in this menu and nothing else.
+         *
+         * This is the switch for taking the tool away from a project that named a stylesheet
+         * and does not want the button - which is why it defaults to true rather than false.
+         * Defaulting it to false would mean doing two things to get one feature, and the
+         * second of them would do nothing on its own.
+         */
+        'enabled' => true,
+
+        /*
+         * The stylesheets the preview frame loads, as URLs a browser can reach. Your own
+         * built stylesheet - the same file the site loads.
+         *
+         * Shipped empty, and the tool is not offered until one is named. That is not
+         * caution, it is the only honest answer: a front end's CSS belongs to the project,
+         * this package has none to lend, and a frame with no stylesheet draws unstyled
+         * markup. A button labelled "preview" opening onto that lies about what it did.
+         *
+         * The preview is therefore also a check on something this documentation asks for
+         * elsewhere: the package stylesheet is registered with Filament and loads in the
+         * panel only, so the callout and task list rules have to be copied into your own
+         * sheet. If they were not, the frame shows that - correctly.
+         */
+        'stylesheets' => [],
+
+        /*
+         * The class the frame's `<body>` carries, e.g. 'prose dark:prose-invert mx-auto
+         * max-w-2xl'.
+         *
+         * A stylesheet alone usually draws very little: rendered content normally sits in a
+         * container that sets the measure and in a `prose` class that styles the bare tags
+         * at all, and a dark theme is usually a class on an ancestor. On the body rather
+         * than on a wrapper inside it, so one string covers all three.
+         */
+        'wrapper_class' => null,
     ],
 
     /*
@@ -549,11 +735,94 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Indenting
+    |--------------------------------------------------------------------------
+    | Two buttons, 'indent' and 'outdent', that move a block one step further in and one
+    | step back out, and Mod+] and Mod+[ on every field that has them — whether or not the
+    | buttons are on a bar.
+    |
+    | The step is stored as a `margin-inline-start` in the block's inline style — logical,
+    | so an indent on a right-to-left paragraph sits on its right, and a style rather than
+    | a class because a class means nothing without a stylesheet this package does not ship
+    | over your rendered pages. `margin-left` is read on the way in and converted.
+    |
+    | 'step' is a CSS length in any absolute unit ('2.5rem', '1.27cm', '40px'); a bare
+    | number is read as rem. What a document keeps is the number of steps, not the length,
+    | so both buttons always land on the grid — which also means that changing the step
+    | here re-measures existing documents on their next save. 'max' is how many steps deep
+    | a block may go, 1 to 40.
+    |
+    | Inside a list the same two buttons nest the item instead, which is what a list's
+    | numbering and bullets are made of.
+    |
+    | Ships off, and nothing ships on a bar either. Most documents indent nothing, and the
+    | ones that do are a kind rather than a majority — a contract, a report, minutes — so
+    | this is a decision rather than a default. Switching it on is this line, and the two
+    | keys work from that moment; put the names in 'more', or the 'indent' and 'outdent'
+    | tokens on a bar, to give them buttons as well. Per field: `->indent()`,
+    | `->indentStep('1.27cm')`, `->indentMax(4)`.
+    */
+    'indent' => [
+        'enabled' => false,
+        'step' => '2.5rem',
+        'max' => 8,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Date and time
+    |--------------------------------------------------------------------------
+    | Writing today's date, or the time, into the document. One tool per entry below,
+    | named `insert` plus the key: 'date' is `insertDate`, 'dateTime' is `insertDateTime`.
+    | A key is a bare identifier — a lower-case letter, then letters and digits — because
+    | it becomes a tool name, and a tool name is what a toolbar array names it by.
+    |
+    | The value is a PHP date format. `null` means "whatever this schema says a date looks
+    | like" and works for the three keys Filament itself answers for — 'date', 'time' and
+    | 'dateTime'; any other key must name its own format or it is dropped. Change the
+    | inherited answer with `Schema::configureUsing()` in a service provider rather than
+    | here, and note that Filament's own date pickers do not read it.
+    |
+    | Formats are rendered with Carbon's `translatedFormat()`, so month and day names come
+    | out in the application's language. `S` is the ordinal suffix of that language rather
+    | than the English one. `e`, `p`, `x` and `X` arrive as the bare letter before Carbon
+    | 3.14 and as what `date()` prints from 3.14 on — use `T`, `O` or `P` to name a zone
+    | the same way everywhere. Every other unescaped letter is a token, so literals need a
+    | backslash: `'\H\e\u\t\e, j. F Y'`.
+    |
+    | A format carrying a time is rendered in Filament's display timezone
+    | (`FilamentTimezone::set()`); a date on its own is not, because an offset applied to a
+    | date moves it a whole day either side of midnight. A zone counts as a time - `e` and
+    | `p` included - so `Y-m-d T` follows the display timezone and can land on another day.
+    |
+    | Ships off, and nothing ships on a bar either. A date typed once is a date; a button
+    | for it is worth having where a template is filled in daily and worth nothing in a
+    | blog, so this is a decision rather than a default. Switching it on is this line, and
+    | the way in is then the slash menu - put the names in 'more', or the 'dateTime' token
+    | on a bar, to give them buttons as well. Per field: `->dateTime()`,
+    | `->dateTimeFormats([...])`.
+    */
+    'date_time' => [
+        'enabled' => false,
+        'formats' => [
+            'date' => null,
+            'time' => null,
+            'dateTime' => null,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sticky toolbar
     |--------------------------------------------------------------------------
     | Keeps the toolbar pinned while a long document is scrolled. `offset` is any CSS
     | length and should match whatever sits above the form — usually the topbar.
     */
+    'sticky' => [
+        'enabled' => true,
+        'offset' => '4rem',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Maximum height
@@ -567,11 +836,6 @@ return [
     | Per field: `->maxHeight()`.
     */
     'max_height' => null,
-
-    'sticky' => [
-        'enabled' => true,
-        'offset' => '4rem',
-    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -795,6 +1059,96 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Changing the case of a selection
+    |--------------------------------------------------------------------------
+    | Sentence case, lower case and UPPER CASE, plus `Shift+F3` to walk the three. Nothing
+    | about it is stored - a raised letter is a letter - so switching it off later leaves
+    | every word already changed exactly as it is.
+    |
+    | Not on the bar and not in the overflow menu: this is a tool most documents never need,
+    | and 'more' is finite. What is shipped is the shortcut and the means to place it - add
+    | the three names to 'more', or the 'textCase' token to 'toolbar' or
+    | 'text_toolbar_buttons', and it is there.
+    |
+    | Per field: `->textCase()`.
+    */
+    'text_case' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Format brush
+    |--------------------------------------------------------------------------
+    | The brush from Word, TinyMCE's permanent pen: pick the formatting up at one
+    | passage and put it down on another. One click arms it for a single stroke,
+    | a second keeps it armed, a third puts it away.
+    |
+    | It carries character formatting only - the marks this field's own schema
+    | declares, minus three. A code run takes every other mark off with it, a link
+    | is a destination rather than a look and carries an anchor that has to stay
+    | unique, and a language says what a passage *is* rather than how it looks.
+    |
+    | Ships off. Most documents are written once rather than matched to a passage
+    | somewhere else, and a brush is a mode - it changes what the next click does,
+    | which is a thing to hand somebody deliberately. Switching it on is this line
+    | plus a place for the button: `formatBrush` on the bar, in the selection
+    | bubble or in `more`. Per field: `->formatBrush()`.
+    */
+    'format_brush' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Typography while typing
+    |--------------------------------------------------------------------------
+    | Straight quotes become the ones the language uses, three dots become an ellipsis, and
+    | two hyphens become that language's dash - after a word, or between two spaces once the
+    | second is typed. None of it is stored as anything but characters, so switching it off
+    | later leaves every quotation already written as it is.
+    |
+    | Which characters are right is a question about a language and not about typography in
+    | general: German opens with `„` and closes with `“` - the shape English uses to open -
+    | and sets the shorter dash. Shipped for the two languages this package is translated
+    | into; anything else falls back to the English convention, and a project whose language
+    | is not here describes it under 'languages' rather than accepting the guess.
+    |
+    | The language is the application's locale unless the field says otherwise, which it can:
+    | a German site may hold one field of English copy.
+    |
+    | Shipped OFF, unlike most of what this package adds. Everything else here gives a field
+    | something it can do; this one changes what somebody typed, and what it changes ends up
+    | in the database. The two mistakes are not the same size: switching it on costs a line
+    | of configuration, while switching it off after the fact does not un-write the quotation
+    | marks already stored. An editor may well expect a word processor's behaviour - the
+    | developer installing a rich text field does not expect it to rewrite characters.
+    |
+    | Per field: `->typography()`, `->typographyLanguage('en')`.
+    */
+    'typography' => [
+        'enabled' => false,
+        'languages' => [
+            // 'fr' => ['open' => '«', 'close' => '»', 'openSingle' => '‹',
+            //          'closeSingle' => '›', 'dash' => '—'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Livewire's nesting limit
+    |--------------------------------------------------------------------------
+    | The editor entangles a document, so the path to a word is the path through it: text
+    | inside a list item is eleven segments deep, and Livewire ships with a cap of ten. The
+    | result is a 500 on the first keystroke inside the first list, naming neither this
+    | package nor the editor.
+    |
+    | Raising the cap is an installation step - see the README. This is the check that says
+    | so before anybody types, rather than after. A number asks for that depth instead of the
+    | default; `false` switches the check off for a field that will never hold a list.
+    |
+    | Per field: `->nestingCheck(false)` or `->nestingCheck(16)`.
+    */
+    'nesting_check' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Fonts
     |--------------------------------------------------------------------------
     | The typeface dropdown. Nothing is fetched from anywhere: no CDN, no Google Fonts,
@@ -913,22 +1267,37 @@ return [
     |--------------------------------------------------------------------------
     | Media library
     |--------------------------------------------------------------------------
-    | The image button opens a browser of the pictures that are already on the
-    | server, with uploading as its second tab. Picking one stores what an upload
-    | would have stored — a media UUID, or a storage path on a field without a media
-    | collection — so one file can back any number of references and nothing is
-    | copied. Size and rotation stay on the image node, never on the file.
+    | The 'mediaBrowser' button — the one on the shipped bar — opens a browser of the
+    | files that are already on the server, with tabs for pictures, video, audio and
+    | documents, a field for an address somebody else hosts, and uploading built into
+    | the grid. 'image' is the same door under its older name, kept so an existing bar
+    | does not break, and 'file' opens it on the documents. None of them is Filament's
+    | 'attachFiles': that action is left alone and can be put on any bar to get the
+    | plain upload dialog beside the browser. A field with nothing browsable behind it —
+    | a foreign attachment provider, a disk with no directory of its own — registers no
+    | browser, and the buttons then name Filament's dialog. Picking a file stores what an
+    | upload would have stored — a media UUID, or a storage path on a field without a
+    | media collection — so one file can back any number of references and nothing is
+    | copied. A picture becomes an image, a film or a sound a player, and a document a
+    | download card. Size and rotation stay on the image node, never on the file.
     |
-    | Out of the box the browser is a shared library: it shows every picture in the
+    | Out of the box the browser is a shared library: it shows every file in the
     | collection the field uploads to, whichever record or model owns it. That is what
-    | the browser is for — a picture uploaded for one article is the picture the next
-    | one wants — and it is the 'scope' setting below. Narrow it with
-    | `'scope' => 'record'` where each record should only see its own.
+    | the browser is for — a pdf uploaded for one article is the pdf the next one links
+    | to, rather than a second copy of it — and it is the 'scope' setting below. Narrow
+    | it with `'scope' => 'record'` where each record should only see its own.
     |
-    | Sharing has one consequence worth knowing before you ship it: removing a picture
-    | from a document no longer deletes the file. It cannot — the uuid may equally be
+    | Without a media collection the browser lists a directory on the field's disk, and
+    | stores what is uploaded through it under the name it came with — made safe for an
+    | address, with six random characters after it: `quartalsbericht-q3--7kq2xm.pdf`. The
+    | name is what the grid, the search and a document card show, and a hash is none of
+    | those; the random part is what keeps the address from being guessed. The browser
+    | shows it without them.
+    |
+    | Sharing has one consequence worth knowing before you ship it: removing a file
+    | from a document no longer deletes it. It cannot — the uuid may equally be
     | sitting in another record's content, which nothing here can see, so deleting it
-    | would take that record's picture away too. A shared library is therefore tidied
+    | would take that record's file away too. A shared library is therefore tidied
     | deliberately, with `spatie/laravel-medialibrary`'s own cleanup commands or by
     | hand. `'scope' => 'record'` restores automatic clean-up, because then nothing
     | else can be holding the uuid.
@@ -938,33 +1307,99 @@ return [
     |   ->mediaLibraryQuery(fn (Builder $query) => $query->where('collection_name', 'library'))
     |   ->mediaLibraryDirectory('library')   // fields storing plain files on a disk
     |
-    | Whatever the pool lists is also what a stored `data-id` is allowed to resolve
-    | to — the browser and the lookup are the same object, so they cannot drift apart.
+    | The pool is also what a stored `data-id` is allowed to resolve to — the browser and
+    | the lookup are the same object, so they cannot drift apart. The type lists below
+    | narrow what the browser offers, never what a document already written points at.
     |
     | 'directory' is the project-wide default for the disk pool; null keeps every
     | field on its own `fileAttachmentsDirectory()`. Per field: `->mediaLibrary()`.
     */
     'media_library' => [
+        /*
+         * What the browser lists and takes an upload of, one list per family. A family left
+         * out, or set to null, gets the list shown here; an empty list takes it away, tab and
+         * upload together.
+         *
+         *   'image'  null follows Filament's own `fileAttachmentsAcceptedFileTypes()` - a
+         *            project that narrowed its pictures to PNGs meant that. Or name them:
+         *            endings (`'png'`), mime types (`'image/png'`) or `'image/*'`.
+         *   'video'  and 'audio' the same way; shipped as the formats a browser can play.
+         *   'file'   documents, which become a download card. Named by their ending alone,
+         *            because a mime type says nothing a person could pick a document by -
+         *            `application/*` holds a pdf and a program alike. Shipped as exactly the
+         *            endings the card has a colour for. `['*']` takes every ending.
+         *
+         * A document is taken when its content agrees with the ending it came under, and it
+         * is stored under that ending - so what arrives as `.pdf` is served as a pdf. Some
+         * endings are never taken, whatever this list says, because a server or a browser
+         * would run them as your site: php and its relatives, html, svg, xml and js. The full
+         * list is `LibraryTypes::DENIED`.
+         *
+         * Deliberately NOT Filament's `fileAttachmentsAcceptedFileTypes()`. That list also
+         * governs Filament's compiled drop-and-paste handler, which inserts an `image` node
+         * for anything it accepts — so widening it would turn a film or a pdf dropped into the
+         * editor into an `<img>` pointing at it.
+         *
+         * Per field, merged one family at a time: `->mediaLibraryTypes(['file' => ['pdf']])`
+         * keeps pictures, video and audio as they are and takes pdfs as the only documents.
+         */
+        'types' => [
+            'image' => null,
+            'video' => ['mp4', 'webm', 'mov', 'm4v', 'ogv'],
+            'audio' => ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'weba'],
+            'file' => [
+                'pdf', 'doc', 'docx', 'odt', 'rtf', 'pages', 'txt', 'md',
+                'xls', 'xlsx', 'ods', 'csv', 'tsv', 'numbers',
+                'ppt', 'pptx', 'odp', 'key',
+                'zip', '7z', 'rar', 'gz', 'bz2', 'tar',
+            ],
+        ],
+
         'enabled' => true,
 
         /*
          * How far the browser looks with a media collection. Three settings, each narrower than
          * the last:
          *
-         *   'collection'  every picture in the collection the field uploads to, whichever
+         *   'collection'  every file in the collection the field uploads to, whichever
          *                 record or model owns it — the default, because the collection *is*
          *                 the library. An article and a post uploading to 'rich-editor' draw
-         *                 from one pool instead of each fetching the same picture again;
+         *                 from one pool instead of each fetching the same file again;
          *                 separate libraries are separate collections.
          *   'model'       only the records of the model being edited.
          *   'record'      only the record in front of you.
          *
-         * Whatever it lists is also what a stored `data-id` may resolve to, so the two can
-         * never drift apart. Per field: `->mediaLibraryScope()`, or `->mediaLibraryQuery()`.
+         * It is also what a stored `data-id` may resolve to, so the two can never drift
+         * apart. Per field: `->mediaLibraryScope()`, or `->mediaLibraryQuery()`.
          */
         'scope' => 'collection',
 
         'page_size' => 40,
+
+        /*
+         * The picture a tile shows for a file that is not a picture.
+         *
+         * A film gets its first frame, through the `ffmpeg` binary; a sound gets whatever
+         * cover art its ID3 tag carries, read here without a dependency. Neither is asked
+         * for twice: a file that cannot produce one is marked, and the mark is only cleared
+         * by `php artisan arte:media-covers --retry` — which is what a project runs after
+         * installing ffmpeg.
+         *
+         * 'per_page' is the cap that keeps a first opening from stalling. Forty films with
+         * no covers would otherwise be forty processes inside one Livewire request; three at
+         * a time means the library fills itself in over a few openings instead.
+         */
+        'covers' => [
+            'enabled' => true,
+            'ffmpeg' => 'ffmpeg',
+            'timeout' => 5,
+            'per_page' => 3,
+
+            // The biggest cover worth lifting out of an audio file's tag. Album art in a
+            // music library runs to several megabytes, and every one of those bytes is read
+            // into memory for a tile drawn 120 pixels wide.
+            'max_picture_bytes' => 5 * 1024 * 1024,
+        ],
 
         'directory' => null,
 
@@ -1011,6 +1446,18 @@ return [
     'character_count' => [
         'enabled' => true,
         'words' => false,
+        // Whether the editor refuses input past `maxLength()` as well, instead of only
+        // letting the save be refused over it. A setting rather than an assumption: a
+        // comment box wants to block, an article wants to warn.
+        //
+        // Off by default, because refusing a keystroke is the more surprising of the two
+        // and a project should ask for it. What is refused is growth past the limit and
+        // nothing else - a document that is already too long, from before the limit existed
+        // or from an import, still opens and can still be shortened.
+        //
+        // The limit held is `maxLength()` and not `character_count.limit`: only the first
+        // is a rule the save is checked against. Per field: `->enforceMaxLength()`.
+        'enforce' => false,
     ],
 
     /*
@@ -1031,6 +1478,8 @@ return [
         'headings' => 'fi-o-heading',
         'lists' => 'heroicon-o-list-bullet',
         'line_height' => 'arte-line-spacing',
+        'indent' => 'arte-indent-increase',
+        'outdent' => 'arte-indent-decrease',
         'task_list' => 'arte-task-list',
         'blockquote' => 'arte-message-square-quote',
 
@@ -1041,13 +1490,24 @@ return [
         'callout_warning' => 'heroicon-o-exclamation-triangle',
         'callout_danger' => 'heroicon-o-shield-exclamation',
         'image' => 'heroicon-o-photo',
+        'media_browser' => 'heroicon-o-photo',
         'embed' => 'heroicon-o-film',
+        'media_video' => 'heroicon-o-play-circle',
+        'media_audio' => 'heroicon-o-musical-note',
+        'media_file' => 'heroicon-o-paper-clip',
+        // The date family: the calendar with its days as the sign for the whole thing, and
+        // a bare calendar and a clock for the two options under it.
+        'date_time' => 'heroicon-o-calendar-days',
+        'date_time_date' => 'heroicon-o-calendar',
+        'date_time_time' => 'heroicon-o-clock',
         'text_color' => 'arte-letter-a',
         'text_background' => 'arte-highlighter',
         'color_custom' => 'arte-palette',
         'more' => 'heroicon-o-ellipsis-horizontal',
         'tools_menu' => 'heroicon-o-wrench-screwdriver',
         'source_code' => 'heroicon-o-code-bracket',
+        'statistics' => 'heroicon-o-chart-bar',
+        'preview' => 'heroicon-o-eye',
         'find' => 'heroicon-o-magnifying-glass',
         'find_previous' => 'heroicon-o-chevron-up',
         'find_next' => 'heroicon-o-chevron-down',
@@ -1092,6 +1552,11 @@ return [
         // The letter this package already draws, put to a second use: the Latin tab is
         // the one holding letters.
         'characters_latin' => 'arte-letter-a',
+        'format_brush' => 'heroicon-o-paint-brush',
+        'text_case' => 'arte-case-sensitive',
+        'text_case_sentence' => 'arte-case-sensitive',
+        'text_case_upper' => 'arte-case-upper',
+        'text_case_lower' => 'arte-case-lower',
         'characters_greek' => 'heroicon-o-academic-cap',
 
         // The emoji picker's own tabs.
@@ -1127,6 +1592,10 @@ return [
         'image_delete' => 'heroicon-o-trash',
         'image_locked' => 'heroicon-o-lock-closed',
         'image_unlocked' => 'heroicon-o-lock-open',
+
+        // The bar over a selected document card.
+        'file_replace' => 'heroicon-o-arrow-path',
+        'file_delete' => 'heroicon-o-trash',
     ],
 
     /*

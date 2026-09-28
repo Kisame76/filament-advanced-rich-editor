@@ -26,6 +26,9 @@ export const SCHEMES = ['http', 'https', 'mailto', 'tel']
 // is the oldest trick against a check that reads the string as it arrives, because a
 // browser strips them before resolving an address, so a check that does not strip them
 // first is reading a different string than the browser will.
+// The rule guards against typing a control character into a regex by mistake; here they
+// are the subject of the line rather than an accident in it.
+// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
 const withoutControlCharacters = (href) => href.replace(/[\u0000-\u0020\u007F]/g, '')
 
 export const imageHref = (value) => {

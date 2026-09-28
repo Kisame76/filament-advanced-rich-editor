@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\Forms\Components;
 
 use Closure;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 
 /**
  * The grid of pictures inside the image dialog.
@@ -32,6 +34,8 @@ class MediaPicker extends Field
     protected bool|Closure|null $isListView = null;
 
     protected int|Closure|null $pageSize = null;
+
+    protected string|Closure|null $kind = null;
 
     /**
      * The schema key of the editor this grid asks for its pages.
@@ -64,6 +68,51 @@ class MediaPicker extends Field
     public function hasFolders(): bool
     {
         return (bool) $this->evaluate($this->hasFolders);
+    }
+
+    protected Action|Closure|null $fromUrlAction = null;
+
+    /**
+     * The trigger for "add from a link", drawn beside Upload.
+     *
+     * Handed in rather than built here: an action has to be registered on the editor to be
+     * mountable at all, so this grid only draws somebody else's button.
+     */
+    public function fromUrlAction(Action|Closure|null $action): static
+    {
+        $this->fromUrlAction = $action;
+
+        return $this;
+    }
+
+    public function getFromUrlAction(): ?Action
+    {
+        $action = $this->evaluate($this->fromUrlAction);
+
+        return ($action instanceof Action) ? $action : null;
+    }
+
+    protected bool|Closure $canDescribe = true;
+
+    /**
+     * Whether the panel offers the description field.
+     *
+     * Off where there is nothing to write to, which is a field with no pool behind it: an
+     * input that saves nowhere is worse than no input, because it looks like it worked.
+     *
+     * The setter and the reader have different names because PHP has no overloading: the
+     * dialog calls `canDescribe()`, and the view asks `isDescribable()`.
+     */
+    public function canDescribe(bool|Closure $condition = true): static
+    {
+        $this->canDescribe = $condition;
+
+        return $this;
+    }
+
+    public function isDescribable(): bool
+    {
+        return (bool) $this->evaluate($this->canDescribe);
     }
 
     public function recordScoped(bool|Closure $condition = true): static
@@ -99,10 +148,30 @@ class MediaPicker extends Field
             'list' => (string) __($key.'view_list'),
             'filter' => (string) __($key.'filter'),
             'allTypes' => (string) __($key.'all_types'),
+            'allKinds' => (string) __($key.'all_kinds'),
+            // Keyed by family so the tabs read as words rather than as `image` and `video`.
+            'kinds' => array_combine(
+                MediaKinds::all(),
+                array_map(static fn (string $kind): string => (string) __($key.'kinds.'.$kind), MediaKinds::all()),
+            ),
             'sort' => (string) __($key.'sort'),
             'previous' => (string) __($key.'previous'),
             'next' => (string) __($key.'next'),
             'nothingSelected' => (string) __($key.'nothing_selected'),
+            'alt' => (string) __($key.'alt'),
+            'title' => (string) __($key.'title'),
+            'saved' => (string) __($key.'saved'),
+            'download' => (string) __($key.'download'),
+            'play' => (string) __($key.'play'),
+            // What a tile and the panel call a service, rather than the bare provider key.
+            'providers' => [
+                'youtube' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.youtube'),
+                'vimeo' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.vimeo'),
+            ],
+            'delete' => (string) __($key.'delete'),
+            'rejected' => (string) __($key.'rejected'),
+            'dismiss' => (string) __($key.'dismiss'),
+            'confirmDelete' => (string) __($key.'confirm_delete'),
             'copy' => (string) __($key.'copy_url'),
             'copied' => (string) __($key.'copied'),
             'drop' => (string) __($key.'drop'),
@@ -155,6 +224,27 @@ class MediaPicker extends Field
         $this->pageSize = $size;
 
         return $this;
+    }
+
+    /**
+     * The tab the browser opens on.
+     *
+     * Which button was pressed, in other words: the picture button opens on pictures and the
+     * sound button on sounds, so nobody arrives at a grid of everything having already said
+     * what they were looking for. Blank opens on all of them.
+     */
+    public function kind(string|Closure|null $kind): static
+    {
+        $this->kind = $kind;
+
+        return $this;
+    }
+
+    public function getKind(): string
+    {
+        $kind = $this->evaluate($this->kind);
+
+        return in_array($kind, MediaKinds::all(), strict: true) ? $kind : '';
     }
 
     public function getPageSize(): int

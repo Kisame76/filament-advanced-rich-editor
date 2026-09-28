@@ -109,6 +109,48 @@ class ToolbarLayout
             'characters' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasCharacters()
                 ? 'characters'
                 : [],
+            // The same, and for the same reason it was missed: the emoji picker ships inside
+            // the overflow menu, where a dropdown drops what it cannot resolve. Named
+            // directly on a bar - which a toolbar preset does - it had nothing to drop it.
+            'emoji' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmoji()
+                ? 'emoji'
+                : [],
+            // Nothing to pick from means no trigger, the same rule the spacing dropdown
+            // follows - and here "nothing" counts a list whose every format resolved to
+            // nothing, which is what a key naming no format and inheriting none leaves.
+            'dateTime' => static function (AdvancedRichEditor $editor): object|array {
+                if (! $editor->hasDateTime()) {
+                    return [];
+                }
+
+                $formats = $editor->getDateTimeFormats();
+
+                return $formats === [] ? [] : ToolbarDropdown::dateTime(array_keys($formats));
+            },
+            // Nothing to offer means no button, the same rule the rest of the bar follows.
+            'formatBrush' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFormatBrush()
+                ? 'formatBrush'
+                : [],
+            // The indent pair. Two tokens named after the two buttons rather than one
+            // expanding into both, the way `emoji` and `characters` are: a token that
+            // shadowed the name of a tool would take away the only way to name that tool on
+            // its own, and a bar that wants both writes both.
+            'indent' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasIndent()
+                ? 'indent'
+                : [],
+            'outdent' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasIndent()
+                ? 'outdent'
+                : [],
+            // Nothing to offer means no trigger, the same rule the spacing dropdown follows.
+            'textCase' => static fn (AdvancedRichEditor $editor): object|array => $editor->hasTextCase()
+                ? ToolbarDropdown::textCase()
+                : [],
+            // The same, and the one shipped name that was missing it: `embeds(false)` takes
+            // the tool away, the bar kept naming it, and the view raises on a name it cannot
+            // resolve. A field that switched embeds off stopped rendering altogether.
+            'embed' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmbeds()
+                ? 'embed'
+                : [],
             // Nothing to pick from means no trigger, the same way the overflow menu and the
             // colour pickers vanish when what they open onto is empty.
             'lineHeight' => static function (AdvancedRichEditor $editor): object|array {
@@ -155,6 +197,16 @@ class ToolbarLayout
                 : [],
             'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
                 ? 'help'
+                : [],
+            'statistics' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasStatistics()
+                ? 'statistics'
+                : [],
+            // Two questions behind one token, and the second is the honest one: a field
+            // nobody gave a stylesheet has nothing to draw the document with, so it gets no
+            // button rather than one opening onto unstyled markup. Shipped that way, like
+            // the styles trigger above.
+            'preview' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasPreviewFrontEnd()
+                ? 'preview'
                 : [],
             'find' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFind()
                 ? 'find'

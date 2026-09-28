@@ -2,6 +2,328 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.5.0 - 2026-09-28
+
+### Added
+
+- The media browser takes documents. A pdf, a spreadsheet, an archive - anything that is taken
+  away rather than drawn - has a tab of its own, a tile in the colour of the card it becomes,
+  and is inserted as the download card, which until now had no way in at all. Selecting a card
+  puts a bar over it: Replace opens the browser on the documents with that file already picked,
+  and the choice takes the card's place; Remove takes it out. `file` opens the browser on the
+  documents and is in the slash menu. It works the same with a media collection and on a plain
+  disk, and a link to somebody else's document becomes a card too
+
+- Which files the browser takes is one list per family: `media_library.types`, and
+  `->mediaLibraryTypes()` per field, merged one family at a time so a field says only what it
+  changes. Documents are named by their ending and ship as exactly the endings the card has a
+  colour for; `['*']` takes every ending. A document is taken only where its content agrees with
+  its ending, and it is stored under that ending - so what arrives as `.pdf` is served as a pdf -
+  while a short list of endings a server or a browser would run as the site (php and its
+  relatives, html, svg, xml, js) is refused whatever the list says. An upload the browser refuses
+  is named in the dialog rather than simply never turning up
+
+- On a plain disk, what the browser uploads is stored under the name it came with, made safe
+  for an address and followed by six random characters - `quartalsbericht-q3--7kq2xm.pdf` - and
+  shown without them. Filament's forty-character hash is fine for a picture, which is recognised
+  by looking at it, and useless for a document, which has no thumbnail and is found by its name;
+  the random part is what keeps the address from being guessed. Files already on the disk keep
+  the names they have
+
+- The media browser stopped being about pictures, and now shows what is in a file before you
+  open it. A film gets its first frame through the `ffmpeg` binary; a sound gets whatever
+  cover art its ID3 tag carries, read here rather than through a dependency. Neither is asked
+  for twice - a file that cannot produce a cover is marked and skipped - and one listing makes
+  at most three, so a library of forty films fills itself in over a few openings instead of
+  stalling the first. `php artisan arte:media-covers --retry` forgets every mark, which is
+  what a project runs the day it installs ffmpeg; `--prune` clears the companions of files
+  that are gone
+
+- An alt text now belongs to the file rather than to the insert. The panel beside the preview
+  carries one field - alt for a picture, title for anything else - saved as you leave it and
+  used as the default everywhere that file is used afterwards, so one photograph stops being
+  described three different ways in three articles. The image toolbar still edits a single
+  insert, which is the point: global is a default, never a lock. On a disk it lives in a JSON
+  document beside the file; with a media collection it is two custom properties. A description
+  typed against an upload that is not saved yet is held and written the moment the file
+  becomes real
+
+- A YouTube or Vimeo embed can live in the library like any other entry, with the service's
+  own still on its tile and a tab of its own. Picking one and pressing Submit runs exactly
+  what the embed dialog runs, so nothing about what a document stores has changed
+
+- **From a link**, beside Upload: one field that takes any address and works out what it is.
+  A YouTube or Vimeo link becomes a library entry; anything else is a file somebody else
+  hosts, inserted as a link and stored nowhere. It began as two buttons under the grid -
+  "Embed" and "From an address" - which asked people to know which dialog their link belonged
+  in before they had the answer, and sat below the tallest column so a short list left a field
+  of nothing above them
+
+- Download beside Copy link in the panel, and Delete where the library is this record's own
+  attachments. Not in a shared library: the file may be in another record's content that
+  nobody standing there can see. An embed has neither - it has no bytes to download and no
+  file to delete - and its Copy link hands over the watch address rather than the frame one.
+  Its still is shown with a play mark, and only pressing it loads a player
+
+- Five named toolbar presets, `->preset('minimal' | 'comment' | 'blog' | 'default' | 'full')`,
+  each answering for the main bar, the overflow, the tools menu, the bar over a selection and
+  whether uploads are taken - four decisions a comment box needs made together, which until
+  now meant copying the shipped arrays and shrinking them by hand. `default` is the shipped bar
+  under a name; `full` also places `fontFamily`, `textCase`, `language` and `strike`. Add your
+  own, or replace a shipped one, under `toolbar_presets`. A field's own `->toolbarButtons()`,
+  `->moreTools()`, `->toolsMenu()`, `->textToolbarButtons()` and `->fileAttachments()` still
+  win, one bar at a time
+
+- `->notion()`, the mode with no toolbar: the slash menu, the block grip and the bar over a
+  selection carry the field. It takes uploads, because the slash menu is its only way to a
+  picture, and a preset named beside it puts a bar back
+
+- A statistics dialog in the tools menu: words, characters, characters without spaces, blocks
+  and a reading time (`statistics.words_per_minute`, 200 by default). Counted the way the
+  counter under the field counts, so its characters are the number `maxLength()` refuses a
+  save over
+
+- A preview in the tools menu that draws the document the way the page will: through the same
+  renderer and sanitiser `AdvancedRichEntry`, `AdvancedRichColumn` and `<x-arte-content>` use,
+  in a sandboxed `<iframe srcdoc>` that loads your stylesheet - `->previewStylesheets([...])`
+  and `->previewWrapperClass()`. A field given no stylesheet gets no button: the package has
+  no front-end CSS to lend it. `->configureRenderer()` and `getRichContentRenderer()` on the
+  field build that renderer once, for the preview and for what a save parses
+
+- `->enforceMaxLength()`: the editor refuses a keystroke that would take the document past
+  `maxLength()` instead of letting the save be refused later. Off by default - a comment box
+  blocks, an article warns. A document already over the limit still opens and can be
+  shortened, and an undo is never refused
+
+- Rules about what a document holds: `->minWords()`, `->maxWords()` and
+  `->mustContain(['heading', 'image', 'link'])`, by TipTap's own node and mark names. They
+  stand down on an empty field, which is `required()`'s business, and a word rule turns words
+  on in the counter. `DocumentContent::contains()` asks the same of a column without a field
+
+- `RichContentSaved`, dispatched once per rich content column that changed on a model using
+  `FiresRichContentEvents` - the hook for optimising pictures, checking links or clearing a
+  render cache. It carries the record, the attribute, the content before and after, and
+  whether the save created the record. A save that changed another column says nothing
+
+- A link can point at a record instead of a typed address:
+  `->linkSources([LinkSource::make('articles')->using(fn (string $search): array => ...)])`
+  puts a search above the URL field of the link dialog, and picking a result fills in the URL,
+  which stays what the link stores
+
+- `AdvancedRichContentRenderer::make()->fromMarkdown($markdown)`, the mirror of
+  `toMarkdown()`. GitHub-flavoured, with footnotes kept as text, loose content put back into a
+  paragraph, task lists kept apart from plain bullets and `allow_unsafe_links` off. Nothing to
+  install: `league/commonmark` comes with Laravel
+
+- A format brush: pick the formatting up at one passage and put it down on another, once, or
+  kept armed with a second click. It carries the marks this field's schema declares and never
+  a code run, a link or a language. Ships off: `->formatBrush()`, then put `formatBrush` on a
+  bar, over a selection or in `more`
+
+- Changing the case of a selection - Sentence case, lower case and UPPER CASE - and Shift+F3 to
+  cycle through them the way Word does. Nothing is stored but the letters. Registered without
+  a button: `textCaseSentence`, `textCaseLower` and `textCaseUpper` for `more`, or the
+  `textCase` token on a bar or over a selection
+
+- Today's date, the time, or both written into the document, in the formats the schema already
+  uses for dates unless `date_time.formats` or `->dateTimeFormats()` name others. Ships off:
+  `->dateTime()`. The way in is the slash menu (`/date`, `/heute`), or `insertDate`,
+  `insertTime` and `insertDateTime` in `more`, or the `dateTime` token on a bar
+
+- A block steps in and out with Mod+] and Mod+[, written as `margin-inline-start` so it holds
+  on the page. Ships off: `->indent()`, with `->indentStep()` and `->indentMax()`, and
+  `indent` and `outdent` to give it buttons
+
+- Typography while typing: straight quotes become the ones the language uses, `...` becomes
+  `…` and `--` becomes the language's dash - straight after a word (`9--17`), or between two
+  spaces once the second is typed (`Wort -- Wort`). English and German ship, others go
+  under `typography.languages`. Ships off, because it rewrites what somebody types into what
+  is stored: `->typography()`, and `->typographyLanguage()` where the app's locale is not the
+  document's
+
+- Video and audio from your own server: `video` and `audio` place a `<video>` or an `<audio>`
+  with an address, a poster, a title, a preload hint and a loop. Registered without a button -
+  the media browser and the slash menu (`/video`, `/audio`) are the way in - and
+  `->media(false)` takes the node and the buttons away. Players already stored keep rendering
+  either way
+
+- `->fileAttachmentProvider()` on `AdvancedRichEntry` and `AdvancedRichColumn`, beside the disk
+  and visibility they already took, so a view page resolves an upload the way the field does
+
+### Fixed
+
+- **A mention searched on the server answered "No results match your search." from Filament
+  5.8.3 on.** Filament 5.8.3 sends mention items to its script as `{id, label}` pairs and typed
+  the conversion for labels only, so the rows this package's `MentionProvider` answers with - a
+  picture and a second line beside the label - were a `TypeError`, and every search a 500.
+  The field answers the search itself now, with rows in the order the provider gave them, on
+  every Filament release from 5.7 on; Filament's own menu, wherever this one is switched off,
+  still gets the shape its version expects. v1.4.0 has the same failure on Filament 5.8.3 and
+  later
+
+- The editor view carries what Filament 5.9 added to its own: the `hasStickyToolbar`,
+  `hasMinimalCustomBlockControls` and custom block label options its script now reads,
+  `->searchableCustomBlocks()` and `->customBlocksGrid()` with block icons, `->stickyPanels()`,
+  and a label on the panels' close buttons. Each is asked for only where the installed
+  Filament has it, so the view still renders on 5.7 and 5.8. Its `--max-height` is left out on
+  purpose: Filament turns it into a cap on the box the floating toolbars are positioned in,
+  which clips them, and this package caps the document one element in
+
+- Opening a document with a file card in it changed the document with nobody touching it.
+  `tiptap-php` parsed the card's drawn kind, name and size as text inside a node the editor
+  holds as an atom, and the editor dropped that text the first time it read the paragraph
+  again - which the broken-image check made happen on every load, by writing its mark onto the
+  paragraph around ProseMirror's own placeholder image. So a draft was saved for every such
+  document, the next visit offered to restore it, "leave site?" asked about work that did not
+  exist, and the counter, the statistics dialog and the word rules disagreed about the same
+  document - the dialog counting a card's `PDF` and `88 KB` as words. The editor is handed the
+  card as it holds it, every count reads what was written, and the broken-image mark is only
+  ever set on a picture's own wrapper. `toText()` still puts a card's name in plain text
+
+- Changing the case from the toolbar threw `RangeError: Applying a mismatched transaction` and
+  left the dropdown open. The command dispatched a transaction of its own inside the chain the
+  toolbar runs, and `editor.can().setTextCase()`, which only asks, changed the text. It writes
+  into the transaction it is handed now
+
+- `->embeds(false)` with `embed` on the bar threw a `LogicException`, and the field did not
+  render at all: the name stayed on the bar after its tool was gone. `embed` is a token that
+  disappears with its feature now, the way `characters`, `find` and `help` always were
+
+- A picture uploaded through a media library was rendered as an `<img>` with its measurements
+  and no source wherever the renderer had no attachment provider: Filament's pass assigns the
+  resolved address unconditionally, so "nothing resolved" erased a good one. The stored
+  source is kept where the id resolves to nothing
+
+- A caption under a resized picture was centred on the column rather than under the picture,
+  and centring a picture did nothing at all - a `<figure>` is a block as wide as the column.
+  The figure is boxed to its picture along the axis the text runs now, written inline so it
+  holds on the page too
+
+- The character counter read `1,234` before the first keystroke and `1.234` after it; both
+  halves format in the app's locale now. And a `maxLength()` of `0` - no limit - no longer
+  reads `0 / 0 characters` in red
+
+- A film or a sound already in a media collection keeps resolving when the browser stops
+  offering its format. The pool was both the list and the authoriser, so the day video became
+  the formats a browser plays, an `.mkv` embedded in a published article lost its address with
+  nothing raised. The scope - the collection, the model, the record, or a shared library's own
+  closure - is what a stored id is measured against now; what the browser offers narrows the
+  listing alone
+
+- A document stored on a disk is found by the name the grid shows it under. The search ran
+  against the stored name, so typing `quartalsbericht-q3.pdf` - which is what the tile, the
+  panel and the card all read - matched nothing
+
+- A file already on the disk keeps the name it has. Any name holding two dashes and six
+  characters before its ending was read as one this package had written and shown shortened, so
+  `team--photo1.png` was listed, and inserted, as `team.png`. What this package stores now
+  always opens its random part with a digit
+
+- A card is labelled with its file's ending where the media row's name carries a dot of its
+  own: `Quartalsbericht Q3.2024` was read as a name ending in `2024`, and the card lost its
+  `.pdf` - on the label, on the download, and on the badge
+
+- An upload is filed under the family its ending names where `finfo` names another. An `.m4a`
+  is an MP4 container and is often read as `video/mp4`, which refused a sound the audio list
+  names outright while an identical file already on the disk played
+
+- A family whose whole list is refused - `['image' => ['svg']]` - narrows to nothing rather
+  than to everything. The conditions behind its tab were empty, and a database reads an empty
+  group of conditions as every row
+
+- A conversion is handed to a picture rather than to anything whose type starts with `image/`.
+  A CAD drawing is `image/vnd.dwg` to `finfo`, so its card pointed at a picture nothing had
+  made, and a picture whose type was never recorded lost the conversion it should have had
+
+- An address typed into **From a link** becomes a card only where its ending is one the field
+  takes. A dot in the last part of a path is not an ending, and `twitter.com/john.doe` was
+  inserted as a download called `doe`
+
+- The media browser leaves the uploads of other mounted actions alone. Any open action holding
+  a `file` field had its uploads measured against this field's list, named as refused in a
+  dialog about something else, and taken out of the form they were attached to
+
+- The Livewire preview list is put back after a pending document has been drawn. It governs
+  every temporary upload in the request, and widening it for one tile left it wide
+
+- `['*']` does not take an ending that runs on the reader's machine - `exe`, `bat`, `hta`,
+  `vbs`, `ps1`, `jar` and their relatives - and an `.svg` is refused by the listing as well as
+  by the upload, the way the deny list says. Naming one outright is still a project's own call
+
+- A field with no pool to browse offers no `file` button. It fell back to Filament's own
+  dialog, which takes four picture formats and inserts them as pictures
+
+- A film or a sound picked from a media collection pointed at the field's conversion rather than
+  at the file, wherever `spatie.conversion` was set - a still where the reader asked for the
+  film. A conversion is a picture made from a file, so it is now only ever used for a picture;
+  the same rule keeps a document card from pointing at a JPEG of page one
+
+- A field built on this package was a fatal error on `filament/forms` v5.8, before it drew
+  anything. v5.8 gives `RichEditor` a `$maxHeight` of its own, declared `string|Closure|null`,
+  and the property here has carried `int` since it was written against a version that had
+  nothing to override - PHP refuses a redeclaration that widens a property's type. It failed
+  at class load, so a panel holding one field went down whole rather than losing a height.
+  The property matches the parent now, and the bare number `maxHeight()` has always accepted
+  is turned into a string as it arrives, so `maxHeight(400)` still means `400px`. A project
+  held on v5.7 never saw this
+
+- `e` and `p` in a date format are read as the zone tokens `date()` calls them. Both were
+  left out of the list that decides whether a format carries a time, because Carbon emitted
+  them as bare letters and a letter says nothing about an instant - Carbon 3.14 resolves them
+  the way `date()` always did, which left `Y-m-d e` naming the application's timezone beside a
+  date that had never been read in the displayed one. A format that names a zone is about an
+  instant, which is the reason `I`, `O`, `P`, `T` and `Z` were already counted, so these two
+  are counted beside them whatever version of Carbon is installed rather than letting the
+  installed version decide which day a value lands on. Worth knowing: a date-only format
+  carrying `e` or `p` now follows the display timezone and can move a day, exactly as one
+  carrying `T` always did. `x` and `X` stay out, because what they expand is a year
+
+### Changed
+
+- **A field refuses to render where Livewire's nesting limit would break it.** Text inside a
+  list item is eleven levels deep in the document the editor entangles, and Livewire answers
+  anything deeper than `payload.max_nesting_depth` - ten unless a project raised it - with a
+  500 the first time somebody types in a list. The field reads the effective limit when it
+  renders and throws, naming both numbers and the fix, instead. An installation that never
+  raised the limit and never used a list worked until now and will not render after this
+  update: raise it to 32 (see Installation), take the check off with `->nestingCheck(false)`
+  or `nesting_check`, or ask for less with `->nestingCheck(16)`. A limit of `null` - Livewire's
+  "no limit" - passes
+
+- The shipped bar has one `mediaBrowser` button where `image` and `embed` stood. The embed stays
+  registered: the slash menu has it, and `embed` named on a bar still draws it. A published
+  config keeps the bar it has
+
+- The library browser answers to `image` and `mediaBrowser`, and no longer to `attachFiles`,
+  which is Filament's own upload dialog again - taking that name had left a project no way to
+  get the plain dialog back. A bar naming `attachFiles` to reach the library should name
+  `mediaBrowser`
+
+- `ext-intl` is required. The counter formats its number through `Number::format()`, which needs
+  it, and did so without saying; `filament/support` requires it as well, so few installations
+  will notice. `symfony/mime` is required too: the media browser reads its table of endings and
+  types
+
+- The bar over a selection appears wherever a mark means something - in a heading, a list item,
+  a quote and a table cell - rather than in a paragraph only, and no longer over a selected
+  picture. On a field without a toolbar it is the only way to a link or a colour
+
+- The tools menu ships as `['find', 'accessibility', 'statistics', 'preview', 'sourceCode',
+  'help']`. A published config keeps the list it has
+
+- The help dialog, and the statistics dialog beside it, close with the cross, Escape or a click
+  beside them; the Close button in their footer is gone
+
+- `media_library.accepted_file_types` and `->mediaLibraryAcceptedFileTypes()` are replaced by
+  `media_library.types` and `->mediaLibraryTypes()`; neither had shipped in a release. Pictures
+  still follow Filament's `fileAttachmentsAcceptedFileTypes()` unless they are named. Video and
+  audio are the formats a browser can play rather than anything `video/*` or `audio/*`, so a
+  `.mkv` - which no browser plays - is no longer taken
+
+- The two inputs under the grid are gone. The alt text moved into the panel beside the file it
+  describes, and the address moved into `+ Add` - which is what the grid looked like it was
+  for all along
+
 ## 1.4.0 - 2026-08-27
 
 ### Fixed

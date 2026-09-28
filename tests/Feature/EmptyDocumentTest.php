@@ -2,65 +2,8 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Validator;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
-
-/**
- * What a save would say about a field holding a given state.
- *
- * Built out of the two calls `InteractsWithSchemas` makes on the way into the validator -
- * the schema mutates the state for validation, then the rules are run against it - so that
- * this measures what a save measures rather than what one method happens to return. The
- * field is put into its own container first, because a schema only collects rules from the
- * components it actually holds.
- *
- * @return array<string, array<int, string>>
- */
-function validationErrors(AdvancedRichEditor $field, mixed $state): array
-{
-    $schema = $field->getContainer()->components([$field]);
-
-    $data = [$field->getName() => $state];
-
-    $schema->mutateStateForValidation($data);
-
-    return Validator::make($data, $schema->getValidationRules())
-        ->errors()
-        ->messages();
-}
-
-/**
- * A document, from the nodes it holds. The shape is TipTap's own, which is what Livewire
- * carries between the browser and the validator.
- *
- * @param  array<int, array<string, mixed>>  $content
- * @return array<string, mixed>
- */
-function documentOf(array $content): array
-{
-    return ['type' => 'doc', 'content' => $content];
-}
-
-/**
- * An empty paragraph, with the alignment attribute the state cast writes onto every one it
- * parses - so that a test says what production hands over rather than the shortest thing
- * that happens to work.
- *
- * @return array<string, mixed>
- */
-function emptyParagraph(): array
-{
-    return ['type' => 'paragraph', 'attrs' => ['textAlign' => 'start']];
-}
-
-/**
- * @param  array<int, array<string, mixed>>  $content
- * @return array<string, mixed>
- */
-function paragraphOf(array $content): array
-{
-    return ['type' => 'paragraph', 'attrs' => ['textAlign' => 'start'], 'content' => $content];
-}
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
 
 it('rejects a document of nothing but empty paragraphs', function (): void {
     // Filament rejects a document holding exactly one empty paragraph. Pressing return in
@@ -189,4 +132,55 @@ it('stores nothing for an empty document in json mode too', function (): void {
     // asked of an array here and of a string above - one answer has to cover both.
     expect(dehydratedState(editor()->json()->nullWhenEmpty(), '<p></p>'))->toBeNull()
         ->and(dehydratedState(editor()->json()->nullWhenEmpty(), '<p>hi</p>'))->toBeArray();
+});
+
+/**
+ * The same question asked of a column rather than of a field.
+ *
+ * `DocumentContent::isBlank()` is what the docs hand an observer, a queued job or a model
+ * hook, and none of the three can narrow the shape first: a JSON column gives back a `doc`
+ * array and a `text` one gives back markup. Answering only for the array would have made this
+ * right for half the records and quietly wrong for the other half, which is worse than being
+ * wrong for all of them, because nothing would report it.
+ */
+it('calls a document of empty paragraphs blank in either shape it is stored in', function (mixed $stored): void {
+    expect(DocumentContent::isBlank($stored))->toBeTrue();
+})->with([
+    // Every row wrapped, because a dataset spreads an array over the test's parameters and
+    // a document is one argument rather than a list of them.
+    'nothing at all' => [null],
+    'an empty column' => [''],
+    'the paragraph TipTap always keeps' => ['<p></p>'],
+    'the second one a stray return leaves behind' => ['<p></p><p></p>'],
+    'a line break' => ['<p><br></p>'],
+    'a paragraph carrying an attribute' => ['<p style="text-align: start"></p>'],
+    'the space a paste from Word leaves' => ['<p>&nbsp;</p>'],
+    'a zero width space' => ["<p>\u{200B}</p>"],
+    'the same document as a tree' => [['type' => 'doc', 'content' => [['type' => 'paragraph']]]],
+]);
+
+it('calls a document with something in it content in either shape', function (mixed $stored): void {
+    expect(DocumentContent::isBlank($stored))->toBeFalse();
+})->with([
+    'words' => ['<p>hi</p>'],
+    'a heading, empty or not' => ['<h2></h2>'],
+    'a picture' => ['<p><img src="https://example.test/a.png"></p>'],
+    'a list' => ['<ul><li>eins</li></ul>'],
+    'a rule' => ['<hr>'],
+    'a node this package never heard of' => ['<product-card id="7"></product-card>'],
+    'the same document as a tree' => [['type' => 'doc', 'content' => [['type' => 'image']]]],
+]);
+
+it('reads a smaller than as text, the way somebody writing it means it', function (): void {
+    // Blank, because `a < b` is a sentence rather than a tag - and the tag test is what
+    // decides whether markup holds anything, so it has to know the difference.
+    expect(DocumentContent::isBlank('<p></p>'))->toBeTrue()
+        ->and(DocumentContent::isBlank('<p>a < b</p>'))->toBeFalse();
+});
+
+it('believes a shape it cannot read, rather than calling it empty', function (): void {
+    // The direction the whole class is written in: an unknown node counts as content, and so
+    // does an unknown column. The mistake worth making is a listener that ran for nothing.
+    expect(DocumentContent::isBlank(new stdClass))->toBeFalse()
+        ->and(DocumentContent::isBlank(42))->toBeFalse();
 });

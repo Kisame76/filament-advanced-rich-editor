@@ -117,7 +117,7 @@ function reposition() {
     // the very same click, so its rect is only trustworthy while it is still on screen.
     const rect = anchorElement?.getBoundingClientRect()
 
-    if (rect && rect.width) {
+    if (rect?.width) {
         anchorRect = rect
     }
 
