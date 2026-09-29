@@ -7,14 +7,19 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Media;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
 use RuntimeException;
+use Spatie\MediaLibrary\Conversions\FileManipulator;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
+use Spatie\MediaLibrary\MediaCollections\Filesystem as MediaFilesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\Support\File as MediaFile;
 use Spatie\MediaLibrary\Support\PathGenerator\PathGeneratorFactory;
 use Throwable;
 
@@ -33,7 +38,7 @@ use Throwable;
  * Ids are media UUIDs, which is what the image node already carries in `attrs.id`. Picking an
  * existing item therefore stores nothing the upload path would not have stored.
  */
-class SpatieMediaSource implements MediaSource
+class SpatieMediaSource implements MediaSource, ReplacesMedia
 {
     /**
      * @param  Closure(Builder<Media>): mixed|null  $poolQuery  defined pool, overriding the scope
@@ -42,6 +47,7 @@ class SpatieMediaSource implements MediaSource
      * @param  string|null  $thumbnailConversion  the conversion the grid draws, if the model has one
      * @param  string  $scope  'collection', 'model' or 'record' - each narrower than the last
      * @param  Closure(): mixed|null  $getModelUsing  the model class, for a form with no record yet
+     * @param  bool|null  $deletable  whether a row may be thrown away; null leaves it to the scope
      */
     final public function __construct(
         protected string $collection = 'default',
@@ -53,6 +59,7 @@ class SpatieMediaSource implements MediaSource
         protected ?string $thumbnailConversion = null,
         protected string $scope = 'collection',
         protected ?Closure $getModelUsing = null,
+        protected ?bool $deletable = null,
     ) {}
 
     /**
@@ -69,6 +76,7 @@ class SpatieMediaSource implements MediaSource
         ?string $thumbnailConversion = null,
         string $scope = 'collection',
         ?Closure $getModelUsing = null,
+        ?bool $deletable = null,
     ): static {
         return app(static::class, [
             'collection' => $collection,
@@ -80,6 +88,7 @@ class SpatieMediaSource implements MediaSource
             'thumbnailConversion' => $thumbnailConversion,
             'scope' => $scope,
             'getModelUsing' => $getModelUsing,
+            'deletable' => $deletable,
         ]);
     }
 
@@ -489,7 +498,7 @@ class SpatieMediaSource implements MediaSource
     {
         $media = $this->media($id);
 
-        if (! $media || ! $this->isRecordScoped()) {
+        if (! $media || ! ($this->deletable ?? $this->isRecordScoped())) {
             return false;
         }
 
@@ -499,6 +508,144 @@ class SpatieMediaSource implements MediaSource
             return (bool) $media->delete();
         } catch (Throwable $exception) {
             return false;
+        }
+    }
+
+    public function replacementTypes(mixed $id): ?array
+    {
+        $media = $this->media($id);
+        $kind = $media ? $this->kindOf($media) : null;
+
+        if (($media === null) || ($kind === null) || ($kind === MediaKinds::EMBED)) {
+            return null;
+        }
+
+        return $this->library()->replacementsFor(
+            $kind,
+            LibraryTypes::endingOf((string) $media->getAttributeValue('file_name')),
+            sameEnding: $kind === MediaKinds::FILE,
+        );
+    }
+
+    /**
+     * Swaps the file behind a row, and keeps the row.
+     *
+     * The row is what everything points at - documents by its uuid, a project perhaps by its
+     * key - so it stays, with its owner, its order and its description. A new row with the old
+     * uuid would have been simpler to write and wrong in two ways: the key would change, and a
+     * collection kept to its latest few files would throw out an unrelated one on the way in.
+     *
+     * The names follow the upload. The file name changes the address, so no cache anywhere
+     * serves the old picture under it; the display name is what the tile, the panel and every
+     * card say, and it is set the way the upload would have set it - a library that goes on
+     * calling the new file by the old one's name is telling somebody the wrong thing. The cards
+     * that were written with the old name are rewritten by whoever asked, from what this
+     * leaves behind. A picture, a film and a sound may change format with it; a document keeps
+     * its ending, since every card using it downloads under that name.
+     *
+     * The order matters. Spatie's observer moves the old file and its conversions to the new
+     * name as the row is saved, and only then are the new bytes written over it - so a write
+     * that fails leaves the old file in place under the new name rather than no file at all.
+     */
+    public function replace(mixed $id, UploadedFile $file): bool
+    {
+        $media = $this->media($id);
+        $kind = $media ? $this->kindOf($media) : null;
+
+        if (($media === null) || ($kind === null) || ($kind === MediaKinds::EMBED)) {
+            return false;
+        }
+
+        $ending = LibraryTypes::endingOf((string) $media->getAttributeValue('file_name'));
+
+        if (! $this->library()->replaces($kind, $ending, $file, sameEnding: $kind === MediaKinds::FILE)) {
+            return false;
+        }
+
+        // A local copy, for the reason the provider makes one on upload: a temporary upload
+        // may live on a remote disk, and Spatie copies from a path.
+        $temporary = (string) tempnam(sys_get_temp_dir(), 'arte-replace');
+
+        try {
+            file_put_contents($temporary, $file->get());
+
+            $fileName = static::fileNameFor($file->getClientOriginalName());
+            $filesystem = app(MediaFilesystem::class);
+            $responsive = $media->hasResponsiveImages();
+
+            // Under the old name, before it changes: Spatie renames the conversions it knows
+            // about, and the cover is one this package writes beside them.
+            $this->forgetCover($media);
+
+            if ($responsive) {
+                $filesystem->removeResponsiveImages($media);
+                $media->setAttribute('responsive_images', []);
+            }
+
+            // Everything that was measured or made from the old bytes.
+            $media->forgetCustomProperty('width');
+            $media->forgetCustomProperty('height');
+            $media->forgetCustomProperty(CoverGenerator::ATTEMPTED_PROPERTY);
+            $media->setAttribute('generated_conversions', []);
+
+            $dimensions = ($kind === MediaKinds::IMAGE) ? MediaDimensions::fromPath($temporary) : null;
+
+            if ($dimensions !== null) {
+                $media->setCustomProperty('width', $dimensions['width']);
+                $media->setCustomProperty('height', $dimensions['height']);
+            }
+
+            // Named as an upload is named - the client's file name without its ending. An upload
+            // that has nothing to be named by, a file called only `.png`, leaves the name as it was
+            // rather than blanking it.
+            $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+
+            if (filled($name)) {
+                $media->setAttribute('name', $name);
+            }
+
+            $media->setAttribute('file_name', $fileName);
+            $media->setAttribute('mime_type', MediaFile::getMimeType($temporary));
+            $media->setAttribute('size', (int) filesize($temporary));
+            $media->save();
+
+            $filesystem->copyToMediaLibrary($temporary, $media, null, $fileName);
+
+            app(FileManipulator::class)->createDerivedFiles($media, withResponsiveImages: $responsive);
+        } catch (Throwable $exception) {
+            return false;
+        } finally {
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The name Spatie's own adder would have stored an upload under: its default sanitiser,
+     * then the configured namer, then the ending back on.
+     */
+    protected static function fileNameFor(string $name): string
+    {
+        $sanitised = str_replace(['#', '/', '\\', ' '], '-', (string) preg_replace('#\p{C}+#u', '', $name));
+        $ending = pathinfo($sanitised, PATHINFO_EXTENSION);
+        $base = app(config('media-library.file_namer'))->originalFileName($sanitised);
+
+        return ($ending === '') ? $base : "{$base}.{$ending}";
+    }
+
+    /**
+     * Takes the cover away, file and all, so the next listing makes one of the new film.
+     */
+    protected function forgetCover(Media $media): void
+    {
+        $disk = Storage::disk($this->conversionsDisk($media));
+        $cover = $this->coverPath($media);
+
+        if ($disk->exists($cover)) {
+            $disk->delete($cover);
         }
     }
 

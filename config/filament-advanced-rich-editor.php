@@ -1374,6 +1374,40 @@ return [
          */
         'scope' => 'collection',
 
+        /*
+         * Whether the browser's panel may delete a file, and whether it may replace one.
+         *
+         * Deleting: null follows the scope - a record's own attachments may be thrown away, a
+         * library shared across records may not, since a file there may be in another
+         * record's content nobody standing in this one can see. `true` opens a shared library
+         * for it too; `false` closes a record's own. Per field, with a closure that says who:
+         * `->mediaLibraryDeletable(fn (): bool => auth()->user()->isAdmin())`.
+         *
+         * Replacing puts a new file in the old one's place under the same id, so every
+         * document using it shows the new one - nothing breaks, which is why it is on even in
+         * a shared library. The new file has to be of the same family; on a plain disk, and
+         * for a document, of the same ending too. Per field: `->mediaLibraryReplaceable()`.
+         */
+        'deletable' => null,
+
+        'replaceable' => true,
+
+        /*
+         * Where else the library's files are used. Deleting a file takes it out of every entry
+         * using it, and replacing one points them all at the new file - which needs to know
+         * where entries live, and a package cannot know which tables hold rich content.
+         *
+         * The field's own column is known without being told. Name the rest: a model with its
+         * columns, or a model alone, which then answers with the columns it registered as rich
+         * content itself (`registerRichContent()`). Per field: `->mediaLibraryDocuments()`.
+         *
+         *   'documents' => [
+         *       App\Models\Page::class => ['body', 'sidebar'],
+         *       App\Models\Post::class,
+         *   ],
+         */
+        'documents' => [],
+
         'page_size' => 40,
 
         /*
@@ -1588,14 +1622,21 @@ return [
         'image_link' => 'heroicon-o-link',
         'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
         'image_size' => 'heroicon-o-arrows-pointing-out',
+        'image_replace' => 'heroicon-o-arrow-path',
         'image_download' => 'heroicon-o-arrow-down-tray',
         'image_delete' => 'heroicon-o-trash',
         'image_locked' => 'heroicon-o-lock-closed',
         'image_unlocked' => 'heroicon-o-lock-open',
 
-        // The bar over a selected document card.
+        // The bars over a selected document card, film or sound, and embed.
         'file_replace' => 'heroicon-o-arrow-path',
+        'file_download' => 'heroicon-o-arrow-down-tray',
         'file_delete' => 'heroicon-o-trash',
+        'media_replace' => 'heroicon-o-arrow-path',
+        'media_download' => 'heroicon-o-arrow-down-tray',
+        'media_delete' => 'heroicon-o-trash',
+        'embed_replace' => 'heroicon-o-arrow-path',
+        'embed_delete' => 'heroicon-o-trash',
     ],
 
     /*

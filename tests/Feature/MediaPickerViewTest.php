@@ -20,7 +20,7 @@ use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\Post;
  * JavaScript, or the editor key going missing - which would leave the grid asking the wrong
  * component for its pages and showing an empty library for ever.
  */
-function renderPicker(bool $hasFolders = true, bool $isRecordScoped = true, bool $isListView = false, bool $canDescribe = true): string
+function renderPicker(bool $hasFolders = true, bool $isRecordScoped = true, bool $isListView = false, bool $canDescribe = true, ?bool $isDeletable = null, bool $isReplaceable = true): string
 {
     View::share('errors', new ViewErrorBag);
 
@@ -28,6 +28,8 @@ function renderPicker(bool $hasFolders = true, bool $isRecordScoped = true, bool
         ->editorKey('editor-key')
         ->folders($hasFolders)
         ->recordScoped($isRecordScoped)
+        ->deletable($isDeletable)
+        ->replaceable($isReplaceable)
         ->listView($isListView)
         ->canDescribe($canDescribe)
         ->container(Schema::make(new TestSchemaComponent)->operation('edit'))
@@ -232,5 +234,130 @@ it('plays an embed only once it is asked to', function (): void {
 });
 
 it('offers no download for something that is not a file', function (): void {
-    expect(renderPicker())->toContain('! isEmbed(selected)');
+    // Which actions a file has is decided in `media-picker.js`, where it is tested; the view
+    // only asks.
+    expect(renderPicker())->toContain("has('download')");
+});
+
+it('offers delete in a shared library the field opened for it', function (): void {
+    // The field's answer wins over the scope's: a project that opted in has decided that
+    // deleting from the shared library is somebody's call to make.
+    expect(renderPicker(isRecordScoped: false, isDeletable: true))->toContain('canDelete: true')
+        ->and(renderPicker(isRecordScoped: true, isDeletable: false))->toContain('canDelete: false');
+});
+
+it('says whether the library is shared, because the delete question depends on it', function (): void {
+    expect(renderPicker(isRecordScoped: false))->toContain('shared: true')
+        ->and(renderPicker(isRecordScoped: true))->toContain('shared: false');
+});
+
+it('asks the editor to replace a file, and only where it may', function (): void {
+    expect(renderPicker())->toContain('replaceMediaForJs')
+        ->and(renderPicker())->toContain('canReplace: true')
+        ->and(renderPicker(isReplaceable: false))->toContain('canReplace: false');
+});
+
+it('draws the four actions as one grid of equal cells', function (): void {
+    // Copy, Download, Replace, Delete - two over two, whatever the labels measure. A button
+    // that does not apply is left out rather than leaving a hole: the last odd one widens.
+    $html = renderPicker();
+
+    $actions = substr($html, (int) strpos($html, 'fi-arte-media-actions'), 6000);
+
+    expect($actions)->toContain("has('copy')")
+        ->toContain("has('download')")
+        ->toContain("has('replace')")
+        ->toContain("has('delete')")
+        ->toContain("wide('replace')")
+        ->toContain('replace()')
+        ->toContain('remove()');
+});
+
+it('asks the editor where a file is used before deleting or replacing it', function (): void {
+    expect(renderPicker())->toContain('getMediaUsageForJs');
+});
+
+it('says what a delete or a replacement reached, above the grid', function (): void {
+    // After a delete nothing is selected, so the panel is not where it can be said.
+    $html = renderPicker();
+
+    expect($html)->toContain('fi-arte-media-notice')
+        ->and($html)->toContain('dismissNotice()');
+});
+
+it('carries the questions that name the entries into the browser', function (): void {
+    $labels = MediaPicker::make('media')->container(testSchema())->getLabels();
+
+    expect($labels)->toHaveKeys([
+        'confirmDeleteUsed', 'confirmDeleteUsedOne', 'confirmReplaceUsed', 'confirmReplaceUsedOne',
+        'usageMore', 'deletedFrom', 'deletedFromOne', 'replacedIn', 'replacedInOne',
+    ])
+        ->and($labels['confirmDeleteUsed'])->toContain(':entries')
+        ->and($labels['confirmDeleteUsed'])->not->toStartWith('filament-advanced-rich-editor::');
+});
+
+it('asks in Filament\'s own dialog, one for each kind of question', function (): void {
+    // Two, because they differ in colour: a delete is red and a replacement is a warning,
+    // and a modal's icon colour is decided when it is drawn.
+    $html = renderPicker();
+
+    preg_match("/confirmId: '([^']+)'/", $html, $found);
+
+    expect($found)->not->toBeEmpty()
+        ->and($html)->toContain('data-fi-modal-id="'.$found[1].'-delete"')
+        ->and($html)->toContain('data-fi-modal-id="'.$found[1].'-replace"')
+        ->and($html)->toContain('role="alertdialog"')
+        ->and($html)->toContain('fi-arte-media-confirm')
+        ->and($html)->toContain('yes()')
+        ->and($html)->toContain('no()')
+        // Every modal announces its closing on the window, the browser's own included.
+        ->and($html)->toContain('dismissed($event.detail.id)');
+});
+
+it('leaves no directive uncompiled in the markup', function (): void {
+    // `@js()` and its kind are not compiled inside the attributes of a component tag, and what
+    // reaches the browser is the directive itself - a syntax error in an Alpine expression that
+    // takes every element after it down with it. Nothing else notices, since the page renders.
+    expect(renderPicker())->not->toMatch('/@(js|json|class|checked|selected|disabled)\(/');
+});
+
+it('gives every picker its own dialogs', function (): void {
+    // Two on one page would otherwise open each other's.
+    preg_match("/confirmId: '([^']+)'/", renderPicker(), $first);
+    preg_match("/confirmId: '([^']+)'/", MediaPicker::make('other')
+        ->editorKey('editor-key')
+        ->container(Schema::make(new TestSchemaComponent)->operation('edit'))
+        ->render()
+        ->render(), $second);
+
+    expect($first[1])->not->toBe($second[1]);
+});
+
+it('never falls back on the browser\'s own confirm', function (): void {
+    // It looks like nothing else in the panel, and cannot be styled or translated by it. A
+    // call, not a mention: the comments say why it is not used.
+    foreach (['js/media-picker.js', 'views/media-picker.blade.php'] as $file) {
+        expect(file_get_contents(__DIR__.'/../../resources/'.$file))
+            ->not->toContain('window.confirm')
+            ->not->toMatch('/(?<![\w.`])confirm\(/');
+    }
+});
+
+it('keeps Replace in the grid while the server has not said what may take the place', function (): void {
+    $html = renderPicker();
+    $actions = substr($html, (int) strpos($html, 'fi-arte-media-actions'), 6000);
+
+    // Drawn but not pressable, so the grid does not change shape when the answer arrives.
+    expect($actions)->toContain('replaceReady')
+        ->toContain('deleting');
+});
+
+it('carries the words of the two dialogs into the browser', function (): void {
+    $labels = MediaPicker::make('media')->container(testSchema())->getLabels();
+
+    expect($labels)->toHaveKeys(['deleteHeading', 'replaceHeading', 'deleting', 'cancel'])
+        ->and($labels['deleteHeading'])->toContain(':name')
+        ->and($labels['replaceHeading'])->toContain(':from')->toContain(':to')
+        // Filament's own word, so the button reads like every other cancel in the panel.
+        ->and($labels['cancel'])->not->toStartWith('filament-actions::');
 });

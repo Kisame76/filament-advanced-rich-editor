@@ -90,8 +90,8 @@ trait BuildsTheToolbar
      * `file` opens the media browser, and `MediaLibraryAction::nameFor()` falls back to
      * Filament's own dialog where there is no pool to browse - a dialog that takes four
      * picture formats and inserts whatever it takes as an `image` node. A File button that
-     * can only produce a picture is worse than no File button, and the bar over a card
-     * already drops `fileReplace` for the same reason.
+     * can only produce a picture is worse than no File button, and the bars over a card and a
+     * film already drop `fileReplace` and `mediaReplace` for the same reason.
      *
      * Asked once per answer: `getMediaSource()` reaches `hasFileAttachmentsByDefault()`,
      * which reads the bar, which resolves these very tools. The nested call is handed the
@@ -112,7 +112,7 @@ trait BuildsTheToolbar
 
         try {
             if ($this->getMediaSource() === null) {
-                unset($tools['file'], $tools['fileReplace']);
+                unset($tools['file'], $tools['fileReplace'], $tools['mediaReplace']);
             }
         } finally {
             $this->isReadingTools = false;

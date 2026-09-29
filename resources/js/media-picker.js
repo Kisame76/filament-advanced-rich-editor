@@ -25,7 +25,16 @@ export default ({
     fetchDetails,
     saveMetadata,
     deleteMedia,
+    replaceMedia,
+    // Which entries use a file, asked before deleting or replacing it. A default that knows
+    // of none, so a view built before this existed still asks its plain question.
+    fetchUsage = async () => ({ count: 0, entries: [] }),
     canDelete = false,
+    canReplace = false,
+    shared = false,
+    // The dialogs' ids are drawn by the view, which is what keeps two pickers on one page from
+    // opening each other's. One id per kind of question: they differ in colour.
+    confirmId = 'arte-media-confirm',
 }) => ({
     items: [],
     folders: [],
@@ -62,6 +71,27 @@ export default ({
     // The files that were turned away, by name, until somebody dismisses the note. A file
     // that simply never turned up in the grid reads as the dialog having lost it.
     rejected: [],
+    // A replacement on its way, and what went wrong with the last one. The note stays until
+    // the selection moves, since it is about the file that was selected.
+    replacing: false,
+    // The server is deleting the selected file, and the entries it was in.
+    deleting: false,
+    replaceError: null,
+    // Which file the picker was opened for. Held rather than read off the selection when the
+    // upload lands: somebody may have clicked another tile while it travelled.
+    _replaceTarget: null,
+    _replaceAccept: null,
+    // When each file was replaced in this dialog, for the addresses that did not change.
+    replacedAt: {},
+    // What a delete or a replacement did beyond the library - how many entries it reached -
+    // until somebody dismisses it. After a delete nothing is selected, so the panel is not
+    // where this can be said.
+    notice: null,
+    // What the confirmation dialog says. Kept after it closes: it fades out over a moment, and
+    // words that vanish first leave an empty box on screen.
+    question: { kind: 'delete', heading: '', description: '', confirm: '' },
+    // Whoever is waiting for the dialog to be answered.
+    _answer: null,
     list: listView,
     // What the server pages by. Guessing it from how many tiles came back read a
     // short last page as a tiny page size, and the footer then divided the whole
@@ -74,6 +104,8 @@ export default ({
     labels,
     hasFolders,
     canDelete,
+    canReplace,
+    shared,
 
     init() {
         // Which layout somebody browses in is a habit rather than a setting, so it is
@@ -96,6 +128,8 @@ export default ({
         this.load()
 
         this.watchUploads()
+
+        this.watchReplacements()
 
         this.watchAdded()
 
@@ -150,6 +184,61 @@ export default ({
 
     get isFiltered() {
         return this.type !== '' || this.kind !== '' || this.sort !== 'newest'
+    },
+
+    /**
+     * What the panel offers for what is selected, in the order the grid draws it.
+     *
+     * An embed is a link, so there is no file to download or to put something in the place
+     * of. An upload that is not saved yet is not in the library at all: its address is a
+     * temporary one nobody should be handed, and there is nothing yet to replace or delete.
+     * Replace needs the server to have named what may take the file's place - but that answer
+     * comes with the details, a moment after the click, and the row the panel shows until
+     * then has none. Where nothing has been said yet the button is drawn anyway, so the grid
+     * has the shape it will keep instead of growing a cell while the pointer is over it; it
+     * is `replaceReady` that says whether it can be pressed. Only a `null` or an empty answer
+     * takes it away.
+     */
+    get actions() {
+        const selected = this.selected
+
+        if (!selected) {
+            return []
+        }
+
+        const pending = Boolean(selected.pending)
+        const said = selected.replace !== undefined
+
+        return [
+            !pending && 'copy',
+            !this.isEmbed(selected) && 'download',
+            !pending && !this.isEmbed(selected) && this.canReplace && (!said || (selected.replace?.length ?? 0) > 0) && 'replace',
+            !pending && this.canDelete && 'delete',
+        ].filter(Boolean)
+    },
+
+    /**
+     * Whether the server has said what may take the selected file's place, and it is
+     * something. Until then Replace is drawn and cannot be pressed.
+     */
+    get replaceReady() {
+        const accept = this.selected?.replace
+
+        return Array.isArray(accept) && accept.length > 0
+    },
+
+    has(action) {
+        return this.actions.includes(action)
+    },
+
+    /**
+     * Whether an action spans both columns: the last of an odd number, so the grid ends in a
+     * full row rather than a hole beside the last button.
+     */
+    wide(action) {
+        const actions = this.actions
+
+        return actions.length % 2 === 1 && actions[actions.length - 1] === action
     },
 
     get selected() {
@@ -242,6 +331,7 @@ export default ({
             this.details = null
             this.detailsFor = null
             this.playing = false
+            this.replaceError = null
 
             return
         }
@@ -250,6 +340,7 @@ export default ({
             return
         }
 
+        this.replaceError = null
         this.details = this.items.find((item) => item.id === id) ?? null
         this.detailsFor = id
         this.playing = false
@@ -300,9 +391,22 @@ export default ({
      * protocol, the size and type checks and the progress behind it.
      */
     get pond() {
+        return this.pondIn('.fi-arte-media-uploader')
+    },
+
+    /**
+     * The second upload field, kept for replacements. Apart from the first because the first
+     * holds what Submit inserts, and a new price list is not something to insert beside the
+     * old one.
+     */
+    get replacer() {
+        return this.pondIn('.fi-arte-media-replacer')
+    },
+
+    pondIn(selector) {
         const scope = this.$root.closest('.fi-modal') ?? document
 
-        const element = scope.querySelector('.fi-arte-media-uploader')
+        const element = scope.querySelector(selector)
 
         return element ? (window.Alpine.$data(element)?.pond ?? null) : null
     },
@@ -314,8 +418,8 @@ export default ({
      * there - and that is exactly when somebody drops the picture they opened the
      * dialog for. Waiting is what stops that drop from quietly doing nothing.
      */
-    whenPond(callback, attempt = 0) {
-        const pond = this.pond
+    whenPond(callback, attempt = 0, which = 'pond') {
+        const pond = this[which]
 
         if (pond) {
             callback(pond)
@@ -324,7 +428,7 @@ export default ({
         }
 
         if (attempt < 60) {
-            setTimeout(() => this.whenPond(callback, attempt + 1), 100)
+            setTimeout(() => this.whenPond(callback, attempt + 1, which), 100)
         }
     },
 
@@ -358,6 +462,10 @@ export default ({
         if (this._onAdded) {
             window.removeEventListener('arte-media-added', this._onAdded)
         }
+
+        // A question nobody can answer any more is answered no, or the flow waiting on it
+        // stays suspended in a picker that no longer exists.
+        this.settle(false)
     },
 
     watchUploads() {
@@ -508,6 +616,241 @@ export default ({
     },
 
     /**
+     * Opens the file picker for a file to put in the selected one's place.
+     *
+     * Narrowed first to what may take the place - the server's answer for this file, which is
+     * the same ending on a disk and the same family in a media library. Set on the input
+     * rather than through the widget's own option, which would also check types in the
+     * browser, and a browser's idea of a document's type is not the server's.
+     */
+    replace() {
+        const id = this.picked
+        const accept = this.selected?.replace
+
+        if (!id || !this.canReplace || !Array.isArray(accept) || accept.length === 0 || this.replacing) {
+            return
+        }
+
+        this.replaceError = null
+
+        this.whenPond(
+            (pond) => {
+                this._replaceTarget = id
+                this._replaceAccept = accept
+
+                pond.element?.querySelector('input[type="file"]')?.setAttribute('accept', accept.join(','))
+                pond.browse()
+            },
+            0,
+            'replacer',
+        )
+    },
+
+    watchReplacements() {
+        this.whenPond(
+            (pond) => {
+                pond.on('addfile', (error, file) => {
+                    if (!this._replaceTarget) {
+                        return
+                    }
+
+                    // Turned away before it travelled - too big, most likely. The widget's
+                    // own complaint is off screen with the widget.
+                    if (error) {
+                        this.replaceError = this.fill(this.labels.replaceRefused, {
+                            name: file?.filename ?? '',
+                            accept: (this._replaceAccept ?? []).join(', '),
+                        })
+                        this._replaceTarget = null
+
+                        if (file?.id) {
+                            pond.removeFile(file.id)
+                        }
+
+                        return
+                    }
+
+                    this.replacing = true
+                })
+
+                pond.on('processfile', (error, file) => this.finishReplacing(pond, error, file))
+            },
+            0,
+            'replacer',
+        )
+    },
+
+    /**
+     * The upload has arrived: ask, then hand it over.
+     *
+     * Asked only now, when both names are known - and a no lets go of the upload on the
+     * server too, or it would be the file the next Replace found first. A yes leaves the
+     * letting go to the server, which takes the upload out of the dialog whatever it answers.
+     */
+    async finishReplacing(pond, error, file) {
+        const id = this._replaceTarget
+
+        if (!id) {
+            return
+        }
+
+        this._replaceTarget = null
+
+        if (error) {
+            this.replacing = false
+            this.replaceError = this.labels.replaceFailed
+
+            if (file?.id) {
+                pond.removeFile(file.id)
+            }
+
+            return
+        }
+
+        const to = file?.filename ?? ''
+        const usage = await this.usageOf(id)
+        const names = { from: this.nameOf(id), to }
+
+        const confirmed = await this.ask({
+            kind: 'replace',
+            heading: this.fill(this.labels.replaceHeading, names),
+            description:
+                usage.count > 0
+                    ? this.fill(usage.count === 1 ? this.labels.confirmReplaceUsedOne : this.labels.confirmReplaceUsed, {
+                          ...names,
+                          count: usage.count,
+                          entries: this.listOf(usage),
+                      })
+                    : this.fill(this.labels.confirmReplace, names),
+            confirm: this.labels.replace,
+        })
+
+        if (!confirmed) {
+            this.replacing = false
+            pond.removeFile(file?.id, { revert: true })
+
+            return
+        }
+
+        this.replacing = true
+
+        try {
+            const result = await replaceMedia(id)
+
+            if (!result?.replaced) {
+                this.replaceError = Array.isArray(result?.accept)
+                    ? this.fill(this.labels.replaceRefused, { name: to, accept: result.accept.join(', ') })
+                    : this.labels.replaceFailed
+
+                return
+            }
+
+            this.replacedAt = { ...this.replacedAt, [id]: Date.now() }
+
+            if (result.item && this.detailsFor === id) {
+                this.details = result.item
+            }
+
+            // Every open editor pointing at the file follows - see `media-replace.js`.
+            window.dispatchEvent(
+                new CustomEvent('arte-media-replaced', {
+                    detail: {
+                        id,
+                        src: result.item?.url ?? null,
+                        name: result.card?.name ?? null,
+                        size: result.card?.size ?? null,
+                        width: result.item?.width ?? null,
+                        height: result.item?.height ?? null,
+                    },
+                }),
+            )
+
+            this.notice = this.reached(result.documents, this.labels.replacedIn, this.labels.replacedInOne)
+
+            await this.load()
+        } catch (failure) {
+            console.error('The advanced rich editor could not replace that file:', failure)
+
+            this.replaceError = this.labels.replaceFailed
+        } finally {
+            this.replacing = false
+
+            // The server has let go of it already; this empties the widget itself.
+            pond.removeFiles()
+        }
+    },
+
+    /**
+     * An address that shows the new file after a replacement kept it the same, as a disk
+     * does - the browser would otherwise draw the old picture out of its cache. Only where
+     * there is no query already: a signed address is new every time, and adding to it would
+     * break its signature.
+     */
+    fresh(id, url) {
+        const stamp = this.replacedAt[id]
+
+        if (!stamp || typeof url !== 'string' || url.includes('?')) {
+            return url
+        }
+
+        return `${url}?v=${stamp}`
+    },
+
+    /**
+     * Which entries use a file, or none where the answer cannot be had - the question is then
+     * asked without it rather than not at all.
+     */
+    async usageOf(id) {
+        try {
+            const usage = await fetchUsage(id)
+
+            return {
+                count: Number(usage?.count ?? 0) || 0,
+                entries: Array.isArray(usage?.entries) ? usage.entries : Object.values(usage?.entries ?? {}),
+            }
+        } catch (error) {
+            console.error('The advanced rich editor could not find where that file is used:', error)
+
+            return { count: 0, entries: [] }
+        }
+    },
+
+    /** The entries a question names, and how many more there are. */
+    listOf(usage) {
+        const more = usage.count - usage.entries.length
+
+        return [...usage.entries, ...(more > 0 ? [this.fill(this.labels.usageMore, { count: more })] : [])].join(', ')
+    },
+
+    /** What a delete or a replacement reached, or nothing where it reached no entry. */
+    reached(count, many, one) {
+        const documents = Number(count ?? 0) || 0
+
+        if (documents <= 0) {
+            return null
+        }
+
+        return this.fill(documents === 1 ? one : many, { count: documents })
+    },
+
+    dismissNotice() {
+        this.notice = null
+    },
+
+    nameOf(id) {
+        const described = this.detailsFor === id ? this.details : null
+
+        // Trimmed: a name can carry a space at its end, which the dialog then shows inside
+        // its quotes.
+        return String(described?.name ?? this.items.find((item) => item.id === id)?.name ?? '').trim()
+    },
+
+    /** A label with its `:placeholders` filled in, the way Laravel's own would have been. */
+    fill(template, values) {
+        return String(template ?? '').replace(/:([a-z]+)/g, (match, key) => values[key] ?? match)
+    },
+
+    /**
      * Saves the description as the field is left.
      *
      * On blur rather than on a button, because a button beside one input is a button
@@ -563,23 +906,45 @@ export default ({
     /**
      * Throws the selected file away.
      *
-     * The browser's own `confirm()` rather than a Filament dialog: a second modal on top of
-     * a modal that is itself on top of the editor is three layers deep, and what is being
-     * asked is one sentence.
+     * It is asked in Filament's own dialog, and what the dialog says depends on where the
+     * file is: the entries it is taken out of, by name, where the server knows of any -
+     * otherwise said differently where it may be in documents nobody here can see.
      */
     async remove() {
         const id = this.picked
 
-        if (!id || !this.canDelete) {
+        if (!id || !this.canDelete || this.deleting) {
             return
         }
 
-        if (!window.confirm(this.labels.confirmDelete)) {
+        const usage = await this.usageOf(id)
+
+        const confirmed = await this.ask({
+            kind: 'delete',
+            heading: this.fill(this.labels.deleteHeading, { name: this.nameOf(id) }),
+            description:
+                usage.count > 0
+                    ? this.fill(usage.count === 1 ? this.labels.confirmDeleteUsedOne : this.labels.confirmDeleteUsed, {
+                          count: usage.count,
+                          entries: this.listOf(usage),
+                      })
+                    : this.shared
+                      ? (this.labels.confirmDeleteShared ?? this.labels.confirmDelete)
+                      : this.labels.confirmDelete,
+            confirm: this.labels.delete,
+        })
+
+        if (!confirmed) {
             return
         }
+
+        this.deleting = true
 
         try {
-            if (!(await deleteMedia(id))) {
+            const result = await deleteMedia(id)
+
+            // `true` from a server built before the answer said how many entries it reached.
+            if (!(result === true || result?.deleted === true)) {
                 return
             }
 
@@ -587,9 +952,84 @@ export default ({
             this.details = null
             this.detailsFor = null
 
+            // Every open editor pointing at the file lets go of it - see `media-replace.js`.
+            window.dispatchEvent(new CustomEvent('arte-media-deleted', { detail: { id } }))
+
+            this.notice = this.reached(result?.documents, this.labels.deletedFrom, this.labels.deletedFromOne)
+
             await this.reload()
         } catch (error) {
             console.error('The advanced rich editor could not delete that file:', error)
+        } finally {
+            this.deleting = false
+        }
+    },
+
+    /**
+     * Asks in Filament's own confirmation dialog and answers with what was pressed.
+     *
+     * A promise, so a flow reads as it did with the browser's `confirm()`: ask, then go on or
+     * not. The dialog itself is the modal component, drawn by the view and opened by the event
+     * every Filament modal opens on - which is what makes it look and behave like the
+     * confirmations everywhere else in the panel, Escape and a click beside it included.
+     *
+     * @param {{kind: 'delete'|'replace', heading: string, description: string, confirm: string}} question
+     * @returns {Promise<boolean>}
+     */
+    ask(question) {
+        return new Promise((resolve) => {
+            // Two dialogs at once would leave the first waiting for ever.
+            this.settle(false)
+
+            this.question = question
+            this._answer = resolve
+
+            this.$dispatch('open-modal', { id: this.dialogId })
+        })
+    },
+
+    /** The id of the dialog the last question was asked in. */
+    get dialogId() {
+        return `${confirmId}-${this.question.kind}`
+    },
+
+    /**
+     * Answers whoever is waiting, once. A dialog closes after a yes as well, and says so - and
+     * that closing answers nothing, since it is already answered.
+     */
+    settle(answer) {
+        const resolve = this._answer
+
+        this._answer = null
+
+        resolve?.(answer)
+    },
+
+    /** The dialog's confirm button. */
+    yes() {
+        const id = this.dialogId
+
+        this.settle(true)
+
+        this.$dispatch('close-modal', { id })
+    },
+
+    /**
+     * The dialog's cancel button. It only closes the dialog: the answer is given by the closing,
+     * which is the same one Escape and a click beside the dialog end in.
+     */
+    no() {
+        this.$dispatch('close-modal', { id: this.dialogId })
+    },
+
+    /**
+     * A modal closed - Filament says so on the window for every one of them, the browser's
+     * own included, so it only counts if it was one of these. Cancel, Escape and a click
+     * beside the dialog all come through here, and all of them mean no.
+     */
+    dismissed(id) {
+        if (id === `${confirmId}-delete` || id === `${confirmId}-replace`) {
+            this.settle(false)
         }
     },
 
@@ -646,10 +1086,10 @@ export default ({
      */
     thumbnailOf(item) {
         if (item?.thumbnail) {
-            return item.thumbnail
+            return this.fresh(item.id, item.thumbnail)
         }
 
-        return (item?.kind ?? 'image') === 'image' ? (item?.url ?? null) : null
+        return (item?.kind ?? 'image') === 'image' ? this.fresh(item?.id, item?.url ?? null) : null
     },
 
     /**

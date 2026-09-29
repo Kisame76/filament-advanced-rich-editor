@@ -1150,46 +1150,65 @@ describe('something added from a dialog on top', () => {
 })
 
 describe('deleting what is selected', () => {
+    const labels = {
+        sorts: {},
+        delete: 'Delete',
+        deleteHeading: 'Delete “:name” for good?',
+        confirmDelete: 'Anything pointing at it will break.',
+    }
+
+    /**
+     * A grid with one file selected, whose dialog answers as it is told to.
+     */
+    const deleting = (answer, config = {}) => {
+        const component = mount(mediaPicker, { labels, fetchPage: vi.fn(async () => page({ items: [] })), ...config })
+        const ask = vi.spyOn(component, 'ask').mockResolvedValue(answer)
+
+        component.items = [item({ id: 'a', name: 'sunset.png' })]
+        component.picked = 'a'
+
+        return { component, ask }
+    }
+
     it('asks first, deletes, and clears the selection', async () => {
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
         const deleteMedia = vi.fn(async () => true)
         const fetchPage = vi.fn(async () => page({ items: [] }))
-
-        const component = mount(mediaPicker, { deleteMedia, fetchPage })
-
-        component.items = [item({ id: 'a' })]
-        component.picked = 'a'
+        const { component, ask } = deleting(true, { deleteMedia, fetchPage })
 
         await component.remove()
 
-        expect(confirm).toHaveBeenCalled()
+        expect(ask).toHaveBeenCalledOnce()
         expect(deleteMedia).toHaveBeenCalledWith('a')
         expect(component.picked).toBeNull()
         expect(fetchPage).toHaveBeenCalled()
     })
 
+    it('asks in a dialog that names the file, and says what will happen to it', async () => {
+        const { component, ask } = deleting(false)
+
+        await component.remove()
+
+        expect(ask).toHaveBeenCalledExactlyOnceWith({
+            kind: 'delete',
+            heading: 'Delete “sunset.png” for good?',
+            description: 'Anything pointing at it will break.',
+            confirm: 'Delete',
+        })
+    })
+
     it('does nothing when the question is answered no', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(false)
         const deleteMedia = vi.fn(async () => true)
-
-        const component = mount(mediaPicker, { deleteMedia })
-
-        component.items = [item({ id: 'a' })]
-        component.picked = 'a'
+        const { component } = deleting(false, { deleteMedia })
 
         await component.remove()
 
         expect(deleteMedia).not.toHaveBeenCalled()
         expect(component.picked).toBe('a')
+        expect(component.deleting).toBe(false)
     })
 
     it('keeps the selection when the server refuses', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true)
-
-        const component = mount(mediaPicker, { deleteMedia: async () => false })
-
-        component.items = [item({ id: 'a' })]
-        component.picked = 'a'
+        const { component } = deleting(true, { deleteMedia: async () => false })
 
         await component.remove()
 
@@ -1197,18 +1216,49 @@ describe('deleting what is selected', () => {
     })
 
     it('never asks in a library that offers no delete', async () => {
-        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
         const deleteMedia = vi.fn(async () => true)
-
-        const component = mount(mediaPicker, { deleteMedia, canDelete: false })
-
-        component.items = [item({ id: 'a' })]
-        component.picked = 'a'
+        const { component, ask } = deleting(true, { deleteMedia, canDelete: false })
 
         await component.remove()
 
-        expect(confirm).not.toHaveBeenCalled()
+        expect(ask).not.toHaveBeenCalled()
         expect(deleteMedia).not.toHaveBeenCalled()
+    })
+
+    it('says it is busy while the server deletes, and not before or after', async () => {
+        // Finding the entries and rewriting them can take a moment, and a button that looks
+        // idle in the meantime is one that gets pressed twice.
+        let during = null
+
+        const { component } = deleting(true, {
+            deleteMedia: async () => {
+                during = component.deleting
+
+                return true
+            },
+        })
+
+        expect(component.deleting).toBe(false)
+
+        await component.remove()
+
+        expect(during).toBe(true)
+        expect(component.deleting).toBe(false)
+    })
+
+    it('is not busy any more when the server fell over', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+
+        const { component } = deleting(true, {
+            deleteMedia: async () => {
+                throw new Error('offline')
+            },
+        })
+
+        await component.remove()
+
+        expect(component.deleting).toBe(false)
+        expect(component.picked).toBe('a')
     })
 })
 
@@ -1361,5 +1411,683 @@ describe('an upload that is refused', () => {
 
         expect(pond.addFiles).toHaveBeenCalledOnce()
         expect(added.catch).toHaveBeenCalledOnce()
+    })
+})
+
+describe('the actions the panel offers', () => {
+    const offering = (selected, config = {}) => {
+        const component = mount(mediaPicker, config)
+
+        component.items = [selected]
+        component.picked = selected.id
+
+        return component
+    }
+
+    it('offers all four for a file in the library', () => {
+        const component = offering(item({ replace: ['.jpg', '.png'] }))
+
+        expect(component.actions).toEqual(['copy', 'download', 'replace', 'delete'])
+        expect(['copy', 'download', 'replace', 'delete'].some((action) => component.wide(action))).toBe(false)
+    })
+
+    it('offers nothing to download or replace for an embed, which is a link', () => {
+        const component = offering(item({ kind: 'embed', replace: null }))
+
+        expect(component.actions).toEqual(['copy', 'delete'])
+    })
+
+    it('offers only the download for an upload that is not saved yet', () => {
+        // Nothing of it is in the library, and its address is a temporary one.
+        const component = offering(item({ pending: true, replace: null }))
+
+        expect(component.actions).toEqual(['download'])
+        expect(component.wide('download')).toBe(true)
+    })
+
+    it('offers no delete where the field may not, and widens the one left over', () => {
+        const component = offering(item({ replace: ['.jpg'] }), { canDelete: false })
+
+        expect(component.actions).toEqual(['copy', 'download', 'replace'])
+        expect(component.wide('replace')).toBe(true)
+        expect(component.wide('copy')).toBe(false)
+    })
+
+    it('offers no replace where the server named nothing that may take the place', () => {
+        expect(offering(item({ replace: null })).actions).not.toContain('replace')
+        expect(offering(item({ replace: ['.jpg'] }), { canReplace: false }).actions).not.toContain('replace')
+    })
+
+    it('offers nothing while nothing is selected', () => {
+        const component = mount(mediaPicker)
+
+        expect(component.actions).toEqual([])
+        expect(component.has('copy')).toBe(false)
+    })
+
+    it('keeps Replace in its place until the server has said what may take the file\'s', () => {
+        // The row a click is made on carries no answer - the details do - and a button that
+        // turns up when they arrive moves every other one from under the cursor.
+        const component = offering(item())
+
+        expect(component.actions).toEqual(['copy', 'download', 'replace', 'delete'])
+        expect(component.replaceReady).toBe(false)
+    })
+
+    it('is ready to replace once the server named what may take the place', () => {
+        expect(offering(item({ replace: ['.jpg'] })).replaceReady).toBe(true)
+        expect(offering(item({ replace: [] })).replaceReady).toBe(false)
+        expect(offering(item({ replace: null })).replaceReady).toBe(false)
+    })
+
+    it('does not guess for an embed or an upload, which the row already says', () => {
+        expect(offering(item({ kind: 'embed' })).actions).not.toContain('replace')
+        expect(offering(item({ pending: true })).actions).not.toContain('replace')
+    })
+
+    it('has nothing to be ready for while nothing is selected', () => {
+        expect(mount(mediaPicker).replaceReady).toBe(false)
+    })
+})
+
+describe('replacing what is selected', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+        vi.restoreAllMocks()
+        delete window.Alpine
+    })
+
+    /**
+     * The dialog with its second upload field, the one kept for replacements - with the
+     * input FilePond clicks when it browses.
+     */
+    const withReplacer = () => {
+        const handlers = {}
+        const input = document.createElement('input')
+        input.type = 'file'
+
+        const element = document.createElement('div')
+        element.append(input)
+
+        const pond = {
+            element,
+            browse: vi.fn(),
+            removeFile: vi.fn(),
+            removeFiles: vi.fn(),
+            on: (event, callback) => {
+                handlers[event] = callback
+            },
+        }
+
+        const modal = document.createElement('div')
+        modal.className = 'fi-modal'
+
+        const root = document.createElement('div')
+        const replacer = document.createElement('div')
+        replacer.className = 'fi-arte-media-replacer'
+
+        modal.append(root, replacer)
+        document.body.append(modal)
+
+        window.Alpine = { $data: (candidate) => (candidate === replacer ? { pond } : null) }
+
+        return { handlers, input, pond, root }
+    }
+
+    const labels = {
+        sorts: {},
+        replace: 'Replace',
+        replacing: 'Uploading…',
+        replaceHeading: 'Replace “:from” with “:to”?',
+        confirmReplace: 'Every entry shows the new file.',
+        replaceRefused: '“:name” cannot take its place. It takes :accept.',
+        replaceFailed: 'The file could not be replaced.',
+    }
+
+    /**
+     * A grid with one file selected and the upload field wired, whose dialog answers as it is
+     * told to.
+     */
+    const replacing = (config = {}, answer = true) => {
+        const { handlers, input, pond, root } = withReplacer()
+        const component = mount(mediaPicker, { labels, fetchPage: vi.fn(async () => page()), ...config }, { root })
+        const ask = vi.spyOn(component, 'ask').mockResolvedValue(answer)
+
+        component.items = [item({ id: 'one', name: 'sunset.png', replace: ['.png'] })]
+        component.picked = 'one'
+        component.watchReplacements()
+
+        return { ask, component, handlers, input, pond }
+    }
+
+    it('narrows the picker to what may take the place, and opens it', () => {
+        const { component, input, pond } = replacing()
+
+        component.replace()
+
+        expect(input.getAttribute('accept')).toBe('.png')
+        expect(pond.browse).toHaveBeenCalledOnce()
+    })
+
+    it('does not open the picker before the server has said what may take the place', () => {
+        // The row carries no answer yet, and there is nothing to narrow the picker to.
+        const { component, pond } = replacing()
+
+        component.items = [item({ id: 'one', name: 'sunset.png' })]
+        component.details = null
+
+        component.replace()
+
+        expect(pond.browse).not.toHaveBeenCalled()
+    })
+
+    it('asks first, naming both files, and replaces what was selected when the picker opened', async () => {
+        const replaceMedia = vi.fn(async () => ({
+            replaced: true,
+            item: item({ id: 'one', name: 'sunset.png', url: 'https://example.test/dawn.png' }),
+        }))
+        const { ask, component, handlers, pond } = replacing({ replaceMedia })
+
+        component.replace()
+        handlers.addfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        // Somebody clicking about while the upload travels does not move the target.
+        component.picked = null
+
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        expect(ask).toHaveBeenCalledExactlyOnceWith({
+            kind: 'replace',
+            heading: 'Replace “sunset.png” with “dawn.png”?',
+            description: 'Every entry shows the new file.',
+            confirm: 'Replace',
+        })
+        expect(replaceMedia).toHaveBeenCalledExactlyOnceWith('one')
+        expect(component.replacing).toBe(false)
+        expect(pond.removeFiles).toHaveBeenCalled()
+    })
+
+    it('says it is busy while the new file travels', () => {
+        const { component, handlers } = replacing()
+
+        component.replace()
+        handlers.addfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        expect(component.replacing).toBe(true)
+    })
+
+    it('shows the new file in the panel and the grid', async () => {
+        const fetchPage = vi.fn(async () => page({ items: [item({ id: 'one', url: 'https://example.test/dawn.png' })] }))
+        const { component, handlers } = replacing({
+            fetchPage,
+            replaceMedia: async () => ({ replaced: true, item: item({ id: 'one', name: 'sunset.png', url: 'https://example.test/dawn.png', width: 12 }) }),
+        })
+
+        component.detailsFor = 'one'
+        component.details = component.items[0]
+
+        component.replace()
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        expect(component.selected.width).toBe(12)
+        expect(fetchPage).toHaveBeenCalled()
+    })
+
+    it('draws a file whose address did not change as the new one, not the cached old one', async () => {
+        vi.setSystemTime(new Date('2026-09-29T10:00:00Z'))
+
+        const { component, handlers } = replacing({
+            // A disk keeps the path, so the address is the old one.
+            replaceMedia: async () => ({ replaced: true, item: item({ id: 'one', url: 'https://example.test/one.jpg' }) }),
+        })
+
+        component.replace()
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.jpg' })
+
+        const stamp = new Date('2026-09-29T10:00:00Z').getTime()
+
+        expect(component.fresh('one', 'https://example.test/one.jpg')).toBe(`https://example.test/one.jpg?v=${stamp}`)
+        // A signed address carries its own query, and is a new one every time anyway -
+        // adding to it would break the signature.
+        expect(component.fresh('one', 'https://s3.test/one.jpg?X-Amz-Signature=abc')).toBe('https://s3.test/one.jpg?X-Amz-Signature=abc')
+        expect(component.fresh('two', 'https://example.test/two.jpg')).toBe('https://example.test/two.jpg')
+    })
+
+    it('tells the open editors what changed, so their nodes point at the new file', async () => {
+        const heard = vi.fn()
+        window.addEventListener('arte-media-replaced', heard)
+
+        const { component, handlers } = replacing({
+            replaceMedia: async () => ({
+                replaced: true,
+                item: item({ id: 'one', url: 'https://example.test/report-2026.pdf', kind: 'file', width: null, height: null }),
+                card: { name: 'report.pdf', size: '2 KB' },
+            }),
+        })
+
+        component.replace()
+        await handlers.processfile(null, { id: 'f1', filename: 'report-2026.pdf' })
+
+        window.removeEventListener('arte-media-replaced', heard)
+
+        expect(heard).toHaveBeenCalledOnce()
+        expect(heard.mock.calls[0][0].detail).toEqual({
+            id: 'one',
+            src: 'https://example.test/report-2026.pdf',
+            name: 'report.pdf',
+            size: '2 KB',
+            width: null,
+            height: null,
+        })
+    })
+
+    it('lets go of the upload when the question is answered no', async () => {
+        const replaceMedia = vi.fn()
+        const { component, handlers, pond } = replacing({ replaceMedia }, false)
+
+        component.replace()
+        handlers.addfile(null, { id: 'f1', filename: 'dawn.png' })
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        // Reverted, so the server lets go of it too - left in the dialog, it would be the
+        // file the next Replace found first.
+        expect(pond.removeFile).toHaveBeenCalledExactlyOnceWith('f1', { revert: true })
+        expect(replaceMedia).not.toHaveBeenCalled()
+        expect(component.replacing).toBe(false)
+    })
+
+    it('says why the server refused, and what it would have taken', async () => {
+        const { component, handlers } = replacing({
+            replaceMedia: async () => ({ replaced: false, accept: ['.png'] }),
+        })
+
+        component.replace()
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.jpg' })
+
+        expect(component.replaceError).toBe('“dawn.jpg” cannot take its place. It takes .png.')
+    })
+
+    it('says so when the upload failed on its way', async () => {
+        const { ask, component, handlers, pond } = replacing()
+
+        component.replace()
+        await handlers.processfile({ main: 'Upload failed' }, { id: 'f1', filename: 'huge.png' })
+
+        expect(component.replaceError).toBe('The file could not be replaced.')
+        expect(ask).not.toHaveBeenCalled()
+        expect(pond.removeFile).toHaveBeenCalledExactlyOnceWith('f1')
+    })
+
+    it('forgets the refusal once another file is selected', async () => {
+        const { component } = replacing()
+
+        component.replaceError = 'Nope'
+
+        await component.loadDetails('two')
+
+        expect(component.replaceError).toBeNull()
+    })
+
+    it('ignores an upload into the field that nobody asked for', async () => {
+        // FilePond reports every file it holds; only one sent by the button replaces anything.
+        const replaceMedia = vi.fn()
+        const { handlers } = replacing({ replaceMedia })
+
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        expect(replaceMedia).not.toHaveBeenCalled()
+    })
+
+    it('never opens the picker where the field may not replace', () => {
+        const { component, pond } = replacing({ canReplace: false })
+
+        component.replace()
+
+        expect(pond.browse).not.toHaveBeenCalled()
+    })
+})
+
+describe('deleting from a shared library', () => {
+    it('warns that the file may be in documents nobody here can see', async () => {
+        const component = mount(mediaPicker, {
+            labels: {
+                sorts: {},
+                delete: 'Delete',
+                deleteHeading: 'Delete “:name” for good?',
+                confirmDelete: 'Delete?',
+                confirmDeleteShared: 'Delete from every document?',
+            },
+            shared: true,
+        })
+
+        const ask = vi.spyOn(component, 'ask').mockResolvedValue(false)
+
+        component.items = [item({ id: 'a' })]
+        component.picked = 'a'
+
+        await component.remove()
+
+        expect(ask.mock.calls[0][0].description).toBe('Delete from every document?')
+    })
+})
+
+describe('deleting a file other entries use', () => {
+    afterEach(() => {
+        vi.restoreAllMocks()
+    })
+
+    const labels = {
+        sorts: {},
+        delete: 'Delete',
+        deleteHeading: 'Delete “:name”?',
+        confirmDelete: 'Delete?',
+        confirmDeleteShared: 'Delete from the shared library?',
+        confirmDeleteUsed: ':count entries use it (:entries).',
+        confirmDeleteUsedOne: 'One entry uses it (:entries).',
+        usageMore: '+:count more',
+        deletedFrom: 'Deleted, and taken out of :count entries.',
+        deletedFromOne: 'Deleted, and taken out of one entry.',
+    }
+
+    const deleting = (answer, config = {}) => {
+        const component = mount(mediaPicker, { labels, fetchPage: vi.fn(async () => page({ items: [] })), ...config })
+        const ask = vi.spyOn(component, 'ask').mockResolvedValue(answer)
+
+        component.items = [item({ id: 'a', name: 'Preise.pdf' })]
+        component.picked = 'a'
+
+        return { component, ask }
+    }
+
+    it('names the entries in the dialog', async () => {
+        const fetchUsage = vi.fn(async () => ({ count: 2, entries: ['Post #1 “A”', 'Post #2 “B”'] }))
+        const { component, ask } = deleting(false, { fetchUsage })
+
+        await component.remove()
+
+        expect(fetchUsage).toHaveBeenCalledWith('a')
+        expect(ask).toHaveBeenCalledExactlyOnceWith({
+            kind: 'delete',
+            heading: 'Delete “Preise.pdf”?',
+            description: '2 entries use it (Post #1 “A”, Post #2 “B”).',
+            confirm: 'Delete',
+        })
+    })
+
+    it('says so in the singular for one entry', async () => {
+        const { component, ask } = deleting(false, { fetchUsage: async () => ({ count: 1, entries: ['Post #1 “A”'] }) })
+
+        await component.remove()
+
+        expect(ask.mock.calls[0][0].description).toBe('One entry uses it (Post #1 “A”).')
+    })
+
+    it('names a few and counts the rest', async () => {
+        const { component, ask } = deleting(false, { fetchUsage: async () => ({ count: 5, entries: ['A', 'B', 'C'] }) })
+
+        await component.remove()
+
+        expect(ask.mock.calls[0][0].description).toBe('5 entries use it (A, B, C, +2 more).')
+    })
+
+    it('asks the plain question where nothing uses the file, or nothing could be read', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+
+        const shared = deleting(false, { fetchUsage: async () => ({ count: 0, entries: [] }), shared: true })
+        const failed = deleting(false, {
+            fetchUsage: async () => {
+                throw new Error('offline')
+            },
+        })
+
+        await shared.component.remove()
+        await failed.component.remove()
+
+        expect(shared.ask.mock.calls[0][0].description).toBe('Delete from the shared library?')
+        expect(failed.ask.mock.calls[0][0].description).toBe('Delete?')
+    })
+
+    it('tells the open editors to let go of the file, and says how many entries it left', async () => {
+        const heard = vi.fn()
+        window.addEventListener('arte-media-deleted', heard)
+
+        const { component } = deleting(true, {
+            fetchUsage: async () => ({ count: 3, entries: ['A', 'B', 'C'] }),
+            deleteMedia: async () => ({ deleted: true, documents: 3 }),
+        })
+
+        await component.remove()
+
+        window.removeEventListener('arte-media-deleted', heard)
+
+        expect(heard).toHaveBeenCalledOnce()
+        expect(heard.mock.calls[0][0].detail).toEqual({ id: 'a' })
+        expect(component.notice).toBe('Deleted, and taken out of 3 entries.')
+        expect(component.picked).toBeNull()
+    })
+
+    it('says nothing and tells nobody when the server did not delete', async () => {
+        const heard = vi.fn()
+        window.addEventListener('arte-media-deleted', heard)
+
+        const { component } = deleting(true, { deleteMedia: async () => ({ deleted: false, documents: 0 }) })
+
+        await component.remove()
+
+        window.removeEventListener('arte-media-deleted', heard)
+
+        expect(heard).not.toHaveBeenCalled()
+        expect(component.notice).toBeNull()
+        expect(component.picked).toBe('a')
+    })
+})
+
+describe('replacing a file other entries use', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+        vi.restoreAllMocks()
+        delete window.Alpine
+    })
+
+    const withReplacer = () => {
+        const handlers = {}
+        const pond = {
+            element: document.createElement('div'),
+            browse: vi.fn(),
+            removeFile: vi.fn(),
+            removeFiles: vi.fn(),
+            on: (event, callback) => {
+                handlers[event] = callback
+            },
+        }
+
+        const modal = document.createElement('div')
+        modal.className = 'fi-modal'
+
+        const root = document.createElement('div')
+        const replacer = document.createElement('div')
+        replacer.className = 'fi-arte-media-replacer'
+
+        modal.append(root, replacer)
+        document.body.append(modal)
+
+        window.Alpine = { $data: (candidate) => (candidate === replacer ? { pond } : null) }
+
+        return { handlers, root }
+    }
+
+    const labels = {
+        sorts: {},
+        replace: 'Replace',
+        replaceHeading: 'Replace “:from” with “:to”?',
+        confirmReplace: 'Every entry shows the new file.',
+        confirmReplaceUsed: ':count entries show it (:entries).',
+        confirmReplaceUsedOne: 'One entry shows it (:entries).',
+        usageMore: '+:count more',
+        replacedIn: 'Replaced, and updated in :count entries.',
+        replacedInOne: 'Replaced, and updated in one entry.',
+    }
+
+    const replacing = (config = {}, answer = true) => {
+        const { handlers, root } = withReplacer()
+        const component = mount(mediaPicker, { labels, fetchPage: vi.fn(async () => page()), ...config }, { root })
+        const ask = vi.spyOn(component, 'ask').mockResolvedValue(answer)
+
+        component.items = [item({ id: 'one', name: 'sunset.png', replace: ['.png'] })]
+        component.picked = 'one'
+        component.watchReplacements()
+
+        return { ask, component, handlers }
+    }
+
+    it('names the entries showing the file in the dialog', async () => {
+        const { ask, component, handlers } = replacing({
+            fetchUsage: async () => ({ count: 2, entries: ['Post #1 “A”', 'Post #2 “B”'] }),
+        }, false)
+
+        component.replace()
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        expect(ask).toHaveBeenCalledExactlyOnceWith({
+            kind: 'replace',
+            heading: 'Replace “sunset.png” with “dawn.png”?',
+            description: '2 entries show it (Post #1 “A”, Post #2 “B”).',
+            confirm: 'Replace',
+        })
+    })
+
+    it('says so in the singular for one entry', async () => {
+        const { ask, component, handlers } = replacing({
+            fetchUsage: async () => ({ count: 1, entries: ['Post #1 “A”'] }),
+        }, false)
+
+        component.replace()
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        expect(ask.mock.calls[0][0].description).toBe('One entry shows it (Post #1 “A”).')
+    })
+
+    it('says how many entries now show the new file', async () => {
+        const { component, handlers } = replacing({
+            fetchUsage: async () => ({ count: 1, entries: ['Post #1 “A”'] }),
+            replaceMedia: async () => ({ replaced: true, item: item({ id: 'one' }), documents: 1 }),
+        })
+
+        component.replace()
+        await handlers.processfile(null, { id: 'f1', filename: 'dawn.png' })
+
+        expect(component.notice).toBe('Replaced, and updated in one entry.')
+    })
+})
+
+describe('the dialog that asks', () => {
+    /**
+     * Filament's own modal is drawn by the view and answers to the events it always answers
+     * to, so what is pinned here is the conversation with it: which event opens which dialog,
+     * and that a question is answered exactly once, whichever way the dialog closes.
+     */
+    const question = (kind = 'delete') => ({ kind, heading: 'Delete it?', description: 'For good.', confirm: 'Delete' })
+
+    const asking = () => mount(mediaPicker, { confirmId: 'confirm' })
+
+    it('opens the dialog of its kind, with the words of the question', () => {
+        const component = asking()
+
+        component.ask(question('replace'))
+
+        expect(component.dispatched).toEqual([{ name: 'open-modal', detail: { id: 'confirm-replace' } }])
+        expect(component.question).toMatchObject({ heading: 'Delete it?', description: 'For good.', confirm: 'Delete' })
+    })
+
+    it('answers yes when its confirm button is pressed, and closes the dialog', async () => {
+        const component = asking()
+        const answer = component.ask(question())
+
+        component.yes()
+
+        await expect(answer).resolves.toBe(true)
+        expect(component.dispatched.at(-1)).toEqual({ name: 'close-modal', detail: { id: 'confirm-delete' } })
+    })
+
+    it('closes the dialog when its cancel button is pressed, and leaves the answer to the closing', async () => {
+        const component = asking()
+        const answer = component.ask(question())
+
+        component.no()
+
+        expect(component.dispatched.at(-1)).toEqual({ name: 'close-modal', detail: { id: 'confirm-delete' } })
+
+        // What Filament says once the modal has closed.
+        component.dismissed('confirm-delete')
+
+        await expect(answer).resolves.toBe(false)
+    })
+
+    it('answers no when the dialog closes any other way', async () => {
+        // Its cancel button, Escape and a click beside it all end in the same event.
+        const component = asking()
+        const answer = component.ask(question())
+
+        component.dismissed('confirm-delete')
+
+        await expect(answer).resolves.toBe(false)
+    })
+
+    it('answers once: the closing that follows a yes is nobody\'s to answer', async () => {
+        // Closing the dialog from the confirm button is itself a closing, and says so.
+        const component = asking()
+        const answer = component.ask(question())
+
+        component.yes()
+        component.dismissed('confirm-delete')
+
+        await expect(answer).resolves.toBe(true)
+    })
+
+    it('waits through the closing of a dialog that is not its own', async () => {
+        // Filament announces every modal that closes, the browser's own included.
+        const component = asking()
+        const answer = component.ask(question())
+        const settled = vi.fn()
+
+        answer.then(settled)
+
+        component.dismissed('fi-livewire-action-0')
+        await Promise.resolve()
+
+        expect(settled).not.toHaveBeenCalled()
+
+        component.yes()
+        await answer
+    })
+
+    it('answers a question still open with no once the next one is asked', async () => {
+        // Two dialogs at once would leave the first waiting for ever.
+        const component = asking()
+        const first = component.ask(question('delete'))
+        const second = component.ask(question('replace'))
+
+        await expect(first).resolves.toBe(false)
+
+        component.yes()
+
+        await expect(second).resolves.toBe(true)
+    })
+
+    it('keeps the words of the last question, so the dialog does not empty as it fades', () => {
+        const component = asking()
+
+        component.ask(question())
+        component.yes()
+
+        expect(component.question.heading).toBe('Delete it?')
     })
 })

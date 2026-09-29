@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaUsages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -39,6 +41,15 @@ trait HoldsAMediaLibrary
     protected string|Closure|null $mediaLibraryScope = null;
 
     protected mixed $mediaLibraryUploadsTo = null;
+
+    protected bool|Closure|null $mediaLibraryDeletable = null;
+
+    protected bool|Closure|null $mediaLibraryReplaceable = null;
+
+    /**
+     * @var array<mixed>|Closure|null
+     */
+    protected array|Closure|null $mediaLibraryDocuments = null;
 
     /**
      * @var array<string, mixed>|Closure|null
@@ -308,6 +319,154 @@ trait HoldsAMediaLibrary
     }
 
     /**
+     * Whether the browser may throw a file away.
+     *
+     * Left alone, only where the library is this record's own attachments. A library shared
+     * across records may hold a file some other record's content still shows, and nothing here
+     * can see that content - so deleting there is the project's decision rather than the
+     * package's, and a closure can say whose: `->mediaLibraryDeletable(fn (): bool => auth()
+     * ->user()->isAdmin())`. `false` takes the button away from a record's own library too.
+     */
+    public function mediaLibraryDeletable(bool|Closure|null $condition = true): static
+    {
+        $this->mediaLibraryDeletable = $condition;
+
+        return $this;
+    }
+
+    /**
+     * What the field or the configuration said, or null where neither said anything and the
+     * pool's scope decides. Handed to the source as it is, so the source refuses by the same
+     * rule the button is drawn by - and asks no question of the field that would build it.
+     */
+    public function getMediaLibraryDeletable(): ?bool
+    {
+        $deletable = $this->evaluate($this->mediaLibraryDeletable)
+            ?? config('filament-advanced-rich-editor.media_library.deletable');
+
+        return is_bool($deletable) ? $deletable : null;
+    }
+
+    public function canDeleteFromMediaLibrary(): bool
+    {
+        $source = $this->getMediaSource();
+
+        return ($source !== null) && ($this->getMediaLibraryDeletable() ?? $source->isRecordScoped());
+    }
+
+    /**
+     * Whether the browser may put a new file in the place of one that is there.
+     *
+     * On by default, and unlike deleting it is safe in a shared library: the id stays, so every
+     * document using the file goes on working and shows the new one. What it does change is
+     * what those documents show, which is why a closure can narrow it to whoever should.
+     *
+     * Only for a pool that can do it - see `ReplacesMedia`.
+     */
+    public function mediaLibraryReplaceable(bool|Closure $condition = true): static
+    {
+        $this->mediaLibraryReplaceable = $condition;
+
+        return $this;
+    }
+
+    public function canReplaceInMediaLibrary(): bool
+    {
+        return (bool) ($this->evaluate($this->mediaLibraryReplaceable)
+            ?? config('filament-advanced-rich-editor.media_library.replaceable')
+            ?? true)
+            && ($this->getMediaSource() instanceof ReplacesMedia);
+    }
+
+    /**
+     * Where else the library's files are used.
+     *
+     * Deleting a file takes it out of every entry using it, and replacing one points them at
+     * the new file - which needs to know where entries are, and a package cannot know which of
+     * an application's tables hold rich content. This field's own column is known without
+     * being told; everything else is named here or in `media_library.documents`:
+     *
+     *     ->mediaLibraryDocuments([
+     *         Page::class => ['body', 'sidebar'],
+     *         Post::class,                        // the columns it registered as rich content
+     *     ])
+     *
+     * @param  array<mixed>|Closure|null  $documents
+     */
+    public function mediaLibraryDocuments(array|Closure|null $documents): static
+    {
+        $this->mediaLibraryDocuments = $documents;
+
+        return $this;
+    }
+
+    /**
+     * Every place the library's files may be used, as model => columns: this field's own
+     * column first, then the configuration's, then the field's.
+     *
+     * @return array<class-string<Model>, array<int, string>>
+     */
+    public function getMediaLibraryDocuments(): array
+    {
+        $documents = [];
+
+        $own = $this->getOwnMediaLibraryDocument();
+
+        if ($own !== null) {
+            $documents[$own[0]] = [$own[1]];
+        }
+
+        $named = [
+            ...(array) (config('filament-advanced-rich-editor.media_library.documents') ?? []),
+            ...(array) ($this->evaluate($this->mediaLibraryDocuments) ?? []),
+        ];
+
+        foreach ($named as $key => $value) {
+            [$model, $columns] = is_int($key) ? [$value, []] : [$key, (array) $value];
+
+            if (! is_string($model) || ! is_subclass_of($model, Model::class)) {
+                continue;
+            }
+
+            $documents[$model] = array_values(array_unique([
+                ...($documents[$model] ?? []),
+                ...MediaUsages::columnsOf($model, array_values(array_filter($columns, 'is_string'))),
+            ]));
+        }
+
+        return array_filter($documents);
+    }
+
+    public function getMediaUsages(): MediaUsages
+    {
+        return MediaUsages::make($this->getMediaLibraryDocuments());
+    }
+
+    /**
+     * The model and column this field writes to, or null where it does not write to one of
+     * its own - a field nested under a key, or one whose name is not a column of the table.
+     *
+     * @return array{0: class-string<Model>, 1: string}|null
+     */
+    protected function getOwnMediaLibraryDocument(): ?array
+    {
+        $column = $this->getName();
+        $model = $this->getModel();
+
+        if (blank($column) || str_contains($column, '.') || ! is_string($model) || ! is_subclass_of($model, Model::class)) {
+            return null;
+        }
+
+        $instance = new $model;
+
+        return rescue(
+            static fn (): bool => $instance->getConnection()->getSchemaBuilder()->hasColumn($instance->getTable(), $column),
+            false,
+            report: false,
+        ) ? [$model, $column] : null;
+    }
+
+    /**
      * The pool the browser lists from, and the pool a stored id may resolve against.
      *
      * Built fresh rather than memoised: the closures inside it read the live component, and
@@ -356,6 +515,7 @@ trait HoldsAMediaLibrary
             visibility: $this->getFileAttachmentsVisibility(),
             types: $this->getMediaLibraryTypes(),
             isRecordScoped: blank($library),
+            deletable: $this->getMediaLibraryDeletable(),
         );
     }
 
@@ -385,6 +545,7 @@ trait HoldsAMediaLibrary
             // library would be empty at exactly the moment somebody reaches for a picture they
             // already have.
             getModelUsing: fn (): mixed => $owner ?? $this->getModel(),
+            deletable: $this->getMediaLibraryDeletable(),
         );
     }
 }

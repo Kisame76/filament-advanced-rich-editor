@@ -28,7 +28,14 @@
     $pageSize = $getPageSize();
     $isDescribable = $isDescribable();
     $isRecordScoped = $isRecordScoped();
+    $isDeletable = $isDeletable();
+    $isReplaceable = $isReplaceable();
     $fromUrlAction = $getFromUrlAction();
+
+    // The ids of the two confirmation dialogs below. Made of what tells this picker from another
+    // on the page - the component it lives in and where it keeps its selection - because a
+    // modal is opened by id, and two pickers sharing one would open each other's.
+    $confirmId = 'arte-media-confirm-' . md5(((isset($this) && method_exists($this, 'getId')) ? $this->getId() : '') . $statePath);
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
@@ -62,8 +69,27 @@
                 'deleteMediaForJs',
                 { id },
             ),
-            canDelete: @js($isRecordScoped),
+            replaceMedia: (id) => $wire.callSchemaComponentMethod(
+                @js($editorKey),
+                'replaceMediaForJs',
+                { id },
+            ),
+            fetchUsage: (id) => $wire.callSchemaComponentMethod(
+                @js($editorKey),
+                'getMediaUsageForJs',
+                { id },
+            ),
+            canDelete: @js($isDeletable),
+            canReplace: @js($isReplaceable),
+            shared: @js(! $isRecordScoped),
+            confirmId: @js($confirmId),
         })"
+        {{--
+            Filament announces every modal that closes on the window - the two dialogs at the
+            end of this element among them - and a dialog closed by any way but its confirm
+            button is a no.
+        --}}
+        x-on:modal-closed.window="dismissed($event.detail.id)"
         class="fi-arte-media"
     >
         <div class="fi-arte-media-header">
@@ -242,6 +268,24 @@
         </div>
 
         {{--
+            What a delete or a replacement reached beyond the library - the entries it took the
+            file out of, or pointed at the new one. Above the grid rather than in the panel,
+            because after a delete nothing is selected and the panel has nothing to say it in.
+        --}}
+        <div x-show="notice" x-cloak class="fi-arte-media-notice" role="status">
+            <span x-text="notice"></span>
+
+            <x-filament::icon-button
+                icon="heroicon-m-x-mark"
+                color="gray"
+                size="sm"
+                x-on:click="dismissNotice()"
+                x-bind:label="labels.dismiss"
+                x-bind:title="labels.dismiss"
+            />
+        </div>
+
+        {{--
             The library is the dropzone. A separate one under it would be a second place to
             look, and it would sit exactly where the pictures somebody is comparing want to be.
         --}}
@@ -407,7 +451,7 @@
                     <div class="fi-arte-media-details-inner">
                         <img
                             x-show="isPicture(selected)"
-                            x-bind:src="selected.url"
+                            x-bind:src="fresh(selected.id, selected.url)"
                             x-bind:alt="selected.name"
                             decoding="async"
                             class="fi-arte-media-preview"
@@ -428,7 +472,7 @@
                         <video
                             x-show="(selected.kind ?? '') === 'video'"
                             x-effect="if ((selected?.kind ?? '') !== 'video') { $el.pause() }"
-                            x-bind:src="(selected.kind ?? '') === 'video' ? selected.url : ''"
+                            x-bind:src="(selected.kind ?? '') === 'video' ? fresh(selected.id, selected.url) : ''"
                             controls
                             preload="metadata"
                             class="fi-arte-media-preview"
@@ -484,7 +528,7 @@
                         --}}
                         <img
                             x-show="(selected.kind ?? '') === 'file' && selected.thumbnail"
-                            x-bind:src="selected.thumbnail"
+                            x-bind:src="fresh(selected.id, selected.thumbnail)"
                             x-bind:alt="selected.name"
                             decoding="async"
                             class="fi-arte-media-preview"
@@ -501,7 +545,7 @@
                         <audio
                             x-show="(selected.kind ?? '') === 'audio'"
                             x-effect="if ((selected?.kind ?? '') !== 'audio') { $el.pause() }"
-                            x-bind:src="(selected.kind ?? '') === 'audio' ? selected.url : ''"
+                            x-bind:src="(selected.kind ?? '') === 'audio' ? fresh(selected.id, selected.url) : ''"
                             controls
                             preload="metadata"
                             class="fi-arte-media-preview fi-arte-media-preview-audio"
@@ -562,14 +606,27 @@
                             </div>
                         </dl>
 
+                        {{--
+                            Four actions, two over two, every cell the width of the others -
+                            whatever the labels measure, and in whichever language. Which of them
+                            a file has is decided in `media-picker.js` (`actions`): a film has
+                            all four, an embed has no file to download or to replace, and an
+                            upload that is not saved yet has nothing in the library to act on.
+
+                            Hidden rather than left out, so each keeps its place in the markup;
+                            a hidden one takes no cell, and an odd one out at the end widens
+                            across both columns instead of leaving a hole beside it.
+                        --}}
                         <div class="fi-arte-media-actions">
                             <x-filament::button
+                                x-show="has('copy')"
+                                x-bind:class="{ 'fi-arte-media-action-wide': wide('copy') }"
                                 color="gray"
                                 size="sm"
                                 icon="heroicon-m-link"
                                 x-on:click="copy()"
                             >
-                                <span x-text="copied ? labels.copied : labels.copy"></span>
+                                <span x-text="copied ? labels.copied : labels.copy" class="fi-arte-media-action-label"></span>
                             </x-filament::button>
 
                             {{--
@@ -580,34 +637,65 @@
                             --}}
                             <x-filament::button
                                 tag="a"
-                                x-show="! isEmbed(selected)"
-                                x-cloak
+                                x-show="has('download')"
+                                x-bind:class="{ 'fi-arte-media-action-wide': wide('download') }"
                                 color="gray"
                                 size="sm"
                                 icon="heroicon-m-arrow-down-tray"
                                 x-bind:href="selected.url"
                                 x-bind:download="selected.fileName ?? selected.name"
                             >
-                                <span x-text="labels.download"></span>
+                                <span x-text="labels.download" class="fi-arte-media-action-label"></span>
                             </x-filament::button>
 
                             {{--
-                                Only where the library is this record's own attachments. In a
-                                shared library the file may be in another record's content
-                                that nobody standing here can see, and a button that cannot
-                                know that is a button that quietly breaks somebody's page.
+                                A new file in this one's place, under the same id - so every
+                                document using it shows the new one. The picker is narrowed to
+                                what may take its place before it opens.
+                            --}}
+                            {{--
+                                Drawn before the server has said what may take the file's place,
+                                and pressable only once it has: a button that appears with the
+                                details moves every other one from under the cursor.
                             --}}
                             <x-filament::button
-                                x-show="canDelete"
-                                x-cloak
+                                x-show="has('replace')"
+                                x-bind:class="{ 'fi-arte-media-action-wide': wide('replace') }"
+                                x-bind:disabled="replacing || deleting || ! replaceReady"
+                                color="gray"
+                                size="sm"
+                                icon="heroicon-m-arrow-path"
+                                x-on:click="replace()"
+                            >
+                                <span x-text="replacing ? labels.replacing : labels.replace" class="fi-arte-media-action-label"></span>
+                            </x-filament::button>
+
+                            {{--
+                                Only where the field may delete: by default a record's own
+                                attachments. In a shared library the file may be in another
+                                record's content that nobody standing here can see, so that is
+                                the project's decision - see `mediaLibraryDeletable()`.
+                            --}}
+                            <x-filament::button
+                                x-show="has('delete')"
+                                x-bind:class="{ 'fi-arte-media-action-wide': wide('delete') }"
+                                x-bind:disabled="deleting || replacing"
                                 color="danger"
                                 size="sm"
                                 icon="heroicon-m-trash"
                                 x-on:click="remove()"
                             >
-                                <span x-text="labels.delete"></span>
+                                <span x-text="deleting ? labels.deleting : labels.delete" class="fi-arte-media-action-label"></span>
                             </x-filament::button>
                         </div>
+
+                        <p
+                            x-show="replaceError"
+                            x-cloak
+                            x-text="replaceError"
+                            class="fi-arte-media-replace-error"
+                            role="status"
+                        ></p>
                     </div>
                 </template>
 
@@ -621,5 +709,52 @@
 
             <p x-show="dropping" x-cloak x-text="labels.drop" class="fi-arte-media-drop-note"></p>
         </div>
+
+        {{--
+            The questions before a delete or a replacement, in Filament's own confirmation
+            dialog rather than the browser's `confirm()`: it looks like every other confirmation
+            in the panel, follows its theme, its dark mode and its language, and Escape and a
+            click beside it cancel as they do everywhere else.
+
+            Drawn here, inside the browser, rather than mounted as an action on top of it. What
+            it asks is decided in the browser - the entries the file is used in are fetched
+            there, and both names of a replacement are only known there - so an action would
+            cost a round trip to say what is already on the screen. Inside, it shares the
+            browser's state; the modal component stacks itself above the one it is in.
+
+            One for each kind of question, since a modal's icon colour is fixed when it is drawn:
+            a delete is red, a replacement is a warning. The words are bound to `question`, which
+            is what the next `ask()` fills in.
+        --}}
+        @foreach (['delete' => 'danger', 'replace' => 'warning'] as $dialog => $color)
+            <x-filament::modal
+                :id="$confirmId . '-' . $dialog"
+                :alert="true"
+                alignment="center"
+                width="md"
+                icon="heroicon-o-exclamation-triangle"
+                :icon-color="$color"
+                footer-actions-alignment="center"
+                class="fi-arte-media-confirm"
+            >
+                <x-slot name="heading">
+                    <span x-text="question.heading"></span>
+                </x-slot>
+
+                <x-slot name="description">
+                    <span x-text="question.description"></span>
+                </x-slot>
+
+                <x-slot name="footerActions">
+                    <x-filament::button :color="$color" x-on:click="yes()">
+                        <span x-text="question.confirm"></span>
+                    </x-filament::button>
+
+                    <x-filament::button color="gray" x-on:click="no()">
+                        <span x-text="labels.cancel"></span>
+                    </x-filament::button>
+                </x-slot>
+            </x-filament::modal>
+        @endforeach
     </div>
 </x-dynamic-component>

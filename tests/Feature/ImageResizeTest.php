@@ -31,9 +31,11 @@ it('offers the whole image toolbar on a selected image', function (): void {
         // The decorative mark is not here: it ships off, because the accessibility check it
         // exists to keep quiet ships off as well.
         ->and($toolbars['image'][10])->toBe('imageLink')
-        ->and($toolbars['image'][11])->toBe('imageDownload')
-        ->and($toolbars['image'][12])->toBe('imageDelete')
-        ->and(editor()->getTools())->toHaveKeys(['imageRotateLeft', 'imageRotateRight', 'imageFloatLeft', 'imageFloatCenter', 'imageFloatRight', 'imageDecorative', 'imageLink', 'imageDownload', 'imageDelete'])
+        // Replace, Download, Delete: the order the bars over a card and a film use too.
+        ->and($toolbars['image'][11])->toBe('imageReplace')
+        ->and($toolbars['image'][12])->toBe('imageDownload')
+        ->and($toolbars['image'][13])->toBe('imageDelete')
+        ->and(editor()->getTools())->toHaveKeys(['imageRotateLeft', 'imageRotateRight', 'imageFloatLeft', 'imageFloatCenter', 'imageFloatRight', 'imageDecorative', 'imageLink', 'imageReplace', 'imageDownload', 'imageDelete'])
         // Filament's own table toolbar has to survive the addition.
         ->and($toolbars)->toHaveKey('table');
 });
@@ -50,7 +52,7 @@ it('keeps only the size independent controls when resizing is off', function ():
         ->and($buttons[3])->toBeInstanceOf(ToolbarDivider::class)
         ->and($buttons[4])->toBeInstanceOf(ToolbarImagePanel::class)
         ->and($buttons[4]->getMode())->toBe(ToolbarImagePanel::MODE_ALT)
-        ->and(array_slice($buttons, 5))->toBe(['imageLink', 'imageDownload', 'imageDelete']);
+        ->and(array_slice($buttons, 5))->toBe(['imageLink', 'imageReplace', 'imageDownload', 'imageDelete']);
 });
 
 it('drops the image toolbar entirely when asked', function (): void {
@@ -63,7 +65,8 @@ it('acts on the selected image', function (): void {
     expect($tools['imageDelete']->getJsHandler())->toBe('$getEditor()?.chain().focus().deleteSelection().run()')
         // The download reads the source off the node rather than off the DOM, so it also
         // works while the node view is mid-resize.
-        ->and($tools['imageDownload']->getJsHandler())->toContain("getAttributes('image')?.src")
+        ->and($tools['imageDownload']->getJsHandler())->toContain("getAttributes('image')")
+        ->and($tools['imageDownload']->getJsHandler())->toContain('attributes.src')
         ->and($tools['imageDownload']->getJsHandler())->toContain('link.download');
 });
 

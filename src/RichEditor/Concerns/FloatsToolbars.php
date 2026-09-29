@@ -63,17 +63,36 @@ trait FloatsToolbars
             $toolbars['orderedList'] = [ToolbarListPanel::ordered()];
         }
 
-        // The bar over a selected document card, keyed by the node's name the way the
-        // picture's is: a click on a card selects it whole, and that selection is what
-        // `editor.isActive('file')` answers for.
+        // The bars over what came out of the library, keyed by the node's name the way the
+        // picture's is: a click on a card, a film or an embed selects it whole, and that
+        // selection is what `editor.isActive(<its name>)` answers for.
         //
-        // Replace only where there is a browser to go back to. Without a pool the browser's
-        // button falls back to Filament's own dialog, which takes pictures only - a Replace
-        // that opened it would be a door onto the wrong room.
+        // The same three wherever they apply, in the same order - Replace, Download, Delete -
+        // so a hand that learned one bar knows the others. Replace for a card or a film only
+        // where there is a browser to go back to: without a pool the browser's button falls
+        // back to Filament's own dialog, which takes pictures only, and a Replace that opened
+        // it would be a door onto the wrong room.
+        $hasBrowser = $this->getMediaSource() !== null;
+
         $toolbars['file'] = [
-            ...($this->getMediaSource() !== null ? ['fileReplace'] : []),
+            ...($hasBrowser ? ['fileReplace'] : []),
+            'fileDownload',
             'fileDelete',
         ];
+
+        if ($this->hasMedia()) {
+            $toolbars['media'] = [
+                ...($hasBrowser ? ['mediaReplace'] : []),
+                'mediaDownload',
+                'mediaDelete',
+            ];
+        }
+
+        // Nothing to download: the video is on somebody else's server. Replace is the embed's
+        // own dialog, which every field with embeds has.
+        if ($this->hasEmbeds()) {
+            $toolbars['embed'] = ['embedReplace', 'embedDelete'];
+        }
 
         if (! $this->hasImageToolbar()) {
             return $toolbars;
@@ -115,6 +134,8 @@ trait FloatsToolbars
             $buttons[] = 'imageLink';
         }
 
+        // Replace, Download, Delete: the order the bars over a card and a film use too.
+        $buttons[] = 'imageReplace';
         $buttons[] = 'imageDownload';
         $buttons[] = 'imageDelete';
 

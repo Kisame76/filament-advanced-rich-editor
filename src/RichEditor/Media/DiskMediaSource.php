@@ -6,14 +6,17 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Media;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemOperator;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Throwable;
 
 /**
@@ -28,10 +31,11 @@ use Throwable;
  * directory: without that, a saved `data-id` of `../../.env` would be a file read, and the
  * grid would be the thing that taught someone the shape of the disk.
  */
-class DiskMediaSource implements MediaSource
+class DiskMediaSource implements MediaSource, ReplacesMedia
 {
     /**
      * @param  LibraryTypes|null  $types  what the pool holds; null is every family at its default
+     * @param  bool|null  $deletable  whether a file may be thrown away; null leaves it to the scope
      */
     final public function __construct(
         protected ?string $disk = null,
@@ -39,6 +43,7 @@ class DiskMediaSource implements MediaSource
         protected ?string $visibility = null,
         protected ?LibraryTypes $types = null,
         protected bool $isRecordScoped = false,
+        protected ?bool $deletable = null,
     ) {}
 
     public static function make(
@@ -47,6 +52,7 @@ class DiskMediaSource implements MediaSource
         ?string $visibility = null,
         ?LibraryTypes $types = null,
         bool $isRecordScoped = false,
+        ?bool $deletable = null,
     ): static {
         return app(static::class, [
             'disk' => $disk,
@@ -54,6 +60,7 @@ class DiskMediaSource implements MediaSource
             'visibility' => $visibility,
             'types' => $types,
             'isRecordScoped' => $isRecordScoped,
+            'deletable' => $deletable,
         ]);
     }
 
@@ -198,7 +205,7 @@ class DiskMediaSource implements MediaSource
     {
         $path = $this->normalise($id);
 
-        if ($path === null || ! $this->isRecordScoped) {
+        if ($path === null || ! ($this->deletable ?? $this->isRecordScoped)) {
             return false;
         }
 
@@ -215,6 +222,84 @@ class DiskMediaSource implements MediaSource
         } catch (Throwable $exception) {
             return false;
         }
+    }
+
+    public function replacementTypes(mixed $id): ?array
+    {
+        $target = $this->replaceable($id);
+
+        return ($target === null)
+            ? null
+            : $this->library()->replacementsFor($target['kind'], $target['ending'], sameEnding: true);
+    }
+
+    /**
+     * Writes the upload over the file, at the same path.
+     *
+     * Always under the same ending: the path is the id, so a new ending would be a new file
+     * and every document would go on pointing at the old one. The description stays, since it
+     * describes what the file is for rather than its bytes; the cover goes, since it was a
+     * frame of the old film, and the next listing makes one of the new.
+     */
+    public function replace(mixed $id, UploadedFile $file): bool
+    {
+        $target = $this->replaceable($id);
+
+        if (($target === null) || ! $this->library()->replaces($target['kind'], $target['ending'], $file, sameEnding: true)) {
+            return false;
+        }
+
+        $path = $target['path'];
+
+        try {
+            $stream = ($file instanceof TemporaryUploadedFile) ? $file->readStream() : fopen((string) $file->getRealPath(), 'rb');
+
+            if (! is_resource($stream)) {
+                return false;
+            }
+
+            try {
+                $written = $this->disk()->put($path, $stream, ($this->visibility === 'public') ? ['visibility' => 'public'] : []);
+            } finally {
+                fclose($stream);
+            }
+
+            if (! $written) {
+                return false;
+            }
+
+            $cover = Sidecar::pathFor($path, 'cover.jpg');
+
+            if ($this->disk()->exists($cover)) {
+                $this->disk()->delete($cover);
+            }
+
+            // Tried and failed on the old file says nothing about the new one.
+            Sidecar::write($this->disk(), $path, [CoverGenerator::ATTEMPTED_KEY => null]);
+        } catch (Throwable $exception) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * The file behind an id, where it is one a replacement can take the place of.
+     *
+     * @return array{path: string, kind: string, ending: string}|null
+     */
+    protected function replaceable(mixed $id): ?array
+    {
+        $path = $this->normalise($id);
+
+        // An embed is a link written down as a file, not a file anybody uploaded.
+        if (($path === null) || str_ends_with($path, '.'.Embeds::SUFFIX) || ! $this->has($path)) {
+            return null;
+        }
+
+        $kind = $this->library()->kindOfPath($path);
+
+        return ($kind === null) ? null : ['path' => $path, 'kind' => $kind, 'ending' => LibraryTypes::endingOf($path)];
     }
 
     /**

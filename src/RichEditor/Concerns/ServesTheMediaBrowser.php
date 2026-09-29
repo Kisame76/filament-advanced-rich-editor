@@ -6,6 +6,9 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Support\Str;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ByteSize;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
@@ -158,7 +161,138 @@ trait ServesTheMediaBrowser
         // Merged here rather than in either source, so the pending path and the two stored
         // paths cannot answer this differently - and so a listing, which does not need the
         // description, does not pay a sidecar read per tile to get one.
-        return $item === null ? null : [...$item, ...$this->getMediaMetadata($id)];
+        //
+        // `replace` is what the panel's Replace button offers the file picker, or null where
+        // there is no button: an upload that is not in the library yet has nothing to replace.
+        return $item === null ? null : [
+            ...$item,
+            ...$this->getMediaMetadata($id),
+            'replace' => ($pending === null) ? $this->getMediaReplacementTypes($id) : null,
+        ];
+    }
+
+    /**
+     * What may take the place of a file in the library, or null where nothing may.
+     *
+     * @return array<int, string>|null
+     */
+    public function getMediaReplacementTypes(mixed $id): ?array
+    {
+        if (FileAttachments::pending($id) || ! $this->canReplaceInMediaLibrary()) {
+            return null;
+        }
+
+        $source = $this->getMediaSource();
+
+        return ($source instanceof ReplacesMedia) ? $source->replacementTypes($id) : null;
+    }
+
+    /**
+     * Puts the upload the dialog is holding in the place of a file in the library.
+     *
+     * The id stays, so every document using the file shows the new one from its next render
+     * - and this document too, once the browser tells the editor what changed. That is what
+     * `item` and `card` are for: the address the nodes point at now, and the name and size a
+     * card writes into itself.
+     *
+     * The upload is let go of whatever the answer, and before anything else can go wrong. An
+     * upload left in the dialog's form is validated on Submit, and a file nobody can see then
+     * stops the dialog from inserting anything, without a word.
+     *
+     * @return array{replaced: bool, item?: array<string, mixed>|null, documents?: int, card?: array{name: string|null, size: string|null}, accept?: array<int, string>|null}
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function replaceMediaForJs(string $id): array
+    {
+        $file = $this->takeReplacementUpload();
+
+        try {
+            if (blank($id) || ! $this->hasMediaLibrary() || FileAttachments::pending($id)) {
+                return ['replaced' => false];
+            }
+
+            $accept = $this->getMediaReplacementTypes($id);
+            $source = $this->getMediaSource();
+
+            if (($accept === null) || ! ($source instanceof ReplacesMedia) || ! ($file instanceof TemporaryUploadedFile)) {
+                return ['replaced' => false];
+            }
+
+            // What any upload into this browser is asked - the size and the content - before
+            // the source asks what only a replacement is: the family, and the ending.
+            if (! $this->acceptsMediaLibraryUpload($file) || ! $source->replace($id, $file)) {
+                return ['replaced' => false, 'accept' => $accept];
+            }
+
+            $item = $this->getMediaDetailsForJs($id);
+
+            $card = (($item['kind'] ?? null) === MediaKinds::FILE)
+                ? ['name' => MediaLibraryAction::cardName($item), 'size' => ByteSize::format($item['size'] ?? null)]
+                : null;
+
+            // Every entry using the file is pointed at it, stored and all: the address, what a
+            // card says about it, and the shape a sized picture is drawn in.
+            $documents = rescue(fn (): int => $this->getMediaUsages()->update($id, [
+                'src' => $item['url'] ?? null,
+                'width' => $item['width'] ?? null,
+                'height' => $item['height'] ?? null,
+                ...($card ?? []),
+            ]), 0);
+
+            return [
+                'replaced' => true,
+                'item' => $item,
+                'documents' => $documents,
+                ...(($card !== null) ? ['card' => $card] : []),
+            ];
+        } finally {
+            // Handed over or refused, it is finished with - and Livewire's own sweep is a day
+            // away.
+            rescue(static fn () => $file?->delete(), report: false);
+        }
+    }
+
+    /**
+     * Takes the replacement out of the browser's dialog, and leaves the dialog holding none.
+     *
+     * Read out of the mounted actions for the reason the uploads to insert are: the dialog's
+     * form belongs to a modal, and this is the one place its state can be reached from. Only
+     * the browser's own frame - another dialog's `replacement` field, if one ever had such a
+     * thing, is none of this field's business.
+     */
+    protected function takeReplacementUpload(): ?TemporaryUploadedFile
+    {
+        $livewire = $this->getLivewire();
+        $mounted = data_get($livewire, 'mountedActions');
+
+        if (! is_array($mounted)) {
+            return null;
+        }
+
+        foreach ($mounted as $index => $action) {
+            $name = data_get($action, 'name');
+
+            if (is_string($name) && ($name !== static::MEDIA_BROWSER_ACTION)) {
+                continue;
+            }
+
+            $files = data_get($action, 'data.replacement');
+
+            if (! is_array($files) || ($files === [])) {
+                continue;
+            }
+
+            data_set($livewire, "mountedActions.{$index}.data.replacement", []);
+
+            foreach ($files as $file) {
+                if ($file instanceof TemporaryUploadedFile) {
+                    return $file;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -256,25 +390,60 @@ trait ServesTheMediaBrowser
      * Throws away what is selected.
      *
      * Three refusals before anything happens: no library, an upload that is not saved yet -
-     * which is a discard rather than a delete - and a pool that is not this record's own.
-     * The source refuses the last one again, because a rule that only lives on the exposed
-     * method is a rule the next caller does not have.
+     * which is a discard rather than a delete - and a field that may not delete, which by
+     * default is every pool wider than this record's own. The source refuses the last one
+     * again, because a rule that only lives on the exposed method is a rule the next caller
+     * does not have.
+     *
+     * Then takes the file out of every entry using it - see `mediaLibraryDocuments()` - and
+     * answers how many that was.
+     *
+     * @return array{deleted: bool, documents: int}
      */
     #[ExposedLivewireMethod]
     #[Renderless]
-    public function deleteMediaForJs(string $id): bool
+    public function deleteMediaForJs(string $id): array
     {
         if (blank($id) || ! $this->hasMediaLibrary() || FileAttachments::pending($id)) {
-            return false;
+            return ['deleted' => false, 'documents' => 0];
         }
 
-        $source = $this->getMediaSource();
-
-        if (! $source?->isRecordScoped()) {
-            return false;
+        if (! $this->canDeleteFromMediaLibrary() || ! $this->getMediaSource()?->delete($id)) {
+            return ['deleted' => false, 'documents' => 0];
         }
 
-        return $source->delete($id);
+        // After the file, never before: a file that could not be deleted must not have been
+        // taken out of anybody's text. And reported rather than raised - the file is gone
+        // either way, and saying so is still the true answer.
+        $documents = rescue(fn (): int => $this->getMediaUsages()->remove($id), 0);
+
+        return ['deleted' => true, 'documents' => $documents];
+    }
+
+    /**
+     * How many entries use a file, and what a few of them are called - asked before deleting
+     * or replacing it, so the question can say what else it touches.
+     *
+     * Only for a file in the pool, and only on a field that may delete or replace at all: the
+     * answer names other records, and nothing else here needs to.
+     *
+     * @return array{count: int, entries: array<int, string>}
+     */
+    #[ExposedLivewireMethod]
+    #[Renderless]
+    public function getMediaUsageForJs(string $id): array
+    {
+        $none = ['count' => 0, 'entries' => []];
+
+        if (blank($id) || ! $this->hasMediaLibrary() || FileAttachments::pending($id)) {
+            return $none;
+        }
+
+        if (! ($this->canDeleteFromMediaLibrary() || $this->canReplaceInMediaLibrary()) || ! $this->getMediaSource()?->has($id)) {
+            return $none;
+        }
+
+        return $this->getMediaUsages()->describe($id);
     }
 
     /**

@@ -22,6 +22,9 @@ use Tiptap\Core\Extension;
  */
 class EmbedPlugin implements RichContentPlugin
 {
+    /** The selected embed, as the dialog reads it back in. */
+    protected const SELECTED = '{ provider: $getEditor().getAttributes(\'embed\')?.provider, id: $getEditor().getAttributes(\'embed\')?.id, start: $getEditor().getAttributes(\'embed\')?.start, title: $getEditor().getAttributes(\'embed\')?.title, ratio: $getEditor().getAttributes(\'embed\')?.ratio }';
+
     public static function make(): static
     {
         return app(static::class);
@@ -56,8 +59,23 @@ class EmbedPlugin implements RichContentPlugin
             RichEditorTool::make('embed')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.label'))
                 ->icon(Icons::get('embed'))
-                ->action(arguments: '{ provider: $getEditor().getAttributes(\'embed\')?.provider, id: $getEditor().getAttributes(\'embed\')?.id, start: $getEditor().getAttributes(\'embed\')?.start, title: $getEditor().getAttributes(\'embed\')?.title, ratio: $getEditor().getAttributes(\'embed\')?.ratio }')
+                ->action(arguments: static::SELECTED)
                 ->activeKey('embed'),
+
+            // The bar over a selected embed. Replace is the embed's own dialog, filled in with
+            // this one, since a different video is a different link rather than a new file -
+            // and there is nothing to download: the video is on somebody else's server.
+            RichEditorTool::make('embedReplace')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.replace'))
+                ->icon(Icons::get('embed_replace'))
+                ->action('embed', arguments: static::SELECTED)
+                ->activeStyling(false),
+
+            RichEditorTool::make('embedDelete')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.delete'))
+                ->jsHandler('$getEditor()?.chain().focus().deleteSelection().run()')
+                ->activeStyling(false)
+                ->icon(Icons::get('embed_delete')),
         ];
     }
 
