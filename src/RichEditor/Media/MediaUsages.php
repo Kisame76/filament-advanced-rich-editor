@@ -142,6 +142,23 @@ class MediaUsages
             // Reported and passed over: a place named in the configuration that cannot be read
             // any more - a table that was dropped, a column that was renamed - must not stop a
             // file from being deleted. The entries that can still be read are cleaned.
+            //
+            // Asked first inside a transaction of its own, which is a savepoint where the caller
+            // already holds one. Postgres gives up on a whole transaction at its first failed
+            // statement, so without it one place that cannot be read took every place after it
+            // down as well - they failed too, and were passed over just the same.
+            try {
+                $found = $query->getModel()->getConnection()->transaction(static fn (): bool => $query->clone()->exists());
+            } catch (QueryException $exception) {
+                report($exception);
+
+                continue;
+            }
+
+            if (! $found) {
+                continue;
+            }
+
             try {
                 foreach ($query->lazyById(100) as $record) {
                     foreach ($columns as $column) {
@@ -159,9 +176,9 @@ class MediaUsages
     }
 
     /**
-     * The rows that may point at the file: the id as it is, as `json_encode()` writes its
-     * slashes, and as markup writes its `&` - a path is an id on a disk, and both spellings
-     * turn up in stored documents.
+     * The rows that may point at the file: the id as it is, as a tree written into a string
+     * spells it, and as markup writes its `&` - a path is an id on a disk, and every one of
+     * these spellings turns up in stored documents.
      *
      * @param  class-string<Model>  $model
      * @param  array<int, string>  $columns
@@ -169,11 +186,28 @@ class MediaUsages
      */
     protected static function candidates(string $model, array $columns, string $id): Builder
     {
-        $needles = array_values(array_unique([
-            $id,
-            str_replace('/', '\/', $id),
-            htmlspecialchars($id, ENT_QUOTES),
-        ]));
+        $needles = [$id, htmlspecialchars($id, ENT_QUOTES)];
+
+        // Asked of `json_encode()` rather than imitated: it escapes the slashes, and by default
+        // every letter outside ASCII as well - "Übersicht.png" is stored as `Übersicht.png`
+        // - while a writer told to keep them keeps them. The quotes around the string go.
+        foreach ([0, JSON_UNESCAPED_UNICODE] as $flags) {
+            $json = json_encode($id, $flags);
+
+            if (is_string($json)) {
+                $needles[] = substr($json, 1, -1);
+            }
+        }
+
+        // No backslash reaches the pattern. MySQL and Postgres read one as the escape character
+        // of `LIKE` and SQLite as a character like any other, so `\/` looked for the escaped
+        // slash on SQLite and for a plain one everywhere else - and a tree on a real server was
+        // never found. `_` stands in for it: any one character, which over-matches at worst,
+        // and the document is read before anything counts.
+        $needles = array_values(array_unique(array_map(
+            static fn (string $needle): string => str_replace('\\', '_', $needle),
+            $needles,
+        )));
 
         return $model::query()->where(static function (Builder $query) use ($columns, $needles): void {
             foreach ($columns as $column) {

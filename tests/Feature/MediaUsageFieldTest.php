@@ -60,12 +60,14 @@ it('has no column of its own where it is not bound to one', function (): void {
 });
 
 it('names the entries using a file for the question before deleting it', function (): void {
-    Post::create(['title' => 'Preise', 'content' => ($this->picture)('article-attachments/sunset.png')]);
+    $prices = Post::create(['title' => 'Preise', 'content' => ($this->picture)('article-attachments/sunset.png')]);
     Post::create(['title' => 'Anderes', 'content' => ($this->picture)('article-attachments/other.png')]);
 
+    // Keys read off the rows: a server that keeps its sequences between tests hands out
+    // whatever the tests before this one left, and only SQLite starts again at one.
     expect($this->editor->getMediaUsageForJs('article-attachments/sunset.png'))->toBe([
         'count' => 2,
-        'entries' => ['Post #1 “Offen”', 'Post #2 “Preise”'],
+        'entries' => ["Post #{$this->record->getKey()} “Offen”", "Post #{$prices->getKey()} “Preise”"],
     ]);
 });
 
