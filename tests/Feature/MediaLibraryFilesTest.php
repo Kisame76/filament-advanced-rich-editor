@@ -315,16 +315,16 @@ it('offers the documents in the slash menu', function (): void {
 it('puts a bar over a selected card that goes back to the browser', function (): void {
     $replace = $this->editor->getTools()['fileReplace'] ?? null;
 
-    expect($this->editor->getFloatingToolbars()['file'] ?? null)->toBe(['fileReplace', 'fileDelete'])
+    expect($this->editor->getFloatingToolbars()['file'] ?? null)->toBe(['fileReplace', 'fileDownload', 'fileDelete'])
         ->and($replace?->getJsHandler())->toContain("replace: 'file'")
         ->and($replace?->getJsHandler())->toContain("getAttributes('file')")
         ->and($this->editor->getTools()['fileDelete']?->getJsHandler())->toContain('deleteSelection()');
 });
 
-it('offers only removing a card where there is no browser to go back to', function (): void {
+it('offers no Replace over a card where there is no browser to go back to', function (): void {
     // Without a pool the browser button falls back to Filament's own dialog, which takes
     // pictures only - a Replace that opened it would be a door onto the wrong room.
-    expect(editor()->getFloatingToolbars()['file'] ?? null)->toBe(['fileDelete']);
+    expect(editor()->getFloatingToolbars()['file'] ?? null)->toBe(['fileDownload', 'fileDelete']);
 });
 
 it('names the documents tab in the browser\'s own words', function (): void {

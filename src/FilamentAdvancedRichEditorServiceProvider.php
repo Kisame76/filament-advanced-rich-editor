@@ -160,6 +160,8 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                     ->loadedOnRequest(),
                 Js::make('advanced-rich-editor/file-card', __DIR__.'/../resources/dist/js/file-card.js')
                     ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/media-replace', __DIR__.'/../resources/dist/js/media-replace.js')
+                    ->loadedOnRequest(),
 
                 Js::make('advanced-rich-editor/character-count', __DIR__.'/../resources/dist/js/character-count.js')
                     ->loadedOnRequest(),

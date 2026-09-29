@@ -2374,6 +2374,36 @@ body.fi-arte-fullscreen-lock {
     --fi-arte-media-rejected-text: rgb(253 230 138);
 }
 
+/* What a delete or a replacement reached: the same line as a refusal, in the colour of news
+   rather than of a warning. */
+.fi-arte-media-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    background-color: var(--fi-arte-media-notice-bg, rgb(220 252 231));
+    color: var(--fi-arte-media-notice-text, rgb(22 101 52));
+    font-size: 0.8125rem;
+}
+
+.fi-arte-media-notice:where(.dark, .dark *) {
+    --fi-arte-media-notice-bg: rgb(20 83 45 / 0.35);
+    --fi-arte-media-notice-text: rgb(187 247 208);
+}
+
+/*
+ * The questions before a delete or a replacement are Filament's own confirmation modal, drawn
+ * inside the browser. Filament fades the overlay of a modal that another one is stacked on, so
+ * the page is dimmed once rather than once per layer - but it looks for the later modal as a
+ * sibling, and this one is a descendant. The same rule, for the other relation.
+ */
+.fi-modal.fi-modal-open:has(.fi-arte-media-confirm.fi-modal-open) > .fi-modal-close-overlay {
+    opacity: 0;
+}
+
 /*
  * A sound is a control bar and nothing else. Its height is deliberately NOT set here:
  * `height: auto` on an `<audio>` is zero - the element has no content to size by - and
@@ -2749,7 +2779,8 @@ body.fi-arte-fullscreen-lock {
  * handed to the same input. Clipped rather than `display: none`, because a field that is not
  * laid out at all cannot always be measured or focused by the widget inside it.
  */
-.fi-arte-media-uploader {
+.fi-arte-media-uploader,
+.fi-arte-media-replacer {
     /* Out of the flow and invisible, but deliberately NOT clipped to a pixel: Filament loads
        this widget's script only once the element is on screen, and something one pixel across
        never convincingly is - so it loaded sometimes and not others, and a picture dropped in
@@ -3226,10 +3257,46 @@ body.fi-arte-fullscreen-lock {
     color: var(--fi-arte-media-muted);
 }
 
+/*
+ * The panel's actions: two over two, every cell as wide as the others and together as wide as
+ * the panel - so a short label and a long one, in whichever language, still line up, and no
+ * button leaves a field of nothing beside it. Stretched, because the panel lines its contents
+ * up at the start and a grid there would shrink to its buttons.
+ */
 .fi-arte-media-actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+    align-self: stretch;
+}
+
+.fi-arte-media-actions > .fi-btn {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+}
+
+/* A label that does not fit is cut short rather than pushing its cell out of the panel. */
+.fi-arte-media-action-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The last of an odd number, across both columns, so the grid ends in a full row. */
+.fi-arte-media-action-wide {
+    grid-column: 1 / -1;
+}
+
+.fi-arte-media-replace-error {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--fi-arte-media-replace-error, rgb(185 28 28));
+}
+
+.fi-arte-media-replace-error:where(.dark, .dark *) {
+    --fi-arte-media-replace-error: rgb(252 165 165);
 }
 
 .fi-arte-media-facts {

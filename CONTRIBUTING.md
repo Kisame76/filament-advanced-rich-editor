@@ -47,6 +47,30 @@ build step either and never touches `resources/dist`. Behaviour that has to be t
 in a file under `resources/js` rather than in an `x-data` attribute: an attribute cannot be
 imported, which is exactly why the media browser moved out of one.
 
+## Translations
+
+English is the reference and German ships beside it. A language is a folder: copy
+`resources/lang/en/advanced-rich-editor.php` to `resources/lang/<locale>/` and translate the
+values. Nothing has to be registered, the package loads whatever is there.
+
+`tests/Feature/TranslationParityTest.php` holds every folder against English, so `composer test`
+tells you what is left. It fails on a line that is missing, on a line English does not have, on
+a blank line, and on a placeholder (`:count`, `:name`) that was dropped, invented or renamed. A
+placeholder may move within its sentence, and `:Count` is the same one as `:count`.
+
+Two kinds of line are not word-for-word translations:
+
+- `slash.aliases.*` are the words somebody types after `/` to find that entry, comma separated.
+  Write what a speaker of the language would type rather than a rendering of the English words.
+  The short ones that mean the same in every panel (`ul`, `ol`, `hr`, `img`, `mp4`) stay in.
+- `accessibility.weak_link_phrases` lists the link texts that tell a reader nothing in that
+  language, the way "click here" does in English. It is a list of what is true of the language,
+  so it needs entries but not as many as English has.
+
+The test is the only thing that will tell you. Laravel answers a line a language lacks from the
+fallback locale, so a half-finished translation shows English in the middle of it and nothing
+complains at runtime.
+
 ## Reporting a bug
 
 Please include the Filament version, the field configuration that reproduces it, and what

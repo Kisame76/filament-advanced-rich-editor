@@ -685,15 +685,26 @@ prose keeps the bar.
 A floating toolbar is a bar that shows itself while the caret is somewhere particular and
 takes itself away on the way out. Filament shows one while `editor.isActive(<the key>)` is
 true, so the key is a node or mark name and the bar is scoped to it for free. Filament ships
-one, over a table cell. This package ships three more.
+one, over a table cell. This package ships the rest.
 
 | Key | Shows while | Holds |
 | --- | --- | --- |
 | `paragraph` | text is selected, in any block that takes marks | [the selection bar](#toolbar-over-a-selection) — styles, marks, link, both colour pickers |
-| `image` | an image is selected | the aspect lock, the size panel, the two quarter turns, the alt and caption panel, download, delete |
+| `image` | an image is selected | the aspect lock, the size panel, the two quarter turns, the alt and caption panel, replace, download, delete |
+| `file` | a [document card](#documents) is selected | replace, download, remove |
+| `media` | a [video or a sound](#video-and-audio-you-host) is selected | replace, download, remove |
+| `embed` | an [embed](#video-embeds) is selected | replace, remove |
 | `bulletList` / `orderedList` | the caret is in a list | [the marker, start number and reverse panel](#lists-markers-numbering-and-direction) |
 
-All three assemble themselves from what the field has switched on: no
+The four bars over something that came out of the library end the same way — Replace,
+Download, Delete, wherever each applies — so a hand that learned one knows the others. An
+embed has nothing to download, since the video is on somebody else's server, and its Replace
+is the embed dialog filled in with it. Replace on a card or a player needs a
+[media browser](#media-browser) to go back to and is left out without one; a picture's goes
+to Filament's own dialog then, which replaces the selected picture too. Download saves a
+card under the card's own name, and everything else under the last part of its address.
+
+All of them assemble themselves from what the field has switched on: no
 [`->imageToolbar()`](#images), no image bar; no [`->listProperties()`](#lists-markers-numbering-and-direction),
 no list bubbles; no [`->textToolbar()`](#toolbar-over-a-selection), no selection bar. Leave
 them alone and you never touch this API.
@@ -2223,10 +2234,118 @@ one. Its still is shown with a play mark, and pressing it swaps in the player: d
 iframe as soon as something is selected would call the video service from every editor that
 opens the dialog, which is the tracking the cookie-free host exists to avoid.
 
-**Deleting.** Where the library is this record's own attachments, the panel also offers
-Delete, which takes the file and everything written beside it. In a shared library it does
-not, and that is not an oversight: the file may be in another record's content that nobody
-standing here can see.
+**Copy link, Download, Replace, Delete.** The panel ends in four actions, two over two and all
+the same width. Whatever does not apply to what is selected is left out and the grid closes up:
+an embed has no file to download or replace, and an upload that is not saved yet offers only
+Download, since nothing of it is in the library. Replace is drawn the moment a file is selected
+and greyed out until the server has said what may take its place, so the grid keeps its shape
+instead of growing a cell under the pointer.
+
+**Deleting and replacing ask first, in Filament's own confirmation dialog** — the same one an
+action with `requiresConfirmation()` opens, so it follows the panel's theme, its dark mode and
+its language, and Escape, Cancel and a click beside it all leave everything as it was. The
+heading names the file (*Delete “Preise.pdf” for good?*, *Replace “Preise.pdf” with
+“Preise-2027.pdf”?*) and under it is what follows: the entries the file is used in, or, where
+none is found, that other documents may lose it. A delete is red and a replacement is a warning.
+
+**Replacing.** Replace puts a new file in the selected one's place and **keeps its id** — so
+every document using the file shows the new one from its next render, without anybody opening
+them. The file picker only offers what may take the place, the server checks it again, and a
+file it turns away is named in the panel with what would have been taken:
+
+| | With Spatie Media Library | On a plain disk |
+| --- | --- | --- |
+| What stays | the row: uuid, key, owner, order, description | the path — which is the id, and the file's name — and the description beside it |
+| What changes | the file, and its names: the file name and the name in the library both come from the upload, as they would have on upload; type and size; conversions are made again | the file's bytes |
+| A picture, a film, a sound | may change format within its family — a png for a webp | keeps its ending, because the path is the id |
+| A document | keeps its ending, because every card using it downloads under that name | keeps its ending |
+
+**The new file's name is taken over with Spatie, and not on a plain disk.** Replace *Quarterly
+report.pdf* with *Report Q4.pdf* and the library, the panel and the card of every entry that is
+found say *Report Q4.pdf* from then on. On a disk the path is the file's name and its id at
+once: keeping the id means keeping the name, so the new bytes go under the old name.
+
+A cover made from a film is thrown away with the old film and made again from the new one.
+
+**Every entry follows.** The dialog before replacing names the entries using the file, and
+afterwards every one of them is pointed at the new file *as stored*: the address, a card's name
+and size, and the shape of a sized picture, which keeps its width and takes the new picture's
+proportions. The open editor follows at once, without a save. Where the entries are is below,
+under [Where a file is used](#where-a-file-is-used).
+
+One thing a replacement cannot reach: on a disk the address stays the same, so a reader's
+browser may show the old file from its cache for a while. With Spatie the address changes with
+the file name, and `media-library.version_urls` covers the rest.
+
+Replacing is on everywhere, because nothing breaks: the id stays. What it does change is what
+every document shows, so it can be narrowed:
+
+```php
+->mediaLibraryReplaceable(fn (): bool => auth()->user()->can('manage-media'))
+```
+
+A pool of your own implements `ReplacesMedia` beside `MediaSource` to offer it; one that does
+not simply has no Replace button.
+
+**Deleting.** Delete takes the file and everything written beside it — and takes it out of
+every entry using it: the dialog names them (*It is used in 3 entries (Article #1 “Welcome”,
+Article #4 “Prices”, +1 more) and will be taken out of them as well*), and afterwards the picture, card or player is gone from each of them, saved through the
+model so whatever listens to it hears. The open editor lets go of it at once.
+
+By default the panel offers Delete only where the library is this record's own attachments. In
+a shared library it does not, and that is not an oversight: the file may be in an entry the
+package was never told about, which then keeps a dead link. Whether that is acceptable is your
+call rather than the package's, so a shared library can be opened for it — with a closure that
+says who may:
+
+```php
+->mediaLibraryDeletable()                                        // everybody
+->mediaLibraryDeletable(fn (): bool => auth()->user()->isAdmin()) // some
+->mediaLibraryDeletable(false)                                   // not even the record's own
+```
+
+Where no entry is found, the dialog in a shared library still says that other documents may
+lose the file. A document still pointing at a deleted file — open in another tab, say — saves
+as before.
+
+```php
+'media_library' => [
+    'deletable' => null,    // null follows the scope; true and false decide for every field
+    'replaceable' => true,
+],
+```
+
+#### Where a file is used
+
+A package cannot know which of an application's tables hold rich content, so the field is told.
+Its own column it knows without being told — an `AdvancedRichEditor::make('content')` on an
+article finds every article using a file, which is the common case and needs nothing. Anything
+else is named, per field or for all of them:
+
+```php
+->mediaLibraryDocuments([
+    Page::class => ['body', 'sidebar'],   // these columns
+    Post::class,                          // the columns it registered with registerRichContent()
+])
+```
+
+```php
+'media_library' => [
+    'documents' => [
+        App\Models\Page::class => ['body', 'sidebar'],
+    ],
+],
+```
+
+The database is asked for the id as a pattern, which finds candidates cheaply; each one is then
+read, and only a picture, a card or a player pointing at the file itself counts — a custom
+block's `data-id`, or an id that merely contains this one, never does. The change is made where
+it lives, in the stored HTML or document tree, and everything around it comes back out as it
+went in. A place named here that cannot be read any more — a table that was dropped — is
+reported and passed over rather than stopping the delete.
+
+The dialog names other records, so they are only looked up on a field that may delete or
+replace at all.
 
 ```php
 'media_library' => [
@@ -4598,6 +4717,7 @@ the whole project; the method sets it for one field and wins.
 | List markers, start and reverse | `list_properties` | `->listProperties(false)` |
 | Media browser | `media_library.enabled` | `->mediaLibrary(false)` |
 | A family of the media browser — documents, say *(see [Media browser](#media-browser))* | `media_library.types.file` | `->mediaLibraryTypes(['file' => []])` |
+| Replacing a file in the media browser | `media_library.replaceable` | `->mediaLibraryReplaceable(false)` |
 | Character count | `character_count.enabled` | `->characterCount(false)` |
 | Font size | `font_size.enabled` | `->fontSize(false)` |
 | Typeface picker *(on, but its token is on no bar — see [Fonts](#fonts))* | `fonts.enabled` | `->fontPicker(false)` |
@@ -4711,17 +4831,23 @@ FilamentIcon::register([
 
 ### Translations
 
-Tool labels are translatable. English (`en`) and German (`de`) ship with the package;
-publish the language files to add or override locales:
+Everything the package puts on screen is translatable: the tool labels, the slash menu and
+the words it is searched by, the callouts, the panels and their messages. English (`en`) and
+German (`de`) ship with the package; publish the language files to add or override locales:
 
 ```bash
 php artisan vendor:publish --tag="filament-advanced-rich-editor-translations"
 ```
 
-This writes `lang/vendor/filament-advanced-rich-editor/{locale}/advanced-rich-editor.php`,
-where each locale defines `tools.image` (the image tool), `tools.task_list` (the task list
-tool) and `tools.headings` / `tools.lists` (the two dropdown triggers). Every other label in
-the toolbar is Filament's own and lives in `filament-forms::components.rich_editor`.
+This writes `lang/vendor/filament-advanced-rich-editor/{locale}/advanced-rich-editor.php`.
+The labels of Filament's own toolbar buttons are Filament's and live in
+`filament-forms::components.rich_editor`.
+
+A language for everybody is a pull request and a folder under `resources/lang`. A test holds
+every shipped language against English - the same lines, the same placeholders - and
+[`CONTRIBUTING.md`](../CONTRIBUTING.md#translations) says what is different about the two kinds
+of line that are not word-for-word: the words somebody types after the slash, and the list of
+link texts that tell a reader nothing.
 
 ### Theming
 

@@ -9,6 +9,7 @@
  */
 export function mount(factory, config = {}, { root = null } = {}) {
     const watchers = {}
+    const dispatched = []
 
     const component = factory({
         labels: { sorts: {} },
@@ -20,7 +21,10 @@ export function mount(factory, config = {}, { root = null } = {}) {
         fetchDetails: async () => null,
         saveMetadata: async () => true,
         deleteMedia: async () => true,
+        replaceMedia: async () => ({ replaced: false }),
         canDelete: true,
+        canReplace: true,
+        shared: false,
         ...config,
     })
 
@@ -31,9 +35,13 @@ export function mount(factory, config = {}, { root = null } = {}) {
             },
         },
         $root: { value: root ?? document.createElement('div'), writable: true },
+        // Recorded rather than sent: what a test wants to know is which event the component
+        // asked for, and to whom it would have gone.
+        $dispatch: { value: (name, detail) => dispatched.push({ name, detail }) },
     })
 
     component.watchers = watchers
+    component.dispatched = dispatched
 
     component.trigger = (property, value) => watchers[property]?.(value)
 

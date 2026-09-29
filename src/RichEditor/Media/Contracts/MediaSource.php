@@ -110,9 +110,11 @@ interface MediaSource
     /**
      * Throws a medium away, with everything written beside it.
      *
-     * Only where `isRecordScoped()` - in a shared library the file may be in content this
-     * editor cannot see, and there is no way from here to find out. Never called for an
-     * upload that is not saved yet: that is "discard", and it belongs to the upload widget.
+     * By default only where `isRecordScoped()` - in a shared library the file may be in
+     * content this editor cannot see, and there is no way from here to find out. The shipped
+     * sources can be told otherwise when they are built, which is what the field's
+     * `mediaLibraryDeletable()` does. Never called for an upload that is not saved yet: that
+     * is "discard", and it belongs to the upload widget.
      */
     public function delete(mixed $id): bool;
 }

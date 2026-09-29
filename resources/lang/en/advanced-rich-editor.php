@@ -97,6 +97,9 @@ return [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
             ],
+            // The bar over a selected embed.
+            'replace' => 'Replace video',
+            'delete' => 'Remove',
         ],
         /*
          * A file on this server rather than one somebody else hosts. The two buttons open
@@ -125,6 +128,10 @@ return [
             ],
             'loop' => 'Play again when it ends',
             'unsupported' => 'That address is not one a browser will play a file from.',
+            // The bar over a selected film or sound.
+            'replace' => 'Replace file',
+            'download' => 'Download file',
+            'delete' => 'Remove',
         ],
         /*
          * A document in the text, drawn as a card: the button that opens the browser on the
@@ -133,6 +140,7 @@ return [
         'file' => [
             'label' => 'File',
             'replace' => 'Replace file',
+            'download' => 'Download file',
             'delete' => 'Remove',
         ],
         'format_brush' => [
@@ -245,6 +253,7 @@ return [
             'enter' => 'Fullscreen',
             'exit' => 'Leave fullscreen',
         ],
+        'image_replace' => 'Replace image',
         'image_download' => 'Download image',
         'image_delete' => 'Delete image',
         'image_float_left' => 'Float left',
@@ -302,7 +311,35 @@ return [
             'download' => 'Download',
             'play' => 'Play it here',
             'delete' => 'Delete',
-            'confirm_delete' => 'Delete this file for good? Anything still pointing at it will break.',
+            'deleting' => 'Deleting…',
+            // The confirmation is Filament's own dialog: a heading naming the file, and under it
+            // what follows from it. `:name` is filled in by the browser.
+            'delete_heading' => 'Delete “:name” for good?',
+            'confirm_delete' => 'Anything still pointing at it will break.',
+            // A library shared across records: what breaks is not on this screen.
+            'confirm_delete_shared' => 'It may be in other documents too, and they will lose it.',
+            // A new file in the selected one's place, under the same id. `:from` and `:to` are
+            // filled in by the browser, which is where both names are known.
+            'replace' => 'Replace',
+            'replacing' => 'Uploading…',
+            'replace_heading' => 'Replace “:from” with “:to”?',
+            'confirm_replace' => 'Every document using it will show the new file.',
+            'replace_refused' => '“:name” cannot take its place. It takes: :accept',
+            'replace_failed' => 'The file could not be replaced.',
+            // How an entry using a file is named in the question before deleting or replacing it.
+            'usage_entry' => ':model #:key “:title”',
+            'usage_entry_untitled' => ':model #:key',
+            'usage_more' => '+:count more',
+            // Where the file is used in entries the server found. They are changed too: a
+            // deleted file is taken out of them, a replaced one shown in its place.
+            'confirm_delete_used' => 'It is used in :count entries (:entries) and will be taken out of them as well.',
+            'confirm_delete_used_one' => 'It is used in one entry (:entries) and will be taken out of it as well.',
+            'confirm_replace_used' => 'It is used in :count entries (:entries), which will show the new file.',
+            'confirm_replace_used_one' => 'It is used in one entry (:entries), which will show the new file.',
+            'deleted_from' => 'Deleted, and taken out of :count entries.',
+            'deleted_from_one' => 'Deleted, and taken out of one entry.',
+            'replaced_in' => 'Replaced, and updated in :count entries.',
+            'replaced_in_one' => 'Replaced, and updated in one entry.',
             'copy_url' => 'Copy link',
             'copied' => 'Copied',
             'drop' => 'Drop to upload',

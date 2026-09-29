@@ -2,6 +2,59 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.6.0 - 2026-09-29
+
+### Added
+
+- The media browser can replace a file. Replace, in the panel beside Copy link and Download,
+  puts a new file in the selected one's place and keeps its id, so every document using it shows
+  the new one from its next render - a price list is replaced once, not once per page that links
+  to it. The picker only offers what may take the place, and the server checks it again: the same
+  family always, and the same ending on a plain disk, whose path is the id, and for a document,
+  whose card downloads under its name. With Spatie the row stays - uuid, key, owner, order,
+  description - and it takes the new file's name, which the library, the panel and every card
+  found then say; the conversions are made again from the new file; a picture, a film and a
+  sound may change format. The open editor follows at once, and a sized picture keeps its width
+  and takes the new picture's shape. On everywhere, and `->mediaLibraryReplaceable()` or
+  `media_library.replaceable` narrows it. A pool of a project's own offers it by implementing
+  the new `ReplacesMedia` beside `MediaSource`, which is unchanged
+
+- A shared library can be opened for deleting: `->mediaLibraryDeletable()`, with a closure that
+  says who, or `media_library.deletable`. Left alone it is what it was - only a record's own
+  attachments may be thrown away
+
+- Deleting and replacing reach every entry using the file. The dialog before either names the
+  entries - how many, and a few of them by title - and afterwards a deleted file is taken out of
+  each of them, and a replaced one is pointed at in each: the address, a card's name and size,
+  and the shape of a sized picture. The change is made in the stored HTML or document tree where
+  it lives, and saved through the model. The field's own column is found without being told;
+  other models and columns are named with `->mediaLibraryDocuments()` or
+  `media_library.documents`
+
+- Deleting and replacing ask in Filament's own confirmation dialog rather than the browser's:
+  it follows the panel's theme, dark mode and language, names the file in its heading, and
+  Escape, Cancel and a click beside it all leave everything as it was. A delete is red, a
+  replacement a warning, and Delete shows that it is working while the entries are rewritten
+
+- The bars over what came out of the library all end in the same actions. A picture can be
+  replaced from its own bar, a card can be downloaded - under the card's own name - and a video,
+  a sound and an embed have a bar at all: Replace, Download and Remove for a player, Replace and
+  Remove for an embed, whose Replace is the embed dialog filled in with it
+
+- A test that holds every language in `resources/lang` against English - the same lines, the same
+  placeholders, no blank line and no slash alias without a word to type - and a Translations
+  section in `CONTRIBUTING.md`, so a third language is a folder and a pull request rather than a
+  risk. Laravel answers a missing line from the fallback locale, which is why nothing else ever
+  noticed one
+
+### Changed
+
+- The panel's actions are a grid of equal cells, two over two and as wide as the panel, instead of
+  a row of buttons as wide as their labels. One that does not apply is left out and the last odd
+  one widens, so there is never a hole beside a button. Replace is drawn as soon as a file is
+  selected and pressable once the server has said what may take its place, so the grid no longer
+  changes shape when the details arrive
+
 ## 1.5.0 - 2026-09-28
 
 ### Added

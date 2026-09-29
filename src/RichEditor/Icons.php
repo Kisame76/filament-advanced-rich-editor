@@ -188,15 +188,23 @@ class Icons
             'image_link' => 'heroicon-o-link',
             'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
             'image_size' => 'heroicon-o-arrows-pointing-out',
+            'image_replace' => 'heroicon-o-arrow-path',
             'image_download' => 'heroicon-o-arrow-down-tray',
             'image_delete' => 'heroicon-o-trash',
             'image_locked' => 'heroicon-o-lock-closed',
             'image_unlocked' => 'heroicon-o-lock-open',
 
-            // The bar over a selected document card: the arrows every file manager uses for
-            // swapping one file for another, and the bin the picture bar already uses.
+            // The bars over a selected card, film and embed: the arrows every file manager
+            // uses for swapping one file for another, and the tray and the bin the picture
+            // bar already uses - one drawing per action, whatever it acts on.
             'file_replace' => 'heroicon-o-arrow-path',
+            'file_download' => 'heroicon-o-arrow-down-tray',
             'file_delete' => 'heroicon-o-trash',
+            'media_replace' => 'heroicon-o-arrow-path',
+            'media_download' => 'heroicon-o-arrow-down-tray',
+            'media_delete' => 'heroicon-o-trash',
+            'embed_replace' => 'heroicon-o-arrow-path',
+            'embed_delete' => 'heroicon-o-trash',
         ];
     }
 

@@ -127,6 +127,43 @@ class MediaPicker extends Field
         return (bool) $this->evaluate($this->isRecordScoped);
     }
 
+    protected bool|Closure|null $isDeletable = null;
+
+    /**
+     * Whether the panel offers Delete. Null follows the scope, which is what it always did:
+     * a record's own attachments may be thrown away, a library shared across records may not
+     * - unless the field was opened for it, which is what the editor passes in here.
+     */
+    public function deletable(bool|Closure|null $condition = true): static
+    {
+        $this->isDeletable = $condition;
+
+        return $this;
+    }
+
+    public function isDeletable(): bool
+    {
+        return (bool) ($this->evaluate($this->isDeletable) ?? $this->isRecordScoped());
+    }
+
+    protected bool|Closure $isReplaceable = true;
+
+    /**
+     * Whether the panel offers Replace at all. Which files it offers it for is the server's
+     * answer per file, since an embed has no file and a pool decides what fits.
+     */
+    public function replaceable(bool|Closure $condition = true): static
+    {
+        $this->isReplaceable = $condition;
+
+        return $this;
+    }
+
+    public function isReplaceable(): bool
+    {
+        return (bool) $this->evaluate($this->isReplaceable);
+    }
+
     /**
      * Everything the grid draws. It is built in the browser, so the strings have to cross
      * over from here - this is the one place that knows the locale.
@@ -169,9 +206,38 @@ class MediaPicker extends Field
                 'vimeo' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.vimeo'),
             ],
             'delete' => (string) __($key.'delete'),
+            'deleting' => (string) __($key.'deleting'),
             'rejected' => (string) __($key.'rejected'),
             'dismiss' => (string) __($key.'dismiss'),
+            // The two dialogs are Filament's own confirmation, so what it calls its cancel
+            // button is what they call it: the word every other confirmation in the panel
+            // uses, in every language Filament ships.
+            'cancel' => (string) __('filament-actions::modal.actions.cancel.label'),
+            // What the dialog is headed with; the question under it is the `confirm*` below.
+            // `:name` is filled in the browser.
+            'deleteHeading' => (string) __($key.'delete_heading'),
             'confirmDelete' => (string) __($key.'confirm_delete'),
+            // Said differently where the file may be in somebody else's document: what breaks
+            // is not on this screen.
+            'confirmDeleteShared' => (string) __($key.'confirm_delete_shared'),
+            'replace' => (string) __($key.'replace'),
+            'replacing' => (string) __($key.'replacing'),
+            // `:from` and `:to` are filled in the browser, where both names are known.
+            'replaceHeading' => (string) __($key.'replace_heading'),
+            'confirmReplace' => (string) __($key.'confirm_replace'),
+            'replaceRefused' => (string) __($key.'replace_refused'),
+            'replaceFailed' => (string) __($key.'replace_failed'),
+            // The same two questions where the file is used in entries the server found: they
+            // name a few of them, and `:count` and `:entries` are filled in the browser.
+            'confirmDeleteUsed' => (string) __($key.'confirm_delete_used'),
+            'confirmDeleteUsedOne' => (string) __($key.'confirm_delete_used_one'),
+            'confirmReplaceUsed' => (string) __($key.'confirm_replace_used'),
+            'confirmReplaceUsedOne' => (string) __($key.'confirm_replace_used_one'),
+            'usageMore' => (string) __($key.'usage_more'),
+            'deletedFrom' => (string) __($key.'deleted_from'),
+            'deletedFromOne' => (string) __($key.'deleted_from_one'),
+            'replacedIn' => (string) __($key.'replaced_in'),
+            'replacedInOne' => (string) __($key.'replaced_in_one'),
             'copy' => (string) __($key.'copy_url'),
             'copied' => (string) __($key.'copied'),
             'drop' => (string) __($key.'drop'),

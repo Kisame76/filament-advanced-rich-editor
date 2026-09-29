@@ -119,9 +119,12 @@ class MediaLibraryAction
      * showing that, or a download saved under it, is a file of no kind. The ending comes off
      * the file name beside it.
      *
+     * Public because the browser asks it too: a file replaced in the library is written back
+     * into the cards of the open document under the name they would have been inserted with.
+     *
      * @param  array<string, mixed>|null  $item
      */
-    protected static function cardName(?array $item): ?string
+    public static function cardName(?array $item): ?string
     {
         $name = $item['name'] ?? null;
 
@@ -286,6 +289,10 @@ class MediaLibraryAction
                     ->fromUrlAction(fn (): ?Action => $component->getAction('mediaBrowserUrl'))
                     ->folders($component->getMediaSource()?->hasFolders() ?? false)
                     ->recordScoped($component->getMediaSource()?->isRecordScoped() ?? true)
+                    // The field's answers rather than the scope's: a project may open a shared
+                    // library for deleting, or close its own for replacing.
+                    ->deletable($component->canDeleteFromMediaLibrary())
+                    ->replaceable($component->canReplaceInMediaLibrary())
                     ->pageSize($component->getMediaLibraryPageSize())
                     ->listView($component->hasMediaLibraryListView()),
 
@@ -320,6 +327,20 @@ class MediaLibraryAction
                     // Held as a temporary upload and handed to the provider on save, exactly as
                     // Filament's own dialog does it - the whole upload path is unchanged, it has
                     // just stopped being the only way in.
+                    ->storeFiles(false),
+
+                // The panel's Replace button, off screen like the uploader above and for the
+                // same reason: it is the whole upload path. A field of its own, because the
+                // uploads above are the ones Submit inserts - a new price list dropped among
+                // them would land in the document beside the old one instead of in its place.
+                //
+                // One file, and no list of types: which types may replace a file depends on
+                // the file, so the browser narrows the picker per click and the server - which
+                // takes the upload out of here again whatever it answers - decides.
+                FileUpload::make('replacement')
+                    ->hiddenLabel()
+                    ->extraAttributes(['class' => 'fi-arte-media-replacer'])
+                    ->maxSize($component->getFileAttachmentsMaxSize())
                     ->storeFiles(false),
 
                 // A file somebody else hosts, filled in by the nested address dialog rather
@@ -495,6 +516,15 @@ class MediaLibraryAction
                 }
 
                 if ($kind !== null && $kind !== MediaKinds::IMAGE) {
+                    // Opened from the film's own bar, so the film is what gets replaced - the
+                    // same correction the card's bar needs, for the same reason.
+                    if ((($arguments['replace'] ?? null) === 'media') && is_array($arguments['editorSelection'] ?? null) && (($arguments['editorSelection']['type'] ?? null) !== 'node')) {
+                        $arguments['editorSelection']['type'] = 'node';
+                        $arguments['editorSelection']['anchor']--;
+
+                        unset($arguments['editorSelection']['head']);
+                    }
+
                     $component->runCommands(
                         [
                             EditorCommand::make('setMedia', arguments: [[

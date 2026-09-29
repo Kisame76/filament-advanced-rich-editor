@@ -10,6 +10,7 @@ use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MediaDownload;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\MediaUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Tiptap\Core\Extension;
@@ -61,6 +62,40 @@ class MediaPlugin implements RichContentPlugin
      * @return array<RichEditorTool>
      */
     public function getEditorTools(): array
+    {
+        return [
+            ...$this->getKindTools(),
+
+            // The bar over a selected film or sound, the same three a card and a picture have.
+            // Replace opens the browser on the tab of what is selected, with it picked, and
+            // `replace` tells the dialog to put the choice in its place rather than beside it.
+            RichEditorTool::make('mediaReplace')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.media.replace'))
+                ->icon(Icons::get('media_replace'))
+                ->action(
+                    static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool),
+                    arguments: "{ kind: \$getEditor().getAttributes('media')?.kind ?? 'video', replace: 'media', id: \$getEditor().getAttributes('media')?.id }",
+                )
+                ->activeStyling(false),
+
+            RichEditorTool::make('mediaDownload')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.media.download'))
+                ->jsHandler(MediaDownload::handler('media'))
+                ->activeStyling(false)
+                ->icon(Icons::get('media_download')),
+
+            RichEditorTool::make('mediaDelete')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.media.delete'))
+                ->jsHandler('$getEditor()?.chain().focus().deleteSelection().run()')
+                ->activeStyling(false)
+                ->icon(Icons::get('media_delete')),
+        ];
+    }
+
+    /**
+     * @return array<RichEditorTool>
+     */
+    protected function getKindTools(): array
     {
         return array_map(
             static fn (string $kind): RichEditorTool => RichEditorTool::make($kind)

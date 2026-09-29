@@ -12,6 +12,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\MediaPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
@@ -368,4 +369,38 @@ it('asks for no alt text under the grid any more', function (): void {
     // still a field - a hidden one that the nested dialog fills and Submit reads.
     expect($names)->not->toContain('alt')
         ->and($names)->toContain('src');
+});
+
+it('holds a replacement apart from the uploads waiting to be inserted', function (): void {
+    // A second upload field, off screen like the first. Sharing the first would put the new
+    // file for somebody's price list among the files the dialog inserts on Submit.
+    $editor = editor()->fileAttachmentsDirectory('article-attachments');
+
+    $schema = browserAction($editor)?->schemaComponent($editor)->getSchema(testSchema());
+
+    $replacement = collect($schema?->getComponents() ?? [])
+        ->first(fn (Component $component): bool => ($component instanceof FileUpload) && ($component->getName() === 'replacement'));
+
+    expect($replacement)->not->toBeNull()
+        ->and($replacement?->getExtraAttributes())->toHaveKey('class', 'fi-arte-media-replacer')
+        ->and($replacement?->isMultiple())->toBeFalse()
+        ->and($replacement?->getMaxSize())->toBe($editor->getFileAttachmentsMaxSize());
+});
+
+it('tells the grid what this field may do to its library', function (): void {
+    $picker = function (AdvancedRichEditor $editor): ?MediaPicker {
+        $schema = browserAction($editor)?->schemaComponent($editor)->getSchema(testSchema());
+
+        return collect($schema?->getComponents() ?? [])
+            ->first(fn (Component $component): bool => $component instanceof MediaPicker);
+    };
+
+    Storage::fake('public');
+
+    $shared = AdvancedRichEditor::make('content')->mediaLibraryDirectory('library')->container(testSchema());
+
+    expect($picker($shared)?->isDeletable())->toBeFalse()
+        ->and($picker($shared)?->isReplaceable())->toBeTrue()
+        ->and($picker($shared->mediaLibraryDeletable()->mediaLibraryReplaceable(false))?->isDeletable())->toBeTrue()
+        ->and($picker($shared)?->isReplaceable())->toBeFalse();
 });

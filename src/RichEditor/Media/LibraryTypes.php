@@ -316,6 +316,48 @@ class LibraryTypes
     }
 
     /**
+     * Whether an upload may take the place of a file of this family under this ending.
+     *
+     * Everything an upload is asked on its way in, and then the two things a replacement
+     * adds. The same family, because the node pointing at the file was drawn for it - an
+     * `<img>` cannot play a film. And the same ending where `sameEnding` says so: on a disk
+     * the ending is part of the path, which is the id, and a document's card carries its
+     * ending in the name written into every document using it.
+     */
+    public function replaces(string $kind, string $ending, UploadedFile $file, bool $sameEnding): bool
+    {
+        if (! $this->accepts($file)) {
+            return false;
+        }
+
+        $name = $file->getClientOriginalName();
+
+        if ($this->kindOf((string) $file->getMimeType(), $name) !== $kind) {
+            return false;
+        }
+
+        return (! $sameEnding) || (static::endingOf($name) === $ending);
+    }
+
+    /**
+     * The same rule, as a file picker's `accept` list: the ending itself where it has to stay,
+     * and otherwise whatever the family takes - endings with their dot, patterns as written.
+     *
+     * @return array<int, string>
+     */
+    public function replacementsFor(string $kind, string $ending, bool $sameEnding): array
+    {
+        if ($sameEnding) {
+            return ($ending === '') ? [] : [".{$ending}"];
+        }
+
+        return array_values(array_unique([
+            ...array_map(static fn (string $entry): string => ".{$entry}", $this->endingsOf($kind)),
+            ...$this->patternsOf($kind),
+        ]));
+    }
+
+    /**
      * Everything the upload widget may be handed, as one list.
      *
      * A coarse gate - the widget checks what the browser says a file is, and the server what

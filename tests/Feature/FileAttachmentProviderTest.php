@@ -92,13 +92,13 @@ it('prefers the field level provider over a plugin level one', function (): void
 
 it('leaves the editor itself untouched when the media library is opted into', function (): void {
     // The media library plugin only carries the provider - no tool of its own, no toolbar
-    // button. What it does bring is a pool, and the two buttons that need one to open on
+    // button. What it does bring is a pool, and the three buttons that need one to open on
     // appear with it: without a pool they would open Filament's picture dialog instead.
     $difference = array_values(array_diff(
         array_keys(editor()->spatieMediaLibrary()->getTools()),
         array_keys(editor()->getTools()),
     ));
 
-    expect($difference)->toBe(['file', 'fileReplace'])
+    expect($difference)->toBe(['mediaReplace', 'file', 'fileReplace'])
         ->and(toolbarShape(editor()->spatieMediaLibrary()))->toBe(toolbarShape(editor()));
 });

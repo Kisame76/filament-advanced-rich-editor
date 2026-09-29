@@ -37,6 +37,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolba
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\LivewireNesting;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MediaDownload;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AccessibilityPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\AlignmentPlugin;
@@ -66,6 +67,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
@@ -236,29 +238,18 @@ class AdvancedRichEditor extends RichEditor
                 ->activeStyling(false)
                 ->icon(Icons::get('image_rotate_right')),
 
+            // The browser again, with this picture already picked - the same door the image
+            // button is, which falls back to Filament's own dialog where there is no library.
+            // Both replace the selected picture when they are handed its address.
+            RichEditorTool::make('imageReplace')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_replace'))
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ kind: \'image\', id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->activeStyling(false)
+                ->icon(Icons::get('image_replace')),
+
             RichEditorTool::make('imageDownload')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_download'))
-                ->jsHandler(<<<'JS'
-                    (() => {
-                        const source = $getEditor()?.getAttributes('image')?.src
-
-                        if (! source) {
-                            return
-                        }
-
-                        const link = document.createElement('a')
-                        link.href = source
-                        // `download` is honoured for same-origin files; a remote image
-                        // opens in a new tab instead, which is the browser's call.
-                        link.download = (source.split('/').pop() ?? 'image').split('?')[0]
-                        link.target = '_blank'
-                        link.rel = 'noopener'
-
-                        document.body.appendChild(link)
-                        link.click()
-                        link.remove()
-                    })()
-                    JS)
+                ->jsHandler(MediaDownload::handler('image'))
                 ->activeStyling(false)
                 ->icon(Icons::get('image_download')),
 
@@ -546,6 +537,13 @@ class AdvancedRichEditor extends RichEditor
         // remove a feature but un-draw documents that are already in the document.
         $this->plugins(
             static fn (): array => [FileCardPlugin::make()],
+        );
+
+        // Unconditional too, and for a reason of its own: asking whether this field has a
+        // library would ask its toolbar, which asks its plugins - this very list. The script
+        // is a listener that does nothing until the browser replaces a file.
+        $this->plugins(
+            static fn (): array => [MediaReplacePlugin::make()],
         );
 
         // Built with the field's own step and depth, because the extension writes lengths

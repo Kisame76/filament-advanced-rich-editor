@@ -10,6 +10,7 @@ use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\MediaDownload;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Tiptap\Core\Extension;
 
@@ -18,7 +19,8 @@ use Tiptap\Core\Extension;
  *
  * The renderer declares the node whatever a field says - a document somebody attached is
  * one the page should keep showing as a card - so what this adds is the script that lets the
- * editor draw one while it is being written, and the three ways to reach one.
+ * editor draw one while it is being written, the three ways to reach one, and the bar over a
+ * selected one.
  *
  * All three go through the media browser rather than a dialog of their own. A second door for
  * documents beside the browser would be the exact complaint the browser was built to settle,
@@ -82,6 +84,13 @@ class FileCardPlugin implements RichContentPlugin
                     arguments: "{ kind: 'file', replace: 'file', id: \$getEditor().getAttributes('file')?.id }",
                 )
                 ->activeStyling(false),
+
+            // Saved under the card's own name, which is the one a reader's download gets too.
+            RichEditorTool::make('fileDownload')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.file.download'))
+                ->jsHandler(MediaDownload::handler('file'))
+                ->activeStyling(false)
+                ->icon(Icons::get('file_download')),
 
             RichEditorTool::make('fileDelete')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.file.delete'))
