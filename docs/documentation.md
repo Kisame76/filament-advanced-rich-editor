@@ -4831,17 +4831,23 @@ FilamentIcon::register([
 
 ### Translations
 
-Tool labels are translatable. English (`en`) and German (`de`) ship with the package;
-publish the language files to add or override locales:
+Everything the package puts on screen is translatable: the tool labels, the slash menu and
+the words it is searched by, the callouts, the panels and their messages. English (`en`) and
+German (`de`) ship with the package; publish the language files to add or override locales:
 
 ```bash
 php artisan vendor:publish --tag="filament-advanced-rich-editor-translations"
 ```
 
-This writes `lang/vendor/filament-advanced-rich-editor/{locale}/advanced-rich-editor.php`,
-where each locale defines `tools.image` (the image tool), `tools.task_list` (the task list
-tool) and `tools.headings` / `tools.lists` (the two dropdown triggers). Every other label in
-the toolbar is Filament's own and lives in `filament-forms::components.rich_editor`.
+This writes `lang/vendor/filament-advanced-rich-editor/{locale}/advanced-rich-editor.php`.
+The labels of Filament's own toolbar buttons are Filament's and live in
+`filament-forms::components.rich_editor`.
+
+A language for everybody is a pull request and a folder under `resources/lang`. A test holds
+every shipped language against English - the same lines, the same placeholders - and
+[`CONTRIBUTING.md`](../CONTRIBUTING.md#translations) says what is different about the two kinds
+of line that are not word-for-word: the words somebody types after the slash, and the list of
+link texts that tell a reader nothing.
 
 ### Theming
 

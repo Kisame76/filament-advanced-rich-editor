@@ -41,6 +41,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   a sound and an embed have a bar at all: Replace, Download and Remove for a player, Replace and
   Remove for an embed, whose Replace is the embed dialog filled in with it
 
+- A test that holds every language in `resources/lang` against English - the same lines, the same
+  placeholders, no blank line and no slash alias without a word to type - and a Translations
+  section in `CONTRIBUTING.md`, so a third language is a folder and a pull request rather than a
+  risk. Laravel answers a missing line from the fallback locale, which is why nothing else ever
+  noticed one
+
 ### Changed
 
 - The panel's actions are a grid of equal cells, two over two and as wide as the panel, instead of
