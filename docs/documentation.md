@@ -2429,7 +2429,8 @@ in [`more`](#the-more-menu) and you get Filament's dialog, unchanged, next to th
 A field with nothing browsable behind it registers no browser at all — a foreign attachment
 provider, or a disk field with no directory of its own to tell its pictures apart. There both
 buttons name Filament's dialog, because an empty grid is a worse answer than a working
-upload.
+upload. A provider of your own only counts as this package's when it extends
+[`SpatieMediaLibraryFileAttachmentProvider`](#extending-the-provider).
 
 #### Documents
 
@@ -2723,6 +2724,44 @@ project keeps in that collection is never touched:
 AdvancedRichEditor::make('content')->spatieMediaLibrary(),
 AdvancedRichEditor::make('summary')->spatieMediaLibrary(),   // same collection, separate images
 ```
+
+#### Extending the provider
+
+The provider is the one place that turns a stored media UUID into a file, so anything that
+reads the content outside the editor — a PDF export, a public page, an API — needs the same
+provider the editor uses. Extend the package's class and register your subclass on the model:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
+
+class ArticleImageProvider extends SpatieMediaLibraryFileAttachmentProvider
+{
+    public function toPdfSource(mixed $file): ?string
+    {
+        // resolveMedia() takes a UUID (or a Media) and returns a Media, or null
+        return $this->resolveMedia($file)?->getPath();
+    }
+}
+
+// in the model's rich content attribute
+ArticleImageProvider::make(collection: 'content_images', disk: 's3', visibility: 'private')
+```
+
+Two things to know:
+
+- **There is no `->collection()`.** The collection, conversion, disk and visibility are
+  constructor arguments of `make()`. Leave one out and it falls back to the `spatie` section
+  of the config — for `visibility` that is `public`, so a private collection has to say so.
+- **`resolveMedia($file)` is `protected`.** It is the lookup the provider itself uses for
+  `getFileAttachmentUrl()`, and it is scoped: the record's own collection, plus the browsable
+  pool where the field has one. Call it from a subclass rather than reaching for
+  `Media::findByUuid()`, which would resolve any row in the application.
+
+Mind the pool. The browser lists the whole collection by default, so a picture chosen from
+another record's upload is a picture *this* record's own collection does not hold. Where the
+provider has no field — a renderer, an export — there is no pool to ask, and that picture does
+not resolve. Keep the pool to what the export can see with
+[`->mediaLibraryScope('record')`](#what-it-shows), or give the export the same collection.
 
 ### Links
 
