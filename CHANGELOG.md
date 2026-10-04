@@ -45,6 +45,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   them twice. That is about 20 KB less markup per editor. A button of a project's own can still
   hand them to `openEmojiPicker()` and `openCharacterPicker()` as the second argument
 
+- The image toolbar's two panels - alt text and caption, width and height - are an Alpine
+  component now, `image-panel.js`, loaded with `x-load-src` the way the media browser is,
+  instead of five kilobytes of script inside every panel's `x-data`. They work exactly as
+  before; their behaviour is tested as JavaScript rather than as strings in PHP, and five
+  editors carry 49 KB less markup. Run `php artisan filament:assets` after updating
+
 ### Added
 
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,

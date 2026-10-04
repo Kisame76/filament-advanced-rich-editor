@@ -9,6 +9,7 @@ use Filament\Schemas\Components\Concerns\HasName;
 use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
+use Filament\Support\Facades\FilamentAsset;
 
 use function Filament\Support\generate_icon_html;
 
@@ -90,110 +91,26 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
     /**
      * The shared shell: a toggle button and the popover it opens.
      *
-     * @param  array<string, string>  $state  extra Alpine members
+     * What the panel does is `resources/js/image-panel.js`, an Alpine component loaded with
+     * `x-load-src` the way the media browser is. It used to be a string inside this `x-data`,
+     * five kilobytes per copy, checked with `toContain()`; now it is one file, tested under
+     * `tests/js`, and the markup only says which panel it is.
      */
-    protected function renderShell(string $icon, string $label, array $state, string $body): string
+    protected function renderShell(string $icon, string $label, string $body): string
     {
-        $members = implode("\n", array_map(
-            static fn (string $value, string $key): string => "                {$key}: {$value},",
-            $state,
-            array_keys($state),
-        ));
-
-        // `read()` runs whenever the editor reports a change, so the fields follow a drag
-        // as it happens, and `commit()` is the only writer.
-        $xData = <<<JS
-            {
-                {$this->menuPositioning()}
-                open: false,
-            {$members}
-                // Where the picture is, frozen while the panel is open.
-                //
-                // `commit()` reads this to decide *where* to write, and by the time it runs
-                // the live selection is no longer the picture: focusing a field collapses
-                // the node selection to a caret, which is the same thing `image()` below
-                // guards against when it reads. Asking the selection at that point writes
-                // the alt text at wherever the caret ended up - and the picture, no longer
-                // selected, takes the floating toolbar and this panel down with it. Which
-                // is what clicking from the alt field into the caption field did.
-                anchored: null,
-                position() {
-                    return this.anchored ?? \$getEditor()?.state?.selection?.from
-                },
-                // Re-taken on every tick while the panel is closed, so it holds the picture
-                // the toolbar is currently on. Opening the panel freezes it.
-                anchor() {
-                    const from = \$getEditor()?.state?.selection?.from
-
-                    this.anchored = \$getEditor()?.state?.doc?.nodeAt(from)?.type.name === 'image'
-                        ? from
-                        : null
-                },
-                node() {
-                    const editor = \$getEditor()
-                    const position = this.position()
-
-                    if (! editor || position === undefined) {
-                        return null
-                    }
-
-                    const node = editor.state.doc.nodeAt(position)
-
-                    return node?.type.name === 'image' ? node : null
-                },
-                image() {
-                    // Read off the node rather than through `getAttributes()`: that one
-                    // answers for the selection, and the selection is a plain caret again
-                    // as soon as anything focuses away from the image.
-                    return this.node()?.attrs ?? {}
-                },
-                // Writing to the document is what closes this panel: the transaction makes
-                // the floating toolbar re-evaluate, the toolbar is rebuilt, and the panel
-                // inside it comes back closed. Which is fine when somebody is finished and
-                // wrong the moment they move from one field to the next - clicking from the
-                // alt text into the caption wrote, and the panel vanished under the pointer.
-                //
-                // `relatedTarget` on a blur is the element about to take focus, so this asks
-                // the only question that matters: is focus still inside this panel? Moving
-                // between fields writes nothing; leaving it altogether writes once. The size
-                // panel beside this one never had the problem because it writes on its own
-                // button rather than on blur - this is the same rule stated for a panel that
-                // has no button.
-                commitOnLeaving(event) {
-                    if (this.\$root.contains(event.relatedTarget)) {
-                        return
-                    }
-
-                    // The shell is shared, and only a panel that writes on blur has this.
-                    if (typeof this.commit === 'function') {
-                        this.commit()
-                    }
-                },
-                update(attributes) {
-                    const editor = \$getEditor()
-                    const position = this.position()
-
-                    if (! editor || position === undefined) {
-                        return
-                    }
-
-                    // Nothing to write to. The picture was deleted, or the document moved
-                    // under the open panel; writing anyway would put an alt text on whatever
-                    // node happens to sit at that position now.
-                    if (editor.state.doc.nodeAt(position)?.type.name !== 'image') {
-                        return
-                    }
-
-                    // Mirrors how a resize drag commits: the node selection is restored
-                    // first, because focusing the editor would collapse it to a caret.
-                    editor.chain().setNodeSelection(position).updateAttributes('image', attributes).run()
-                },
-            }
-            JS;
+        $config = implode(', ', [
+            'mode: '.Js::from($this->mode)->toHtml(),
+            'menuPosition: '.Js::from($this->menuPositionScript())->toHtml(),
+            'menuUpClass: '.Js::from(static::MENU_UP_CLASS)->toHtml(),
+        ]);
 
         $attributes = $this->getExtraAttributeBag()
             ->merge([
-                'x-data' => $xData,
+                // An empty value is the default strategy, which loads straight away. The
+                // panel is no use until it is loaded, and it is a few kilobytes.
+                'x-load' => '',
+                'x-load-src' => FilamentAsset::getAlpineComponentSrc('image-panel', 'kisame76/filament-advanced-rich-editor'),
+                'x-data' => "arteImagePanel({ {$config} })",
                 // Re-read only while the panel is closed. The tick fires on every editor
                 // transaction, and a panel that keeps re-reading would overwrite what is
                 // being typed into it. Opening it reads once, deliberately.
@@ -284,19 +201,7 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
 
         <?php $body = ob_get_clean();
 
-        return $this->renderShell(
-            generate_icon_html(Icons::get('image_alt'))->toHtml(),
-            $label,
-            [
-                'alt' => "''",
-                'caption' => "''",
-                'read' => "function () { const image = this.image(); this.alt = image.alt ?? ''; this.caption = image.caption ?? '' }",
-                // Neither can be stored empty - the renderer drops falsy attributes - so
-                // clearing a field removes it rather than pretending otherwise.
-                'commit' => "function () { this.update({ alt: this.alt.trim() === '' ? null : this.alt, caption: this.caption.trim() === '' ? null : this.caption }) }",
-            ],
-            $body,
-        );
+        return $this->renderShell(generate_icon_html(Icons::get('image_alt'))->toHtml(), $label, $body);
     }
 
     protected function renderSizePanel(): string
@@ -378,108 +283,6 @@ class ToolbarImagePanel extends ViewComponent implements HasEmbeddedView
 
         <?php $body = ob_get_clean();
 
-        return $this->renderShell(
-            generate_icon_html(Icons::get('image_size'))->toHtml(),
-            $label,
-            [
-                'width' => 'null',
-                'height' => 'null',
-                'ratio' => 'null',
-                'locked' => 'true',
-                'read' => <<<'JS'
-                    function () {
-                        const attributes = this.image()
-
-                        // An image that has never been sized carries no width or height of
-                        // its own, so the rendered element answers for it.
-                        const element = $getEditor()?.view?.nodeDOM?.(this.position() ?? 0)
-                        const image = element?.querySelector?.('img') ?? element ?? null
-
-                        this.width = Number.parseInt(attributes.width, 10) || image?.offsetWidth || null
-                        this.height = Number.parseInt(attributes.height, 10) || image?.offsetHeight || null
-                        this.ratio = (this.width > 0 && this.height > 0) ? (this.width / this.height) : null
-                        this.locked = ! ($getEditor()?.storage?.arteImageResize?.unlocked ?? false)
-                    }
-                    JS,
-                'toggleLock' => <<<'JS'
-                    function () {
-                        const storage = $getEditor()?.storage?.arteImageResize
-
-                        if (! storage) {
-                            return
-                        }
-
-                        storage.unlocked = ! storage.unlocked
-                        this.locked = ! storage.unlocked
-
-                        // The same switch also sits in the toolbar itself, where it is
-                        // visible during a drag. One state, two places to reach it.
-                        window.dispatchEvent(new CustomEvent('arte-image-lock', {
-                            detail: { unlocked: storage.unlocked },
-                        }))
-                    }
-                    JS,
-                // While the ratio is locked the other field follows along as you type, so
-                // the pair that will be applied is visible before you commit to it.
-                // The single writer for both fields. `x-model` would be one too, and it
-                // updates AFTER this handler, so a bound model would keep overwriting the
-                // linked value with the previous one.
-                'link' => <<<'JS'
-                    function (changed, raw) {
-                        const value = Number.parseInt(raw, 10)
-                        const valid = Number.isFinite(value) && value > 0
-
-                        if (changed === 'height') {
-                            this.height = valid ? value : null
-                        } else {
-                            this.width = valid ? value : null
-                        }
-
-                        if (! valid || ! this.locked || ! this.ratio) {
-                            return
-                        }
-
-                        if (changed === 'height') {
-                            this.width = Math.round(value * this.ratio)
-                        } else {
-                            this.height = Math.round(value / this.ratio)
-                        }
-                    }
-                    JS,
-                'isDirty' => <<<'JS'
-                    function () {
-                        const attributes = this.image()
-                        const width = Number.parseInt(this.width, 10)
-                        const height = Number.parseInt(this.height, 10)
-
-                        if (! Number.isFinite(width) || ! Number.isFinite(height) || width < 1 || height < 1) {
-                            return false
-                        }
-
-                        return width !== Number.parseInt(attributes.width, 10)
-                            || height !== Number.parseInt(attributes.height, 10)
-                    }
-                    JS,
-                // Applied on demand rather than on every change: with the ratio locked,
-                // committing each field on its own would undo the other one before both
-                // numbers had been entered.
-                'apply' => <<<'JS'
-                    function () {
-                        if (! this.isDirty()) {
-                            return
-                        }
-
-                        const width = Number.parseInt(this.width, 10)
-                        const height = Number.parseInt(this.height, 10)
-
-                        this.update({ width, height })
-                        this.ratio = width / height
-                        this.open = false
-                    }
-                    JS,
-                'reset' => 'function () { this.update({ width: null, height: null }); this.$nextTick(() => this.read()) }',
-            ],
-            $body,
-        );
+        return $this->renderShell(generate_icon_html(Icons::get('image_size'))->toHtml(), $label, $body);
     }
 }

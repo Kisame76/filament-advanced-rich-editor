@@ -56,6 +56,10 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // file is what lets it be tested at all.
                 AlpineComponent::make('media-picker', __DIR__.'/../resources/dist/js/media-picker.js'),
 
+                // The image toolbar's two panels, for the same reason: their behaviour used to
+                // be a string inside every panel's `x-data`.
+                AlpineComponent::make('image-panel', __DIR__.'/../resources/dist/js/image-panel.js'),
+
                 // The TipTap extensions are only pulled in once an editor actually renders a
                 // task list, so they stay out of the panel bundle for every other page.
                 Js::make('advanced-rich-editor/task-list', __DIR__.'/../resources/dist/js/task-list.js')

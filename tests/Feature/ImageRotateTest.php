@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarImageLock;
@@ -70,14 +71,23 @@ it('offers a rotation in both directions', function (): void {
         ->and($tools['imageRotateRight']->getJsHandler())->toBe('$getEditor()?.commands.rotateImage(90)');
 });
 
-it('writes the size the way a drag does', function (): void {
-    $html = ToolbarImagePanel::size()->toEmbeddedHtml();
+it('hands each panel to the component that reads and writes the picture', function (): void {
+    // What the panels do - the ratio, the lock, writing the way a drag does - is
+    // `resources/js/image-panel.js`, and is run under `tests/js`. The markup only says which
+    // panel it is, instead of carrying five kilobytes of that script per copy.
+    $src = FilamentAsset::getAlpineComponentSrc('image-panel', 'kisame76/filament-advanced-rich-editor');
 
-    expect($html)->toContain("updateAttributes('image', attributes)")
-        // The node selection is restored first, because focusing collapses it to a caret.
-        ->toContain('setNodeSelection(position)')
-        ->toContain('arteImageResize?.unlocked')
-        ->toContain('type="number"');
+    foreach (['size' => ToolbarImagePanel::size(), 'alt' => ToolbarImagePanel::alt()] as $mode => $panel) {
+        $html = $panel->toEmbeddedHtml();
+
+        expect($html)->toContain('x-load=""')
+            ->toContain('x-load-src="'.e($src).'"')
+            ->toContain("x-data=\"arteImagePanel({ mode: '{$mode}'")
+            ->not->toContain('updateAttributes(');
+    }
+
+    expect($src)->toContain('/components/image-panel.js')
+        ->and(ToolbarImagePanel::size()->toEmbeddedHtml())->toContain('type="number"');
 });
 
 it('applies both sizes at once rather than on every keystroke', function (): void {
@@ -102,12 +112,12 @@ it('carries the aspect ratio lock between the fields', function (): void {
         ->toContain('arte-image-lock');
 });
 
-it('removes an alt text rather than storing an empty one', function (): void {
-    $html = ToolbarImagePanel::alt()->toEmbeddedHtml();
-
-    // The renderer drops falsy attributes on both sides, so an empty alt cannot be stored.
-    expect($html)->toContain("this.alt.trim() === '' ? null : this.alt")
-        ->toContain('type="text"');
+it('writes the alt text and the caption when focus leaves the panel', function (): void {
+    // An empty one is removed rather than stored - the renderer drops falsy attributes on
+    // both sides - which the component does, see `tests/js/image-panel.test.js`.
+    expect(ToolbarImagePanel::alt()->toEmbeddedHtml())
+        ->toContain('type="text"')
+        ->toContain('x-on:blur="commitOnLeaving($event)"');
 });
 
 it('leaves a turned image draggable', function (): void {

@@ -37,7 +37,7 @@ trait OpensAwayFromTheEdge
     {
         $class = static::MENU_UP_CLASS;
 
-        $module = Js::from(FilamentAsset::getScriptSrc('advanced-rich-editor/menu-position', 'kisame76/filament-advanced-rich-editor'))->toHtml();
+        $module = Js::from($this->menuPositionScript())->toHtml();
 
         return <<<JS
             dropUp: false,
@@ -47,5 +47,14 @@ trait OpensAwayFromTheEdge
                 import({$module}).then(({ positionMenu }) => positionMenu(this))
             },
             JS;
+    }
+
+    /**
+     * Where the measuring module is served from, for a menu whose behaviour lives in a module
+     * of its own and is handed the URL rather than the inline state above.
+     */
+    protected function menuPositionScript(): string
+    {
+        return FilamentAsset::getScriptSrc('advanced-rich-editor/menu-position', 'kisame76/filament-advanced-rich-editor');
     }
 }
