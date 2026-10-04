@@ -96,6 +96,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   selected and pressable once the server has said what may take its place, so the grid no longer
   changes shape when the details arrive
 
+### Fixed
+
+- **Picking the emoji or the special character picker in the slash menu did nothing.** The menu
+  runs the tool's own handler through Alpine and stands the editor in for the clicked element,
+  but it handed `$event` over in a shape Alpine does not read, so every handler that anchors to
+  `$event.currentTarget` stopped with "$event is not defined" in the console
+
 ## 1.5.0 - 2026-09-28
 
 ### Added

@@ -343,8 +343,9 @@ class SlashMenu {
 
         try {
             // Some handlers anchor a popup to the element that was clicked. There was no
-            // click, so the editor stands in for it.
-            Alpine.evaluate(element, item.handler, { $event: { currentTarget: element } })
+            // click, so the editor stands in for it. Extra variables go in as `scope`: that is
+            // the shape Alpine's evaluator takes, and a bare `{ $event }` reaches nothing.
+            Alpine.evaluate(element, item.handler, { scope: { $event: { currentTarget: element } } })
         } catch (error) {
             console.error(`The advanced rich editor could not run [${item.name}]:`, error)
         }

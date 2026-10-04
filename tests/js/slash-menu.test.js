@@ -682,8 +682,11 @@ describe('picking an entry', () => {
 
         vi.runAllTimers()
 
+        // Alpine's third argument is `{ scope, params }`: a bare `{ $event }` is read as
+        // neither, and every handler that anchors to `$event.currentTarget` - the emoji and
+        // the special character picker - died with "$event is not defined".
         expect(window.Alpine.evaluate).toHaveBeenCalledWith(field.element, 'toggleBulletList()', {
-            $event: { currentTarget: field.element },
+            scope: { $event: { currentTarget: field.element } },
         })
         expect(field.calls).toEqual(['delete', 'run'])
     })
