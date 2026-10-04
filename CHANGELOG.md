@@ -2,7 +2,21 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
-## 1.6.0 - 2026-09-29
+## Unreleased
+
+### Changed
+
+- The stylesheet is split in two, and a page without an editor loads a third less of it. What
+  can be on screen before anybody acts - a stored document wherever it is drawn, and the field
+  around the editor - stays in `filament-advanced-rich-editor.css` on every page of the panel,
+  so a callout or a task list in a plain Filament text entry looks the way it did. What only an
+  action opens - the pickers, the menus, the media browser, find and replace, the reports and
+  the dialogs - moved to `filament-advanced-rich-editor-overlays.css`, which the editor loads
+  with `x-load-css` as it starts. Every page went from 128 KB (31 KB gzipped) to 80 KB (20 KB).
+  The second sheet is placed straight after the first, ahead of the panel's theme, so a theme
+  that overrides one of its rules keeps winning. Run `php artisan filament:assets` after
+  updating, as after every update - without it the new file is not published and the pickers
+  and menus are drawn without their rules
 
 ### Added
 

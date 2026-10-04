@@ -42,6 +42,12 @@ composer build-assets
 fails when a `fi-arte-` class is written into markup that the stylesheet has no rule for —
 a component that ships without its styles looks broken and no other test can see it.
 
+The stylesheet is two files. `filament-advanced-rich-editor.css` loads on every page of the
+panel; `filament-advanced-rich-editor-overlays.css` loads with the editor, and holds only what
+an action opens — a picker, a menu, a dialog. A rule for anything PHP renders with the page,
+or anything JavaScript draws as the editor starts, belongs in the first:
+`tests/Feature/OverlayStylesheetTest.php` fails when one is in the second, and names it.
+
 Vitest reads those same sources as the ES modules they already are, so `npm test` needs no
 build step either and never touches `resources/dist`. Behaviour that has to be tested belongs
 in a file under `resources/js` rather than in an `x-data` attribute: an attribute cannot be

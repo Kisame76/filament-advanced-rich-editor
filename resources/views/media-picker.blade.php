@@ -39,9 +39,16 @@
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
+    {{--
+        The browser's rules are in the overlay stylesheet, which the editor this dialog opened
+        from asked for as it started. Asked for again here so the browser is drawn wherever it
+        is placed; Alpine loads a stylesheet once per page, so the second request costs nothing.
+    --}}
     <div
         x-load
         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('media-picker', 'kisame76/filament-advanced-rich-editor') }}"
+        x-load-css="[@js(\Filament\Support\Facades\FilamentAsset::getStyleHref('filament-advanced-rich-editor-overlays', 'kisame76/filament-advanced-rich-editor'))]"
+        data-css-after="filament-advanced-rich-editor.css"
         x-data="arteMediaPicker({
             labels: @js($labels),
             hasFolders: @js($hasFolders),

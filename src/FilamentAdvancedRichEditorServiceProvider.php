@@ -38,7 +38,17 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
     {
         FilamentAsset::register(
             [
+                // What can be on screen before anybody acts: a stored document wherever it is
+                // drawn, and the field around the editor. On every page, because a document
+                // can turn up on any of them - a plain Filament text entry included.
                 Css::make('filament-advanced-rich-editor', __DIR__.'/../resources/dist/filament-advanced-rich-editor.css'),
+
+                // What only an action opens: the pickers, the menus, the media browser, find
+                // and replace, the report, the dialogs. Kept off the page Filament draws; the
+                // editor and the media browser ask for it with `x-load-css` as they start, so a
+                // dashboard or a login page never downloads it.
+                Css::make('filament-advanced-rich-editor-overlays', __DIR__.'/../resources/dist/filament-advanced-rich-editor-overlays.css')
+                    ->loadedOnRequest(),
 
                 // The media browser, as an Alpine component rather than a script: it is one
                 // `x-data` object and it is loaded the way Filament loads its own fields,

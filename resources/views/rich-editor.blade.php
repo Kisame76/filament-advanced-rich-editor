@@ -31,6 +31,12 @@
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
+      - x-filament::input.wrapper ->merge([...]): x-load-css and data-css-after, which
+        load the package's overlay stylesheet - what only an action opens - as Alpine
+        reaches the field and place it straight after the page stylesheet, ahead of the
+        panel's theme; its URL is resolved as $overlayStylesheet in the top-of-file PHP
+        block. On the wrapper rather than on the x-load element below, which Alpine only
+        initialises once the editor's script has arrived - here the two load side by side
       - .fi-fo-rich-editor-toolbar div: conditional 'fi-arte-sticky' class plus the
         --fi-arte-sticky-offset custom property that the sticky rule reads, and the
         'fi-arte-toolbar-align-*' class that positions the groups on the bar
@@ -119,6 +125,7 @@
     $closePanelLabel = \Illuminate\Support\Facades\Lang::has('filament-forms::components.rich_editor.actions.close_panel.label')
         ? __('filament-forms::components.rich_editor.actions.close_panel.label')
         : null;
+    $overlayStylesheet = \Filament\Support\Facades\FilamentAsset::getStyleHref('filament-advanced-rich-editor-overlays', 'kisame76/filament-advanced-rich-editor');
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -128,6 +135,10 @@
         x-cloak
         :attributes="
             \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
+                ->merge([
+                    'x-load-css' => '[' . \Illuminate\Support\Js::from($overlayStylesheet) . ']',
+                    'data-css-after' => 'filament-advanced-rich-editor.css',
+                ])
                 ->class(['fi-fo-rich-editor', 'fi-arte', 'fi-arte-max-height' => filled($maxHeight)])
                 ->style([
                     '--fi-arte-max-height: ' . $maxHeight => filled($maxHeight),

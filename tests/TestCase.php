@@ -49,12 +49,17 @@ abstract class TestCase extends Orchestra
             FilamentServiceProvider::class,
             FormsServiceProvider::class,
             InfolistsServiceProvider::class,
-            LivewireServiceProvider::class,
             NotificationsServiceProvider::class,
             SchemasServiceProvider::class,
             SupportServiceProvider::class,
             TablesServiceProvider::class,
             WidgetsServiceProvider::class,
+            // After Filament's, which is the order package discovery gives an application.
+            // `SupportServiceProvider` rebinds Livewire's `DataStore` to its own subclass;
+            // registered before it, Livewire keeps the shared instance, and registered after
+            // it, every `store()` call gets a fresh one - a component rendered through
+            // `Livewire::test()` then loses its error bag between setting and reading it.
+            LivewireServiceProvider::class,
             FilamentAdvancedRichEditorServiceProvider::class,
             // Registered only when it is installed. It is a dev dependency, so it is there in
             // this repository - but the package itself works without it, and a suite that

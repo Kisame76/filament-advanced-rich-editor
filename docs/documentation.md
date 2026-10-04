@@ -115,12 +115,23 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 composer require kisame76/filament-advanced-rich-editor
 ```
 
-The CSS and the task list scripts auto-register with Filament. After install (and on
-deploy) run:
+The stylesheets and the scripts auto-register with Filament. After install (and on deploy,
+and after every update) run:
 
 ```bash
 php artisan filament:assets
 ```
+
+There are two stylesheets, and the line between them is what can be on screen before
+anybody does anything. `filament-advanced-rich-editor.css` is a stored document wherever it
+is drawn — the editor, `AdvancedRichEntry`, `AdvancedRichColumn`, a plain Filament text
+entry — and the field around the editor, and Filament loads it on every page of the panel.
+`filament-advanced-rich-editor-overlays.css` is what only an action opens: the pickers, the
+menus, the media browser, find and replace, the reports and the dialogs. Only the editor
+loads it, with `x-load-css` as it starts, so a dashboard, a login page or a table never
+downloads it. It is placed straight after the first one rather than at the end of the
+page's `<head>`, ahead of your panel's theme, so a theme that overrides one of its rules
+keeps winning.
 
 Optionally publish the config:
 
@@ -948,8 +959,8 @@ without it.
 Both the browser extension and the PHP renderer stamp the `fi-arte-task-list` /
 `fi-arte-task-item` classes onto the saved markup, so the same stylesheet covers the editor,
 Filament text entries and your own front end. The package CSS is registered with Filament and
-therefore loads in the panel only — copy those rules into your front end stylesheet if you
-render the content outside Filament.
+therefore loads in the panel only — copy those rules from `filament-advanced-rich-editor.css`
+into your front end stylesheet if you render the content outside Filament.
 
 The checkbox sits on the optical centre of the item's first line at any text size. A
 stylesheet can only size it against the list item's own font, so the editor's node view
@@ -1084,8 +1095,9 @@ colours gets its own note blue.
 
 Both halves stamp the same classes onto the saved markup, so one stylesheet covers the
 editor, Filament text entries and your own front end. The package CSS is registered with
-Filament and therefore loads in the panel only — copy those rules into your front end
-stylesheet if you render the content outside Filament.
+Filament and therefore loads in the panel only — copy those rules from
+`filament-advanced-rich-editor.css` into your front end stylesheet if you render the content
+outside Filament.
 
 `->callouts(false)` unregisters the tools and does not load the extension, so the trigger
 disappears from the bar on its own and the editor's JSON stays free of callout nodes.
