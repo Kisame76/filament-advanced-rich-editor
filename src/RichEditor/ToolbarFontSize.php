@@ -203,10 +203,11 @@ class ToolbarFontSize extends ViewComponent implements HasEmbeddedView
                     aria-label="<?= e($label) ?>"
                     x-ref="size"
                     x-model.number="size"
-                    x-on:focus="capture(); $event.target.select(); open = true"
+                    x-on:focus="enter(); $event.target.select()"
+                    x-on:input="edited()"
                     x-on:keydown.enter.prevent.stop="apply(size)"
-                    x-on:blur="apply(size)"
-                    x-on:keydown.escape.prevent.stop="sync()"
+                    x-on:blur="leave()"
+                    x-on:keydown.escape.prevent.stop="cancel()"
                     class="fi-arte-font-size-value"
                 />
 

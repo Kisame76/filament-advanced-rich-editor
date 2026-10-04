@@ -113,6 +113,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- **`Default` in the font size menu left the text marked with the theme's own size.** The field
+  applies what was typed into it when it is left, and writing from the menu focuses the
+  editor, which leaves it - so the number on show went straight back onto the text, as a mark
+  that no longer followed the theme. Clicking into the field and out again without typing did
+  the same. Leaving applies only what was typed now, and Escape throws that away; an editor
+  update while somebody types no longer replaces the number they are typing
+
 - **In a narrow column the toolbar hung over both edges of the field**, cutting the undo and
   the bold button in half on the left where nobody could reach them. Filament never lets a
   group of buttons wrap, so the narrowest a bar could get was its widest group, and a centred

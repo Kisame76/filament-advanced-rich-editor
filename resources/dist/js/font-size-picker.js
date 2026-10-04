@@ -38,6 +38,13 @@ export default ({
     // caret, and the size would land on nothing. So the range is remembered here and put back
     // before it is used.
     selection: null,
+    // Whether something was typed since the field was reached, and whether the menu, `Default`
+    // or Escape has already settled it. Leaving the field applies what was typed - and picking
+    // from the menu leaves it too, since writing focuses the editor. Without these, leaving
+    // wrote the number on show straight back: `Default` ended as a mark of the theme's own
+    // size, and clicking into the field and out again marked text with the size it had.
+    dirty: false,
+    settled: false,
     min,
     max,
     step,
@@ -86,6 +93,11 @@ export default ({
     },
 
     sync() {
+        // Somebody is typing a size: the number in the field is theirs until they leave it.
+        if (this.dirty) {
+            return
+        }
+
         const marked = Number.parseFloat(this.$getEditor()?.getAttributes('fontSize')?.size)
 
         this.isMarked = Number.isFinite(marked)
@@ -103,6 +115,35 @@ export default ({
         this.selection = this.$getEditor()?.state?.selection?.toJSON() ?? null
     },
 
+    // The field was reached: remember where from, and start with nothing typed.
+    enter() {
+        this.capture()
+        this.dirty = false
+        this.settled = false
+        this.open = true
+    },
+
+    edited() {
+        this.dirty = true
+    },
+
+    // Applied on the way out only when something was typed and nothing has settled it since.
+    leave() {
+        if (this.dirty && !this.settled) {
+            this.apply(this.size)
+        }
+
+        this.dirty = false
+        this.settled = false
+    },
+
+    // Escape throws away what was typed and shows the size in force again.
+    cancel() {
+        this.dirty = false
+        this.settled = true
+        this.sync()
+    },
+
     restoreSelection() {
         if (this.selection) {
             this.setEditorSelection(this.selection)
@@ -118,6 +159,8 @@ export default ({
         this.size = next
         this.open = false
 
+        this.settled = true
+
         this.restoreSelection()
 
         this.$getEditor()?.chain().focus().setFontSize(next + this.unit).run()
@@ -129,6 +172,7 @@ export default ({
     // never blank and never asks anyone to retype what they can already see.
     clear() {
         this.open = false
+        this.settled = true
 
         this.restoreSelection()
 

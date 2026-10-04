@@ -183,3 +183,103 @@ describe('the menu', () => {
         expect(fontSizePicker({ ...SETTINGS, fallback: 18 }).size).toBe(18)
     })
 })
+
+describe('leaving the field', () => {
+    // The field applies what was typed on the way out. Picking from the menu and `Default`
+    // focus the editor, which is a way out too - so leaving used to write the number on show
+    // straight back: `Default` ended as a mark of the theme's own size, and merely clicking
+    // into the field and back out marked the text with the size it already had.
+    const reached = (editor) => {
+        const { picker, restored } = mount(editor)
+
+        picker.capture()
+        picker.enter()
+
+        return { picker, restored }
+    }
+
+    const writes = (editor) => editor.calls.filter(([name]) => name === 'setFontSize' || name === 'unsetFontSize')
+
+    it('applies what was typed', () => {
+        const editor = editorWith({ renderedSize: '14px' })
+        const { picker } = reached(editor)
+
+        picker.size = 30
+        picker.edited()
+        picker.leave()
+
+        expect(writes(editor)).toEqual([['setFontSize', '30px']])
+    })
+
+    it('leaves the text alone when nothing was typed', () => {
+        const editor = editorWith({ renderedSize: '14px' })
+        const { picker } = reached(editor)
+
+        picker.sync()
+        picker.leave()
+
+        expect(writes(editor)).toEqual([])
+    })
+
+    it('does not write the size on show back after Default', () => {
+        const editor = editorWith({ marked: '24px', renderedSize: '14px' })
+        const { picker } = reached(editor)
+
+        picker.clear()
+        picker.size = 14
+        picker.leave()
+
+        expect(writes(editor)).toEqual([['unsetFontSize']])
+    })
+
+    it('does not write twice after a size was picked from the menu', () => {
+        const editor = editorWith({ renderedSize: '14px' })
+        const { picker } = reached(editor)
+
+        picker.apply(24)
+        picker.leave()
+
+        expect(writes(editor)).toEqual([['setFontSize', '24px']])
+    })
+
+    it('throws away what was typed on Escape', () => {
+        const editor = editorWith({ renderedSize: '14px' })
+        const { picker } = reached(editor)
+
+        picker.size = 30
+        picker.edited()
+        picker.cancel()
+        picker.leave()
+
+        expect(writes(editor)).toEqual([])
+        expect(picker.size).toBe(14)
+    })
+
+    it('keeps what is being typed when the editor ticks in between', () => {
+        // Every transaction re-reads the size at the caret - an autosave, a collaborator -
+        // and a re-read in the middle of typing would replace the typed number with the old.
+        const editor = editorWith({ renderedSize: '14px' })
+        const { picker } = reached(editor)
+
+        picker.size = 30
+        picker.edited()
+        picker.sync()
+        picker.leave()
+
+        expect(writes(editor)).toEqual([['setFontSize', '30px']])
+    })
+
+    it('applies again the next time the field is reached', () => {
+        const editor = editorWith({ renderedSize: '14px' })
+        const { picker } = reached(editor)
+
+        picker.apply(24)
+        picker.leave()
+        picker.enter()
+        picker.size = 36
+        picker.edited()
+        picker.leave()
+
+        expect(writes(editor)).toEqual([['setFontSize', '24px'], ['setFontSize', '36px']])
+    })
+})

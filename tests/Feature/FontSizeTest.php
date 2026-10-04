@@ -97,6 +97,19 @@ it('hands the field to the component that measures and writes the size', functio
         ->and($src)->toContain('/components/font-size-picker.js');
 });
 
+it('applies on the way out only what was typed', function (): void {
+    // Writing from the menu focuses the editor, which is a way out of the field too - and
+    // leaving used to write the number on show back, so `Default` ended as a mark of the
+    // theme's own size. The component keeps track; the field tells it what happened.
+    $html = html_entity_decode(ToolbarFontSize::make()->toEmbeddedHtml(), ENT_QUOTES);
+
+    expect($html)->toContain('x-on:focus="enter(); $event.target.select()"')
+        ->toContain('x-on:input="edited()"')
+        ->toContain('x-on:blur="leave()"')
+        ->toContain('x-on:keydown.escape.prevent.stop="cancel()"')
+        ->not->toContain('x-on:blur="apply(size)"');
+});
+
 it('round trips a font size through the php renderer', function (): void {
     $html = '<p><span style="font-size: 24px">Big</span> small</p>';
 
