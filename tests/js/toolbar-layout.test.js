@@ -139,3 +139,42 @@ describe('a split bar too narrow for both halves side by side', () => {
         expect(getComputedStyle(flow).gridColumn).toBe('2')
     })
 })
+
+describe('a pinned bar', () => {
+    // Filament's own sticky bar, from 5.9: rounded like ours, and loaded after this sheet.
+    const FILAMENT_STICKY = `
+        .fi-fo-rich-editor .fi-fo-rich-editor-toolbar.fi-fo-rich-editor-sticky-toolbar {
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            position: sticky;
+        }
+    `
+
+    const pinned = (classes) => {
+        document.head.innerHTML = `<style>${sheet}</style><style>${FILAMENT}${FILAMENT_STICKY}</style>`
+        document.body.innerHTML = `<div class="fi-fo-rich-editor fi-arte"><div class="fi-fo-rich-editor-toolbar ${classes}"></div></div>`
+
+        return getComputedStyle(document.querySelector('.fi-fo-rich-editor-toolbar'))
+    }
+
+    // jsdom hands a custom property back unresolved, so a round corner is "not zero" here.
+    const SQUARE = /^0(px)?$/
+
+    it('keeps the round corners of its field while it rests at the top of it', () => {
+        expect(pinned('fi-arte-sticky').borderStartStartRadius).not.toMatch(SQUARE)
+        expect(pinned('fi-arte-sticky').borderStartEndRadius).not.toMatch(SQUARE)
+        expect(pinned('fi-fo-rich-editor-sticky-toolbar').borderTopLeftRadius).not.toMatch(SQUARE)
+    })
+
+    it('squares them while it is stuck under the page header, where the field edge is gone', () => {
+        expect(pinned('fi-arte-sticky fi-arte-stuck').borderStartStartRadius).toMatch(SQUARE)
+        expect(pinned('fi-arte-sticky fi-arte-stuck').borderStartEndRadius).toMatch(SQUARE)
+    })
+
+    it('squares Filament’s own sticky bar the same way', () => {
+        const style = pinned('fi-fo-rich-editor-sticky-toolbar fi-arte-stuck')
+
+        expect(style.borderTopLeftRadius).toMatch(SQUARE)
+        expect(style.borderTopRightRadius).toMatch(SQUARE)
+    })
+})

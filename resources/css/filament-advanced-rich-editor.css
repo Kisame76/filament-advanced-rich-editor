@@ -106,6 +106,24 @@
     border-bottom-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
 }
 
+/*
+ * Stuck under the page header, the bar is square. The round corners above belong to the
+ * top of the field, and once that has scrolled away they cut two notches out of a bar that
+ * spans the field, with the text sliding past behind them. `sticky-toolbar.js` sets the
+ * class while the bar is held at its offset; Filament's own sticky bar, from 5.9, has the
+ * same corners and gets the same treatment.
+ *
+ * Both spellings of the corners: Filament writes the physical ones and this sheet the
+ * logical ones, and a stuck bar is square at the top whichever way the text runs.
+ */
+.fi-arte .fi-fo-rich-editor-toolbar.fi-arte-sticky.fi-arte-stuck,
+.fi-arte .fi-fo-rich-editor-toolbar.fi-fo-rich-editor-sticky-toolbar.fi-arte-stuck {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Task lists                                                                 */
 /* -------------------------------------------------------------------------- */

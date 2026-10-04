@@ -642,6 +642,11 @@ AdvancedRichEditor::make('excerpt')
     ->stickyToolbar(false);            // short field, nothing to pin
 ```
 
+While it rests at the top of its field the bar has the field's round corners; once it is held
+under the page header it is square, since the top of the field has scrolled away by then. A
+small script watches for that and gives the bar `fi-arte-stuck` while it is pinned, which is
+also the class to hang anything else on that should only show while the bar is.
+
 ### Toolbar over a selection
 
 Select text and a small bar appears over it: the project's own styles, bold, italic,
@@ -4919,6 +4924,7 @@ theme:
 .fi-arte-toolbar-divider { /* the vertical rule between clusters, --fi-arte-divider-color */ }
 .fi-arte-toolbar-flow { /* the aligned half of a toolbar carrying a 'pin' */ }
 .fi-arte-toolbar-pinned { /* the half pinned to an edge; on its own row below 24rem */ }
+.fi-arte-stuck { /* a sticky toolbar while it is held under the page header */ }
 .fi-arte-task-list { /* <ul data-type="taskList"> */ }
 .fi-arte-task-item { /* a single checkbox item */ }
 .fi-arte-callout   { /* <div data-type="callout">, see Callouts */ }

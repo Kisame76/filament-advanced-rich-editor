@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Filament\Support\Facades\FilamentAsset;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StickyToolbarPlugin;
+
 it('is sticky with the configured offset by default', function (): void {
     expect(editor()->isStickyToolbar())->toBeTrue()
         ->and(editor()->getStickyToolbarOffset())->toBe('4rem');
@@ -47,4 +50,19 @@ it('returns to the configured offset when the override is cleared', function ():
 
     expect(editor()->stickyToolbarOffset('1rem')->stickyToolbarOffset(null)->getStickyToolbarOffset())
         ->toBe('3rem');
+});
+
+it('watches whether a pinned bar is stuck, which is when it squares its corners', function (): void {
+    // CSS cannot ask whether a sticky box is stuck in every supported browser, so the
+    // script asks an IntersectionObserver and sets a class - see `sticky-toolbar.js`.
+    expect(pluginNames(editor()))->toContain(StickyToolbarPlugin::class)
+        ->and(StickyToolbarPlugin::make()->getTipTapJsExtensions())->toBe([
+            FilamentAsset::getScriptSrc('advanced-rich-editor/sticky-toolbar', 'kisame76/filament-advanced-rich-editor'),
+        ]);
+});
+
+it('loads nothing for a bar that is not pinned', function (): void {
+    expect(pluginNames(editor()->stickyToolbar(false)))->not->toContain(StickyToolbarPlugin::class)
+        // A capped field is never sticky, so it has nothing to watch either.
+        ->and(pluginNames(editor()->maxHeight('20rem')))->not->toContain(StickyToolbarPlugin::class);
 });

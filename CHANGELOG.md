@@ -107,6 +107,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   row of their own instead of squeezing the rest into what they leave. Wider bars are laid
   out exactly as they were
 
+- **A sticky toolbar kept its round top corners while it was pinned under the page header**,
+  cutting two notches out of the bar with the text sliding past behind them. The bar is
+  square while it is stuck now, Filament's own sticky toolbar too; a small script,
+  `sticky-toolbar.js`, watches for it and sets `fi-arte-stuck`. Run
+  `php artisan filament:assets` after updating, as after every update
+
 - **Picking the emoji or the special character picker in the slash menu did nothing.** The menu
   runs the tool's own handler through Alpine and stands the editor in for the clicked element,
   but it handed `$event` over in a shape Alpine does not read, so every handler that anchors to

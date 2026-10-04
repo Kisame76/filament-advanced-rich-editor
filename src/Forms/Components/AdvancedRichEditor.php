@@ -75,6 +75,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StatisticsPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StickyToolbarPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StylesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
@@ -397,6 +398,14 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasEmoji()
                 ? [EmojiPlugin::make()]
+                : [],
+        );
+
+        // Watches a pinned bar so it can square its corners while it is stuck. A bar that
+        // is not pinned has nothing to watch, so the script is not loaded for it.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->isStickyToolbar()
+                ? [StickyToolbarPlugin::make()]
                 : [],
         );
 
