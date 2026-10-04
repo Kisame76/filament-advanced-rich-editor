@@ -7,6 +7,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 use Closure;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharactersPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Typography;
 
 /**
@@ -203,6 +204,17 @@ trait FormatsText
     public function hasCharacters(): bool
     {
         return (bool) ($this->evaluate($this->hasCharacters) ?? config('filament-advanced-rich-editor.characters') ?? true);
+    }
+
+    /**
+     * The strings and icons the special character picker draws, written once on the element
+     * the editor is mounted on. Null while the picker is switched off.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getCharacterSettingsForJs(): ?array
+    {
+        return $this->hasCharacters() ? CharactersPlugin::getLabels() : null;
     }
 
     /**

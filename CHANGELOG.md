@@ -39,6 +39,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   editors in a repeater went from 355 ms of long tasks to none, and the first frame with all of
   them in it came about 160 ms sooner
 
+- The emoji and special character pickers write their strings and tab icons once per editor, as
+  `data-arte-emoji` and `data-arte-characters` on the element the editor is mounted on, instead
+  of inside their buttons' click handlers - which the slash menu copies, so every editor carried
+  them twice. That is about 20 KB less markup per editor. A button of a project's own can still
+  hand them to `openEmojiPicker()` and `openCharacterPicker()` as the second argument
+
 ### Added
 
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,

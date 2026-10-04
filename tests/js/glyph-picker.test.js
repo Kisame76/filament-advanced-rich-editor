@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { matches, search } from '../../resources/js/glyph-picker.js'
+import { describe, expect, it, vi } from 'vitest'
+import { labelsFor, matches, search } from '../../resources/js/glyph-picker.js'
 import characters from '../../resources/js/character-data.js'
 
 /**
@@ -78,5 +78,50 @@ describe('the shipped character list', () => {
 
         expect(nbsp).toBeDefined()
         expect(nbsp[2]).toBe('␣')
+    })
+})
+
+describe('the strings a picker draws', () => {
+    // What the field writes on the element the editor is mounted on - one attribute per
+    // picker, read by the name the extension gives.
+    const editorOn = (attributes = {}) => {
+        const element = document.createElement('div')
+
+        for (const [name, value] of Object.entries(attributes)) {
+            element.setAttribute(name, value)
+        }
+
+        return { options: { element } }
+    }
+
+    const strings = { label: 'Emoji', search: 'Search emoji', tabs: [] }
+
+    it('reads them off the element the editor is mounted on', () => {
+        // The button's handler carries nothing but its own element: the slash menu copies
+        // every handler, and strings inside one travelled twice per editor.
+        const editor = editorOn({ 'data-arte-emoji': JSON.stringify(strings) })
+
+        expect(labelsFor(editor, { settings: 'arteEmoji' })).toEqual(strings)
+    })
+
+    it('reads the attribute of the picker being opened, not the other one', () => {
+        const editor = editorOn({ 'data-arte-characters': JSON.stringify({ ...strings, label: 'Special character' }) })
+
+        expect(labelsFor(editor, { settings: 'arteCharacters' }).label).toBe('Special character')
+        expect(labelsFor(editor, { settings: 'arteEmoji' })).toBeNull()
+    })
+
+    it('takes strings handed over with the call before the element', () => {
+        // A project's own button may still pass them, the way every button did before.
+        const editor = editorOn({ 'data-arte-emoji': JSON.stringify(strings) })
+
+        expect(labelsFor(editor, { labels: { ...strings, label: 'Mine' }, settings: 'arteEmoji' }).label).toBe('Mine')
+    })
+
+    it('has nothing to draw from an attribute that is not JSON', () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+
+        expect(labelsFor(editorOn({ 'data-arte-emoji': '{' }), { settings: 'arteEmoji' })).toBeNull()
+        expect(console.error).toHaveBeenCalled()
     })
 })

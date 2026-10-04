@@ -11,6 +11,7 @@ use Illuminate\Support\HtmlString;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\SourceCodeAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\DateTimeFormats;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
 use Livewire\Attributes\Renderless;
 
@@ -91,6 +92,17 @@ trait OffersWritingAids
     public function getFindSettingsForJs(): ?array
     {
         return $this->hasFind() ? FindReplacePlugin::getLabels() : null;
+    }
+
+    /**
+     * The strings and icons the emoji picker draws, written once on the element the editor is
+     * mounted on. Null while the picker is switched off.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getEmojiSettingsForJs(): ?array
+    {
+        return $this->hasEmoji() ? EmojiPlugin::getLabels() : null;
     }
 
     /**

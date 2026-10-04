@@ -25,9 +25,9 @@
         the other accessors, following upstream's own "call it once at the top" style
       - top-of-file PHP block: the settings each of this package's TipTap extensions reads
         off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
-        $codeBlockSettings, $findSettings, $pasteSettings, $dragHandleSettings,
-        $autosaveSettings, $accessibilitySettings, $typographySettings,
-        $characterCountSettings, $indentSettings), resolved alongside them
+        $codeBlockSettings, $findSettings, $emojiSettings, $characterSettings,
+        $pasteSettings, $dragHandleSettings, $autosaveSettings, $accessibilitySettings,
+        $typographySettings, $characterCountSettings, $indentSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -106,6 +106,8 @@
     $embedSettings = $getEmbedSettingsForJs();
     $codeBlockSettings = $getCodeBlockSettingsForJs();
     $findSettings = $getFindSettingsForJs();
+    $emojiSettings = $getEmojiSettingsForJs();
+    $characterSettings = $getCharacterSettingsForJs();
     $pasteSettings = $getPasteSettingsForJs();
     $dragHandleSettings = $getDragHandleSettingsForJs();
     $autosaveSettings = $getAutosaveSettingsForJs();
@@ -311,6 +313,8 @@
                     @if ($embedSettings) data-arte-embed="{{ json_encode($embedSettings) }}" @endif
                     @if ($codeBlockSettings) data-arte-code-block="{{ json_encode($codeBlockSettings) }}" @endif
                     @if ($findSettings) data-arte-find="{{ json_encode($findSettings) }}" @endif
+                    @if ($emojiSettings) data-arte-emoji="{{ json_encode($emojiSettings) }}" @endif
+                    @if ($characterSettings) data-arte-characters="{{ json_encode($characterSettings) }}" @endif
                     @if ($pasteSettings) data-arte-paste="{{ json_encode($pasteSettings) }}" @endif
                     @if ($dragHandleSettings) data-arte-drag-handle="{{ json_encode($dragHandleSettings) }}" @endif
                     @if ($autosaveSettings) data-arte-autosave="{{ json_encode($autosaveSettings) }}" @endif
