@@ -9,6 +9,7 @@ use Filament\Schemas\Components\Concerns\HasName;
 use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
+use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\Js;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensAwayFromTheEdge;
 
@@ -150,125 +151,31 @@ class ToolbarFontSize extends ViewComponent implements HasEmbeddedView
 
     public function toEmbeddedHtml(): string
     {
-        $unit = $this->getUnit();
-
-        $alpine = Js::from([
+        // What the field does - measuring the size at the caret, clamping, putting the
+        // selection back and writing the mark - is `resources/js/font-size-picker.js`, an
+        // Alpine component loaded with `x-load-src`. It used to be a string inside this
+        // `x-data`; the markup now only carries the bounds.
+        $config = Js::from([
             'min' => $this->getMin(),
             'max' => $this->getMax(),
             'step' => $this->getStep(),
             'fallback' => $this->getDefaultSize(),
-            'unit' => $unit,
+            'unit' => $this->getUnit(),
+            'menuPosition' => $this->menuPositionScript(),
+            'menuUpClass' => static::MENU_UP_CLASS,
         ])->toHtml();
-
-        // `size` mirrors the size at the caret; `apply()` is the only writer, so a value
-        // typed into the input goes through the same clamping as the buttons.
-        //
-        // Text without an explicit size still has one - the theme's. Showing a guess
-        // instead would make the first step go the wrong way: with prose at 14px, a
-        // stepper claiming 16px turns a click on minus into 15px, which is larger than
-        // what the user was looking at. So the size is measured off the rendered node
-        // whenever the mark itself has nothing to say, which also makes the stepper
-        // report a heading's size while the caret sits inside one.
-        $xData = <<<JS
-            {
-                size: {$this->getDefaultSize()},
-                {$this->menuPositioning()}
-                open: false,
-                // Whether a size was chosen, as opposed to inherited. The menu marks what
-                // was picked, and picking `Default` is a choice too - one that a number
-                // cannot represent, since the inherited size is a number as well.
-                isMarked: false,
-                // What was selected when the field was reached for. Typing a size and then
-                // clicking back into the text applies on the way out - by which time the
-                // click has already moved the caret, and the size would land on nothing.
-                // So the range is remembered here and put back before it is used.
-                selection: null,
-                ...{$alpine},
-                measure() {
-                    const editor = \$getEditor()
-
-                    if (! editor?.view) {
-                        return null
-                    }
-
-                    try {
-                        const { node, offset } = editor.view.domAtPos(editor.state.selection.from)
-                        let element = node
-
-                        if (element?.nodeType === Node.TEXT_NODE) {
-                            element = element.parentElement
-                        } else if (element?.childNodes?.length) {
-                            element = element.childNodes[Math.min(offset, element.childNodes.length - 1)] ?? element
-                        }
-
-                        while (element && element.nodeType !== Node.ELEMENT_NODE) {
-                            element = element.parentElement
-                        }
-
-                        const measured = element ? Number.parseFloat(window.getComputedStyle(element).fontSize) : NaN
-
-                        return Number.isFinite(measured) ? Math.round(measured) : null
-                    } catch (error) {
-                        return null
-                    }
-                },
-                sync() {
-                    const marked = Number.parseFloat(\$getEditor()?.getAttributes('fontSize')?.size)
-
-                    this.isMarked = Number.isFinite(marked)
-
-                    if (this.isMarked) {
-                        this.size = Math.round(marked)
-
-                        return
-                    }
-
-                    this.size = this.measure() ?? this.fallback
-                },
-                capture() {
-                    this.selection = \$getEditor()?.state?.selection?.toJSON() ?? null
-                },
-                apply(value) {
-                    const parsed = Number.parseFloat(value)
-                    const current = Number.isFinite(parsed) ? parsed : (this.measure() ?? this.fallback)
-                    const next = Math.min(this.max, Math.max(this.min, Math.round(current)))
-
-                    this.size = next
-                    this.open = false
-
-                    if (this.selection) {
-                        setEditorSelection(this.selection)
-                        this.selection = null
-                    }
-
-                    \$getEditor()?.chain().focus().setFontSize(next + this.unit).run()
-                },
-                // Back to whatever the theme says, which is not the same as picking the
-                // number the theme happens to use: one leaves a mark behind, the other does
-                // not, and only the second one follows a restyled theme afterwards. The
-                // field above keeps showing the size in force, so it is never blank and
-                // never asks anyone to retype what they can already see.
-                clear() {
-                    this.open = false
-
-                    if (this.selection) {
-                        setEditorSelection(this.selection)
-                        this.selection = null
-                    }
-
-                    \$getEditor()?.chain().focus().unsetFontSize().run()
-                },
-            }
-            JS;
 
         $label = __('filament-advanced-rich-editor::advanced-rich-editor.tools.font_size.label');
         $default = __('filament-advanced-rich-editor::advanced-rich-editor.tools.font_size.default');
 
         $attributes = $this->getExtraAttributeBag()
             ->merge([
+                // An empty value is the default strategy, which loads straight away.
+                'x-load' => '',
+                'x-load-src' => FilamentAsset::getAlpineComponentSrc('font-size-picker', 'kisame76/filament-advanced-rich-editor'),
                 // Escaped for the attribute it lands in: a stray quote in here would end
                 // the attribute early and take everything after it with it.
-                'x-data' => e($xData),
+                'x-data' => e("arteFontSizePicker({$config})"),
                 // The tick is what makes the number follow the caret: every editor
                 // transaction bumps it, and the effect re-reads the mark.
                 'x-effect' => 'editorUpdatedAt && sync()',

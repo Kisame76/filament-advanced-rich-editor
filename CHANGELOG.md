@@ -57,6 +57,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   than found as strings in PHP. Four copies of the script per editor are gone; the palette
   still travels with each picker
 
+- The font size field is an Alpine component too, `font-size-picker.js`; the markup carries its
+  bounds and nothing else
+
 ### Added
 
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,

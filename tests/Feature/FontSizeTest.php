@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
@@ -77,11 +78,23 @@ it('renders a menu of sizes carrying its bounds', function (): void {
     expect($html)->toContain('fi-arte-font-size')
         // The tick is what keeps the displayed size in sync with the caret.
         ->toContain('editorUpdatedAt && sync()')
-        ->toContain('setFontSize')
-        // Back to the theme's size is its own choice, not the number that happens to match.
-        ->toContain('unsetFontSize')
         ->toContain('apply(24)')
-        ->and($options)->toBe(['min' => 10, 'max' => 40, 'step' => 2, 'fallback' => 18, 'unit' => 'px']);
+        ->and($options)->toMatchArray(['min' => 10, 'max' => 40, 'step' => 2, 'fallback' => 18, 'unit' => 'px']);
+});
+
+it('hands the field to the component that measures and writes the size', function (): void {
+    // Measuring the size at the caret, clamping, putting the selection back and writing the
+    // mark - or removing it, for the theme's own size - are `resources/js/font-size-picker.js`,
+    // and are run under `tests/js`. The markup only carries the bounds.
+    $src = FilamentAsset::getAlpineComponentSrc('font-size-picker', 'kisame76/filament-advanced-rich-editor');
+    $html = html_entity_decode(ToolbarFontSize::make()->toEmbeddedHtml(), ENT_QUOTES);
+
+    expect($html)->toContain('x-load=""')
+        ->toContain('x-load-src="'.$src.'"')
+        ->toContain('x-data="arteFontSizePicker(JSON.parse(')
+        ->not->toContain('setFontSize(')
+        ->not->toContain('unsetFontSize(')
+        ->and($src)->toContain('/components/font-size-picker.js');
 });
 
 it('round trips a font size through the php renderer', function (): void {
