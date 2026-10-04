@@ -568,6 +568,12 @@
  * Filament's toolbar is a wrapping flex row, so the groups are positioned with
  * `justify-content`. Only the horizontal axis is touched; spacing, wrapping and the
  * bottom border stay upstream's.
+ *
+ * Centred and end-aligned bars say `safe`. Plain `center` splits an overflow between both
+ * edges and plain `flex-end` puts all of it past the start, and what hangs over the start
+ * of a field is out of reach - a narrow column cut the undo button and the bold button in
+ * half. `safe` falls back to the start edge when the row does not fit. The plain value is
+ * stated first for a browser that does not know the keyword.
  */
 .fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-start,
 .fi-arte-toolbar-align-start > .fi-arte-toolbar-flow {
@@ -577,16 +583,33 @@
 .fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-center,
 .fi-arte-toolbar-align-center > .fi-arte-toolbar-flow {
     justify-content: center;
+    justify-content: safe center;
 }
 
 .fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-end,
 .fi-arte-toolbar-align-end > .fi-arte-toolbar-flow {
     justify-content: flex-end;
+    justify-content: safe flex-end;
 }
 
 .fi-fo-rich-editor-toolbar.fi-arte-toolbar-align-between,
 .fi-arte-toolbar-align-between > .fi-arte-toolbar-flow {
     justify-content: space-between;
+}
+
+/*
+ * A group may wrap. Filament never lets one, so the narrowest a bar can get is its widest
+ * group - the marks, six buttons and two pickers wide - and a field in a narrow column
+ * is narrower than that. A group that fits its row is drawn exactly as before; only one
+ * that does not breaks onto a second line, which is still better than a button nobody can
+ * reach. The pinned half keeps its groups on one line, for the reason written below.
+ */
+.fi-arte .fi-fo-rich-editor-toolbar .fi-fo-rich-editor-toolbar-group {
+    flex-wrap: wrap;
+}
+
+.fi-arte .fi-arte-toolbar-pinned .fi-fo-rich-editor-toolbar-group {
+    flex-wrap: nowrap;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -606,6 +629,14 @@
     display: grid;
     align-items: center;
     grid-template-columns: minmax(0, 1fr) auto;
+    /*
+     * The bar measures itself for the query at the end of this section. A media query
+     * would read the window, and a narrow column on a wide screen is the case it is for.
+     * The bar's width comes from the field around it, never from its buttons, so taking
+     * its own content out of that sum changes nothing about how wide it is.
+     */
+    container-name: fi-arte-toolbar;
+    container-type: inline-size;
 }
 
 .fi-arte-toolbar-split.fi-arte-toolbar-pin-start {
@@ -674,6 +705,26 @@
 
 .fi-arte-toolbar-split.fi-arte-toolbar-pin-start > .fi-arte-toolbar-pinned {
     justify-self: start;
+}
+
+/*
+ * Too narrow for both halves side by side, the pinned half takes the first row on its own,
+ * still in its corner, and the flow gets the full width of the rows below. Side by side,
+ * the pinned half would keep its column all the way down a bar that has wrapped to ten
+ * rows, and squeeze the flow into what is left - a few buttons per row next to empty space.
+ *
+ * 24rem is the widest group, the pinned half and the gap between them, with room to spare.
+ */
+@container fi-arte-toolbar (inline-size < 24rem) {
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split > .fi-arte-toolbar-pinned {
+        grid-row: 1;
+        grid-column: 1 / -1;
+    }
+
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split > .fi-arte-toolbar-flow {
+        grid-row: 2;
+        grid-column: 1 / -1;
+    }
 }
 
 /*

@@ -4918,7 +4918,7 @@ theme:
 
 .fi-arte-toolbar-divider { /* the vertical rule between clusters, --fi-arte-divider-color */ }
 .fi-arte-toolbar-flow { /* the aligned half of a toolbar carrying a 'pin' */ }
-.fi-arte-toolbar-pinned { /* the half pinned to an edge */ }
+.fi-arte-toolbar-pinned { /* the half pinned to an edge; on its own row below 24rem */ }
 .fi-arte-task-list { /* <ul data-type="taskList"> */ }
 .fi-arte-task-item { /* a single checkbox item */ }
 .fi-arte-callout   { /* <div data-type="callout">, see Callouts */ }

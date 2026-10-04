@@ -98,6 +98,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- **In a narrow column the toolbar hung over both edges of the field**, cutting the undo and
+  the bold button in half on the left where nobody could reach them. Filament never lets a
+  group of buttons wrap, so the narrowest a bar could get was its widest group, and a centred
+  bar split the overflow between both sides. A group in the toolbar may wrap now - one that
+  fits its row is drawn exactly as before - centring and end alignment fall back to the start
+  edge when a row does not fit, and a bar narrower than 24rem puts the pinned buttons on a
+  row of their own instead of squeezing the rest into what they leave. Wider bars are laid
+  out exactly as they were
+
 - **Picking the emoji or the special character picker in the slash menu did nothing.** The menu
   runs the tool's own handler through Alpine and stands the editor in for the clicked element,
   but it handed `$event` over in a shape Alpine does not read, so every handler that anchors to
