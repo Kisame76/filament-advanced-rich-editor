@@ -28,6 +28,17 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   kilobytes off every editor's markup. `CharacterCount::measuredBy()` is new: the closure it is
   handed runs the first time the numbers are read
 
+- A page of editors starts without long tasks. Two things in the stylesheet made the browser
+  work out styles for far more than it shows. The rules that float and centre a picture inside
+  the editor were written with a bare `:has()`, which a browser tries against every element on
+  the page on every style recalculation; they name the resize container now, which matches the
+  same pictures and leaves the rest of the page alone. And the bars that float over a picture,
+  a table or a selection - up to eight per field, rendered up front and hidden with `visibility`
+  - were laid out on every recalculation while nobody could see them; until TipTap first shows
+  one, it is `display: none` now, and it is shown and placed exactly where it was before. Five
+  editors in a repeater went from 355 ms of long tasks to none, and the first frame with all of
+  them in it came about 160 ms sooner
+
 ### Added
 
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,

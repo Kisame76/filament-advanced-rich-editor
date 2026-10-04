@@ -10,9 +10,10 @@
  * side is whitelisted to two words before it is written.
  *
  * What actually floats in the editor is not this element. Filament draws an image through
- * a resize node view, which puts the picture inside a wrapper, and a float on a picture
- * inside a block wrapper moves nothing. The stylesheet floats the wrapper instead, keyed
- * on the style this writes - see `[data-resize-wrapper]:has(> img[style*='float'])`.
+ * a resize node view, which puts the picture in a wrapper and the wrapper in a container,
+ * and a float on a picture inside a block wrapper moves nothing. The stylesheet floats the
+ * container instead, keyed on the style this writes - see
+ * `[data-resize-container]:has(> [data-resize-wrapper] img[style*='float: left'])`.
  */
 export default () => {
     const tiptap = window.FilamentRichEditor?.tiptap?.core

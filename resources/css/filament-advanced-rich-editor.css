@@ -931,6 +931,26 @@
 }
 
 /*
+ * The bars that float over a picture, a table or a selection, out of the layout until one
+ * is opened.
+ *
+ * Filament renders every bar into the field up front and hides it with `visibility:
+ * hidden`, which hides a box without taking it out of the layout: the browser still works
+ * out the style and the size of everything inside, on every recalculation, for a bar nobody
+ * can see. Filament has one; a field of this package has up to eight, and on a page of
+ * editors starting up they were nearly all of its long tasks.
+ *
+ * TipTap takes a bar out of the document when it hides it again, and puts it back with an
+ * inline `visibility: visible` when it shows it - before measuring it. So a bar without an
+ * inline visibility has never been shown, and nothing measures it until it is. One that
+ * TipTap hid in place, with an inline `hidden`, keeps its box: it is measured again before
+ * it comes back.
+ */
+.fi-arte .fi-fo-rich-editor-floating-toolbar:not([style*='visibility']) {
+    display: none;
+}
+
+/*
  * The one button in the image toolbar that takes the image away. It is the only
  * destructive thing in there, so it is the only thing that is not grey.
  */
@@ -1102,9 +1122,14 @@ body.fi-arte-fullscreen-lock {
  * stored markup - but inside the editor the picture is not what is laid out. Filament
  * draws an image through a resize node view: the picture sits in a resize wrapper, and
  * that wrapper sits in an `inline-flex` box which is the thing the paragraph actually
- * lays out. Floating either of the inner two moves nothing, so the outer one is floated -
- * `:has(> [data-resize-wrapper] …)` names exactly it, since `>` inside `:has()` matches
- * only the element the wrapper is a direct child of.
+ * lays out. Floating either of the inner two moves nothing, so the outer one is floated.
+ * The node view marks that box `data-resize-container`, and `:has(> [data-resize-wrapper]
+ * …)` picks out the ones whose picture was floated.
+ *
+ * The attribute in front of the `:has()` is what keeps these rules cheap, not what makes
+ * them match. Without it a rule is tried against every element on the page on every style
+ * recalculation, and a page of editors recalculates constantly while it starts - see
+ * `SelectorCostTest`.
  *
  * Matched on the style the extension wrote rather than on a class: a class would have to
  * survive the sanitiser to be worth writing, and this one never leaves the editor.
@@ -1113,13 +1138,13 @@ body.fi-arte-fullscreen-lock {
  * The stored markup carries its own copy, written in PHP - which is the half a save
  * renders from, and the only half a page ever sees.
  */
-.fi-arte :has(> [data-resize-wrapper] img[style*='float: left']) {
+.fi-arte [data-resize-container]:has(> [data-resize-wrapper] img[style*='float: left']) {
     float: left;
     margin-inline-end: var(--fi-arte-image-float-gap, 1rem);
     margin-block-end: var(--fi-arte-image-float-gap, 1rem);
 }
 
-.fi-arte :has(> [data-resize-wrapper] img[style*='float: right']) {
+.fi-arte [data-resize-container]:has(> [data-resize-wrapper] img[style*='float: right']) {
     float: right;
     margin-inline-start: var(--fi-arte-image-float-gap, 1rem);
     margin-block-end: var(--fi-arte-image-float-gap, 1rem);
@@ -1131,7 +1156,7 @@ body.fi-arte-fullscreen-lock {
  * `fit-content` is what keeps that block the width of the picture rather than the width of
  * the line - without it the automatic margins have nothing to share out.
  */
-.fi-arte :has(> [data-resize-wrapper] img[style*='margin-inline: auto']) {
+.fi-arte [data-resize-container]:has(> [data-resize-wrapper] img[style*='margin-inline: auto']) {
     /*
      * `!important` on this one line, and it is load-bearing: the node view writes
      * `display: inline-flex` as an inline style on this element, which no ordinary rule
