@@ -51,6 +51,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   before; their behaviour is tested as JavaScript rather than as strings in PHP, and five
   editors carry 49 KB less markup. Run `php artisan filament:assets` after updating
 
+- The text colour and background pickers are an Alpine component too, `color-picker.js`.
+  Which mark, which command and which argument each one writes - the three things the two
+  differ in, and the three ways to write nothing at all - are tested as JavaScript now rather
+  than found as strings in PHP. Four copies of the script per editor are gone; the palette
+  still travels with each picker
+
 ### Added
 
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,
