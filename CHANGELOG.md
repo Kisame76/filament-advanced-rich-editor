@@ -18,6 +18,16 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   updating, as after every update - without it the new file is not published and the pickers
   and menus are drawn without their rules
 
+- A page of editors renders faster. The toolbar is worked out once per render instead of once
+  per question about it - every tool, plugin and helper asks the bar something, and each
+  question resolved all of it again, sixty-seven times for one field - and the counter under
+  the field measures the document when it is drawn rather than each time Filament walks the
+  form, which in a repeater was five times per field. Five editors in a repeater went from
+  430 to 172 ms on the server. The measuring that turns a dropdown upwards is one script now,
+  `menu-position.js`, instead of a copy in every menu's `x-data`, which takes about fifty
+  kilobytes off every editor's markup. `CharacterCount::measuredBy()` is new: the closure it is
+  handed runs the first time the numbers are read
+
 ### Added
 
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,

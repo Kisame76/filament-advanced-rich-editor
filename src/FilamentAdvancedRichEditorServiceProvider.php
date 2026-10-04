@@ -229,6 +229,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // PHP half either.
                 Js::make('advanced-rich-editor/text-case', __DIR__.'/../resources/dist/js/text-case.js')
                     ->loadedOnRequest(),
+
+                // Where a dropdown opens: every menu of the package hands itself to this when
+                // it opens, instead of carrying the measuring in its own `x-data`. The editor
+                // loads it as it starts, so the first menu opened does not wait for it.
+                Js::make('advanced-rich-editor/menu-position', __DIR__.'/../resources/dist/js/menu-position.js')
+                    ->loadedOnRequest(),
             ],
             'kisame76/filament-advanced-rich-editor',
         );

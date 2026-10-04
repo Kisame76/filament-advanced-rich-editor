@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Filament\Support\Facades\FilamentAsset;
+use Illuminate\Support\Js;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 
 /**
@@ -64,21 +66,16 @@ it('turns the menu over through the class the stylesheet knows', function (): vo
         ->toContain(".fi-fo-rich-editor-dropdown-tool-menu.{$class}");
 });
 
-it('caps the menu to the room it has when neither side can hold it whole', function (): void {
-    // Turning the menu over only helps where the other side fits it. A field four hundred
-    // pixels tall with the bar over a selection in the middle of it has under two hundred
-    // above and under two hundred below, and seven languages are taller than either - so
-    // without a cap the menu is cut off whichever way it goes, which is what it did.
-    $html = listsDropdown();
+it('hands itself to the module that measures, rather than carrying the measuring', function (): void {
+    // Turning and capping are `resources/js/menu-position.js`, tested under `tests/js`. They
+    // used to be inlined here, in every menu of every editor - two dozen copies of the same
+    // few kilobytes per field. What the dropdown has to get right is calling the module with
+    // itself, at the address the service provider registered it under.
+    $module = Js::from(FilamentAsset::getScriptSrc('advanced-rich-editor/menu-position', 'kisame76/filament-advanced-rich-editor'))->toHtml();
 
-    expect($html)->toContain('menu.offsetHeight')
-        ->and($html)->toContain('maxHeight')
-        ->and($html)->toContain('overflowY')
-        // Measured unconstrained first, or the cap from the last opening is what gets
-        // measured and the menu ratchets shorter every time it is used.
-        ->and($html)->toContain(e("menu.style.maxHeight = ''"))
-        ->and($html)->toContain((string) ToolbarDropdown::MENU_MIN_HEIGHT)
-        ->and($html)->toContain((string) ToolbarDropdown::MENU_MARGIN);
+    expect(listsDropdown())
+        ->toContain(e("import({$module})"))
+        ->toContain('positionMenu(this)');
 });
 
 it('leaves the parent markup alone when there is nothing to open', function (): void {

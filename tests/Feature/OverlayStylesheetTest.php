@@ -134,10 +134,6 @@ function overlaySheetRequestIn(string $html): ?array
 
 function renderedEditorHtml(): string
 {
-    // Livewire signs the snapshot it renders with the application key, which nothing else
-    // in the suite renders a component far enough to need.
-    config()->set('app.key', 'base64:'.base64_encode(str_repeat('k', 32)));
-
     return Livewire::test(EditorFormComponent::class)->html();
 }
 

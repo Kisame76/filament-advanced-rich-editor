@@ -32,6 +32,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OffersWritingAids;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensMenus;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PreviewsContent;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\RemembersWithinARender;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ServesTheMediaBrowser;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolbar;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
@@ -112,6 +113,7 @@ class AdvancedRichEditor extends RichEditor
     use OpensMenus;
     use PlacesImages;
     use PreviewsContent;
+    use RemembersWithinARender;
     use ServesTheMediaBrowser;
     use WritesWithoutAToolbar;
 
@@ -666,12 +668,18 @@ class AdvancedRichEditor extends RichEditor
                 return null;
             }
 
-            $counted = $component->measureCharacterCount($component->getState());
-
+            // Measured when the line is drawn: Filament builds this slot each time it walks the
+            // form - hydrating, filling, taking a snapshot - and draws it once.
             return CharacterCount::make()
                 ->enforced($component->enforcesMaxLength())
-                ->characters($counted['characters'])
-                ->words($component->hasCharacterCountWords() ? $counted['words'] : null)
+                ->measuredBy(static function () use ($component): array {
+                    $counted = $component->measureCharacterCount($component->getState());
+
+                    return [
+                        'characters' => $counted['characters'],
+                        'words' => $component->hasCharacterCountWords() ? $counted['words'] : null,
+                    ];
+                })
                 ->limit($component->getCharacterCountLimit());
         });
 

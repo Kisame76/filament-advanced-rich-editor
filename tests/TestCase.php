@@ -103,6 +103,10 @@ abstract class TestCase extends Orchestra
         // shipped default is the other way round.
         $app['config']->set('filament-advanced-rich-editor.media_library.covers.enabled', false);
 
+        // Livewire signs the snapshot of a component it renders, and the tests that render one
+        // through `Livewire::test()` need a key to sign it with.
+        $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('k', 32)));
+
         $driver = env('DB_CONNECTION', 'sqlite');
 
         $app['config']->set('database.default', 'testing');
