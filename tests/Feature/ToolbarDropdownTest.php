@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Filament\Support\Facades\FilamentAsset;
+
+use function Filament\Support\generate_icon_html;
+
 use Illuminate\Support\Js;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 
@@ -111,4 +114,107 @@ it('reaches every dropdown the package builds, not just the one in the bubble', 
             ->and($dropdown->resolve($editor->getTools())->toEmbeddedHtml())
             ->toContain('x-bind:class="{ [menuUpClass]: dropUp }"');
     }
+});
+
+/**
+ * The icons of a dropdown's options, as the menu draws them.
+ *
+ * @return array<string, string>
+ */
+function optionIcons(ToolbarDropdown $dropdown): array
+{
+    $icons = [];
+
+    foreach ($dropdown->getResolvedButtons() as $button) {
+        $icons[$button->getName()] = generate_icon_html($button->getIcon(), alias: $button->getIconAlias())?->toHtml() ?? '';
+    }
+
+    return $icons;
+}
+
+/**
+ * The trigger's effect as Alpine reads it, once the browser has unescaped the attribute.
+ */
+function triggerEffect(string $html): string
+{
+    preg_match('/x-effect="([^"]*)"/', $html, $effect);
+
+    return html_entity_decode($effect[1] ?? '', ENT_QUOTES);
+}
+
+it('draws each option icon once, in the menu, and not again for the trigger', function (): void {
+    // Filament's trigger effect carries every option's icon as a string, so the trigger can
+    // show the one the caret is in - a second copy of what the menu right below it already
+    // holds, seven dropdowns and 17 KB per editor. The trigger reads it out of the menu now.
+    foreach ([
+        ToolbarDropdown::headings([1, 2, 3]),
+        ToolbarDropdown::lists(['bulletList', 'orderedList']),
+        ToolbarDropdown::callouts(['note', 'tip', 'warning']),
+    ] as $dropdown) {
+        $html = $dropdown->resolve(editor()->getTools())->toEmbeddedHtml();
+        $effect = triggerEffect($html);
+        // The trigger's own icon, which it rests at and the one string the effect still
+        // carries. A note callout shares it with the family.
+        $resting = generate_icon_html($dropdown->getIcon())->toHtml();
+
+        expect($effect)->toEndWith(' ?? '.Js::from($resting)->toHtml());
+
+        foreach (array_diff(optionIcons($dropdown), [$resting]) as $name => $icon) {
+            expect(substr_count($html, $icon))->toBe(1, "{$name} is drawn once")
+                ->and($effect)->not->toContain(Js::from($icon)->toHtml());
+        }
+    }
+});
+
+it('rests at its first option when it has no icon of its own', function (): void {
+    // The alignment trigger: no icon of its own, so the first option's icon is what it shows
+    // while no option is active - one copy as the fallback, none for the other three.
+    $dropdown = ToolbarDropdown::alignment(['alignStart', 'alignCenter', 'alignEnd', 'alignJustify']);
+    $effect = triggerEffect($dropdown->resolve(editor()->getTools())->toEmbeddedHtml());
+    $icons = array_values(optionIcons($dropdown));
+    $first = array_shift($icons);
+
+    expect($effect)->toEndWith(' ?? '.Js::from($first)->toHtml());
+
+    foreach ($icons as $icon) {
+        expect($effect)->not->toContain(Js::from($icon)->toHtml());
+    }
+});
+
+it('finds the active option by its place in the menu', function (): void {
+    $html = ToolbarDropdown::lists(['bulletList', 'orderedList'])->resolve(editor()->getTools())->toEmbeddedHtml();
+
+    // The first option whose state is on, counted the way the menu lists them - the same
+    // order the parent checked them in, so the first match still wins - and its icon copied
+    // out of that option.
+    expect(triggerEffect($html))
+        ->toStartWith("triggerContent = \$el.querySelectorAll(':scope > .fi-fo-rich-editor-dropdown-tool-menu > .fi-fo-rich-editor-dropdown-tool-option')[")
+        ->toContain("isActive('bulletList', [])) return 0; if (")
+        ->toContain("isActive('orderedList', [])) return 1; return -1;")
+        ->toContain("]?.querySelector(':scope > .fi-icon')?.outerHTML ?? ");
+
+    // What the effect counts is what the menu lists: an option for each index, and the menu
+    // as a direct child of the element the effect sits on.
+    expect(substr_count($html, 'class="fi-fo-rich-editor-dropdown-tool-option'))->toBe(2)
+        ->and($html)->toMatch('/^\s*<div x-data="[^"]*"\s+x-effect="[^"]*"[^>]*>\s*<button [^>]*>.*?<\/button>\s*<div [^>]*class="fi-fo-rich-editor-dropdown-tool-menu"/s');
+});
+
+it('counts the options by their class, not by a role a tool may carry of its own', function (): void {
+    // A tool's attributes win over the parent's, so an option can say `menuitemcheckbox` - and
+    // counted by role, every option after it would hand the trigger its neighbour's icon.
+    $tools = editor()->getTools();
+    $tools['bulletList']->extraAttributes(['role' => 'menuitemcheckbox'], merge: true);
+    $html = ToolbarDropdown::lists(['bulletList', 'orderedList'])->resolve($tools)->toEmbeddedHtml();
+
+    expect($html)->toContain('role="menuitemcheckbox"')
+        ->and(substr_count($html, 'class="fi-fo-rich-editor-dropdown-tool-option'))->toBe(2)
+        ->and(triggerEffect($html))->toContain('> .fi-fo-rich-editor-dropdown-tool-option');
+});
+
+it('leaves a static trigger with its own icon', function (): void {
+    $dropdown = ToolbarDropdown::more(['subscript', 'superscript']);
+    $icon = generate_icon_html($dropdown->getIcon())->toHtml();
+
+    expect(triggerEffect($dropdown->resolve(editor()->getTools())->toEmbeddedHtml()))
+        ->toBe('triggerContent = '.Js::from($icon)->toHtml());
 });

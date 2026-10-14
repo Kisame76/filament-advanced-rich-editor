@@ -305,19 +305,39 @@ class ToolbarDropdown extends ToolbarButtonGroup
     }
 
     /**
-     * The parent builds an effect that walks the options and hands the trigger the icon of
-     * whichever one is active - the behaviour the alignment dropdown is built on. A static
-     * trigger simply assigns its own icon; the `fi-active` binding is separate, so the
-     * button still lights up while one of its tools is on.
+     * The effect that hands the trigger the icon of whichever option is active - the
+     * behaviour the alignment dropdown is built on. A static trigger simply assigns its own
+     * icon; the `fi-active` binding is separate, so the button still lights up while one of
+     * its tools is on.
+     *
+     * The parent writes every option's icon into the effect as a string, a second copy of
+     * what the menu right below the trigger already draws: seven dropdowns and 17 KB per
+     * editor. This one only works out which option is active - the first one on, checked in
+     * the order the menu lists them, as the parent does - and copies that option's icon out
+     * of the menu. The default content stays as the one string, for nothing being active and
+     * for an option without an icon, which the parent would have shown as an empty trigger.
+     *
+     * The options are found by the class the parent gives them rather than by their `role`:
+     * a tool's own attributes win over the parent's, so a tool may carry a role of its own,
+     * and every option after it would then be counted one place early.
      *
      * @param  array<RichEditorTool>  $resolvedButtons
      */
     protected function buildTriggerEffect(array $resolvedButtons, string $defaultContent): string
     {
-        if (! $this->hasStaticIcon()) {
-            return parent::buildTriggerEffect($resolvedButtons, $defaultContent);
+        if ($this->hasStaticIcon()) {
+            return 'triggerContent = '.Js::from($defaultContent)->toHtml();
         }
 
-        return 'triggerContent = '.Js::from($defaultContent)->toHtml();
+        $checks = [];
+
+        foreach (array_values($resolvedButtons) as $index => $button) {
+            $checks[] = 'if ('.$this->buildActiveExpression($button).") return {$index};";
+        }
+
+        $active = '(() => { '.implode(' ', $checks).' return -1; })()';
+
+        return 'triggerContent = $el.querySelectorAll(\':scope > .fi-fo-rich-editor-dropdown-tool-menu > .fi-fo-rich-editor-dropdown-tool-option\')['.$active.']'
+            .'?.querySelector(\':scope > .fi-icon\')?.outerHTML ?? '.Js::from($defaultContent)->toHtml();
     }
 }
