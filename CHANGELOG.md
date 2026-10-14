@@ -2,7 +2,7 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
-## Unreleased
+## 1.7.0 - 2026-10-14
 
 ### Changed
 
@@ -110,6 +110,51 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   that published the config gets the two entries in `tools_menu` and the new `invisibles` key
   by publishing it again. Run `php artisan filament:assets` after updating - the script is new
 
+### Fixed
+
+- **On Filament 5.10 the toolbar's own pickers stood in the bar instead of opening over the
+  text, and every dropdown logged an Alpine error.** Filament 5.10 rebuilt its toolbar dropdowns
+  as a component that floats and flips a panel of its own, and moved the menu's box and position
+  onto that panel. The colour pickers, the font size, the styles and the image and list panels
+  have no such panel, so their menus fell into the toolbar's flow and pushed it apart; this
+  package now draws their box and position itself, as Filament did before. And the attributes
+  that turn a menu upwards were threaded into Filament's markup by anchors of which 5.10 keeps
+  only one, so its menus got a binding to state nothing declared. The threading is all or
+  nothing now and leaves 5.10's dropdowns alone - Filament turns them over itself. The trigger
+  icons, which follow the caret, find their menu inside 5.10's panel too. Filament 5.7 to 5.9
+  behave as before
+
+- **`Default` in the font size menu left the text marked with the theme's own size.** The field
+  applies what was typed into it when it is left, and writing from the menu focuses the
+  editor, which leaves it - so the number on show went straight back onto the text, as a mark
+  that no longer followed the theme. Clicking into the field and out again without typing did
+  the same. Leaving applies only what was typed now, and Escape throws that away; an editor
+  update while somebody types no longer replaces the number they are typing
+
+- **In a narrow column the toolbar hung over both edges of the field**, cutting the undo and
+  the bold button in half on the left where nobody could reach them. Filament never lets a
+  group of buttons wrap, so the narrowest a bar could get was its widest group, and a centred
+  bar split the overflow between both sides. A group in the toolbar may wrap now - one that
+  fits its row is drawn exactly as before - centring and end alignment fall back to the start
+  edge when a row does not fit, and a bar narrower than 24rem puts the pinned buttons on a
+  row of their own instead of squeezing the rest into what they leave. Wider bars are laid
+  out exactly as they were
+
+- **A sticky toolbar kept its round top corners while it was pinned under the page header**,
+  cutting two notches out of the bar with the text sliding past behind them. The bar is
+  square while it is stuck now, Filament's own sticky toolbar too; a small script,
+  `sticky-toolbar.js`, watches for it and sets `fi-arte-stuck`. Run
+  `php artisan filament:assets` after updating, as after every update
+
+- **Picking the emoji or the special character picker in the slash menu did nothing.** The menu
+  runs the tool's own handler through Alpine and stands the editor in for the clicked element,
+  but it handed `$event` over in a shape Alpine does not read, so every handler that anchors to
+  `$event.currentTarget` stopped with "$event is not defined" in the console
+
+## 1.6.0 - 2026-09-29
+
+### Added
+
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,
   puts a new file in the selected one's place and keeps its id, so every document using it shows
   the new one from its next render - a price list is replaced once, not once per page that links
@@ -158,35 +203,6 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   one widens, so there is never a hole beside a button. Replace is drawn as soon as a file is
   selected and pressable once the server has said what may take its place, so the grid no longer
   changes shape when the details arrive
-
-### Fixed
-
-- **`Default` in the font size menu left the text marked with the theme's own size.** The field
-  applies what was typed into it when it is left, and writing from the menu focuses the
-  editor, which leaves it - so the number on show went straight back onto the text, as a mark
-  that no longer followed the theme. Clicking into the field and out again without typing did
-  the same. Leaving applies only what was typed now, and Escape throws that away; an editor
-  update while somebody types no longer replaces the number they are typing
-
-- **In a narrow column the toolbar hung over both edges of the field**, cutting the undo and
-  the bold button in half on the left where nobody could reach them. Filament never lets a
-  group of buttons wrap, so the narrowest a bar could get was its widest group, and a centred
-  bar split the overflow between both sides. A group in the toolbar may wrap now - one that
-  fits its row is drawn exactly as before - centring and end alignment fall back to the start
-  edge when a row does not fit, and a bar narrower than 24rem puts the pinned buttons on a
-  row of their own instead of squeezing the rest into what they leave. Wider bars are laid
-  out exactly as they were
-
-- **A sticky toolbar kept its round top corners while it was pinned under the page header**,
-  cutting two notches out of the bar with the text sliding past behind them. The bar is
-  square while it is stuck now, Filament's own sticky toolbar too; a small script,
-  `sticky-toolbar.js`, watches for it and sets `fi-arte-stuck`. Run
-  `php artisan filament:assets` after updating, as after every update
-
-- **Picking the emoji or the special character picker in the slash menu did nothing.** The menu
-  runs the tool's own handler through Alpine and stands the editor in for the clicked element,
-  but it handed `$event` over in a shape Alpine does not read, so every handler that anchors to
-  `$event.currentTarget` stopped with "$event is not defined" in the console
 
 ## 1.5.0 - 2026-09-28
 
