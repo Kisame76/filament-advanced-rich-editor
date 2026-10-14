@@ -367,6 +367,60 @@ describe('what typing narrows it to', () => {
         expect(field.labels()).toEqual(['Image'])
     })
 
+    it('does not mind the accents either, on either side', () => {
+        // Typed without them far more often than with: `/enum` for the French `énumération`,
+        // `/uber` for the German `Überschrift`, `/cisl` for the Czech `číslovaný seznam`. And
+        // the other way round, an accent typed where the label has none still finds it.
+        const field = mount({
+            menu: {
+                char: '/',
+                empty: 'Nothing found',
+                groups: [
+                    {
+                        key: 'g',
+                        label: 'G',
+                        items: [
+                            { name: 'bulletList', label: 'Liste à puces', icon: '', aliases: ['énumération'], handler: '' },
+                            { name: 'h1', label: 'Überschrift 1', icon: '', handler: '' },
+                            { name: 'orderedList', label: 'Číslovaný seznam', icon: '', handler: '' },
+                            { name: 'table', label: 'Tabulka', icon: '', handler: '' },
+                        ],
+                    },
+                ],
+            },
+        })
+
+        field.show('/enum')
+        expect(field.labels()).toEqual(['Liste à puces'])
+
+        field.show('/uber')
+        expect(field.labels()).toEqual(['Überschrift 1'])
+
+        field.show('/CISL')
+        expect(field.labels()).toEqual(['Číslovaný seznam'])
+
+        field.show('/tábu')
+        expect(field.labels()).toEqual(['Tabulka'])
+    })
+
+    it('keeps the letters that are letters of their own', () => {
+        // `ø`, `æ`, `ł` and `ß` do not come apart into a letter and a mark, so they are not
+        // the letter beside them: a Dane typing `/o` is not looking for `ø`.
+        const field = mount({
+            menu: {
+                char: '/',
+                empty: 'Nothing found',
+                groups: [{ key: 'g', label: 'G', items: [{ name: 'x', label: 'Øverst', icon: '', handler: '' }] }],
+            },
+        })
+
+        field.show('/overst')
+        expect(field.labels()).toEqual([])
+
+        field.show('/øv')
+        expect(field.labels()).toEqual(['Øverst'])
+    })
+
     it('copes with an entry that has no aliases', () => {
         const field = mount()
 
