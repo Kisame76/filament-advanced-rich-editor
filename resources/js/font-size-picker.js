@@ -26,156 +26,207 @@ export default ({
     unit = 'px',
     menuPosition = null,
     menuUpClass = 'fi-arte-menu-up',
-} = {}) => ({
-    size: fallback,
-    open: false,
-    // Whether a size was chosen, as opposed to inherited. The menu marks what was picked, and
-    // picking `Default` is a choice too - one that a number cannot represent, since the
-    // inherited size is a number as well.
-    isMarked: false,
-    // What was selected when the field was reached for. Typing a size and then clicking back
-    // into the text applies on the way out - by which time the click has already moved the
-    // caret, and the size would land on nothing. So the range is remembered here and put back
-    // before it is used.
-    selection: null,
-    // Whether something was typed since the field was reached, and whether the menu, `Default`
-    // or Escape has already settled it. Leaving the field applies what was typed - and picking
-    // from the menu leaves it too, since writing focuses the editor. Without these, leaving
-    // wrote the number on show straight back: `Default` ended as a mark of the theme's own
-    // size, and clicking into the field and out again marked text with the size it had.
-    dirty: false,
-    settled: false,
-    min,
-    max,
-    step,
-    fallback,
-    unit,
-    dropUp: false,
-    menuUpClass,
+} = {}) => {
+    // A measurement waiting for the next frame, so a burst of ticks asks for one. Out here
+    // rather than on the component, and that is the whole point: Alpine makes the
+    // component's properties reactive and re-runs `follow()` when one it read changes - a
+    // flag it reads and the frame resets set it off again every frame, for good.
+    let measuring = false
 
-    // Turned upwards where there is no room below; the measuring is `menu-position.js`, whose
-    // URL the field hands over so it carries the version the field was rendered with.
-    positionMenu() {
-        this.dropUp = false
+    return {
+        size: fallback,
+        open: false,
+        // Whether a size was chosen, as opposed to inherited. The menu marks what was picked, and
+        // picking `Default` is a choice too - one that a number cannot represent, since the
+        // inherited size is a number as well.
+        isMarked: false,
+        // What was selected when the field was reached for. Typing a size and then clicking back
+        // into the text applies on the way out - by which time the click has already moved the
+        // caret, and the size would land on nothing. So the range is remembered here and put back
+        // before it is used.
+        selection: null,
+        // Whether something was typed since the field was reached, and whether the menu, `Default`
+        // or Escape has already settled it. Leaving the field applies what was typed - and picking
+        // from the menu leaves it too, since writing focuses the editor. Without these, leaving
+        // wrote the number on show straight back: `Default` ended as a mark of the theme's own
+        // size, and clicking into the field and out again marked text with the size it had.
+        dirty: false,
+        settled: false,
+        min,
+        max,
+        step,
+        fallback,
+        unit,
+        dropUp: false,
+        menuUpClass,
 
-        if (menuPosition) {
-            import(menuPosition).then(({ positionMenu }) => positionMenu(this))
-        }
-    },
+        // Turned upwards where there is no room below; the measuring is `menu-position.js`, whose
+        // URL the field hands over so it carries the version the field was rendered with.
+        positionMenu() {
+            this.dropUp = false
 
-    measure() {
-        const editor = this.$getEditor()
+            if (menuPosition) {
+                import(menuPosition).then(({ positionMenu }) => positionMenu(this))
+            }
+        },
 
-        if (!editor?.view) {
-            return null
-        }
+        measure() {
+            const editor = this.$getEditor()
 
-        try {
-            const { node, offset } = editor.view.domAtPos(editor.state.selection.from)
-            let element = node
-
-            if (element?.nodeType === Node.TEXT_NODE) {
-                element = element.parentElement
-            } else if (element?.childNodes?.length) {
-                element = element.childNodes[Math.min(offset, element.childNodes.length - 1)] ?? element
+            if (!editor?.view) {
+                return null
             }
 
-            while (element && element.nodeType !== Node.ELEMENT_NODE) {
-                element = element.parentElement
+            try {
+                const { node, offset } = editor.view.domAtPos(editor.state.selection.from)
+                let element = node
+
+                if (element?.nodeType === Node.TEXT_NODE) {
+                    element = element.parentElement
+                } else if (element?.childNodes?.length) {
+                    element = element.childNodes[Math.min(offset, element.childNodes.length - 1)] ?? element
+                }
+
+                while (element && element.nodeType !== Node.ELEMENT_NODE) {
+                    element = element.parentElement
+                }
+
+                const measured = element ? Number.parseFloat(window.getComputedStyle(element).fontSize) : Number.NaN
+
+                return Number.isFinite(measured) ? Math.round(measured) : null
+            } catch {
+                return null
+            }
+        },
+
+        /**
+         * What the editor's tick calls: the size at the caret, measured a frame later.
+         *
+         * The tick is every transaction - and on a page of editors, every one of them starting
+         * up. `measure()` asks the browser for a computed style, which makes it work out every
+         * change any field has made since it last drew, there and then. Measured on a page of
+         * twenty editors in a repeater: 35 of those, 1.3 of the 3.5 seconds the page spent on
+         * styles before anybody could type. So the mark is read at once - that costs nothing -
+         * and the rendered size in the next frame, by when the browser has worked the styles out
+         * for its own drawing anyway. A burst of ticks measures once.
+         */
+        follow() {
+            if (this.dirty) {
+                return
             }
 
-            const measured = element ? Number.parseFloat(window.getComputedStyle(element).fontSize) : Number.NaN
+            if (this.readMark()) {
+                return
+            }
 
-            return Number.isFinite(measured) ? Math.round(measured) : null
-        } catch {
-            return null
-        }
-    },
+            if (measuring) {
+                return
+            }
 
-    sync() {
-        // Somebody is typing a size: the number in the field is theirs until they leave it.
-        if (this.dirty) {
-            return
-        }
+            measuring = true
 
-        const marked = Number.parseFloat(this.$getEditor()?.getAttributes('fontSize')?.size)
+            requestAnimationFrame(() => {
+                measuring = false
 
-        this.isMarked = Number.isFinite(marked)
+                // Typed into, or given a mark, while the frame was coming.
+                if (!this.dirty && !this.isMarked) {
+                    this.size = this.measure() ?? this.fallback
+                }
+            })
+        },
 
-        if (this.isMarked) {
-            this.size = Math.round(marked)
+        // Whether the text at the caret was given a size, which then is the number on show.
+        readMark() {
+            const marked = Number.parseFloat(this.$getEditor()?.getAttributes('fontSize')?.size)
 
-            return
-        }
+            this.isMarked = Number.isFinite(marked)
 
-        this.size = this.measure() ?? this.fallback
-    },
+            if (this.isMarked) {
+                this.size = Math.round(marked)
+            }
 
-    capture() {
-        this.selection = this.$getEditor()?.state?.selection?.toJSON() ?? null
-    },
+            return this.isMarked
+        },
 
-    // The field was reached: remember where from, and start with nothing typed.
-    enter() {
-        this.capture()
-        this.dirty = false
-        this.settled = false
-        this.open = true
-    },
+        // The same, at once - for when somebody acted on the field and the number has to be
+        // right before the next thing they do.
+        sync() {
+            // Somebody is typing a size: the number in the field is theirs until they leave it.
+            if (this.dirty) {
+                return
+            }
 
-    edited() {
-        this.dirty = true
-    },
+            if (!this.readMark()) {
+                this.size = this.measure() ?? this.fallback
+            }
+        },
 
-    // Applied on the way out only when something was typed and nothing has settled it since.
-    leave() {
-        if (this.dirty && !this.settled) {
-            this.apply(this.size)
-        }
+        capture() {
+            this.selection = this.$getEditor()?.state?.selection?.toJSON() ?? null
+        },
 
-        this.dirty = false
-        this.settled = false
-    },
+        // The field was reached: remember where from, and start with nothing typed.
+        enter() {
+            this.capture()
+            this.dirty = false
+            this.settled = false
+            this.open = true
+        },
 
-    // Escape throws away what was typed and shows the size in force again.
-    cancel() {
-        this.dirty = false
-        this.settled = true
-        this.sync()
-    },
+        edited() {
+            this.dirty = true
+        },
 
-    restoreSelection() {
-        if (this.selection) {
-            this.setEditorSelection(this.selection)
-            this.selection = null
-        }
-    },
+        // Applied on the way out only when something was typed and nothing has settled it since.
+        leave() {
+            if (this.dirty && !this.settled) {
+                this.apply(this.size)
+            }
 
-    apply(value) {
-        const parsed = Number.parseFloat(value)
-        const current = Number.isFinite(parsed) ? parsed : (this.measure() ?? this.fallback)
-        const next = Math.min(this.max, Math.max(this.min, Math.round(current)))
+            this.dirty = false
+            this.settled = false
+        },
 
-        this.size = next
-        this.open = false
+        // Escape throws away what was typed and shows the size in force again.
+        cancel() {
+            this.dirty = false
+            this.settled = true
+            this.sync()
+        },
 
-        this.settled = true
+        restoreSelection() {
+            if (this.selection) {
+                this.setEditorSelection(this.selection)
+                this.selection = null
+            }
+        },
 
-        this.restoreSelection()
+        apply(value) {
+            const parsed = Number.parseFloat(value)
+            const current = Number.isFinite(parsed) ? parsed : (this.measure() ?? this.fallback)
+            const next = Math.min(this.max, Math.max(this.min, Math.round(current)))
 
-        this.$getEditor()?.chain().focus().setFontSize(next + this.unit).run()
-    },
+            this.size = next
+            this.open = false
 
-    // Back to whatever the theme says, which is not the same as picking the number the theme
-    // happens to use: one leaves a mark behind, the other does not, and only the second one
-    // follows a restyled theme afterwards. The field keeps showing the size in force, so it is
-    // never blank and never asks anyone to retype what they can already see.
-    clear() {
-        this.open = false
-        this.settled = true
+            this.settled = true
 
-        this.restoreSelection()
+            this.restoreSelection()
 
-        this.$getEditor()?.chain().focus().unsetFontSize().run()
-    },
-})
+            this.$getEditor()?.chain().focus().setFontSize(next + this.unit).run()
+        },
+
+        // Back to whatever the theme says, which is not the same as picking the number the theme
+        // happens to use: one leaves a mark behind, the other does not, and only the second one
+        // follows a restyled theme afterwards. The field keeps showing the size in force, so it is
+        // never blank and never asks anyone to retype what they can already see.
+        clear() {
+            this.open = false
+            this.settled = true
+
+            this.restoreSelection()
+
+            this.$getEditor()?.chain().focus().unsetFontSize().run()
+        },
+    }
+}

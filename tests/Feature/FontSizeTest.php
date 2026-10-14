@@ -77,7 +77,7 @@ it('renders a menu of sizes carrying its bounds', function (): void {
 
     expect($html)->toContain('fi-arte-font-size')
         // The tick is what keeps the displayed size in sync with the caret.
-        ->toContain('editorUpdatedAt && sync()')
+        ->toContain('editorUpdatedAt && follow()')
         ->toContain('apply(24)')
         ->and($options)->toMatchArray(['min' => 10, 'max' => 40, 'step' => 2, 'fallback' => 18, 'unit' => 'px']);
 });

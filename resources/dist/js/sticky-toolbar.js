@@ -108,18 +108,34 @@ export default () => {
         name: 'arteStickyToolbar',
 
         addStorage() {
-            return { stop: null }
+            return { stop: null, frame: null }
         },
 
+        // From the next frame rather than now. Starting reads the bar's computed `top` and
+        // walks up for a box that scrolls, and inside the editor's own start that asks the
+        // browser for styles there and then - which makes it work out every change every other
+        // field has made since it last drew. Measured on a page of twenty editors: half a
+        // second. In the next frame the browser has those styles anyway, and nothing is stuck
+        // while a page is still loading.
         onCreate() {
             const toolbar = toolbarOf(this.editor.options.element)
 
-            if (toolbar) {
-                this.storage.stop = watch(toolbar)
+            if (!toolbar) {
+                return
             }
+
+            this.storage.frame = requestAnimationFrame(() => {
+                this.storage.frame = null
+                this.storage.stop = watch(toolbar)
+            })
         },
 
         onDestroy() {
+            if (this.storage.frame !== null) {
+                cancelAnimationFrame(this.storage.frame)
+                this.storage.frame = null
+            }
+
             this.storage.stop?.()
             this.storage.stop = null
         },

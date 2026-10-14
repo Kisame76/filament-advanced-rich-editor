@@ -90,6 +90,115 @@ describe('the number at the caret', () => {
         expect(picker.isMarked).toBe(false)
     })
 
+    it('follows the editor without measuring in the middle of its tick', () => {
+        // The editor's tick is every transaction, and on a page of editors it is every one of
+        // them starting up. Measuring there asks the browser for styles at once, which makes it
+        // pay for every change any field made since it last drew - measured, 35 of those on a
+        // page of twenty editors, 1.3 of the 3.5 seconds the page spent on styles. So the tick
+        // reads the mark at once, which is free, and measures in the next frame, once.
+        const frames = []
+        vi.stubGlobal('requestAnimationFrame', (callback) => frames.push(callback))
+
+        try {
+            const { picker } = mount(editorWith({ renderedSize: '14px' }))
+            const measure = vi.spyOn(picker, 'measure')
+
+            picker.follow()
+            picker.follow()
+            picker.follow()
+
+            expect(measure).not.toHaveBeenCalled()
+            expect(picker.size).toBe(16)
+            expect(frames).toHaveLength(1)
+
+            frames.shift()()
+
+            expect(measure).toHaveBeenCalledTimes(1)
+            expect(picker.size).toBe(14)
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    })
+
+    it('gives the frame nothing to write that the tick reads, so the tick cannot set itself off', () => {
+        // Alpine runs `follow()` as an effect and re-runs it whenever a property it read
+        // changes. A flag the effect reads and the frame then resets is exactly that: measured
+        // in a running panel, 121 measurements a second on an idle editor, one per frame,
+        // for good. So what the frame writes and what the tick reads must not meet.
+        const frames = []
+        vi.stubGlobal('requestAnimationFrame', (callback) => frames.push(callback))
+
+        try {
+            const { picker } = mount(editorWith({ renderedSize: '14px' }))
+            const read = new Set()
+            const written = new Set()
+            let recording = null
+            const watched = new Proxy(picker, {
+                get(target, key, receiver) {
+                    if (recording === 'read' && typeof key === 'string') {
+                        read.add(key)
+                    }
+
+                    return Reflect.get(target, key, receiver)
+                },
+                set(target, key, value, receiver) {
+                    if (recording === 'write' && typeof key === 'string') {
+                        written.add(key)
+                    }
+
+                    return Reflect.set(target, key, value, receiver)
+                },
+            })
+
+            recording = 'read'
+            watched.follow()
+            recording = 'write'
+            frames.shift()()
+            recording = null
+
+            const functions = new Set(Object.keys(picker).filter((key) => typeof picker[key] === 'function'))
+
+            expect([...written].filter((key) => read.has(key) && !functions.has(key))).toEqual([])
+            expect(written).toContain('size')
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    })
+
+    it('reads a size the text was given at once, with nothing left to measure', () => {
+        const frames = []
+        vi.stubGlobal('requestAnimationFrame', (callback) => frames.push(callback))
+
+        try {
+            const { picker } = mount(editorWith({ marked: '24px' }))
+
+            picker.follow()
+
+            expect(picker.size).toBe(24)
+            expect(frames).toHaveLength(0)
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    })
+
+    it('does not measure over a number somebody started typing before the frame came', () => {
+        const frames = []
+        vi.stubGlobal('requestAnimationFrame', (callback) => frames.push(callback))
+
+        try {
+            const { picker } = mount(editorWith({ renderedSize: '14px' }))
+
+            picker.follow()
+            picker.size = 30
+            picker.edited()
+            frames.shift()()
+
+            expect(picker.size).toBe(30)
+        } finally {
+            vi.unstubAllGlobals()
+        }
+    })
+
     it('falls back to the configured size where nothing can be measured', () => {
         const { picker } = mount(editorWith({ view: false }), { fallback: 18 })
 

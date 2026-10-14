@@ -177,8 +177,9 @@ class ToolbarFontSize extends ViewComponent implements HasEmbeddedView
                 // the attribute early and take everything after it with it.
                 'x-data' => e("arteFontSizePicker({$config})"),
                 // The tick is what makes the number follow the caret: every editor
-                // transaction bumps it, and the effect re-reads the mark.
-                'x-effect' => 'editorUpdatedAt && sync()',
+                // transaction bumps it, and the effect re-reads the mark - and measures the
+                // rendered size a frame later, see `follow()` in `font-size-picker.js`.
+                'x-effect' => 'editorUpdatedAt && follow()',
                 'x-on:click.outside' => 'open = false',
                 'x-on:keydown.escape.prevent' => 'open = false',
             ], escape: false)

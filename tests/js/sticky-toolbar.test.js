@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import stickyToolbarExtension, { isStuck, STUCK_CLASS, scrollParent, watch } from '../../resources/js/sticky-toolbar.js'
 
 /**
@@ -148,16 +148,44 @@ describe('the extension', () => {
     })
 
     it('watches the bar of the field its editor is mounted in, and stops with the editor', () => {
+        const frames = []
+        vi.stubGlobal('requestAnimationFrame', (callback) => frames.push(callback))
         const extension = field()
         const context = { editor: { options: { element: document.getElementById('mount') } }, storage: extension.addStorage() }
 
         extension.onCreate.call(context)
+
+        // From the next frame. Starting means reading the bar's computed `top` and walking up
+        // for a box that scrolls, and inside the editor's own start that asks the browser for
+        // styles at once - measured, half a second on a page of twenty editors, paying for
+        // every other field's changes. Nothing is stuck while a page is still loading.
+        expect(FakeObserver.last).toBeNull()
+
+        frames.shift()()
 
         expect(FakeObserver.last.observed).toEqual([document.querySelector('.fi-fo-rich-editor-toolbar')])
 
         extension.onDestroy.call(context)
 
         expect(FakeObserver.last.disconnected).toBe(true)
+        vi.unstubAllGlobals()
+    })
+
+    it('never starts for an editor that was gone before its frame came', () => {
+        const frames = []
+        vi.stubGlobal('requestAnimationFrame', (callback) => frames.push(callback))
+        vi.stubGlobal('cancelAnimationFrame', (id) => {
+            frames[id - 1] = () => {}
+        })
+        const extension = field()
+        const context = { editor: { options: { element: document.getElementById('mount') } }, storage: extension.addStorage() }
+
+        extension.onCreate.call(context)
+        extension.onDestroy.call(context)
+        frames.shift()()
+
+        expect(FakeObserver.last).toBeNull()
+        vi.unstubAllGlobals()
     })
 
     it('does nothing on a field whose bar is not pinned', () => {
