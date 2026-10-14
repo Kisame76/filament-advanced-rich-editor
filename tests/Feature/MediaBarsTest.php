@@ -50,7 +50,7 @@ it('lets a picture be replaced from its own bar', function (): void {
     $buttons = $this->editor->getFloatingToolbars()['image'] ?? [];
 
     expect(array_slice($buttons, -3))->toBe(['imageReplace', 'imageDownload', 'imageDelete'])
-        ->and($replace?->getJsHandler())->toContain("mountAction('mediaBrowser'")
+        ->and($replace?->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('mediaBrowser'/")
         ->and($replace?->getJsHandler())->toContain("kind: 'image'")
         ->and($replace?->getJsHandler())->toContain("getAttributes('image')?.id");
 });
@@ -61,7 +61,7 @@ it('replaces a picture through Filament\'s own dialog where there is no library'
     $replace = editor()->getTools()['imageReplace'] ?? null;
 
     expect(editor()->getFloatingToolbars()['image'] ?? [])->toContain('imageReplace')
-        ->and($replace?->getJsHandler())->toContain("mountAction('attachFiles'")
+        ->and($replace?->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('attachFiles'/")
         ->and($replace?->getJsHandler())->toContain("getAttributes('image')?.src");
 });
 
@@ -89,7 +89,7 @@ it('puts a bar over an embed that goes back to its dialog', function (): void {
     $replace = $this->editor->getTools()['embedReplace'] ?? null;
 
     expect($this->editor->getFloatingToolbars()['embed'] ?? null)->toBe(['embedReplace', 'embedDelete'])
-        ->and($replace?->getJsHandler())->toContain("mountAction('embed'")
+        ->and($replace?->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('embed'/")
         ->and($replace?->getJsHandler())->toContain("getAttributes('embed')?.provider")
         ->and($this->editor->getTools()['embedDelete']?->getJsHandler())->toContain('deleteSelection()')
         ->and(editor()->embeds(false)->getFloatingToolbars())->not->toHaveKey('embed');

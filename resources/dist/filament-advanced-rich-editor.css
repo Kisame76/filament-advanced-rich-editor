@@ -905,6 +905,39 @@
 }
 
 /*
+ * The menu of a dropdown this package builds itself - the colour pickers, the font size, the
+ * styles, the image and list panels - hanging under its trigger.
+ *
+ * Filament drew this until 5.10: its rule for `.fi-fo-rich-editor-dropdown-tool-menu` was the
+ * box - border, background, shadow - and `position: absolute` under the trigger. In 5.10 its
+ * own dropdowns became a component that floats a panel, the box moved to the panel, and the
+ * menu inside it is only a row of buttons. These menus have no panel, so without this they
+ * stood in the toolbar's flow and pushed the bar apart. The values are Filament's 5.9 ones.
+ *
+ * A direct child only: Filament's own menu now sits inside its panel and is left alone. Before
+ * 5.10 Filament's rule says the same thing, so the two agree. Placed before the upwards rule
+ * below, and no more specific than it, so a menu turned over still turns over.
+ */
+.fi-fo-rich-editor-dropdown-tool > .fi-fo-rich-editor-dropdown-tool-menu {
+    position: absolute;
+    inset-inline-start: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 30;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-white);
+    padding: calc(var(--spacing) * 1);
+    box-shadow:
+        0 10px 15px -3px rgb(0 0 0 / 0.1),
+        0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fi-fo-rich-editor-dropdown-tool > .fi-fo-rich-editor-dropdown-tool-menu:where(.dark, .dark *) {
+    border-color: var(--gray-600);
+    background-color: var(--gray-800);
+}
+
+/*
  * A menu turned upwards, because there was no room for it below.
  *
  * Every dropdown in this package hangs off its trigger with `position: absolute`, which is

@@ -243,9 +243,13 @@ class ToolbarDropdown extends ToolbarButtonGroup
      * rather than the whole method being reimplemented, which would mean owning a copy of
      * upstream's markup and watching it rot.
      *
-     * Nothing is guessed: each anchor has to appear exactly once or that injection is
-     * skipped, and `ToolbarDropdownTest` fails loudly if upstream ever renames one - which
-     * is the trade for not owning the markup.
+     * Nothing is guessed: every anchor has to appear exactly once, or nothing is threaded in
+     * at all. Half an injection is worse than none - a menu bound to `menuUpClass` and
+     * `dropUp` with nothing declaring them is an Alpine error on every page - and that is
+     * exactly what Filament 5.10 would have got: its dropdown is a component of its own,
+     * `filamentDropdown()`, floated and flipped away from the edge by Filament, and its markup
+     * carries the menu's class and none of the rest. There the parent's markup is left as it
+     * is, because the job is already done. `ToolbarDropdownTest` holds both generations.
      */
     public function toEmbeddedHtml(): string
     {
@@ -277,15 +281,15 @@ class ToolbarDropdown extends ToolbarButtonGroup
 
     protected function openingAwayFromTheEdge(string $html): string
     {
-        foreach ($this->edgeAwareAttributes() as $anchor => $replacement) {
-            if (substr_count($html, $anchor) !== 1) {
-                continue;
-            }
+        $attributes = $this->edgeAwareAttributes();
 
-            $html = str_replace($anchor, $replacement, $html);
+        foreach (array_keys($attributes) as $anchor) {
+            if (substr_count($html, $anchor) !== 1) {
+                return $html;
+            }
         }
 
-        return $html;
+        return str_replace(array_keys($attributes), array_values($attributes), $html);
     }
 
     /**
@@ -318,8 +322,10 @@ class ToolbarDropdown extends ToolbarButtonGroup
      * for an option without an icon, which the parent would have shown as an empty trigger.
      *
      * The options are found by the class the parent gives them rather than by their `role`:
-     * a tool's own attributes win over the parent's, so a tool may carry a role of its own,
-     * and every option after it would then be counted one place early.
+     * a tool's own attributes win over the parent's, so a tool may carry a role of its own -
+     * Filament 5.10 gives a toggle `menuitemcheckbox` - and every option after it would then
+     * be counted one place early. And anywhere inside the dropdown rather than as its direct
+     * child, because 5.10 puts the menu inside a floating panel of its own.
      *
      * @param  array<RichEditorTool>  $resolvedButtons
      */
@@ -337,7 +343,7 @@ class ToolbarDropdown extends ToolbarButtonGroup
 
         $active = '(() => { '.implode(' ', $checks).' return -1; })()';
 
-        return 'triggerContent = $el.querySelectorAll(\':scope > .fi-fo-rich-editor-dropdown-tool-menu > .fi-fo-rich-editor-dropdown-tool-option\')['.$active.']'
+        return 'triggerContent = $el.querySelectorAll(\'.fi-fo-rich-editor-dropdown-tool-menu > .fi-fo-rich-editor-dropdown-tool-option\')['.$active.']'
             .'?.querySelector(\':scope > .fi-icon\')?.outerHTML ?? '.Js::from($defaultContent)->toHtml();
     }
 }

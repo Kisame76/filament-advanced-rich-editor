@@ -30,12 +30,24 @@ function listsDropdown(): string
         ->toEmbeddedHtml();
 }
 
+/**
+ * Whether the installed Filament draws its toolbar dropdowns itself, positioned and turned
+ * over by its own `filamentDropdown()` component - which Filament 5.10 started doing. Its
+ * markup carries none of the anchors the injection threads into, and needs none of it.
+ */
+function filamentTurnsItsOwnMenus(): bool
+{
+    return str_contains(listsDropdown(), 'filamentDropdown()');
+}
+
+const INJECTED = 'Filament draws the menus it turns over itself from 5.10 on';
+
 it('gives the menu and its trigger the references the measuring needs', function (): void {
     $html = listsDropdown();
 
     expect($html)->toContain('x-ref="trigger"')
         ->and($html)->toContain('x-ref="menu"');
-});
+})->skip(filamentTurnsItsOwnMenus(...), INJECTED);
 
 it('carries the trait state beside the parent own', function (): void {
     $html = listsDropdown();
@@ -46,11 +58,11 @@ it('carries the trait state beside the parent own', function (): void {
         ->and($html)->toContain('dropUp: false')
         ->and($html)->toContain('positionMenu()')
         ->and($html)->toContain('triggerContent');
-});
+})->skip(filamentTurnsItsOwnMenus(...), INJECTED);
 
 it('measures once the menu has been opened, not while it is closing', function (): void {
     expect(listsDropdown())->toContain('x-on:click="open = !open; open &amp;&amp; positionMenu()"');
-});
+})->skip(filamentTurnsItsOwnMenus(...), INJECTED);
 
 it('turns the menu over through the class the stylesheet knows', function (): void {
     $html = listsDropdown();
@@ -67,7 +79,7 @@ it('turns the menu over through the class the stylesheet knows', function (): vo
         ->and($html)->toContain(e("menuUpClass: '{$class}'"))
         ->and(file_get_contents(dirname(__DIR__, 2).'/resources/dist/filament-advanced-rich-editor.css'))
         ->toContain(".fi-fo-rich-editor-dropdown-tool-menu.{$class}");
-});
+})->skip(filamentTurnsItsOwnMenus(...), INJECTED);
 
 it('hands itself to the module that measures, rather than carrying the measuring', function (): void {
     // Turning and capping are `resources/js/menu-position.js`, tested under `tests/js`. They
@@ -79,6 +91,34 @@ it('hands itself to the module that measures, rather than carrying the measuring
     expect(listsDropdown())
         ->toContain(e("import({$module})"))
         ->toContain('positionMenu(this)');
+})->skip(filamentTurnsItsOwnMenus(...), INJECTED);
+
+it('threads nothing into a Filament that turns its own menus over', function (): void {
+    // From 5.10 on Filament's dropdown is its own component, floated and flipped away from the
+    // edge by Filament. Half an injection would be worse than none: a menu bound to
+    // `menuUpClass` and `dropUp` with nothing declaring them is an Alpine error on every page.
+    $html = listsDropdown();
+
+    expect($html)->not->toContain('menuUpClass')
+        ->and($html)->not->toContain('dropUp')
+        ->and($html)->not->toContain('positionMenu')
+        ->and($html)->not->toContain('x-ref="menu"');
+})->skip(fn (): bool => ! filamentTurnsItsOwnMenus(), 'Filament before 5.10 leaves the turning over to this package');
+
+it('threads all of the anchors in or none of them', function (): void {
+    // Markup with one anchor and not the others - the menu's class, say, without the state
+    // its binding reads - is left exactly as it came.
+    $dropdown = new class('Lists') extends ToolbarDropdown
+    {
+        public function thread(string $html): string
+        {
+            return $this->openingAwayFromTheEdge($html);
+        }
+    };
+
+    $partial = '<div x-data="{ ...filamentDropdown() }"><div class="fi-fo-rich-editor-dropdown-tool-menu"></div></div>';
+
+    expect($dropdown->thread($partial))->toBe($partial);
 });
 
 it('leaves the parent markup alone when there is nothing to open', function (): void {
@@ -95,7 +135,7 @@ it('injects each anchor exactly once', function (): void {
         ->and(substr_count($html, 'positionMenu()'))->toBeGreaterThan(0)
         // The options carry their own class and must not have been caught by the menu's.
         ->and(substr_count($html, 'x-bind:class="{ [menuUpClass]: dropUp }"'))->toBe(1);
-});
+})->skip(filamentTurnsItsOwnMenus(...), INJECTED);
 
 it('reaches every dropdown the package builds, not just the one in the bubble', function (): void {
     // The language dropdown is the one that showed the problem - it sits in the bar over a
@@ -114,7 +154,7 @@ it('reaches every dropdown the package builds, not just the one in the bubble', 
             ->and($dropdown->resolve($editor->getTools())->toEmbeddedHtml())
             ->toContain('x-bind:class="{ [menuUpClass]: dropUp }"');
     }
-});
+})->skip(filamentTurnsItsOwnMenus(...), INJECTED);
 
 /**
  * The icons of a dropdown's options, as the menu draws them.
@@ -188,15 +228,17 @@ it('finds the active option by its place in the menu', function (): void {
     // order the parent checked them in, so the first match still wins - and its icon copied
     // out of that option.
     expect(triggerEffect($html))
-        ->toStartWith("triggerContent = \$el.querySelectorAll(':scope > .fi-fo-rich-editor-dropdown-tool-menu > .fi-fo-rich-editor-dropdown-tool-option')[")
-        ->toContain("isActive('bulletList', [])) return 0; if (")
-        ->toContain("isActive('orderedList', [])) return 1; return -1;")
+        ->toStartWith("triggerContent = \$el.querySelectorAll('.fi-fo-rich-editor-dropdown-tool-menu > .fi-fo-rich-editor-dropdown-tool-option')[")
+        // The options Filament writes after the name differ between its versions - `null`
+        // in 5.7, `[]` later - and are Filament's business; the order is this one's.
+        ->toMatch("/isActive\\('bulletList', [^)]*\\)\\) return 0; if \\(/")
+        ->toMatch("/isActive\\('orderedList', [^)]*\\)\\) return 1; return -1;/")
         ->toContain("]?.querySelector(':scope > .fi-icon')?.outerHTML ?? ");
 
-    // What the effect counts is what the menu lists: an option for each index, and the menu
-    // as a direct child of the element the effect sits on.
-    expect(substr_count($html, 'class="fi-fo-rich-editor-dropdown-tool-option'))->toBe(2)
-        ->and($html)->toMatch('/^\s*<div x-data="[^"]*"\s+x-effect="[^"]*"[^>]*>\s*<button [^>]*>.*?<\/button>\s*<div [^>]*class="fi-fo-rich-editor-dropdown-tool-menu"/s');
+    // What the effect counts is what the menu lists: an option for each index.
+    expect(preg_match_all('/class="[^"]*\bfi-fo-rich-editor-dropdown-tool-option\b/', $html))->toBe(2)
+        // Inside the element the effect sits on: the menu follows it in the same markup.
+        ->and($html)->toMatch('/^\s*<div x-data="[^"]*"\s+x-effect="[^"]*".*class="fi-fo-rich-editor-dropdown-tool-menu"/s');
 });
 
 it('counts the options by their class, not by a role a tool may carry of its own', function (): void {
@@ -207,7 +249,7 @@ it('counts the options by their class, not by a role a tool may carry of its own
     $html = ToolbarDropdown::lists(['bulletList', 'orderedList'])->resolve($tools)->toEmbeddedHtml();
 
     expect($html)->toContain('role="menuitemcheckbox"')
-        ->and(substr_count($html, 'class="fi-fo-rich-editor-dropdown-tool-option'))->toBe(2)
+        ->and(preg_match_all('/class="[^"]*\bfi-fo-rich-editor-dropdown-tool-option\b/', $html))->toBe(2)
         ->and(triggerEffect($html))->toContain('> .fi-fo-rich-editor-dropdown-tool-option');
 });
 
@@ -217,4 +259,18 @@ it('leaves a static trigger with its own icon', function (): void {
 
     expect(triggerEffect($dropdown->resolve(editor()->getTools())->toEmbeddedHtml()))
         ->toBe('triggerContent = '.Js::from($icon)->toHtml());
+});
+
+it('hangs the menus this package builds itself under their trigger, whatever Filament draws for its own', function (): void {
+    // Until 5.10 Filament's rule for the menu was the box and `position: absolute`; from 5.10
+    // its own dropdowns float a panel and the menu is only a row of buttons. The colour
+    // pickers, the font size and the panels have no panel, and without a rule of this
+    // package's own their menus stood in the toolbar's flow and pushed the bar apart.
+    $css = file_get_contents(__DIR__.'/../../resources/css/filament-advanced-rich-editor.css');
+
+    expect($css)->toMatch('/\.fi-fo-rich-editor-dropdown-tool > \.fi-fo-rich-editor-dropdown-tool-menu \{[^}]*position: absolute;[^}]*top: calc\(100% \+ 0\.25rem\);/s')
+        // Before the rule that turns a menu upwards, and no more specific, so that one wins.
+        ->and(strpos($css, '.fi-fo-rich-editor-dropdown-tool > .fi-fo-rich-editor-dropdown-tool-menu {'))
+        ->toBeLessThan(strpos($css, '.fi-fo-rich-editor-dropdown-tool-menu.fi-arte-menu-up {'))
+        ->and(file_get_contents(__DIR__.'/../../resources/dist/filament-advanced-rich-editor.css'))->toBe($css);
 });
