@@ -15,7 +15,7 @@ on top of it, checked against the current Filament v5 release:
 | **Toolbar** | A fixed default row. Groups and dropdowns exist, but each one is assembled by hand | [Tokens](#rearranging-the-toolbar) that expand into whole groups, [dividers](#dividers), [two overflow menus](#the-tools-menu), a [pinned corner](#pinned-buttons), [start, centre, end or spread across the width](#toolbar-alignment), [sticky while scrolling](#sticky-toolbar), and [one config file](#configuration) for every field in the project |
 | **Your own toolbar entries** | `->tools()` registers a tool, and you place it by hand in every toolbar array that wants it | [A token of your own](#custom-tokens) that expands wherever it is named, and [replaces a built-in one](#custom-tools) when it takes its key — `headings` defined in your config *is* the headings dropdown |
 | **Headings** | All six exist; the default row offers `h2` and `h3`, and every level is a separate button | [One dropdown](#heading-levels) of the levels *this* field allows, with the plain paragraph in front of them as the way back out |
-| **Lists** | Bullets and numbers | [Task lists](#lists-and-task-lists) too, plus [markers, a starting number and counting backwards](#lists-markers-numbering-and-direction) |
+| **Lists** | Bullets and numbers | [Task lists](#lists-and-task-lists) and [definition lists](#definition-lists) too, plus [markers, a starting number and counting backwards](#lists-markers-numbering-and-direction) |
 | **Block layout** | Four separate alignment buttons, three of them in the default row | [One alignment dropdown](#alignment) showing the alignment the caret is in, and [line spacing](#line-spacing) beside it |
 | **Writing direction** | — | [`dir` on the block the caret sits in](#text-direction), so a Hebrew paragraph inside a German article reads the right way round — registered on every field, and named `ltr` / `rtl` when you want the buttons |
 | **Character look** | `textColor` with an optional free picker, `highlight`, `small`, `lead` | + [a background colour with a palette of its own](#colours), [font size](#font-size), [your design system's own named styles](#styles), [a typeface picker](#fonts) |
@@ -26,6 +26,7 @@ on top of it, checked against the current Filament v5 release:
 | **Code** | A code block with no language | [A language picker on the block](#code-blocks), and syntax colours rendered in PHP |
 | **Callouts** | — | [Note, tip, warning and danger](#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
 | **Finding text** | The browser's `Ctrl+F` — which finds, and stops there | [Find and replace inside the field](#find-and-replace) — every hit marked at once, whole words and case optional, and replacing all of them is one undo |
+| **Seeing what is not drawn** | — | [The ¶ view](#invisible-characters-and-block-outlines): no-break spaces, soft hyphens, zero-width characters, line breaks and paragraph ends, and an outline round every block naming its element |
 | **Reaching a tool** | Aim at the bar | [Type `/`](#slash-menu) for the commands *this* field offers, or use [the grip in the margin](#drag-handle) to move a block and the plus to start one |
 | **Formatting what you selected** | `->floatingToolbars()` exists; the only bar Filament ships is the one over a table cell | [A bar over the selected text](#toolbar-over-a-selection) carrying the styles, the marks, the link and both colour pickers — taking the same tokens the main toolbar does |
 | **Pasting from Word** | What Word wrote, minus what the sanitiser strips on save | [Cleaned on the way in](#pasting-from-word-and-google-docs): the list Word writes as twelve paragraphs is a list again, and somebody else's fonts, sizes and colours stay behind |
@@ -58,7 +59,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Statistics](#statistics) · [Help](#help)
 
 **[Blocks](#blocks)** — [Heading levels](#heading-levels) ·
-[Lists and task lists](#lists-and-task-lists) ·
+[Lists and task lists](#lists-and-task-lists) · [Definition lists](#definition-lists) ·
 [List markers, numbering and direction](#lists-markers-numbering-and-direction) ·
 [Callouts](#callouts) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
 [Indenting](#indenting) · [Text direction](#text-direction) · [Code blocks](#code-blocks)
@@ -82,6 +83,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 **[Typing instead of aiming](#typing-instead-of-aiming)** — [Slash menu](#slash-menu) ·
 [Typography while typing](#typography-while-typing) · [Drag handle](#drag-handle) ·
 [Find and replace](#find-and-replace) ·
+[Invisible characters and block outlines](#invisible-characters-and-block-outlines) ·
 [Pasting from Word and Google Docs](#pasting-from-word-and-google-docs)
 
 **[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
@@ -564,15 +566,17 @@ in the gap. `->disableToolbarButtons(['pin'])` puts the whole bar back into one 
 
 `'tools'` is a second overflow for the other half of a toolbar: what a field *does* rather
 than what it writes - searching, the accessibility check, the statistics, the preview, the
+[invisible characters and the block outlines](#invisible-characters-and-block-outlines), the
 source view, the shortcut list.
 
 What the menu holds is `tools_menu` in the config file, shipped as
-`['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help']`. Per field,
+`['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help']`. Per field,
 `->toolsMenu(['find', 'help'])` replaces that list; an empty list drops the button altogether.
 
 It is the shipped corner: `['tools', 'fullscreen']`, with the menu holding that list. On a
-field that switched nothing on it shows find, the statistics and the help - the accessibility
-check and the source view ship off, and the preview waits for a stylesheet.
+field that switched nothing on it shows find, the statistics, the two views of what a page
+does not draw and the help - the accessibility check and the source view ship off, and the
+preview waits for a stylesheet.
 
 ```php
 // A project that would rather have the buttons names them individually.
@@ -979,6 +983,49 @@ attribute, which would take the tick state with them. The state is therefore als
 `fi-arte-task-item-checked` class — `class` survives sanitisation — and the checkbox itself is
 drawn in CSS. Inside the editor a real checkbox is rendered by the node view, so ticking an
 item works as usual.
+
+### Definition lists
+
+`<dl>`, `<dt>` and `<dd>`: terms and their descriptions - semantically right for a glossary,
+which otherwise ends up as a bulleted list with bold words at the front. **Off by default:**
+most fields never hold a glossary, and a fourth list type in every lists dropdown - and one
+more script on every page - is a cost for a feature most projects do not use. Switched on, it
+is the fourth entry of the `'lists'` dropdown and in the slash menu as `/dl` or `/glossary`;
+the names are already in both lists and resolve to nothing while it is off.
+
+```php
+AdvancedRichEditor::make('content')->descriptionList();   // default: config('...description_list'), false
+```
+
+Typing one follows the rhythm a glossary is written in:
+
+| Key | In a term | In a description |
+| --- | --- | --- |
+| Enter | starts its description | starts the next term |
+| Enter, in an empty one | leaves the list | leaves the list |
+| Tab | makes it a description | stays where it is |
+| Shift+Tab | takes it out of the list as a paragraph | makes it a term |
+| Backspace, at the start of the first | takes it out of the list as a paragraph | the same |
+
+Inside a list Tab never moves the focus out of the editor - in a description, where there is
+nowhere further in to go, it would otherwise have landed on whatever comes next on the page.
+With text selected, Tab and Shift+Tab change every part the selection touches. Outside the
+list Tab behaves as it does everywhere else in the field.
+
+The button switches the paragraphs the selection covers into a list - every other one a
+term, the ones between them descriptions - and switches a list the caret is in back into
+paragraphs. A term may have several descriptions, and a list may end on a term while it is
+being written; HTML's stricter grouping is not enforced, so no keystroke is ever refused.
+
+Both parts hold text rather than paragraphs: a glossary is a word and a sentence about it, and
+a description that needs two lines takes a line break. A pasted `<dd><p>…</p><p>…</p></dd>` is
+read for its text, one line per paragraph, and a list or table typed into a term splits the
+list round it without leaving empty parts behind.
+
+The saved markup carries `fi-arte-description-list` on the `<dl>`, for the same reason the task
+list carries its classes: the stylesheet sets the term in bold and indents the description, in
+the editor, in a text entry and on your own front end. Filament's prose has no rules for `dl`.
+A stored list renders whether or not the field that renders it has the feature switched on.
 
 ### Lists: markers, numbering and direction
 
@@ -3080,6 +3127,11 @@ current user.
 ↑ and ↓ move, Enter or Tab picks, Escape closes — for the word being typed rather than for
 good, so the next `/` opens it again.
 
+What is typed is matched against each entry's label, its tool name and the words it is known
+by in the panel's language, ignoring case and accents: `/enum` finds the French
+`énumération`, `/uber` the German `Überschrift`. Letters that are letters of their own - `ø`,
+`æ`, `ł`, `ß` - are not taken for the one beside them.
+
 A row carries an icon and a name and nothing else. A keyboard shortcut in a third column
 makes every row as wide as its widest entry, and the panel then covers the text being
 written — which is the one thing a menu opened mid-sentence must not do. The shortcuts live
@@ -3307,6 +3359,56 @@ Nothing about any of this is stored. A search marks no document and a replacemen
 ordinary text by the time it is saved, so turning the feature off later leaves everything
 written with it exactly as it is - it only takes the button and the keys away.
 
+### Invisible characters and block outlines
+
+Two buttons in the [tools menu](#the-tools-menu) that show what a document holds and does not
+draw. Neither changes anything: both are drawn by the browser over the document and are never
+part of it, so the saved HTML, the clipboard and the undo history are the same with them on as
+off.
+
+```php
+AdvancedRichEditor::make('content')->invisibles(false);   // default: config('...invisibles')
+```
+
+**Show invisible characters** is Word's ¶ button:
+
+| Sign | What it stands for |
+| --- | --- |
+| `°` over the space | a space that may not break - no-break, narrow no-break (`5 kg`, French `« »`) and figure space |
+| `¬` | a soft hyphen, which only shows when a line breaks at it |
+| a dashed hairline | a character with no width at all - zero-width space, word joiner, a byte order mark carried in by a paste |
+| `↵` | a line break (`Shift+Enter`) |
+| `¶` | the end of a paragraph, a heading, a list item or a table cell - and of an empty paragraph, which is the one most worth seeing |
+
+The `°` is laid over the space itself, so switching the view on moves no word. Code blocks get
+no `¶` - it would read as part of the code - but their characters are marked like any others,
+since a no-break space pasted into a shell command is exactly the thing worth finding. Ordinary
+spaces and tabs are not marked: a sign on every space is what makes Word's view so loud.
+Neither are the zero-width joiners, which hold every family emoji together.
+
+**Show blocks** draws a dashed outline round every block and names the element it is written
+as - `P`, `H2`, `UL`, `LI`, `DL`, `DT`, `DD`, `BLOCKQUOTE`, `PRE`. Tables, details and callouts are outlined and
+not named, since their own frame says what they are. The label sits in a strip of room above
+the block's first line, so the text moves down while the view is on, as it does in CKEditor
+and TinyMCE; a label laid over the first line would hide the words it is about. While it is on,
+the label also stands where Filament draws a quotation's closing quote mark.
+
+Both start off on every page load and remember nothing. Each editor has its own pair, so two
+fields on one form are switched separately.
+
+The signs are the stylesheet's rather than the script's - every element drawn for them is empty -
+so a project can change one by overriding a `content`, and the colours by setting
+`--fi-arte-invisible`, `--fi-arte-block-outline` and `--fi-arte-block-label`:
+
+```css
+.fi-arte-invisible-space::after { content: '·'; }
+.fi-fo-rich-editor { --fi-arte-invisible: var(--gray-400); }
+```
+
+What a keystroke costs while the characters are shown grows with the paragraph being typed in,
+not with the document: an edit redraws only the paragraphs it touched. Measured on 3,000
+paragraphs (55,000 words), typing went from 4.5 to 13 ms a keystroke with the view on.
+
 ### Pasting from Word and Google Docs
 
 A paste is cleaned on the way in. Nothing is stored about it, there is no button for it and
@@ -3440,7 +3542,7 @@ colour of: shipped on, every project whose pages are not white would be handed f
 are wrong - which is the surest way to teach somebody to stop reading a panel.
 
 The shipped place for it is the tools menu, not the bar: `tools_menu` is
-`['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help']`, and that place
+`['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help']`, and that place
 fills itself in as soon as the check is switched on. A project that has published the config
 file therefore needs to change nothing to see the button. Naming `'accessibility'` in
 `toolbar` instead gives it a button of its own on the bar.
@@ -4333,6 +4435,20 @@ task lists agree on:
 - [ ] Slash menu open
 ```
 
+**Definition lists keep their shape.** Core Markdown has no list of this kind, and with
+`strip_tags` on, a glossary would come out as its terms and descriptions run together into one
+line. It is written in the spelling Markdown Extra started and CommonMark's description list
+extension reads - which is what reading it back in understands:
+
+```
+Apple
+: A fruit.
+
+Bank
+: Where money is kept.
+: The side of a river.
+```
+
 ```php
 AdvancedRichContentRenderer::make($article->content)
     ->toMarkdown(['header_style' => 'setext']);      // overrules the default
@@ -4359,7 +4475,7 @@ GitHub-flavoured one, which brings tables, strikethrough, bare urls and `- [x]` 
 it. Tables in particular need no permission from the toolbar.
 
 Markdown says more than any rich text schema can hold, and each of those things arrives
-looking like content. Four decisions cover them, and the first three are not preferences:
+looking like content. Five decisions cover them, and the first four are not preferences:
 
 - **Footnotes are parsed.** Without the extension CommonMark reads `[^1]: The note.` as a
   link reference definition: the note's text disappears from the document and the marker
@@ -4367,6 +4483,14 @@ looking like content. Four decisions cover them, and the first three are not pre
   neither shows up as an error, because a link is perfectly valid markup. With it, a
   footnote is something this schema *can* hold — a superscript marker, a rule, and a
   numbered list of notes.
+- **Definition lists are parsed** with CommonMark's description list extension, so the
+  `Term` / `: Description` spelling the export writes comes back as a list rather than as a
+  paragraph followed by a line starting with a colon. A loose list - a blank line between a
+  term and its description - arrives as text in its parts, since a part holds no paragraphs.
+  Like a task list, it is parsed whether or not a field offers it, and renders everywhere; a
+  field with definition lists switched off - the default - shows its terms and descriptions as
+  plain paragraphs when the document is opened in it. Switch them on where imported
+  glossaries are edited.
 - **Its plumbing is not.** The extension links marker and note to each other by id, and ids
   are not attributes this schema keeps — so the anchors would arrive pointing at nothing
   and the `↩` would be a glyph to delete by hand. Both go; the marker stays.
@@ -4754,6 +4878,7 @@ the whole project; the method sets it for one field and wins.
 | --- | --- | --- |
 | Accessibility check | `accessibility.enabled` | `->accessibility()` |
 | Source view | `source_code` | `->sourceCode()` |
+| Definition lists | `description_list` | `->descriptionList()` |
 | Marking styled text in the editor | `style_preview` | `->stylePreview()` |
 | `null` in the column for an empty document | `null_when_empty` | `->nullWhenEmpty()` |
 | Named styles (the list ships empty, so the dropdown is absent) | `styles` | `->styles([...])` |
@@ -4781,6 +4906,7 @@ the whole project; the method sets it for one field and wins.
 | Emoji | `emoji` | `->emoji(false)` |
 | Special characters | `characters` | `->characters(false)` |
 | Find and replace | `find` | `->find(false)` |
+| Invisible characters and block outlines | `invisibles` | `->invisibles(false)` |
 | Help dialog | `help` | `->help(false)` |
 | Fullscreen | `fullscreen` | `->fullscreen(false)` |
 | Text direction | `text_direction` | `->textDirection(false)` |
@@ -4888,8 +5014,12 @@ FilamentIcon::register([
 ### Translations
 
 Everything the package puts on screen is translatable: the tool labels, the slash menu and
-the words it is searched by, the callouts, the panels and their messages. English (`en`) and
-German (`de`) ship with the package; publish the language files to add or override locales:
+the words it is searched by, the callouts, the panels and their messages. Twelve languages ship
+with the package: English (`en`) and German (`de`), both read by a person, and Czech (`cs`),
+Danish (`da`), Dutch (`nl`), French (`fr`), Italian (`it`), Norwegian Bokmål (`nb`), Polish
+(`pl`), Brazilian Portuguese (`pt_BR`), Spanish (`es`) and Swedish (`sv`), which were translated
+with an AI model and have not been checked by a native speaker. Publish the language files to
+add or override locales:
 
 ```bash
 php artisan vendor:publish --tag="filament-advanced-rich-editor-translations"

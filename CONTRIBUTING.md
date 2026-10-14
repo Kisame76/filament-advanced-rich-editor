@@ -55,7 +55,9 @@ imported, which is exactly why the media browser moved out of one.
 
 ## Translations
 
-English is the reference and German ships beside it. A language is a folder: copy
+English is the reference. German has been read by a person; the other ten shipped languages
+were translated with an AI model and have not been checked by a native speaker, so a correction
+to any of them is as welcome as a new language. A language is a folder: copy
 `resources/lang/en/advanced-rich-editor.php` to `resources/lang/<locale>/` and translate the
 values. Nothing has to be registered, the package loads whatever is there.
 
@@ -72,6 +74,11 @@ Two kinds of line are not word-for-word translations:
 - `accessibility.weak_link_phrases` lists the link texts that tell a reader nothing in that
   language, the way "click here" does in English. It is a list of what is true of the language,
   so it needs entries but not as many as English has.
+
+Use the words and the register (formal or informal) Filament's own translations use for that
+locale - `vendor/filament/forms/resources/lang/<locale>/components.php` is the place to look - so
+the editor reads like the panel around it. The slash search ignores case and accents, so an
+alias needs no unaccented twin.
 
 The test is the only thing that will tell you. Laravel answers a line a language lacks from the
 fallback locale, so a half-finished translation shows English in the middle of it and nothing

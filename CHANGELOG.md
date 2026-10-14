@@ -6,6 +6,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- A page with many editors is drawn sooner. The font size field measured the size at the caret
+  on every editor transaction, and the sticky toolbar looked up its offset as its editor
+  started - both asking the browser for styles there and then, which on a page of editors made
+  it work out every other field's changes again each time. Both wait for the next frame now,
+  when the browser has the styles anyway. Twenty editors in a repeater went from 5.1 to 3.6
+  seconds to the first frame with all of them in it, ten from 1.8 to 1.4. Filament's own
+  editor start pays most of what is left, and the stock editor pays it too
+
 - The stylesheet is split in two, and a page without an editor loads a third less of it. What
   can be on screen before anybody acts - a stored document wherever it is drawn, and the field
   around the editor - stays in `filament-advanced-rich-editor.css` on every page of the panel,
@@ -60,7 +68,47 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 - The font size field is an Alpine component too, `font-size-picker.js`; the markup carries its
   bounds and nothing else
 
+- The headings, alignment, list and callout dropdowns no longer carry a copy of every option's
+  icon for their trigger. Filament writes each icon into the trigger's `x-effect` as a string,
+  so the trigger can show the one the caret is in - the same icons the menu right below it
+  already draws. The trigger works out which option is active and copies that option's icon
+  out of the menu now, which takes about 10 KB off every editor's markup. It looks and follows
+  the caret as before; an active option without an icon shows the trigger's resting icon
+  rather than an empty button
+
 ### Added
+
+- Definition lists: `<dl>`, `<dt>` and `<dd>`, for a glossary that would otherwise be a
+  bulleted list with bold words at the front. The fourth entry of the lists dropdown, and `/dl`
+  or `/glossary` in the slash menu. Enter after a term starts its description, Enter after a
+  description starts the next term, Enter in an empty part leaves the list; Tab and Shift+Tab
+  turn a term into a description and back, Shift+Tab takes a term out of the list, and neither
+  key ever moves the focus out of the editor from inside one. Switching it on over a run of paragraphs makes
+  every other one a term. The term is set in bold and the description indented, wherever the
+  content is drawn, and a stored list renders whether or not the field has the feature on.
+  Markdown writes it as `Term` / `: Description` and reads that back. Off by default, since most
+  fields never hold a glossary: `->descriptionList()` or `description_list` in the config switches
+  it on. A project that published the config gets the new key and the fourth entry in `lists` by
+  publishing it again
+
+- Ten more languages: Czech, Danish, Dutch, French, Italian, Norwegian Bokmål, Polish,
+  Brazilian Portuguese, Spanish and Swedish, beside English and German. They were translated
+  with an AI model and follow the words and the register Filament's own translations use for
+  each, and the parity test holds every one of them against English - but no native speaker has
+  read them yet, only English and German have been. Corrections are welcome as pull requests
+
+- The slash menu ignores accents as well as case: `/enum` finds `énumération`, `/uber` finds
+  `Überschrift`. `ø`, `æ`, `ł` and `ß` stay letters of their own
+
+- Two views of what a document holds and does not draw, in the tools menu. Show invisible
+  characters is Word's ¶ button: a `°` over every space that may not break, `¬` on a soft
+  hyphen, a hairline on a character with no width, `↵` before a line break and `¶` at the end
+  of every paragraph. Show blocks outlines every block and names the element it is written as -
+  `P`, `H2`, `LI`. Nothing of either is stored: the saved HTML, the clipboard and the undo
+  history are the same with them on as off, and both start off on every page load. On
+  everywhere; `->invisibles(false)` or `invisibles` in the config takes them away. A project
+  that published the config gets the two entries in `tools_menu` and the new `invisibles` key
+  by publishing it again. Run `php artisan filament:assets` after updating - the script is new
 
 - The media browser can replace a file. Replace, in the panel beside Copy link and Download,
   puts a new file in the selected one's place and keeps its id, so every document using it shows
