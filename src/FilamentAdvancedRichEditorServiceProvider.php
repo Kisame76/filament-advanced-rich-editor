@@ -38,13 +38,29 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
     {
         FilamentAsset::register(
             [
+                // What can be on screen before anybody acts: a stored document wherever it is
+                // drawn, and the field around the editor. On every page, because a document
+                // can turn up on any of them - a plain Filament text entry included.
                 Css::make('filament-advanced-rich-editor', __DIR__.'/../resources/dist/filament-advanced-rich-editor.css'),
+
+                // What only an action opens: the pickers, the menus, the media browser, find
+                // and replace, the report, the dialogs. Kept off the page Filament draws; the
+                // editor and the media browser ask for it with `x-load-css` as they start, so a
+                // dashboard or a login page never downloads it.
+                Css::make('filament-advanced-rich-editor-overlays', __DIR__.'/../resources/dist/filament-advanced-rich-editor-overlays.css')
+                    ->loadedOnRequest(),
 
                 // The media browser, as an Alpine component rather than a script: it is one
                 // `x-data` object and it is loaded the way Filament loads its own fields,
                 // by `x-load-src` on the element that uses it. Keeping it out of the Blade
                 // file is what lets it be tested at all.
                 AlpineComponent::make('media-picker', __DIR__.'/../resources/dist/js/media-picker.js'),
+
+                // The image toolbar's two panels, the colour pickers and the font size, for the
+                // same reason: their behaviour used to be a string inside every one's `x-data`.
+                AlpineComponent::make('image-panel', __DIR__.'/../resources/dist/js/image-panel.js'),
+                AlpineComponent::make('color-picker', __DIR__.'/../resources/dist/js/color-picker.js'),
+                AlpineComponent::make('font-size-picker', __DIR__.'/../resources/dist/js/font-size-picker.js'),
 
                 // The TipTap extensions are only pulled in once an editor actually renders a
                 // task list, so they stay out of the panel bundle for every other page.
@@ -102,6 +118,8 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // rather than by a configured few, because the keys it repairs are bound by
                 // Filament's own build on every field.
                 Js::make('advanced-rich-editor/alignment', __DIR__.'/../resources/dist/js/alignment.js')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/sticky-toolbar', __DIR__.'/../resources/dist/js/sticky-toolbar.js')
                     ->loadedOnRequest(),
 
                 // The language a passage is written in, and what a list is told about
@@ -218,6 +236,21 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // Changing the case of a selection. Nothing of it is stored, so it has no
                 // PHP half either.
                 Js::make('advanced-rich-editor/text-case', __DIR__.'/../resources/dist/js/text-case.js')
+                    ->loadedOnRequest(),
+
+                // The definition list, which brings its terms and descriptions along.
+                Js::make('advanced-rich-editor/description-list', __DIR__.'/../resources/dist/js/description-list.js')
+                    ->loadedOnRequest(),
+
+                // The invisible characters and the block outlines. Both are only ways of
+                // looking, so there is no PHP half.
+                Js::make('advanced-rich-editor/invisibles', __DIR__.'/../resources/dist/js/invisibles.js')
+                    ->loadedOnRequest(),
+
+                // Where a dropdown opens: every menu of the package hands itself to this when
+                // it opens, instead of carrying the measuring in its own `x-data`. The editor
+                // loads it as it starts, so the first menu opened does not wait for it.
+                Js::make('advanced-rich-editor/menu-position', __DIR__.'/../resources/dist/js/menu-position.js')
                     ->loadedOnRequest(),
             ],
             'kisame76/filament-advanced-rich-editor',

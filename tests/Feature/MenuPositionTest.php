@@ -52,10 +52,13 @@ it('turns every dropdown upwards when there is no room below it', function (): v
     expect($missing)->toBe([]);
 });
 
-it('measures against the nearest clipping ancestor, not only the window', function (): void {
-    // Raising `z-index` would not help: a menu reaching past the bottom of a scrolling
-    // ancestor is cut off by geometry, and paint order has no say in it.
-    expect(droppingMenus()['textColor'])
-        ->toContain('clippingRect')
-        ->toContain('overflowY');
+it('hands every menu to the module that measures', function (): void {
+    // What is measured - the nearest ancestor that clips, not only the window - is the
+    // module's, and is tested under `tests/js`. Here: that every menu calls it.
+    $missing = array_keys(array_filter(
+        droppingMenus(),
+        static fn (string $html): bool => ! str_contains($html, 'menu-position.js'),
+    ));
+
+    expect($missing)->toBe([]);
 });

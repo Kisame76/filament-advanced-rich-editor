@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
+use Closure;
 use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
@@ -38,6 +39,11 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
     protected ?int $limit = null;
 
     /**
+     * @var (Closure(): array{characters: int, words: int|null})|null
+     */
+    protected ?Closure $measure = null;
+
+    /**
      * Whether the field refuses input past the limit, which changes what full means:
      * the count cannot pass a limit that is held, so `over` would never be reached and
      * the line would stay on `almost` while the keyboard stopped answering.
@@ -65,6 +71,8 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
     public function getCharacters(): int
     {
+        $this->takeMeasurement();
+
         return $this->characters;
     }
 
@@ -77,7 +85,38 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
     public function getWords(): ?int
     {
+        $this->takeMeasurement();
+
         return $this->words;
+    }
+
+    /**
+     * The two numbers, measured when the line is drawn rather than when it is built.
+     *
+     * Filament builds what sits under a field every time it walks the form - to hydrate the
+     * state, to fill the gaps, to take a snapshot - and draws it once. Measuring is two passes
+     * through TipTap over the whole document, and only the drawing needs the answer: in a
+     * repeater of three editors the documents were measured fifteen times for three lines.
+     *
+     * @param  Closure(): array{characters: int, words: int|null}  $measure
+     */
+    public function measuredBy(Closure $measure): static
+    {
+        $this->measure = $measure;
+
+        return $this;
+    }
+
+    protected function takeMeasurement(): void
+    {
+        if ($this->measure === null) {
+            return;
+        }
+
+        $measure = $this->measure;
+        $this->measure = null;
+
+        ['characters' => $this->characters, 'words' => $this->words] = $measure();
     }
 
     /**
@@ -129,7 +168,7 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
 
         $xData = <<<JS
             {
-                characters: {$this->characters},
+                characters: {$this->getCharacters()},
                 words: {$this->js($words)},
                 limit: {$this->js($limit)},
                 thresholds: {$this->js($this->getStateThresholds())},
@@ -189,7 +228,7 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
                 <span aria-hidden="true">&middot;</span>
             <?php } ?>
 
-            <span x-text="phrase('characters', characters)"><?= e($this->phrase('characters', $this->characters)) ?></span>
+            <span x-text="phrase('characters', characters)"><?= e($this->phrase('characters', $this->getCharacters())) ?></span>
         </div>
 
         <?php return ob_get_clean();
@@ -267,11 +306,11 @@ class CharacterCount extends ViewComponent implements HasEmbeddedView
             return '';
         }
 
-        if ($this->characters >= $thresholds['danger']) {
+        if ($this->getCharacters() >= $thresholds['danger']) {
             return 'fi-arte-character-count-danger';
         }
 
-        return $this->characters >= $thresholds['warning']
+        return $this->getCharacters() >= $thresholds['warning']
             ? 'fi-arte-character-count-warning'
             : '';
     }

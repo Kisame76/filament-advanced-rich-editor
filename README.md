@@ -26,7 +26,7 @@ checked against the current Filament v5 release:
 | **Toolbar** | A fixed default row. Groups and dropdowns exist, but each one is assembled by hand | [Five named presets](docs/documentation.md#toolbar-presets) covering all four bars at once, [tokens](docs/documentation.md#rearranging-the-toolbar) that expand into whole groups, [dividers](docs/documentation.md#dividers), [two overflow menus](docs/documentation.md#the-tools-menu), a [pinned corner](docs/documentation.md#pinned-buttons), [start, centre, end or spread across the width](docs/documentation.md#toolbar-alignment), [sticky while scrolling](docs/documentation.md#sticky-toolbar), and [one config file](docs/documentation.md#configuration) for every field in the project |
 | **Your own toolbar entries** | `->tools()` registers a tool, and you place it by hand in every toolbar array that wants it | [A token of your own](docs/documentation.md#custom-tokens) that expands wherever it is named, and [replaces a built-in one](docs/documentation.md#custom-tools) when it takes its key — `headings` defined in your config *is* the headings dropdown |
 | **Headings** | All six exist; the default row offers `h2` and `h3`, and every level is a separate button | [One dropdown](docs/documentation.md#heading-levels) of the levels *this* field allows, with the plain paragraph in front of them as the way back out |
-| **Lists** | Bullets and numbers | [Task lists](docs/documentation.md#lists-and-task-lists) too, plus [markers, a starting number and counting backwards](docs/documentation.md#lists-markers-numbering-and-direction) |
+| **Lists** | Bullets and numbers | [Task lists](docs/documentation.md#lists-and-task-lists) and [definition lists](docs/documentation.md#definition-lists) too, plus [markers, a starting number and counting backwards](docs/documentation.md#lists-markers-numbering-and-direction) |
 | **Block layout** | Four separate alignment buttons, three of them in the default row | [One alignment dropdown](docs/documentation.md#alignment) showing the alignment the caret is in, [line spacing](docs/documentation.md#line-spacing) beside it, and [indenting](docs/documentation.md#indenting) that steps a paragraph in and nests a list item — same two buttons, same two keys, one line to switch on |
 | **Writing direction** | — | [`dir` on the block the caret sits in](docs/documentation.md#text-direction), so a Hebrew paragraph inside a German article reads the right way round — registered on every field, and named `ltr` / `rtl` when you want the buttons |
 | **Character look** | `textColor` with an optional free picker, `highlight`, `small`, `lead` | + [a background colour with a palette of its own](docs/documentation.md#colours), [font size](docs/documentation.md#font-size), [your design system's own named styles](docs/documentation.md#styles), [a typeface picker](docs/documentation.md#fonts) |
@@ -38,6 +38,7 @@ checked against the current Filament v5 release:
 | **Code** | A code block with no language | [A language picker on the block](docs/documentation.md#code-blocks), and syntax colours rendered in PHP |
 | **Callouts** | — | [Note, tip, warning and danger](docs/documentation.md#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
 | **Finding text** | The browser's `Ctrl+F` — which finds, and stops there | [Find and replace inside the field](docs/documentation.md#find-and-replace) — every hit marked at once, whole words and case optional, and replacing all of them is one undo |
+| **Seeing what is not drawn** | — | [The ¶ view](docs/documentation.md#invisible-characters-and-block-outlines): no-break spaces, soft hyphens, zero-width characters, line breaks and paragraph ends, and an outline round every block naming its element |
 | **Reaching a tool** | Aim at the bar | [Type `/`](docs/documentation.md#slash-menu) for the commands *this* field offers, or use [the grip in the margin](docs/documentation.md#drag-handle) to move a block and the plus to start one |
 | **Formatting what you selected** | `->floatingToolbars()` exists; the only bar Filament ships is the one over a table cell | [A bar over the selected text](docs/documentation.md#toolbar-over-a-selection) carrying the styles, the marks, the link and both colour pickers — in a heading and a list item as well as a paragraph, taking the same tokens the main toolbar does |
 | **Repeating formatting** | — | [The brush from Word](docs/documentation.md#format-brush) — pick the look up at one passage and put it down on another, for one stroke or until you switch it off. Character formatting, read off *this* field's schema rather than a list, and it declines the three marks that cannot be carried honestly: a code run takes every other mark off with it, a link is an address rather than a look, and a language is what a passage *is* |
@@ -169,6 +170,20 @@ AdvancedRichColumn::make('content')->excerptLength(80)->searchable();
 **[Read the full documentation](https://github.com/Kisame76/filament-advanced-rich-editor/blob/main/docs/documentation.md)** for every option: the toolbar tokens and dropdowns,
 the media browser, the slash menu, video embeds, code blocks, mentions, the table of contents,
 Markdown in and out, and the config file.
+
+## Languages
+
+Everything the package puts on screen ships in twelve languages, and the panel's locale picks
+one: English (`en`), German (`de`), Czech (`cs`), Danish (`da`), Dutch (`nl`), French (`fr`),
+Italian (`it`), Norwegian Bokmål (`nb`), Polish (`pl`), Brazilian Portuguese (`pt_BR`), Spanish
+(`es`) and Swedish (`sv`).
+
+**Only English and German have been read by a person.** The other ten were translated with an
+AI model and checked by a test for completeness - every line there, every placeholder kept -
+but not by a native speaker. They follow the words Filament's own translations use for each
+language, so the editor should read like the panel around it; a sentence may still be stiff or
+plain wrong. A correction is a small pull request, and so is a language that is missing - see
+[Translations](CONTRIBUTING.md#translations).
 
 ## What's next
 

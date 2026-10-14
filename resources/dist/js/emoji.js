@@ -108,14 +108,17 @@ export default () => {
                     ({ commands }) =>
                         commands.insertContent(emoji),
 
+                // `labels` is optional: the field writes them on the element the editor is
+                // mounted on, as `data-arte-emoji`, and the shell reads them there.
                 openEmojiPicker:
-                    (anchor, labels) =>
+                    (anchor, labels = null) =>
                     ({ editor }) => {
                         loadShell().then(() =>
                             shell?.open(editor, anchor, {
                                 name: 'emoji',
                                 classes: CLASSES,
                                 labels,
+                                settings: 'arteEmoji',
                                 recentKey: RECENT_KEY,
                                 width: WIDTH,
                                 load: loadEmojis,

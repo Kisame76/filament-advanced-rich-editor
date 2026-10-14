@@ -20,6 +20,7 @@ return [
             'bulletList' => 'ul, liste, aufzählung, punkte',
             'orderedList' => 'ol, nummeriert, nummerierung',
             'taskList' => 'todo, aufgaben, checkliste, haken',
+            'descriptionList' => 'dl, glossar, definitionen, begriffe, lexikon',
             'blockquote' => 'zitat',
             'calloutNote' => 'hinweis, info, infobox, kasten, callout',
             'calloutTip' => 'tipp, ratschlag, kasten, callout',
@@ -138,6 +139,8 @@ return [
         ],
 
         'task_list' => 'Aufgabenliste',
+
+        'description_list' => 'Definitionsliste',
         'callouts' => 'Infobox',
         'language' => 'Sprache',
         'language_none' => 'Sprache der Seite',
@@ -379,6 +382,12 @@ return [
             'description' => 'Das HTML in der Form, in der es gespeichert wird. Was der Editor nicht abbilden kann, fällt beim Übernehmen weg.',
             'apply' => 'Übernehmen',
         ],
+        'invisible_characters' => [
+            'label' => 'Formatierungszeichen anzeigen',
+        ],
+        'block_outlines' => [
+            'label' => 'Blöcke anzeigen',
+        ],
         'emoji' => [
             'label' => 'Emoji',
             'search' => 'Emoji suchen',
@@ -530,6 +539,7 @@ return [
             'orderedList' => 'eine nummerierte Liste',
             'table' => 'eine Tabelle',
             'taskList' => 'eine Aufgabenliste',
+            'descriptionList' => 'eine Definitionsliste',
         ],
     ],
 ];

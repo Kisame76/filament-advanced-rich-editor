@@ -155,8 +155,8 @@ it('points both media buttons at the dialog the field actually has', function ()
     $withoutPool = editor()->mediaLibrary(false);
 
     foreach (['mediaBrowser', 'image'] as $name) {
-        expect($withPool->getTools()[$name]->getJsHandler())->toContain("mountAction('mediaBrowser'")
-            ->and($withoutPool->getTools()[$name]->getJsHandler())->toContain("mountAction('attachFiles'");
+        expect($withPool->getTools()[$name]->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('mediaBrowser'/")
+            ->and($withoutPool->getTools()[$name]->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('attachFiles'/");
     }
 });
 

@@ -15,7 +15,7 @@ it('resolves the shipped toolbar into groups, dropdowns and dividers', function 
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'table', calloutsShape()],
+        ['dropdown:bulletList,orderedList,taskList,descriptionList', 'mediaBrowser', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -47,7 +47,7 @@ it('falls back to the same toolbar when the config was never merged', function (
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'table', calloutsShape()],
+        ['dropdown:bulletList,orderedList,taskList,descriptionList', 'mediaBrowser', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -72,7 +72,7 @@ it('configures the headings and lists dropdowns from the field', function (): vo
     $toolbar = editor()->getToolbarButtons();
 
     $headings = toolbarItem(editor(), 'dropdown:paragraph,h1,h2,h3,h4');
-    $lists = toolbarItem(editor(), 'dropdown:bulletList,orderedList,taskList');
+    $lists = toolbarItem(editor(), 'dropdown:bulletList,orderedList,taskList,descriptionList');
 
     expect($headings)->toBeInstanceOf(ToolbarDropdown::class)
         ->and($headings->getName())->toBe('Headings')
@@ -88,7 +88,7 @@ it('resolves dropdown options against the registered editor tools', function ():
     $toolbar = editor()->getToolbarButtons();
 
     expect(resolvedButtonNames(toolbarItem(editor(), 'dropdown:paragraph,h1,h2,h3,h4')))->toBe(['paragraph', 'h1', 'h2', 'h3', 'h4'])
-        ->and(resolvedButtonNames(toolbarItem(editor(), 'dropdown:bulletList,orderedList,taskList')))->toBe(['bulletList', 'orderedList', 'taskList']);
+        ->and(resolvedButtonNames(toolbarItem(editor(), 'dropdown:bulletList,orderedList,taskList,descriptionList')))->toBe(['bulletList', 'orderedList', 'taskList']);
 });
 
 it('registers an image tool alongside Filament\'s own tools', function (): void {

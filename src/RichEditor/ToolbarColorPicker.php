@@ -12,6 +12,7 @@ use Filament\Support\Components\Contracts\HasEmbeddedView;
 use Filament\Support\Components\ViewComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Concerns\HasIcon;
+use Filament\Support\Facades\FilamentAsset;
 
 use function Filament\Support\generate_icon_html;
 
@@ -139,98 +140,36 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
         return $this->mode === static::MODE_BACKGROUND;
     }
 
-    /**
-     * The mark the dropdown reads its current value from, and the two commands it writes
-     * with. Filament's text colour mark keeps the value in a `data-color` attribute; this
-     * package's background mark uses a plain `color` attribute.
-     *
-     * @return array{mark: string, attribute: string, set: string, unset: string}
-     */
-    protected function getMarkConfiguration(): array
-    {
-        return $this->isBackground()
-            ? ['mark' => 'textBackground', 'attribute' => 'color', 'set' => 'setTextBackground', 'unset' => 'unsetTextBackground']
-            : ['mark' => 'textColor', 'attribute' => 'data-color', 'set' => 'setTextColor', 'unset' => 'unsetTextColor'];
-    }
-
     public function toEmbeddedHtml(): string
     {
-        $configuration = $this->getMarkConfiguration();
         $colors = $this->getColors();
 
         $label = $this->getLabel();
         $clearLabel = __('filament-advanced-rich-editor::advanced-rich-editor.tools.color_clear');
         $customLabel = __('filament-advanced-rich-editor::advanced-rich-editor.tools.color_custom');
 
-        // The set command takes an object for the text colour and a bare string for the
-        // background, which is the only asymmetry the markup has to carry.
-        $setArgument = $this->isBackground() ? 'color' : '{ color: color }';
-
         // Byte for byte the chevron `ToolbarButtonGroup` draws, rather than an icon of our
         // own: it is the same piece of furniture, and Filament already styles that class
         // small, thin and grey, so the two triggers cannot drift apart.
         $chevron = '<svg class="fi-fo-rich-editor-dropdown-tool-chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-        $xData = <<<JS
-            {
-                {$this->menuPositioning()}
-                open: false,
-                current: null,
-                colors: {$this->encodeColors($colors)},
-                sync() {
-                    const value = \$getEditor()?.getAttributes({$this->js($configuration['mark'])})?.[{$this->js($configuration['attribute'])}] ?? null
-
-                    this.current = value ?? null
-                },
-                swatch(value) {
-                    const entry = this.colors.find((color) => color.value === value)
-
-                    return entry ? entry.color : value
-                },
-                apply(color) {
-                    const editor = \$getEditor()
-
-                    if (! editor) {
-                        return
-                    }
-
-                    let chain = editor.chain().focus()
-
-                    // Without a selection the whole run under the caret is meant, which is
-                    // what a reader expects when recolouring a word they clicked into.
-                    if (editor.state.selection.empty) {
-                        chain = chain.extendMarkRange({$this->js($configuration['mark'])})
-                    }
-
-                    chain.{$configuration['set']}({$setArgument}).run()
-
-                    this.current = color
-                    this.open = false
-                },
-                clear() {
-                    const editor = \$getEditor()
-
-                    if (! editor) {
-                        return
-                    }
-
-                    let chain = editor.chain().focus()
-
-                    if (editor.state.selection.empty) {
-                        chain = chain.extendMarkRange({$this->js($configuration['mark'])})
-                    }
-
-                    chain.{$configuration['unset']}().run()
-
-                    this.current = null
-                    this.open = false
-                },
-            }
-            JS;
+        // What the picker does - which mark, which command, which argument - is
+        // `resources/js/color-picker.js`, an Alpine component loaded with `x-load-src`. It used
+        // to be a string inside this `x-data`, four copies per editor; the markup now only says
+        // which picker it is and what its palette holds.
+        $config = implode(', ', [
+            'mode: '.$this->js($this->mode),
+            'colors: '.$this->encodeColors($colors),
+            'menuPosition: '.$this->js($this->menuPositionScript()),
+            'menuUpClass: '.$this->js(static::MENU_UP_CLASS),
+        ]);
 
         $attributes = $this->getExtraAttributeBag()
             ->merge([
-                'x-data' => $xData,
+                // An empty value is the default strategy, which loads straight away.
+                'x-load' => '',
+                'x-load-src' => FilamentAsset::getAlpineComponentSrc('color-picker', 'kisame76/filament-advanced-rich-editor'),
+                'x-data' => "arteColorPicker({ {$config} })",
                 'x-effect' => 'editorUpdatedAt && sync()',
                 'x-on:click.outside' => 'open = false',
                 'x-on:keydown.escape.prevent' => 'open = false',

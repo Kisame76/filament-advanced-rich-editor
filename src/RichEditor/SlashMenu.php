@@ -38,7 +38,7 @@ class SlashMenu
         // is already there.
         'style' => [
             'paragraph', 'headings',
-            'bulletList', 'orderedList', 'taskList',
+            'bulletList', 'orderedList', 'taskList', 'descriptionList',
             'blockquote', 'codeBlock', 'callouts',
         ],
         // What arrives. Uploading is not a group of its own, the way it is in some editors:

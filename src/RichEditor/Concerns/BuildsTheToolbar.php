@@ -98,27 +98,43 @@ trait BuildsTheToolbar
      * unfiltered set, which is what that question is about anyway - whether the bar names a
      * button that takes an upload, not which buttons survive this filter.
      *
+     * Worked out once per render, like the bar: the toolbar, the bubbles, the slash menu and
+     * every plugin ask for the tools, and each answer used to build all of them again and read
+     * the whole bar on the way.
+     *
      * @return array<string, RichEditorTool>
      */
     public function getTools(): array
     {
-        $tools = parent::getTools();
-
         if ($this->isReadingTools) {
-            return $tools;
+            return $this->getEveryTool();
         }
 
-        $this->isReadingTools = true;
+        return $this->rememberWithinRender('tools', function (): array {
+            $tools = $this->getEveryTool();
 
-        try {
-            if ($this->getMediaSource() === null) {
-                unset($tools['file'], $tools['fileReplace'], $tools['mediaReplace']);
+            $this->isReadingTools = true;
+
+            try {
+                if ($this->getMediaSource() === null) {
+                    unset($tools['file'], $tools['fileReplace'], $tools['mediaReplace']);
+                }
+            } finally {
+                $this->isReadingTools = false;
             }
-        } finally {
-            $this->isReadingTools = false;
-        }
 
-        return $tools;
+            return $tools;
+        });
+    }
+
+    /**
+     * Filament's tools, before the filter above.
+     *
+     * @return array<string, RichEditorTool>
+     */
+    protected function getEveryTool(): array
+    {
+        return $this->rememberWithinRender('everyTool', fn (): array => parent::getTools());
     }
 
     /**
@@ -132,6 +148,21 @@ trait BuildsTheToolbar
      * @return array{flow: array<int, array<int, mixed>>, pinned: array<int, array<int, mixed>>}
      */
     public function getSplitToolbarButtons(): array
+    {
+        // Not remembered while the tools are being read: the bar is then built from the
+        // unfiltered set, which answers the question asked there - whether it takes an
+        // upload - and would offer a File button where there is no library to open.
+        if ($this->isReadingTools) {
+            return $this->resolveSplitToolbarButtons();
+        }
+
+        return $this->rememberWithinRender('splitToolbar', fn (): array => $this->resolveSplitToolbarButtons());
+    }
+
+    /**
+     * @return array{flow: array<int, array<int, mixed>>, pinned: array<int, array<int, mixed>>}
+     */
+    protected function resolveSplitToolbarButtons(): array
     {
         // The parent implementation type-hints every toolbar item as
         // `string | ToolbarButtonGroup`, which would fail on dividers and any

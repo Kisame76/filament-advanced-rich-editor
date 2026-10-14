@@ -243,9 +243,13 @@ class ToolbarDropdown extends ToolbarButtonGroup
      * rather than the whole method being reimplemented, which would mean owning a copy of
      * upstream's markup and watching it rot.
      *
-     * Nothing is guessed: each anchor has to appear exactly once or that injection is
-     * skipped, and `ToolbarDropdownTest` fails loudly if upstream ever renames one - which
-     * is the trade for not owning the markup.
+     * Nothing is guessed: every anchor has to appear exactly once, or nothing is threaded in
+     * at all. Half an injection is worse than none - a menu bound to `menuUpClass` and
+     * `dropUp` with nothing declaring them is an Alpine error on every page - and that is
+     * exactly what Filament 5.10 would have got: its dropdown is a component of its own,
+     * `filamentDropdown()`, floated and flipped away from the edge by Filament, and its markup
+     * carries the menu's class and none of the rest. There the parent's markup is left as it
+     * is, because the job is already done. `ToolbarDropdownTest` holds both generations.
      */
     public function toEmbeddedHtml(): string
     {
@@ -277,15 +281,15 @@ class ToolbarDropdown extends ToolbarButtonGroup
 
     protected function openingAwayFromTheEdge(string $html): string
     {
-        foreach ($this->edgeAwareAttributes() as $anchor => $replacement) {
-            if (substr_count($html, $anchor) !== 1) {
-                continue;
-            }
+        $attributes = $this->edgeAwareAttributes();
 
-            $html = str_replace($anchor, $replacement, $html);
+        foreach (array_keys($attributes) as $anchor) {
+            if (substr_count($html, $anchor) !== 1) {
+                return $html;
+            }
         }
 
-        return $html;
+        return str_replace(array_keys($attributes), array_values($attributes), $html);
     }
 
     /**
@@ -305,19 +309,41 @@ class ToolbarDropdown extends ToolbarButtonGroup
     }
 
     /**
-     * The parent builds an effect that walks the options and hands the trigger the icon of
-     * whichever one is active - the behaviour the alignment dropdown is built on. A static
-     * trigger simply assigns its own icon; the `fi-active` binding is separate, so the
-     * button still lights up while one of its tools is on.
+     * The effect that hands the trigger the icon of whichever option is active - the
+     * behaviour the alignment dropdown is built on. A static trigger simply assigns its own
+     * icon; the `fi-active` binding is separate, so the button still lights up while one of
+     * its tools is on.
+     *
+     * The parent writes every option's icon into the effect as a string, a second copy of
+     * what the menu right below the trigger already draws: seven dropdowns and 17 KB per
+     * editor. This one only works out which option is active - the first one on, checked in
+     * the order the menu lists them, as the parent does - and copies that option's icon out
+     * of the menu. The default content stays as the one string, for nothing being active and
+     * for an option without an icon, which the parent would have shown as an empty trigger.
+     *
+     * The options are found by the class the parent gives them rather than by their `role`:
+     * a tool's own attributes win over the parent's, so a tool may carry a role of its own -
+     * Filament 5.10 gives a toggle `menuitemcheckbox` - and every option after it would then
+     * be counted one place early. And anywhere inside the dropdown rather than as its direct
+     * child, because 5.10 puts the menu inside a floating panel of its own.
      *
      * @param  array<RichEditorTool>  $resolvedButtons
      */
     protected function buildTriggerEffect(array $resolvedButtons, string $defaultContent): string
     {
-        if (! $this->hasStaticIcon()) {
-            return parent::buildTriggerEffect($resolvedButtons, $defaultContent);
+        if ($this->hasStaticIcon()) {
+            return 'triggerContent = '.Js::from($defaultContent)->toHtml();
         }
 
-        return 'triggerContent = '.Js::from($defaultContent)->toHtml();
+        $checks = [];
+
+        foreach (array_values($resolvedButtons) as $index => $button) {
+            $checks[] = 'if ('.$this->buildActiveExpression($button).") return {$index};";
+        }
+
+        $active = '(() => { '.implode(' ', $checks).' return -1; })()';
+
+        return 'triggerContent = $el.querySelectorAll(\'.fi-fo-rich-editor-dropdown-tool-menu > .fi-fo-rich-editor-dropdown-tool-option\')['.$active.']'
+            .'?.querySelector(\':scope > .fi-icon\')?.outerHTML ?? '.Js::from($defaultContent)->toHtml();
     }
 }

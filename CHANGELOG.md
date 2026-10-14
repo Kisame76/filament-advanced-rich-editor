@@ -2,6 +2,155 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.7.0 - 2026-10-14
+
+### Changed
+
+- A page with many editors is drawn sooner. The font size field measured the size at the caret
+  on every editor transaction, and the sticky toolbar looked up its offset as its editor
+  started - both asking the browser for styles there and then, which on a page of editors made
+  it work out every other field's changes again each time. Both wait for the next frame now,
+  when the browser has the styles anyway. Twenty editors in a repeater went from 5.1 to 3.6
+  seconds to the first frame with all of them in it, ten from 1.8 to 1.4. Filament's own
+  editor start pays most of what is left, and the stock editor pays it too
+
+- The stylesheet is split in two, and a page without an editor loads a third less of it. What
+  can be on screen before anybody acts - a stored document wherever it is drawn, and the field
+  around the editor - stays in `filament-advanced-rich-editor.css` on every page of the panel,
+  so a callout or a task list in a plain Filament text entry looks the way it did. What only an
+  action opens - the pickers, the menus, the media browser, find and replace, the reports and
+  the dialogs - moved to `filament-advanced-rich-editor-overlays.css`, which the editor loads
+  with `x-load-css` as it starts. Every page went from 128 KB (31 KB gzipped) to 80 KB (20 KB).
+  The second sheet is placed straight after the first, ahead of the panel's theme, so a theme
+  that overrides one of its rules keeps winning. Run `php artisan filament:assets` after
+  updating, as after every update - without it the new file is not published and the pickers
+  and menus are drawn without their rules
+
+- A page of editors renders faster. The toolbar is worked out once per render instead of once
+  per question about it - every tool, plugin and helper asks the bar something, and each
+  question resolved all of it again, sixty-seven times for one field - and the counter under
+  the field measures the document when it is drawn rather than each time Filament walks the
+  form, which in a repeater was five times per field. Five editors in a repeater went from
+  430 to 172 ms on the server. The measuring that turns a dropdown upwards is one script now,
+  `menu-position.js`, instead of a copy in every menu's `x-data`, which takes about fifty
+  kilobytes off every editor's markup. `CharacterCount::measuredBy()` is new: the closure it is
+  handed runs the first time the numbers are read
+
+- A page of editors starts without long tasks. Two things in the stylesheet made the browser
+  work out styles for far more than it shows. The rules that float and centre a picture inside
+  the editor were written with a bare `:has()`, which a browser tries against every element on
+  the page on every style recalculation; they name the resize container now, which matches the
+  same pictures and leaves the rest of the page alone. And the bars that float over a picture,
+  a table or a selection - up to eight per field, rendered up front and hidden with `visibility`
+  - were laid out on every recalculation while nobody could see them; until TipTap first shows
+  one, it is `display: none` now, and it is shown and placed exactly where it was before. Five
+  editors in a repeater went from 355 ms of long tasks to none, and the first frame with all of
+  them in it came about 160 ms sooner
+
+- The emoji and special character pickers write their strings and tab icons once per editor, as
+  `data-arte-emoji` and `data-arte-characters` on the element the editor is mounted on, instead
+  of inside their buttons' click handlers - which the slash menu copies, so every editor carried
+  them twice. That is about 20 KB less markup per editor. A button of a project's own can still
+  hand them to `openEmojiPicker()` and `openCharacterPicker()` as the second argument
+
+- The image toolbar's two panels - alt text and caption, width and height - are an Alpine
+  component now, `image-panel.js`, loaded with `x-load-src` the way the media browser is,
+  instead of five kilobytes of script inside every panel's `x-data`. They work exactly as
+  before; their behaviour is tested as JavaScript rather than as strings in PHP, and five
+  editors carry 49 KB less markup. Run `php artisan filament:assets` after updating
+
+- The text colour and background pickers are an Alpine component too, `color-picker.js`.
+  Which mark, which command and which argument each one writes - the three things the two
+  differ in, and the three ways to write nothing at all - are tested as JavaScript now rather
+  than found as strings in PHP. Four copies of the script per editor are gone; the palette
+  still travels with each picker
+
+- The font size field is an Alpine component too, `font-size-picker.js`; the markup carries its
+  bounds and nothing else
+
+- The headings, alignment, list and callout dropdowns no longer carry a copy of every option's
+  icon for their trigger. Filament writes each icon into the trigger's `x-effect` as a string,
+  so the trigger can show the one the caret is in - the same icons the menu right below it
+  already draws. The trigger works out which option is active and copies that option's icon
+  out of the menu now, which takes about 10 KB off every editor's markup. It looks and follows
+  the caret as before; an active option without an icon shows the trigger's resting icon
+  rather than an empty button
+
+### Added
+
+- Definition lists: `<dl>`, `<dt>` and `<dd>`, for a glossary that would otherwise be a
+  bulleted list with bold words at the front. The fourth entry of the lists dropdown, and `/dl`
+  or `/glossary` in the slash menu. Enter after a term starts its description, Enter after a
+  description starts the next term, Enter in an empty part leaves the list; Tab and Shift+Tab
+  turn a term into a description and back, Shift+Tab takes a term out of the list, and neither
+  key ever moves the focus out of the editor from inside one. Switching it on over a run of paragraphs makes
+  every other one a term. The term is set in bold and the description indented, wherever the
+  content is drawn, and a stored list renders whether or not the field has the feature on.
+  Markdown writes it as `Term` / `: Description` and reads that back. Off by default, since most
+  fields never hold a glossary: `->descriptionList()` or `description_list` in the config switches
+  it on. A project that published the config gets the new key and the fourth entry in `lists` by
+  publishing it again
+
+- Ten more languages: Czech, Danish, Dutch, French, Italian, Norwegian Bokmål, Polish,
+  Brazilian Portuguese, Spanish and Swedish, beside English and German. They were translated
+  with an AI model and follow the words and the register Filament's own translations use for
+  each, and the parity test holds every one of them against English - but no native speaker has
+  read them yet, only English and German have been. Corrections are welcome as pull requests
+
+- The slash menu ignores accents as well as case: `/enum` finds `énumération`, `/uber` finds
+  `Überschrift`. `ø`, `æ`, `ł` and `ß` stay letters of their own
+
+- Two views of what a document holds and does not draw, in the tools menu. Show invisible
+  characters is Word's ¶ button: a `°` over every space that may not break, `¬` on a soft
+  hyphen, a hairline on a character with no width, `↵` before a line break and `¶` at the end
+  of every paragraph. Show blocks outlines every block and names the element it is written as -
+  `P`, `H2`, `LI`. Nothing of either is stored: the saved HTML, the clipboard and the undo
+  history are the same with them on as off, and both start off on every page load. On
+  everywhere; `->invisibles(false)` or `invisibles` in the config takes them away. A project
+  that published the config gets the two entries in `tools_menu` and the new `invisibles` key
+  by publishing it again. Run `php artisan filament:assets` after updating - the script is new
+
+### Fixed
+
+- **On Filament 5.10 the toolbar's own pickers stood in the bar instead of opening over the
+  text, and every dropdown logged an Alpine error.** Filament 5.10 rebuilt its toolbar dropdowns
+  as a component that floats and flips a panel of its own, and moved the menu's box and position
+  onto that panel. The colour pickers, the font size, the styles and the image and list panels
+  have no such panel, so their menus fell into the toolbar's flow and pushed it apart; this
+  package now draws their box and position itself, as Filament did before. And the attributes
+  that turn a menu upwards were threaded into Filament's markup by anchors of which 5.10 keeps
+  only one, so its menus got a binding to state nothing declared. The threading is all or
+  nothing now and leaves 5.10's dropdowns alone - Filament turns them over itself. The trigger
+  icons, which follow the caret, find their menu inside 5.10's panel too. Filament 5.7 to 5.9
+  behave as before
+
+- **`Default` in the font size menu left the text marked with the theme's own size.** The field
+  applies what was typed into it when it is left, and writing from the menu focuses the
+  editor, which leaves it - so the number on show went straight back onto the text, as a mark
+  that no longer followed the theme. Clicking into the field and out again without typing did
+  the same. Leaving applies only what was typed now, and Escape throws that away; an editor
+  update while somebody types no longer replaces the number they are typing
+
+- **In a narrow column the toolbar hung over both edges of the field**, cutting the undo and
+  the bold button in half on the left where nobody could reach them. Filament never lets a
+  group of buttons wrap, so the narrowest a bar could get was its widest group, and a centred
+  bar split the overflow between both sides. A group in the toolbar may wrap now - one that
+  fits its row is drawn exactly as before - centring and end alignment fall back to the start
+  edge when a row does not fit, and a bar narrower than 24rem puts the pinned buttons on a
+  row of their own instead of squeezing the rest into what they leave. Wider bars are laid
+  out exactly as they were
+
+- **A sticky toolbar kept its round top corners while it was pinned under the page header**,
+  cutting two notches out of the bar with the text sliding past behind them. The bar is
+  square while it is stuck now, Filament's own sticky toolbar too; a small script,
+  `sticky-toolbar.js`, watches for it and sets `fi-arte-stuck`. Run
+  `php artisan filament:assets` after updating, as after every update
+
+- **Picking the emoji or the special character picker in the slash menu did nothing.** The menu
+  runs the tool's own handler through Alpine and stands the editor in for the clicked element,
+  but it handed `$event` over in a shape Alpine does not read, so every handler that anchors to
+  `$event.currentTarget` stopped with "$event is not defined" in the console
+
 ## 1.6.0 - 2026-09-29
 
 ### Added

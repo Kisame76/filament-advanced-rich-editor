@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarColorPicker;
@@ -62,16 +63,22 @@ it('registers the background mark only while the picker is there', function (): 
         ->and($registered(editor()->textBackground(false)))->toBe([]);
 });
 
-it('writes each colour through its own command', function (): void {
+it('hands each picker to the component that writes its colour', function (): void {
+    // Which mark, which command and which argument - the three things the two pickers
+    // differ in - are `resources/js/color-picker.js`, and are run under `tests/js`. The
+    // markup only says which picker it is and what its palette holds.
+    $src = FilamentAsset::getAlpineComponentSrc('color-picker', 'kisame76/filament-advanced-rich-editor');
+
     $text = ToolbarColorPicker::text([['value' => 'red', 'label' => 'Red', 'color' => '#f00']])->toEmbeddedHtml();
     $background = ToolbarColorPicker::background([['value' => '#fef08a', 'label' => 'Yellow']])->toEmbeddedHtml();
 
-    expect($text)->toContain('setTextColor({ color: color })')
-        ->toContain('unsetTextColor()')
-        // Filament keeps the text colour in a data attribute, not in a plain one.
-        ->toContain('data-color')
-        ->and($background)->toContain('setTextBackground(color)')
-        ->toContain('unsetTextBackground()');
+    expect($text)->toContain('x-load=""')
+        ->toContain('x-load-src="'.e($src).'"')
+        ->toContain("x-data=\"arteColorPicker({ mode: 'text'")
+        ->not->toContain('setTextColor(')
+        ->and($background)->toContain("x-data=\"arteColorPicker({ mode: 'background'")
+        ->not->toContain('setTextBackground(')
+        ->and($src)->toContain('/components/color-picker.js');
 });
 
 it('offers a way to clear the colour and to pick a free one', function (): void {

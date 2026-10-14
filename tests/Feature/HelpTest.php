@@ -74,7 +74,9 @@ it('draws the list as pairs, and ships the styles that lay them out', function (
         ->and($html)->toContain('fi-arte-shortcut-keys')
         ->and($html)->toContain('<kbd');
 
-    $css = file_get_contents(__DIR__.'/../../resources/dist/filament-advanced-rich-editor.css');
+    // In the overlay sheet, which the editor loads as it starts: the list is only ever drawn
+    // inside the help dialog.
+    $css = file_get_contents(__DIR__.'/../../resources/dist/filament-advanced-rich-editor-overlays.css');
 
     // Without these the browser draws a bare `dl`: the names and the keys stacked, which
     // is exactly how this once shipped.

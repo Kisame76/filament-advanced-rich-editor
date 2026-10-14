@@ -72,6 +72,17 @@ function styleSheetDefines(string $css, string $class): bool
 }
 
 /**
+ * Both stylesheets as one: the page sheet and the overlay sheet together are what the
+ * package ships, and a class is styled when either of them has the rule.
+ */
+function shippedStylesheets(): string
+{
+    $sheets = glob(dirname(__DIR__, 2).'/resources/dist/*.css') ?: [];
+
+    return implode("\n", array_map(static fn (string $sheet): string => (string) file_get_contents($sheet), $sheets));
+}
+
+/**
  * @return array<int, string>
  */
 function emittedArteClasses(): array
@@ -113,7 +124,7 @@ function emittedArteClasses(): array
 }
 
 it('styles every class it writes into the markup', function (): void {
-    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/dist/filament-advanced-rich-editor.css');
+    $css = shippedStylesheets();
 
     $missing = array_values(array_filter(
         emittedArteClasses(),
@@ -130,8 +141,22 @@ it('keeps the published assets identical to the source ones', function (): void 
     // asserted rather than assumed.
     $root = dirname(__DIR__, 2);
 
-    expect(file_get_contents($root.'/resources/dist/filament-advanced-rich-editor.css'))
-        ->toBe(file_get_contents($root.'/resources/css/filament-advanced-rich-editor.css'));
+    $stylesheets = glob($root.'/resources/css/*.css') ?: [];
+
+    expect(array_map('basename', $stylesheets))->toBe([
+        'filament-advanced-rich-editor-overlays.css',
+        'filament-advanced-rich-editor.css',
+    ]);
+
+    foreach ($stylesheets as $stylesheet) {
+        $published = $root.'/resources/dist/'.basename($stylesheet);
+
+        expect($published)->toBeReadableFile()
+            ->and(file_get_contents($published))->toBe(file_get_contents($stylesheet), basename($stylesheet).' differs from its published copy');
+    }
+
+    expect(array_map('basename', glob($root.'/resources/dist/*.css') ?: []))
+        ->toBe(array_map('basename', $stylesheets));
 
     $sources = glob($root.'/resources/js/*.js') ?: [];
 
@@ -156,7 +181,7 @@ it('keeps the published assets identical to the source ones', function (): void 
 it('lists no hook that has since been given rules of its own', function (): void {
     // A hook that grew a rule is no longer a hook, and leaving it on the list would hide
     // the next thing that goes missing behind it.
-    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/dist/filament-advanced-rich-editor.css');
+    $css = shippedStylesheets();
 
     $stale = array_values(array_filter(
         STYLE_HOOKS,

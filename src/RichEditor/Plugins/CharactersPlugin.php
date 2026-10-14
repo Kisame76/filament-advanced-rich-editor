@@ -11,7 +11,6 @@ use Filament\Support\Facades\FilamentAsset;
 
 use function Filament\Support\generate_icon_html;
 
-use Illuminate\Support\Js;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Tiptap\Core\Extension;
 
@@ -110,12 +109,12 @@ class CharactersPlugin implements RichContentPlugin
      */
     public function getEditorTools(): array
     {
-        $labels = Js::from(static::getLabels())->toHtml();
-
         return [
             RichEditorTool::make('characters')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.characters.label'))
-                ->jsHandler("\$getEditor()?.chain().focus().openCharacterPicker(\$event.currentTarget, {$labels}).run()")
+                // Nothing but the button's own element: the strings are on the element the editor
+                // is mounted on, written once by the field rather than once per copy of this handler.
+                ->jsHandler('$getEditor()?.chain().focus().openCharacterPicker($event.currentTarget).run()')
                 ->icon(Icons::get('characters')),
         ];
     }

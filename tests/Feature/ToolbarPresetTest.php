@@ -24,7 +24,7 @@ it('draws the bar the preset names', function (): void {
     expect(toolbarShape(editor()->preset('comment')))->toBe([
         ['bold', 'italic'],
         ['divider'],
-        ['link', 'dropdown:bulletList,orderedList,taskList', 'blockquote'],
+        ['link', 'dropdown:bulletList,orderedList,taskList,descriptionList', 'blockquote'],
         ['divider'],
         ['emoji'],
     ]);
@@ -80,7 +80,7 @@ it('beats the configured bar', function (): void {
     expect(toolbarShape(editor()->preset('minimal')))->toBe([
         ['bold', 'italic', 'underline'],
         ['divider'],
-        ['link', 'dropdown:bulletList,orderedList,taskList'],
+        ['link', 'dropdown:bulletList,orderedList,taskList,descriptionList'],
     ])->and(editor()->preset('minimal')->getMoreTools())->toBe([]);
 });
 

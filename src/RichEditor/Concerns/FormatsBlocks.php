@@ -53,6 +53,8 @@ trait FormatsBlocks
 
     protected bool|Closure|null $hasTaskList = null;
 
+    protected bool|Closure|null $hasDescriptionList = null;
+
     protected bool|Closure|null $hasCallouts = null;
 
     protected bool|Closure|null $hasListProperties = null;
@@ -260,10 +262,10 @@ trait FormatsBlocks
      */
     public function getListTypes(): array
     {
-        // `taskList` is left in place even when the task list is disabled:
+        // `taskList` and `descriptionList` are left in place even when they are disabled:
         // `ToolbarButtonGroup::resolve()` silently drops button names without a
         // matching tool, so the dropdown simply renders one option less.
-        return array_values($this->evaluate($this->listTypes) ?? config('filament-advanced-rich-editor.lists') ?? ['bulletList', 'orderedList', 'taskList']);
+        return array_values($this->evaluate($this->listTypes) ?? config('filament-advanced-rich-editor.lists') ?? ['bulletList', 'orderedList', 'taskList', 'descriptionList']);
     }
 
     /**
@@ -418,6 +420,27 @@ trait FormatsBlocks
     public function hasTaskList(): bool
     {
         return (bool) ($this->evaluate($this->hasTaskList) ?? config('filament-advanced-rich-editor.task_list') ?? true);
+    }
+
+    /**
+     * The definition list - terms and their descriptions, for a glossary.
+     *
+     * Off unless asked for: most fields never hold a glossary, and a fourth list type in
+     * every lists dropdown - and one more script on every page with an editor - is a cost
+     * nobody should pay for a feature they do not use. Off takes the button and the nodes
+     * away from the field; a list already stored still renders, because the renderer
+     * declares its nodes whatever the field says.
+     */
+    public function descriptionList(bool|Closure $condition = true): static
+    {
+        $this->hasDescriptionList = $condition;
+
+        return $this;
+    }
+
+    public function hasDescriptionList(): bool
+    {
+        return (bool) ($this->evaluate($this->hasDescriptionList) ?? config('filament-advanced-rich-editor.description_list') ?? false);
     }
 
     public function callouts(bool|Closure $condition = true): static

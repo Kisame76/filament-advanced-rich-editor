@@ -11,10 +11,10 @@ it('reads the list types from the config file', function (): void {
         ->and(toolbarDropdownName(editor(), 'bulletList'))->toBe('dropdown:orderedList,bulletList');
 });
 
-it('falls back to all three list types when the config was never merged', function (): void {
+it('falls back to all four list types when the config was never merged', function (): void {
     config()->set('filament-advanced-rich-editor.lists', null);
 
-    expect(editor()->getListTypes())->toBe(['bulletList', 'orderedList', 'taskList']);
+    expect(editor()->getListTypes())->toBe(['bulletList', 'orderedList', 'taskList', 'descriptionList']);
 });
 
 it('lets a field choose its own list types', function (): void {
@@ -66,6 +66,6 @@ it('drops the task list option from the dropdown instead of rendering a dead ent
     $editor = editor()->taskList(false);
     $lists = toolbarDropdown($editor, 'bulletList');
 
-    expect($lists->getButtons())->toBe(['bulletList', 'orderedList', 'taskList'])
+    expect($lists->getButtons())->toBe(['bulletList', 'orderedList', 'taskList', 'descriptionList'])
         ->and(resolvedButtonNames($lists))->toBe(['bulletList', 'orderedList']);
 });

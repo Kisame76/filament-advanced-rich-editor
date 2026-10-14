@@ -175,9 +175,10 @@ return [
     | Lists
     |--------------------------------------------------------------------------
     | Which list types the 'lists' dropdown offers, in order: 'bulletList',
-    | 'orderedList', 'taskList'. Per field: `->listTypes()`.
+    | 'orderedList', 'taskList', 'descriptionList'. One that is switched off is
+    | left out of the dropdown on its own. Per field: `->listTypes()`.
     */
-    'lists' => ['bulletList', 'orderedList', 'taskList'],
+    'lists' => ['bulletList', 'orderedList', 'taskList', 'descriptionList'],
 
     /*
     |--------------------------------------------------------------------------
@@ -205,7 +206,8 @@ return [
     | It is in the shipped toolbar, as ['tools', 'fullscreen']. Shipped that way the
     | corner never changes shape: switching the accessibility check or the source view on
     | puts them in the menu rather than adding a fourth and fifth icon beside it. The
-    | statistics and the preview live there for the same reason.
+    | statistics, the preview and the two views of what a page does not draw live there
+    | for the same reason.
     |
     | The cost is that finding is one click deeper than it was on a field that switched
     | nothing on - Ctrl+F is unaffected, and the help dialog lists it. A project that
@@ -215,7 +217,7 @@ return [
     |
     | An empty menu is dropped rather than drawn. Per field: `->toolsMenu()`.
     */
-    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'sourceCode', 'help'],
+    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help'],
 
     /*
     |--------------------------------------------------------------------------
@@ -509,7 +511,7 @@ return [
             // 'style' changes what the block already there is; 'insert' adds something new.
             'style' => [
                 'paragraph', 'headings',
-                'bulletList', 'orderedList', 'taskList',
+                'bulletList', 'orderedList', 'taskList', 'descriptionList',
                 'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
@@ -652,6 +654,23 @@ return [
     | takes. Per field: `->sourceCode()`.
     */
     'source_code' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Invisible characters and block outlines
+    |--------------------------------------------------------------------------
+    | Two buttons in the tools menu that show what a document holds and does not draw.
+    | 'invisibleCharacters' is Word's ¶ button: a ° on every space that may not break, ¬
+    | on the soft hyphen, a hairline on the characters with no width, ↵ before a line
+    | break and ¶ at the end of every paragraph. 'blockOutlines' draws a dashed outline
+    | round every block and names the element it is written as - P, H2, LI.
+    |
+    | On, because looking changes nothing: both views are drawn by the browser and never
+    | stored, and switching them off later changes nothing that was written with them.
+    | Neither remembers being on - each starts off on every page load.
+    | Per field: `->invisibles()`.
+    */
+    'invisibles' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -954,6 +973,26 @@ return [
     | is an array with `enabled` in front of them.
     */
     'task_list' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Definition list
+    |--------------------------------------------------------------------------
+    | `<dl>`, `<dt>` and `<dd>`: terms and their descriptions, for a glossary that
+    | would otherwise end up as a bulleted list with bold words at the front. The
+    | fourth entry in the 'lists' dropdown and in the slash menu. Enter after a term
+    | starts its description, Enter after a description starts the next term, Enter
+    | in an empty part leaves the list; Tab and Shift+Tab turn a term into a
+    | description and back.
+    |
+    | Off, because most fields never hold a glossary: a fourth list type in every
+    | lists dropdown, and one more script on every page with an editor, is a cost
+    | for a feature most projects do not use. 'descriptionList' stays in 'lists'
+    | and in the slash menu and resolves to nothing while this is off, so turning
+    | it on is all it takes. A list already stored renders either way.
+    | Per field: `->descriptionList()`.
+    */
+    'description_list' => false,
 
     /*
     |--------------------------------------------------------------------------
@@ -1515,6 +1554,7 @@ return [
         'indent' => 'arte-indent-increase',
         'outdent' => 'arte-indent-decrease',
         'task_list' => 'arte-task-list',
+        'description_list' => 'arte-description-list',
         'blockquote' => 'arte-message-square-quote',
 
         // The callouts: the circled i for the whole family, then what each kind is.
@@ -1540,6 +1580,8 @@ return [
         'more' => 'heroicon-o-ellipsis-horizontal',
         'tools_menu' => 'heroicon-o-wrench-screwdriver',
         'source_code' => 'heroicon-o-code-bracket',
+        'invisible_characters' => 'arte-pilcrow',
+        'block_outlines' => 'arte-square-dashed',
         'statistics' => 'heroicon-o-chart-bar',
         'preview' => 'heroicon-o-eye',
         'find' => 'heroicon-o-magnifying-glass',

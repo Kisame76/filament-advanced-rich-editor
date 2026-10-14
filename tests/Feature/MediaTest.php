@@ -32,8 +32,8 @@ it('offers both buttons and the media browser behind them', function (): void {
         ->and($tools['audio']->getIcon())->toBe('heroicon-o-musical-note')
         // The browser rather than a dialog of their own: a second door for video was the
         // whole reason this was rebuilt.
-        ->and($tools['video']->getJsHandler())->toContain("mountAction('mediaBrowser'")
-        ->and($tools['audio']->getJsHandler())->toContain("mountAction('mediaBrowser'")
+        ->and($tools['video']->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('mediaBrowser'/")
+        ->and($tools['audio']->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('mediaBrowser'/")
         ->and($tools['video']->getActiveKey())->toBe('media');
 });
 

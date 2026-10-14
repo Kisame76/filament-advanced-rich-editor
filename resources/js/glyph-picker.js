@@ -410,6 +410,29 @@ function build(editor, groups, options) {
 }
 
 /**
+ * The strings and icons a picker draws.
+ *
+ * The field writes them once, as JSON on the element the editor is mounted on -
+ * `data-arte-emoji`, `data-arte-characters` - and `settings` names the attribute by its
+ * dataset key. They used to travel inside the button's click handler instead, and the slash
+ * menu copies every handler, so each editor carried them twice. Strings handed over with the
+ * call still win, for a project's own button that passes them.
+ */
+export function labelsFor(editor, { labels = null, settings }) {
+    if (labels) {
+        return labels
+    }
+
+    try {
+        return JSON.parse(editor?.options?.element?.dataset?.[settings] ?? 'null')
+    } catch (error) {
+        console.error(`The advanced rich editor could not read its picker strings (${settings}):`, error)
+
+        return null
+    }
+}
+
+/**
  * Opens the picker, or closes the one that is open.
  *
  * `load` is awaited rather than required up front: the lists are tens of kilobytes and have
@@ -427,7 +450,9 @@ export async function open(editor, anchor, options) {
         return
     }
 
-    if (!anchor) {
+    const labels = labelsFor(editor, options)
+
+    if (!anchor || !labels) {
         return
     }
 
@@ -445,7 +470,7 @@ export async function open(editor, anchor, options) {
     preferredWidth = options.width
     openPicker = options.name
 
-    build(editor, groups, options)
+    build(editor, groups, { ...options, labels })
 }
 
 /**

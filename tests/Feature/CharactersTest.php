@@ -6,12 +6,14 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharactersPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\EditorFormComponent;
+use Livewire\Livewire;
 
 it('registers the tool and the extension behind it', function (): void {
     $tools = editor()->getTools();
 
     expect($tools)->toHaveKey('characters')
-        ->and($tools['characters']->getJsHandler())->toStartWith('$getEditor()?.chain().focus().openCharacterPicker($event.currentTarget, ')
+        ->and($tools['characters']->getJsHandler())->toBe('$getEditor()?.chain().focus().openCharacterPicker($event.currentTarget).run()')
         ->and($tools['characters']->getIcon())->toBe(Icons::get('characters'))
         ->and(pluginNames(editor()))->toContain(CharactersPlugin::class);
 });
@@ -31,6 +33,21 @@ it('hands the picker its strings and its icons, because it is built in the brows
     expect($labels)->toHaveKeys(['label', 'search', 'empty', 'emptyRecent', 'close', 'closeIcon', 'tabs'])
         ->and($labels['label'])->toBe('Special character')
         ->and($labels['closeIcon'])->toContain('<svg');
+});
+
+it('writes them once, on the element the editor is mounted on', function (): void {
+    // Not inside the button's click handler, where they used to be: the slash menu copies
+    // every handler, so each editor carried them twice.
+    $html = Livewire::test(EditorFormComponent::class)->html();
+
+    $document = new DOMDocument;
+    $document->loadHTML('<?xml encoding="utf-8"?>'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
+    $element = (new DOMXPath($document))->query('//*[@data-arte-characters]')->item(0);
+
+    expect($element)->toBeInstanceOf(DOMElement::class)
+        ->and($element->getAttribute('x-ref'))->toBe('editor')
+        ->and(json_decode($element->getAttribute('data-arte-characters'), true))->toBe(CharactersPlugin::getLabels())
+        ->and(substr_count($html, 'Characters you pick appear here.'))->toBe(1);
 });
 
 it('opens on the tab holding what was picked last, then the groups', function (): void {
@@ -82,7 +99,8 @@ it('drops the tool and the extension when the field switched them off', function
         ->and(array_keys($editor->getTools()))->not->toContain('characters')
         // And the name disappears from the overflow menu on its own, because an
         // unregistered name is dropped where a dropdown resolves it.
-        ->and(resolvedButtonNames(toolbarDropdown($editor, 'subscript')))->not->toContain('characters');
+        ->and(resolvedButtonNames(toolbarDropdown($editor, 'subscript')))->not->toContain('characters')
+        ->and($editor->getCharacterSettingsForJs())->toBeNull();
 });
 
 it('reads its default from the config file', function (): void {

@@ -500,3 +500,95 @@ function mentionElements(string $html): array
 
     return $mentions;
 }
+
+/**
+ * The selectors of every style rule in a stylesheet, one entry per selector of a list.
+ *
+ * At-rules are walked into rather than skipped: a rule inside `@media` is still a rule,
+ * and the sheet's narrow-screen fallbacks are exactly the ones nobody looks at.
+ *
+ * @return array<int, string>
+ */
+function selectorsOf(string $css): array
+{
+    $css = (string) preg_replace('~/\*.*?\*/~s', '', $css);
+
+    $selectors = [];
+    $prelude = '';
+    $length = strlen($css);
+
+    for ($i = 0; $i < $length; $i++) {
+        $character = $css[$i];
+
+        if ($character === '}' || $character === ';') {
+            $prelude = '';
+
+            continue;
+        }
+
+        if ($character !== '{') {
+            $prelude .= $character;
+
+            continue;
+        }
+
+        $prelude = trim($prelude);
+
+        if (str_starts_with($prelude, '@')) {
+            // The block holds rules; carry on inside it.
+            $prelude = '';
+
+            continue;
+        }
+
+        foreach (splitAtTopLevel($prelude, ',') as $selector) {
+            $selectors[] = trim($selector);
+        }
+
+        // Skip the declarations, nested braces and all.
+        for ($depth = 1, $i++; $i < $length && $depth > 0; $i++) {
+            $depth += match ($css[$i]) {
+                '{' => 1,
+                '}' => -1,
+                default => 0,
+            };
+        }
+
+        $i--;
+        $prelude = '';
+    }
+
+    return $selectors;
+}
+
+/**
+ * Splits a selector at a character, but never inside parentheses or brackets - the comma in
+ * `:where(.dark, .dark *)` is not the end of a selector.
+ *
+ * @return array<int, string>
+ */
+function splitAtTopLevel(string $selector, string $separator): array
+{
+    $parts = [];
+    $current = '';
+    $depth = 0;
+
+    foreach (str_split($selector) as $character) {
+        $depth += match ($character) {
+            '(', '[' => 1,
+            ')', ']' => -1,
+            default => 0,
+        };
+
+        if ($depth === 0 && $character === $separator) {
+            $parts[] = $current;
+            $current = '';
+
+            continue;
+        }
+
+        $current .= $character;
+    }
+
+    return [...$parts, $current];
+}

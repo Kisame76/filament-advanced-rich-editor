@@ -68,7 +68,7 @@ it('removes a disabled button but keeps the dividers and dropdowns around it', f
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'table', calloutsShape()],
+        ['dropdown:bulletList,orderedList,taskList,descriptionList', 'mediaBrowser', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -85,7 +85,7 @@ it('drops a dropdown when its token is disabled', function (): void {
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', 'mediaBrowser', 'table', calloutsShape()],
+        ['dropdown:bulletList,orderedList,taskList,descriptionList', 'mediaBrowser', 'table', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -98,7 +98,7 @@ it('does not reach inside a dropdown token', function (): void {
     expect(toolbarDropdownName(editor()->disableToolbarButtons(['h1', 'taskList']), 'h1'))
         ->toBe('dropdown:paragraph,h1,h2,h3,h4')
         ->and(toolbarDropdownName(editor()->disableToolbarButtons(['h1', 'taskList']), 'taskList'))
-        ->toBe('dropdown:bulletList,orderedList,taskList');
+        ->toBe('dropdown:bulletList,orderedList,taskList,descriptionList');
 });
 
 it('collapses the dividers that an emptied group left behind', function (): void {
@@ -118,7 +118,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
         ['divider'],
         ['dropdown:alignStart,alignCenter,alignEnd,alignJustify', 'dropdown:lineHeight1,lineHeight1_15,lineHeight1_5,lineHeight2'],
         ['divider'],
-        ['dropdown:bulletList,orderedList,taskList', calloutsShape()],
+        ['dropdown:bulletList,orderedList,taskList,descriptionList', calloutsShape()],
         ['divider'],
         [moreShape()],
         [toolsShape(), 'fullscreen'],
@@ -127,7 +127,7 @@ it('collapses the dividers that an emptied group left behind', function (): void
 
 it('drops a trailing divider', function (): void {
     // Nothing left after the last divider, so the divider goes too.
-    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->statistics(false)->disableToolbarButtons([
+    $editor = editor()->fullscreen(false)->moreTools([])->sourceCode(false)->help(false)->find(false)->statistics(false)->invisibles(false)->disableToolbarButtons([
         'lists', 'callouts', 'link', 'mediaBrowser', 'table',
     ]);
 

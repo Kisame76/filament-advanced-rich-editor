@@ -42,6 +42,12 @@ composer build-assets
 fails when a `fi-arte-` class is written into markup that the stylesheet has no rule for —
 a component that ships without its styles looks broken and no other test can see it.
 
+The stylesheet is two files. `filament-advanced-rich-editor.css` loads on every page of the
+panel; `filament-advanced-rich-editor-overlays.css` loads with the editor, and holds only what
+an action opens — a picker, a menu, a dialog. A rule for anything PHP renders with the page,
+or anything JavaScript draws as the editor starts, belongs in the first:
+`tests/Feature/OverlayStylesheetTest.php` fails when one is in the second, and names it.
+
 Vitest reads those same sources as the ES modules they already are, so `npm test` needs no
 build step either and never touches `resources/dist`. Behaviour that has to be tested belongs
 in a file under `resources/js` rather than in an `x-data` attribute: an attribute cannot be
@@ -49,7 +55,9 @@ imported, which is exactly why the media browser moved out of one.
 
 ## Translations
 
-English is the reference and German ships beside it. A language is a folder: copy
+English is the reference. German has been read by a person; the other ten shipped languages
+were translated with an AI model and have not been checked by a native speaker, so a correction
+to any of them is as welcome as a new language. A language is a folder: copy
 `resources/lang/en/advanced-rich-editor.php` to `resources/lang/<locale>/` and translate the
 values. Nothing has to be registered, the package loads whatever is there.
 
@@ -66,6 +74,11 @@ Two kinds of line are not word-for-word translations:
 - `accessibility.weak_link_phrases` lists the link texts that tell a reader nothing in that
   language, the way "click here" does in English. It is a list of what is true of the language,
   so it needs entries but not as many as English has.
+
+Use the words and the register (formal or informal) Filament's own translations use for that
+locale - `vendor/filament/forms/resources/lang/<locale>/components.php` is the place to look - so
+the editor reads like the panel around it. The slash search ignores case and accents, so an
+alias needs no unaccented twin.
 
 The test is the only thing that will tell you. Laravel answers a line a language lacks from the
 fallback locale, so a half-finished translation shows English in the middle of it and nothing

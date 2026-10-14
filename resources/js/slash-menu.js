@@ -89,6 +89,27 @@ function activeQuery(state, char) {
 }
 
 /**
+ * A word as the search compares it: lower case, and with its accents taken off - typed
+ * without them far more often than with, `/enum` for `énumération`, `/uber` for
+ * `Überschrift`. Only marks come off. `ø`, `æ`, `ł` and `ß` are letters of their own and do
+ * not fall apart into a letter and a mark, so they stay what they are.
+ */
+function folded(value) {
+    return String(value).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+}
+
+// Every word an entry is found by, folded - once per entry rather than once per keystroke.
+const searchable = new WeakMap()
+
+function wordsOf(item) {
+    if (!searchable.has(item)) {
+        searchable.set(item, [item.label, item.name, ...(item.aliases ?? [])].map(folded))
+    }
+
+    return searchable.get(item)
+}
+
+/**
  * The items matching a query, in the order they should be read.
  *
  * A command whose name starts with what was typed comes before one that merely contains
@@ -100,10 +121,10 @@ function filterGroups(groups, query) {
         return groups
     }
 
+    query = folded(query)
+
     const rank = (item) => {
-        const haystacks = [item.label, item.name, ...(item.aliases ?? [])].map((value) =>
-            String(value).toLowerCase(),
-        )
+        const haystacks = wordsOf(item)
 
         if (haystacks.some((value) => value.startsWith(query))) {
             return 0
@@ -343,8 +364,9 @@ class SlashMenu {
 
         try {
             // Some handlers anchor a popup to the element that was clicked. There was no
-            // click, so the editor stands in for it.
-            Alpine.evaluate(element, item.handler, { $event: { currentTarget: element } })
+            // click, so the editor stands in for it. Extra variables go in as `scope`: that is
+            // the shape Alpine's evaluator takes, and a bare `{ $event }` reaches nothing.
+            Alpine.evaluate(element, item.handler, { scope: { $event: { currentTarget: element } } })
         } catch (error) {
             console.error(`The advanced rich editor could not run [${item.name}]:`, error)
         }

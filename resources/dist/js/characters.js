@@ -101,14 +101,17 @@ export default () => {
                     ({ commands }) =>
                         commands.insertContent(character),
 
+                // `labels` is optional: the field writes them on the element the editor is
+                // mounted on, as `data-arte-characters`, and the shell reads them there.
                 openCharacterPicker:
-                    (anchor, labels) =>
+                    (anchor, labels = null) =>
                     ({ editor }) => {
                         loadShell().then(() =>
                             shell?.open(editor, anchor, {
                                 name: 'characters',
                                 classes: CLASSES,
                                 labels,
+                                settings: 'arteCharacters',
                                 recentKey: RECENT_KEY,
                                 width: WIDTH,
                                 load: loadCharacters,

@@ -14,7 +14,7 @@ it('hands the editor its own html to open with', function (): void {
     // Read out of the browser rather than off the server's copy of the state: the last
     // keystrokes may not have been synced yet, and they belong in the source view too.
     expect(editor()->sourceCode()->getTools()['sourceCode']->getJsHandler())
-        ->toContain("mountAction('sourceCode'")
+        ->toMatch("/mount(?:Tool)?Action\\('sourceCode'/")
         ->toContain('$getEditor().getHTML()');
 });
 

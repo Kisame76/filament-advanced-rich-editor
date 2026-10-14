@@ -298,7 +298,7 @@ it('replaces the card it was opened from', function (): void {
 it('opens the browser on the documents tab', function (): void {
     $tool = $this->editor->getTools()['file'] ?? null;
 
-    expect($tool?->getJsHandler())->toContain("mountAction('mediaBrowser'")
+    expect($tool?->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('mediaBrowser'/")
         ->and($tool?->getJsHandler())->toContain("kind: 'file'")
         ->and($tool?->getLabel())->toBe('File');
 });

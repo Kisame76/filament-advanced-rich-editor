@@ -32,6 +32,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OffersWritingAids;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensMenus;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PreviewsContent;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\RemembersWithinARender;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ServesTheMediaBrowser;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolbar;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
@@ -47,6 +48,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharactersPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DateTimePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DescriptionListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
@@ -62,6 +64,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\IndentPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\InvisiblesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
@@ -74,6 +77,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StatisticsPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StickyToolbarPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StylesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
@@ -112,6 +116,7 @@ class AdvancedRichEditor extends RichEditor
     use OpensMenus;
     use PlacesImages;
     use PreviewsContent;
+    use RemembersWithinARender;
     use ServesTheMediaBrowser;
     use WritesWithoutAToolbar;
 
@@ -294,6 +299,16 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // Here, beside the task list and ahead of the slash menu, and the place is not
+        // tidiness: of two extensions at TipTap's default priority the one registered later
+        // asks first for a key. The slash menu has to see Enter before a term does, or
+        // picking an entry in a term would split it instead.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasDescriptionList()
+                ? [DescriptionListPlugin::make()]
+                : [],
+        );
+
         // Carries its variants rather than reading the config itself: the tools it
         // registers are one per kind, and which kinds there are is a per-field answer.
         // Nothing is registered for a field with none, so the node is not declared either
@@ -395,6 +410,14 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasEmoji()
                 ? [EmojiPlugin::make()]
+                : [],
+        );
+
+        // Watches a pinned bar so it can square its corners while it is stuck. A bar that
+        // is not pinned has nothing to watch, so the script is not loaded for it.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->isStickyToolbar()
+                ? [StickyToolbarPlugin::make()]
                 : [],
         );
 
@@ -620,6 +643,12 @@ class AdvancedRichEditor extends RichEditor
         );
 
         $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasInvisibles()
+                ? [InvisiblesPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasHelp()
                 ? [HelpPlugin::make()]
                 : [],
@@ -666,12 +695,18 @@ class AdvancedRichEditor extends RichEditor
                 return null;
             }
 
-            $counted = $component->measureCharacterCount($component->getState());
-
+            // Measured when the line is drawn: Filament builds this slot each time it walks the
+            // form - hydrating, filling, taking a snapshot - and draws it once.
             return CharacterCount::make()
                 ->enforced($component->enforcesMaxLength())
-                ->characters($counted['characters'])
-                ->words($component->hasCharacterCountWords() ? $counted['words'] : null)
+                ->measuredBy(static function () use ($component): array {
+                    $counted = $component->measureCharacterCount($component->getState());
+
+                    return [
+                        'characters' => $counted['characters'],
+                        'words' => $component->hasCharacterCountWords() ? $counted['words'] : null,
+                    ];
+                })
                 ->limit($component->getCharacterCountLimit());
         });
 
