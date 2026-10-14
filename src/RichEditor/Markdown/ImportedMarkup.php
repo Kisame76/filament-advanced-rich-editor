@@ -11,7 +11,7 @@ use DOMText;
 use DOMXPath;
 
 /**
- * The two places CommonMark's markup and this schema disagree, translated on the way in.
+ * The places CommonMark's markup and this schema disagree, translated on the way in.
  *
  * Both are the same kind of problem and neither shows up as an error: CommonMark writes
  * perfectly good HTML for a construct the editor has no node for, so the parser drops the
@@ -32,7 +32,7 @@ class ImportedMarkup
         // either way. The XPath below reads the parsed DOM and cannot tell the two apart;
         // only this line could, and a fast path that decides what the slow path would have
         // found is not a fast path.
-        if (! str_contains($html, 'checkbox') && ! str_contains($html, 'footnote')) {
+        if (! str_contains($html, 'checkbox') && ! str_contains($html, 'footnote') && ! str_contains($html, '<dd') && ! str_contains($html, '<dt')) {
             return $html;
         }
 
@@ -53,6 +53,7 @@ class ImportedMarkup
 
         $this->tickBoxes($xpath);
         $this->clearFootnotePlumbing($xpath);
+        $this->unwrapDefinitionParagraphs($xpath);
 
         $root = $document->getElementById('arte-markdown-root');
 
@@ -285,6 +286,50 @@ class ImportedMarkup
 
         if ($after instanceof DOMText) {
             $after->data = ltrim($after->data);
+        }
+    }
+
+    /**
+     * The text of a loose definition list, out of the paragraphs CommonMark puts it in.
+     *
+     * A blank line between a term and its description makes CommonMark write
+     * `<dd><p>…</p></dd>`. A term and a description hold text in this schema, and a paragraph
+     * inside one is a document the editor refuses to open - the browser's half reads it
+     * for its text, but the PHP parser has no such rule and would store the paragraph. Two
+     * paragraphs in one description become two lines of it.
+     */
+    protected function unwrapDefinitionParagraphs(DOMXPath $xpath): void
+    {
+        $paragraphs = $xpath->query('//dt/p | //dd/p');
+
+        if ($paragraphs === false) {
+            return;
+        }
+
+        foreach (iterator_to_array($paragraphs) as $paragraph) {
+            if (! $paragraph instanceof DOMElement || ! $paragraph->parentNode instanceof DOMNode) {
+                continue;
+            }
+
+            $part = $paragraph->parentNode;
+
+            // Anything before it in the part - the text of a paragraph already taken apart,
+            // most likely - is a line of its own.
+            $before = $paragraph->previousSibling;
+
+            while ($before instanceof DOMText && trim($before->data) === '') {
+                $before = $before->previousSibling;
+            }
+
+            if ($before !== null && $paragraph->ownerDocument !== null) {
+                $part->insertBefore($paragraph->ownerDocument->createElement('br'), $paragraph);
+            }
+
+            while ($paragraph->firstChild !== null) {
+                $part->insertBefore($paragraph->firstChild, $paragraph);
+            }
+
+            $part->removeChild($paragraph);
         }
     }
 

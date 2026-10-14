@@ -20,6 +20,7 @@ return [
             'bulletList' => 'ul, bullets, unordered',
             'orderedList' => 'ol, numbered',
             'taskList' => 'todo, checkbox, checklist',
+            'descriptionList' => 'dl, glossary, definitions, terms, dictionary',
             'blockquote' => 'quote, citation',
             'calloutNote' => 'note, info, infobox, callout, admonition',
             'calloutTip' => 'tip, hint, suggestion, callout',
@@ -150,6 +151,8 @@ return [
         ],
 
         'task_list' => 'Task list',
+
+        'description_list' => 'Definition list',
         'callouts' => 'Callout',
         'language' => 'Language',
         'language_none' => 'Page language',
@@ -399,6 +402,12 @@ return [
             'description' => 'The HTML as it is stored. Anything the editor cannot hold is dropped when this is applied.',
             'apply' => 'Apply',
         ],
+        'invisible_characters' => [
+            'label' => 'Show invisible characters',
+        ],
+        'block_outlines' => [
+            'label' => 'Show blocks',
+        ],
         'emoji' => [
             'label' => 'Emoji',
             'search' => 'Search emoji',
@@ -554,6 +563,7 @@ return [
             'orderedList' => 'a numbered list',
             'table' => 'a table',
             'taskList' => 'a task list',
+            'descriptionList' => 'a definition list',
         ],
     ],
 ];

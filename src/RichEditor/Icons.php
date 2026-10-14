@@ -44,6 +44,9 @@ class Icons
             'indent' => 'arte-indent-increase',
             'outdent' => 'arte-indent-decrease',
             'task_list' => 'arte-task-list',
+            // A term flush with the margin and its description indented under it, twice -
+            // which is all a definition list is, drawn.
+            'description_list' => 'arte-description-list',
             'blockquote' => 'arte-message-square-quote',
             // The callouts. The dropdown's own trigger is the circled i - the sign for the
             // whole family, and the one a reader already reads as "something set apart" -
@@ -88,6 +91,10 @@ class Icons
             // they are, or the bar has two doors with the same sign on them.
             'tools_menu' => 'heroicon-o-wrench-screwdriver',
             'source_code' => 'heroicon-o-code-bracket',
+            // Word's pilcrow for the characters a page does not draw, and a dashed square for
+            // the outline drawn round every block.
+            'invisible_characters' => 'arte-pilcrow',
+            'block_outlines' => 'arte-square-dashed',
             'statistics' => 'heroicon-o-chart-bar',
             'preview' => 'heroicon-o-eye',
             // Searching. The magnifier is the button, and the three inside the bar are the

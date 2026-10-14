@@ -48,6 +48,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharacterCountPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CharactersPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\CodeBlockPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DateTimePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DescriptionListPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
@@ -63,6 +64,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\IndentPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\InvisiblesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
@@ -294,6 +296,16 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTaskList()
                 ? [TaskListPlugin::make()]
+                : [],
+        );
+
+        // Here, beside the task list and ahead of the slash menu, and the place is not
+        // tidiness: of two extensions at TipTap's default priority the one registered later
+        // asks first for a key. The slash menu has to see Enter before a term does, or
+        // picking an entry in a term would split it instead.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasDescriptionList()
+                ? [DescriptionListPlugin::make()]
                 : [],
         );
 
@@ -627,6 +639,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasSourceCode()
                 ? [SourceCodePlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasInvisibles()
+                ? [InvisiblesPlugin::make()]
                 : [],
         );
 

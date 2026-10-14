@@ -1539,6 +1539,244 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Invisible characters and block outlines                                    */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The signs `invisibles.js` asks for. Every element it draws is empty and the sign is drawn
+ * here, so nothing of it can be read out, selected or copied, and a project can swap one by
+ * overriding a `content`. One colour for all of them, the panel's own, so they read as the
+ * editor talking rather than as part of the text.
+ */
+.fi-arte-invisible,
+.fi-arte-invisible-break,
+.fi-arte-invisible-paragraph {
+    --fi-arte-invisible-sign: var(--fi-arte-invisible, var(--primary-500));
+}
+
+.fi-arte-invisible:where(.dark, .dark *),
+.fi-arte-invisible-break:where(.dark, .dark *),
+.fi-arte-invisible-paragraph:where(.dark, .dark *) {
+    --fi-arte-invisible-sign: var(--fi-arte-invisible, var(--primary-400));
+}
+
+.fi-arte-invisible-space::after,
+.fi-arte-invisible-hyphen::after,
+.fi-arte-invisible-break::before,
+.fi-arte-invisible-paragraph::before {
+    color: var(--fi-arte-invisible-sign);
+    font-style: normal;
+    font-weight: 400;
+    text-decoration: none;
+    pointer-events: none;
+    user-select: none;
+}
+
+/*
+ * A space that may not break, drawn over itself: the line keeps its width, so switching the
+ * view on moves no word. Word's degree sign.
+ */
+.fi-arte-invisible-space {
+    position: relative;
+}
+
+.fi-arte-invisible-space::after {
+    content: '\B0';
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    text-align: center;
+}
+
+/*
+ * The soft hyphen takes no room until a line breaks at it, so its sign takes room of its own.
+ * An inline block, so an underline or a strike through the word is not drawn through it.
+ */
+.fi-arte-invisible-hyphen::after {
+    content: '\AC';
+    display: inline-block;
+}
+
+/* No width, ever: a hairline where it is, as tall as the letters round it. */
+.fi-arte-invisible-zero-width::after {
+    content: '';
+    display: inline-block;
+    block-size: 1em;
+    vertical-align: -0.15em;
+    border-inline-start: 1px dashed var(--fi-arte-invisible-sign);
+    pointer-events: none;
+}
+
+.fi-arte-invisible-break::before {
+    content: '\21B5';
+}
+
+.fi-arte-invisible-paragraph::before {
+    content: '\B6';
+}
+
+/*
+ * A widget that ends a paragraph makes ProseMirror add a `<br>` after it, so that a caret
+ * could stand after something it cannot edit. This one never needs it - a caret at the end
+ * of a paragraph sits before the `¶` - and the break pushes anything drawn after the text
+ * onto a line of its own: Filament's closing quote on a blockquote fell under the sign.
+ * The separator image beside it stays; it is what lets a caret into an empty paragraph.
+ */
+.fi-arte-invisible-paragraph ~ br.ProseMirror-trailingBreak {
+    display: none;
+}
+
+/*
+ * Show blocks: a class on the editor and nothing else, so it costs the same however long the
+ * document is. Written out element by element rather than as one `:is()`, which a browser
+ * cannot file under a tag and would test against every element on each recalculation.
+ *
+ * Each block gets a dashed outline. The ones a writer shapes by hand also get the element they
+ * are written as - P, H2, LI - in a strip of room above their first line. That room moves the
+ * text down, as it does in CKEditor and TinyMCE: a label laid over the first line would hide
+ * the words it is about. The label is the `::after`, because `::before` is spoken for -
+ * Filament draws the placeholder of an empty editor on the first paragraph's, and the
+ * callout its icon on its own. Tables, details and callouts are outlined and not labelled:
+ * their own frame already says what they are.
+ */
+.fi-arte-show-blocks {
+    --fi-arte-block-outline-color: var(--fi-arte-block-outline, var(--gray-300));
+    --fi-arte-block-label-color: var(--fi-arte-block-label, var(--gray-500));
+}
+
+.fi-arte-show-blocks:where(.dark, .dark *) {
+    --fi-arte-block-outline-color: var(--fi-arte-block-outline, var(--gray-600));
+    --fi-arte-block-label-color: var(--fi-arte-block-label, var(--gray-400));
+}
+
+.fi-arte-show-blocks p,
+.fi-arte-show-blocks h1,
+.fi-arte-show-blocks h2,
+.fi-arte-show-blocks h3,
+.fi-arte-show-blocks h4,
+.fi-arte-show-blocks h5,
+.fi-arte-show-blocks h6,
+.fi-arte-show-blocks blockquote,
+.fi-arte-show-blocks pre,
+.fi-arte-show-blocks ul,
+.fi-arte-show-blocks ol,
+.fi-arte-show-blocks li,
+.fi-arte-show-blocks dl,
+.fi-arte-show-blocks dt,
+.fi-arte-show-blocks dd,
+.fi-arte-show-blocks table,
+.fi-arte-show-blocks [data-type='details'],
+.fi-arte-show-blocks .fi-arte-callout {
+    outline: 1px dashed var(--fi-arte-block-outline-color);
+}
+
+.fi-arte-show-blocks p,
+.fi-arte-show-blocks h1,
+.fi-arte-show-blocks h2,
+.fi-arte-show-blocks h3,
+.fi-arte-show-blocks h4,
+.fi-arte-show-blocks h5,
+.fi-arte-show-blocks h6,
+.fi-arte-show-blocks blockquote,
+.fi-arte-show-blocks pre,
+.fi-arte-show-blocks ul,
+.fi-arte-show-blocks ol,
+.fi-arte-show-blocks li,
+.fi-arte-show-blocks dl,
+.fi-arte-show-blocks dt,
+.fi-arte-show-blocks dd {
+    position: relative;
+    padding-block-start: 0.875rem;
+}
+
+.fi-arte-show-blocks p::after,
+.fi-arte-show-blocks h1::after,
+.fi-arte-show-blocks h2::after,
+.fi-arte-show-blocks h3::after,
+.fi-arte-show-blocks h4::after,
+.fi-arte-show-blocks h5::after,
+.fi-arte-show-blocks h6::after,
+.fi-arte-show-blocks blockquote::after,
+.fi-arte-show-blocks pre::after,
+.fi-arte-show-blocks ul::after,
+.fi-arte-show-blocks ol::after,
+.fi-arte-show-blocks li::after,
+.fi-arte-show-blocks dl::after,
+.fi-arte-show-blocks dt::after,
+.fi-arte-show-blocks dd::after {
+    position: absolute;
+    inset-block-start: 0.125rem;
+    inset-inline-start: 0.25rem;
+    color: var(--fi-arte-block-label-color);
+    font: 600 0.5625rem / 1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    pointer-events: none;
+    user-select: none;
+}
+
+.fi-arte-show-blocks p::after {
+    content: 'P';
+}
+
+.fi-arte-show-blocks h1::after {
+    content: 'H1';
+}
+
+.fi-arte-show-blocks h2::after {
+    content: 'H2';
+}
+
+.fi-arte-show-blocks h3::after {
+    content: 'H3';
+}
+
+.fi-arte-show-blocks h4::after {
+    content: 'H4';
+}
+
+.fi-arte-show-blocks h5::after {
+    content: 'H5';
+}
+
+.fi-arte-show-blocks h6::after {
+    content: 'H6';
+}
+
+.fi-arte-show-blocks blockquote::after {
+    content: 'BLOCKQUOTE';
+}
+
+.fi-arte-show-blocks pre::after {
+    content: 'PRE';
+}
+
+.fi-arte-show-blocks ul::after {
+    content: 'UL';
+}
+
+.fi-arte-show-blocks ol::after {
+    content: 'OL';
+}
+
+.fi-arte-show-blocks li::after {
+    content: 'LI';
+}
+
+.fi-arte-show-blocks dl::after {
+    content: 'DL';
+}
+
+.fi-arte-show-blocks dt::after {
+    content: 'DT';
+}
+
+.fi-arte-show-blocks dd::after {
+    content: 'DD';
+}
+
+
+/* -------------------------------------------------------------------------- */
 /* Accessibility report                                                       */
 /* -------------------------------------------------------------------------- */
 

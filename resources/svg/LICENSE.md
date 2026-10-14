@@ -2,8 +2,8 @@
 
 `case-lower.svg`, `case-sensitive.svg`, `case-upper.svg`, `highlighter.svg`,
 `indent-decrease.svg`, `indent-increase.svg`, `message-square-quote.svg`,
-`palette.svg`, `pilcrow-left.svg`, `pilcrow-right.svg`, `rotate-ccw.svg` and
-`rotate-cw.svg` are from
+`palette.svg`, `pilcrow.svg`, `pilcrow-left.svg`, `pilcrow-right.svg`, `rotate-ccw.svg`,
+`rotate-cw.svg` and `square-dashed.svg` are from
 [Lucide](https://lucide.dev), used under the ISC licence, and
 `letter-a.svg` is Lucide's `baseline` with the baseline itself removed and the letter
 recentred. Their stroke width is changed from 2 to 1.5 so they sit next to Filament's
@@ -25,5 +25,5 @@ Heroicons without standing out:
 > AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 > CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-`line-spacing.svg`, `task-list.svg`, `image-left.svg`, `image-center.svg` and
+`line-spacing.svg`, `task-list.svg`, `description-list.svg`, `image-left.svg`, `image-center.svg` and
 `image-right.svg` are drawn for this package and carry its licence.

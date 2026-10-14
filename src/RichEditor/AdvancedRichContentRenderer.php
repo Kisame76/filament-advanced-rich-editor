@@ -13,6 +13,7 @@ use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\DescriptionListConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\FileCardConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\ImportedMarkup;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\LooseText;
@@ -25,6 +26,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionDetails;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionList;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionTerm;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
@@ -40,6 +44,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\TextDirection;
+use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\HTMLToMarkdown\HtmlConverter;
@@ -557,6 +562,11 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // takes any configuration, so declaring them costs a line each.
             app(TaskList::class, ['options' => ['HTMLAttributes' => ['class' => 'fi-arte-task-list']]]),
             app(TaskItem::class, ['options' => ['HTMLAttributes' => ['class' => 'fi-arte-task-item']]]),
+            // A glossary, on the same rule: without its nodes a stored definition list comes
+            // back as its terms and descriptions run together into one line of text.
+            app(DescriptionList::class),
+            app(DescriptionTerm::class),
+            app(DescriptionDetails::class),
             app(FontSize::class),
             app(FontFamily::class),
             app(LineHeight::class),
@@ -675,6 +685,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             $converter = new HtmlConverter([...static::MARKDOWN_OPTIONS, ...$options]);
             $converter->getEnvironment()->addConverter(new TaskItemConverter);
             $converter->getEnvironment()->addConverter(new FileCardConverter);
+            $converter->getEnvironment()->addConverter(new DescriptionListConverter);
 
             return trim($converter->convert($this->toUnsafeHtml()));
         });
@@ -743,25 +754,35 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     }
 
     /**
-     * The parser extensions, with the one this package insists on unless it was named.
+     * The parser extensions, with the two this package insists on unless they were named.
      *
      * Named again rather than added twice: CommonMark registers a parser per extension and
      * a second copy of the footnote one raises while the environment is built. A caller
-     * passing their own configured `FootnoteExtension` is the case that matters, and it is
-     * theirs to configure.
+     * passing their own configured `FootnoteExtension` or `DescriptionListExtension` is the
+     * case that matters, and it is theirs to configure.
      *
      * @param  array<int, ExtensionInterface>  $extensions
      * @return array<int, ExtensionInterface>
      */
     protected function markdownExtensions(array $extensions): array
     {
+        $missing = [
+            FootnoteExtension::class => new FootnoteExtension,
+            // `Term` then `: Description`, the spelling Markdown Extra started and
+            // `toMarkdown()` writes. Without it the colon line is a paragraph of its own and
+            // a glossary arrives as a column of loose sentences.
+            DescriptionListExtension::class => new DescriptionListExtension,
+        ];
+
         foreach ($extensions as $extension) {
-            if ($extension instanceof FootnoteExtension) {
-                return $extensions;
+            foreach (array_keys($missing) as $class) {
+                if ($extension instanceof $class) {
+                    unset($missing[$class]);
+                }
             }
         }
 
-        return [new FootnoteExtension, ...$extensions];
+        return [...array_values($missing), ...$extensions];
     }
 
     /**

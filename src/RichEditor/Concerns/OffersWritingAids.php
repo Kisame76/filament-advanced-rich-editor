@@ -17,7 +17,8 @@ use Livewire\Attributes\Renderless;
 
 /**
  * The tools that help while writing without changing what is written: emoji, find
- * and replace, the drag grip, the source view, the shortcut list and fullscreen.
+ * and replace, the drag grip, the source view, the invisible characters and the block
+ * outlines, the shortcut list and fullscreen.
  *
  * Switching any of them off is the same act every time - the extension is not loaded, so the
  * button and its keyboard shortcut go together, and nothing already written changes.
@@ -33,6 +34,8 @@ trait OffersWritingAids
     protected bool|Closure|null $hasDragHandleInsert = null;
 
     protected bool|Closure|null $hasSourceCode = null;
+
+    protected bool|Closure|null $hasInvisibles = null;
 
     protected bool|Closure|null $hasHelp = null;
 
@@ -236,6 +239,25 @@ trait OffersWritingAids
     public function normaliseSourceHtml(?string $html): string
     {
         return SourceCodeAction::normalise($this, $html);
+    }
+
+    /**
+     * The two views that show what a document holds and does not draw: one for the
+     * invisible characters - the spaces that may not break, the soft hyphen, the characters
+     * with no width, line breaks and the ends of paragraphs - and one for the outline of
+     * every block. Nothing about either is stored, so switching them off later changes
+     * nothing that was ever written.
+     */
+    public function invisibles(bool|Closure $condition = true): static
+    {
+        $this->hasInvisibles = $condition;
+
+        return $this;
+    }
+
+    public function hasInvisibles(): bool
+    {
+        return (bool) ($this->evaluate($this->hasInvisibles) ?? config('filament-advanced-rich-editor.invisibles') ?? true);
     }
 
     /**

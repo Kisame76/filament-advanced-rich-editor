@@ -378,6 +378,36 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Definition lists                                                           */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * In the stored content like the task list, so not scoped under .fi-arte either: a glossary
+ * has to read as one in a text entry and on a front end too. Filament's prose has no rules
+ * for `dl` at all, so without these a term and its description are two lines of the same
+ * weight and nothing says which is which.
+ *
+ * The term carries the weight and the description the indent - the way a dictionary sets
+ * them, and the way every browser already indents a `<dd>`, only made to match the prose.
+ */
+.fi-arte-description-list > dt {
+    font-weight: 600;
+}
+
+.fi-arte-description-list > dt + dt {
+    margin-block-start: 0;
+}
+
+.fi-arte-description-list > dd + dt {
+    margin-block-start: 0.75em;
+}
+
+.fi-arte-description-list > dd {
+    margin-block: 0.125em 0;
+    margin-inline-start: 1.5em;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Callouts                                                                   */
 /* -------------------------------------------------------------------------- */
 

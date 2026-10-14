@@ -238,6 +238,15 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/text-case', __DIR__.'/../resources/dist/js/text-case.js')
                     ->loadedOnRequest(),
 
+                // The definition list, which brings its terms and descriptions along.
+                Js::make('advanced-rich-editor/description-list', __DIR__.'/../resources/dist/js/description-list.js')
+                    ->loadedOnRequest(),
+
+                // The invisible characters and the block outlines. Both are only ways of
+                // looking, so there is no PHP half.
+                Js::make('advanced-rich-editor/invisibles', __DIR__.'/../resources/dist/js/invisibles.js')
+                    ->loadedOnRequest(),
+
                 // Where a dropdown opens: every menu of the package hands itself to this when
                 // it opens, instead of carrying the measuring in its own `x-data`. The editor
                 // loads it as it starts, so the first menu opened does not wait for it.

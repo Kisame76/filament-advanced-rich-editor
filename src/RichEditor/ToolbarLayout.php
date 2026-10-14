@@ -195,6 +195,12 @@ class ToolbarLayout
             'sourceCode' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasSourceCode()
                 ? 'sourceCode'
                 : [],
+            'invisibleCharacters' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasInvisibles()
+                ? 'invisibleCharacters'
+                : [],
+            'blockOutlines' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasInvisibles()
+                ? 'blockOutlines'
+                : [],
             'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
                 ? 'help'
                 : [],
