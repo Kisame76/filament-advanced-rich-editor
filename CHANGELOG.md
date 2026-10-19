@@ -15,6 +15,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   Filament's way. Twenty editors in a repeater went from 8.4 to 4.1 seconds to the first frame
   with all of them in it
 
+- A page with many pictures is drawn sooner. TipTap hides every resizable picture until its
+  file arrives and shows it again from the picture's load handler, and every such write into
+  the editor makes ProseMirror read the selection back - which made the browser work out the
+  page's styles once per picture. The pictures already in a document are shown at once as the
+  editor starts, in one pass. Five editors with thirty pictures each went from 3.5 to 1.0
+  seconds to the first frame. The editor also no longer marks every picture that loaded; only a
+  broken one is marked, which is the only mark the stylesheet draws
+
 ## 1.7.0 - 2026-10-14
 
 ### Changed
