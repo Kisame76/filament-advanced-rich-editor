@@ -2,6 +2,19 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- A page of editors on Filament 5.10 is drawn in half the time again. Filament's new dropdown
+  looks for the visible one among its triggers when it starts and whenever its panel changes,
+  asking the browser for styles each time - and under Filament's own `:has()` rules each of
+  those asks costs the whole page. Seven dropdowns per editor made that 4.3 seconds on a page
+  of twenty editors. A toolbar dropdown has a single trigger, which is the trigger whether it
+  is visible or not, so it is now taken without measuring; a dropdown with several keeps
+  Filament's way. Twenty editors in a repeater went from 8.4 to 4.1 seconds to the first frame
+  with all of them in it
+
 ## 1.7.0 - 2026-10-14
 
 ### Changed

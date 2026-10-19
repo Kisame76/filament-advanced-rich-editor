@@ -105,6 +105,42 @@ it('threads nothing into a Filament that turns its own menus over', function ():
         ->and($html)->not->toContain('x-ref="menu"');
 })->skip(fn (): bool => ! filamentTurnsItsOwnMenus(), 'Filament before 5.10 leaves the turning over to this package');
 
+it('tells the dropdown its one trigger is the trigger, rather than having it measured', function (): void {
+    // Filament 5.10's dropdown finds the trigger it hangs its ARIA on by asking the browser
+    // which one is visible, on start and on every change to the panel - a style recalculation
+    // each time, and with Filament's `:has()` rules one over the whole page: 4.3 s of a page
+    // of twenty editors. With a single trigger the answer is that trigger either way.
+    $html = listsDropdown();
+
+    expect(substr_count($html, e('arteMeasuredTrigger: filamentDropdown().getTrigger, ')))->toBe(1)
+        ->and(substr_count($html, 'getTrigger() {'))->toBe(1)
+        // After the spread, or upstream's own method would win.
+        ->and($html)->toContain(e('{ ...filamentDropdown(), arteMeasuredTrigger: '))
+        // More than one, or a different one from before, goes the measured way.
+        ->and($html)->toContain(e('(triggers.length === 1) && ((this.activeTrigger ?? triggers[0]) === triggers[0])'))
+        ->and($html)->toContain(e(': this.arteMeasuredTrigger()'))
+        // And the parent's own state is still there beside it.
+        ->and($html)->toContain('triggerContent: ');
+})->skip(fn (): bool => ! filamentTurnsItsOwnMenus(), 'Filament before 5.10 measures nothing');
+
+it('leaves the trigger to upstream where the dropdown is not the one it expects', function (): void {
+    // No `filamentDropdown()` - a Filament before 5.10 - or more than one in the markup: nothing
+    // is threaded in, because an override in the wrong object is an override of nothing.
+    $dropdown = new class('Lists') extends ToolbarDropdown
+    {
+        public function thread(string $html): string
+        {
+            return $this->takingTheOneTriggerAtItsWord($html);
+        }
+    };
+
+    $older = '<div x-data="{ open: false, triggerContent: null }"></div>';
+    $twice = '<div x-data="{ ...filamentDropdown(), a: 1 }"></div><div x-data="{ ...filamentDropdown(), b: 2 }"></div>';
+
+    expect($dropdown->thread($older))->toBe($older)
+        ->and($dropdown->thread($twice))->toBe($twice);
+});
+
 it('threads all of the anchors in or none of them', function (): void {
     // Markup with one anchor and not the others - the menu's class, say, without the state
     // its binding reads - is left exactly as it came.
