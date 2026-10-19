@@ -493,28 +493,35 @@ trait ServesTheMediaBrowser
      */
     public function registerPendingUploads(array $files): void
     {
+        foreach ($files as $file) {
+            if ($file instanceof TemporaryUploadedFile) {
+                $this->registerPendingUpload($file);
+            }
+        }
+    }
+
+    /**
+     * One upload held as a pending attachment, answered with the id the document points at it by.
+     */
+    public function registerPendingUpload(TemporaryUploadedFile $file): string
+    {
         // Held in a variable because `data_set()` takes its target by reference, which a method
         // call cannot be.
         $livewire = $this->getLivewire();
-        $statePath = $this->getStatePath();
 
-        foreach ($files as $file) {
-            if (! ($file instanceof TemporaryUploadedFile)) {
-                continue;
-            }
+        // Named after the file rather than after the key it arrived under. The dialog reports
+        // its whole set every time one more picture is added, and the keys of that set are
+        // Filament's business - a plain list one moment, keyed by id the next - so trusting
+        // them would queue the same upload twice under two different names.
+        //
+        // Hashed, because the temporary file name carries dots and `data_set()` reads a dot as
+        // a level of nesting: one attachment would quietly become a tree that nothing can find
+        // again.
+        $id = FileAttachments::PENDING_PREFIX.md5($file->getFilename());
 
-            // Named after the file rather than after the key it arrived under. The dialog
-            // reports its whole set every time one more picture is added, and the keys of that
-            // set are Filament's business - a plain list one moment, keyed by id the next - so
-            // trusting them would queue the same upload twice under two different names.
-            //
-            // Hashed, because the temporary file name carries dots and `data_set()` reads a dot
-            // as a level of nesting: one attachment would quietly become a tree that nothing
-            // can find again.
-            $id = FileAttachments::PENDING_PREFIX.md5($file->getFilename());
+        data_set($livewire, "componentFileAttachments.{$this->getStatePath()}.{$id}", $file);
 
-            data_set($livewire, "componentFileAttachments.{$statePath}.{$id}", $file);
-        }
+        return $id;
     }
 
     /**

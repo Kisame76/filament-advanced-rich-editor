@@ -10,6 +10,7 @@ use Filament\Forms\Components\RichEditor\EditorCommand;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Enums\Width;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EditorSelection;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageLink;
 
 /**
@@ -54,18 +55,6 @@ class ImageLinkAction
             ->action(function (array $arguments, array $data, AdvancedRichEditor $component): void {
                 $href = ImageLink::normalise($data['href'] ?? null);
 
-                // The same correction the media dialog makes at the same call site: the
-                // selection can arrive described as text rather than as a node, and
-                // `updateAttributes` then writes nothing while the picture sits there
-                // visibly selected. Silent, because a dialog that closes looks like it
-                // worked.
-                if (($arguments['editorSelection']['type'] ?? null) !== 'node') {
-                    $arguments['editorSelection']['type'] = 'node';
-                    $arguments['editorSelection']['anchor']--;
-
-                    unset($arguments['editorSelection']['head']);
-                }
-
                 $component->runCommands(
                     [
                         EditorCommand::make('updateAttributes', arguments: [
@@ -79,7 +68,7 @@ class ImageLinkAction
                             ],
                         ]),
                     ],
-                    editorSelection: $arguments['editorSelection'],
+                    editorSelection: EditorSelection::onTheNode($arguments['editorSelection'] ?? null),
                 );
             });
     }

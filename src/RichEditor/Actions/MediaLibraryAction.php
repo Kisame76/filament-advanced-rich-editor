@@ -15,6 +15,7 @@ use Filament\Support\Enums\Width;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\MediaPicker;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EditorSelection;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ByteSize;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Embeds;
@@ -449,15 +450,10 @@ class MediaLibraryAction
                         return;
                     }
 
-                    // Opened from the card's own bar, so the card is what gets replaced. The
-                    // selection can arrive described as a caret just past it rather than as the
-                    // card - the same thing the image branch below corrects - and the new card
-                    // would then land beside the old one instead of in its place.
-                    if ((($arguments['replace'] ?? null) === 'file') && is_array($arguments['editorSelection'] ?? null) && (($arguments['editorSelection']['type'] ?? null) !== 'node')) {
-                        $arguments['editorSelection']['type'] = 'node';
-                        $arguments['editorSelection']['anchor']--;
-
-                        unset($arguments['editorSelection']['head']);
+                    // Opened from the card's own bar, so the card is what gets replaced rather
+                    // than what the new one lands beside.
+                    if (($arguments['replace'] ?? null) === 'file') {
+                        $arguments['editorSelection'] = EditorSelection::onTheNode($arguments['editorSelection'] ?? null);
                     }
 
                     $component->runCommands(
@@ -477,14 +473,7 @@ class MediaLibraryAction
                 }
 
                 if (filled($arguments['src'] ?? null)) {
-                    // Fixes an issue where the editor selection is sent as text instead of a node,
-                    // which causes the image update to fail even though the image is selected.
-                    if (($arguments['editorSelection']['type'] ?? null) !== 'node') {
-                        $arguments['editorSelection']['type'] = 'node';
-                        $arguments['editorSelection']['anchor']--;
-
-                        unset($arguments['editorSelection']['head']);
-                    }
+                    $arguments['editorSelection'] = EditorSelection::onTheNode($arguments['editorSelection'] ?? null);
 
                     // Still a picture - either one was picked, or nothing was and the dialog
                     // was opened to correct the alt text, in which case the image it is
@@ -516,13 +505,9 @@ class MediaLibraryAction
                 }
 
                 if ($kind !== null && $kind !== MediaKinds::IMAGE) {
-                    // Opened from the film's own bar, so the film is what gets replaced - the
-                    // same correction the card's bar needs, for the same reason.
-                    if ((($arguments['replace'] ?? null) === 'media') && is_array($arguments['editorSelection'] ?? null) && (($arguments['editorSelection']['type'] ?? null) !== 'node')) {
-                        $arguments['editorSelection']['type'] = 'node';
-                        $arguments['editorSelection']['anchor']--;
-
-                        unset($arguments['editorSelection']['head']);
+                    // Opened from the film's own bar, so the film is what gets replaced.
+                    if (($arguments['replace'] ?? null) === 'media') {
+                        $arguments['editorSelection'] = EditorSelection::onTheNode($arguments['editorSelection'] ?? null);
                     }
 
                     $component->runCommands(
