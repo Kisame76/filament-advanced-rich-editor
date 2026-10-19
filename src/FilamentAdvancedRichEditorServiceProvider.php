@@ -12,7 +12,11 @@ use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\Console\MediaCoversCommand;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\RenderLedger;
 use Kisame76\FilamentAdvancedRichEditor\View\Components\Content;
+
+use function Livewire\on;
+
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
@@ -252,6 +256,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // loads it as it starts, so the first menu opened does not wait for it.
                 Js::make('advanced-rich-editor/menu-position', __DIR__.'/../resources/dist/js/menu-position.js')
                     ->loadedOnRequest(),
+
+                // Puts the settings a page's editors share back on every editor but the one
+                // carrying them, before any extension reads them. See `SharedSettings`.
+                Js::make('advanced-rich-editor/shared-settings', __DIR__.'/../resources/dist/js/shared-settings.js')
+                    ->loadedOnRequest(),
             ],
             'kisame76/filament-advanced-rich-editor',
         );
@@ -259,6 +268,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
         $this->registerIconSet();
         $this->allowEmbedIframes();
         $this->allowMediaPreviews();
+
+        // Every render of a component starts the count of what its editors share again -
+        // and an update shares nothing. See `RenderLedger`.
+        on('render', static function (object $component): void {
+            RenderLedger::rendering($component);
+        });
     }
 
     /**

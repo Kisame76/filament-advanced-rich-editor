@@ -8,6 +8,7 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Js;
@@ -814,6 +815,28 @@ class AdvancedRichEditor extends RichEditor
     public function getTipTapEditor(): Editor
     {
         return $this->getRichContentRenderer()->getEditor();
+    }
+
+    /**
+     * The plugins' scripts, and the one that hands every editor the settings the page's
+     * editors share wherever this field has any of them to share.
+     *
+     * `SharedSettings` writes the slash menu, the pickers' strings and the find bar's in full
+     * on the first editor of a render only; this is what puts them back on the rest, before
+     * any of the four reads them. A field with all four switched off has nothing to share and
+     * loads nothing for it.
+     *
+     * @return array<string>
+     */
+    public function getTipTapJsExtensions(): array
+    {
+        $extensions = parent::getTipTapJsExtensions();
+
+        if ($this->hasSlashMenu() || $this->hasEmoji() || $this->hasCharacters() || $this->hasFind()) {
+            $extensions[] = FilamentAsset::getScriptSrc('advanced-rich-editor/shared-settings', 'kisame76/filament-advanced-rich-editor');
+        }
+
+        return $extensions;
     }
 
     /**

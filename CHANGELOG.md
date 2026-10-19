@@ -25,6 +25,19 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Changed
 
+- A page of editors is a third smaller. Much of what every editor carries is the same for every
+  field set up the same way, and gzip could not shrink the repeats because its window ends long
+  before the next editor starts. The slash menu, the find bar and the strings of both pickers -
+  45 KB of JSON per editor - are written in full on the first editor of a page and named by a
+  hash on the others, and a small script, `shared-settings.js`, puts them back before any
+  extension reads them. The bars that float over a selection, a picture, a table or a list -
+  82 KB per editor - go into a `<template>` that only the first editor carries, and every editor
+  stamps out a copy as Alpine starts it. Only a page is shared this way: a Livewire update writes
+  everything on every editor, since an editor already on the page is never drawn again and
+  cannot be relied on to carry anything. The colour pickers draw their swatches from the palette
+  their component already holds instead of writing each one out. Twenty editors went from 6.0
+  to 3.2 MB of markup, 615 to 352 KB gzipped. Run `php artisan filament:assets` after updating
+
 - A page of editors renders faster on the server. The field keeps its answers while its state
   is hydrated, not only while it renders - filling a form asked for the whole toolbar four times
   per editor - and the counter under the field measures the document instead of writing it out
