@@ -92,10 +92,12 @@ class LooseText
      * rather than imagined - "sits beside a block" reads like the same rule and is not.
      * `listItem[text, bulletList]` is every nested list ever written; `heading[text, image]`
      * is every README title with a badge in it; `paragraph[image, text]` is a picture in a
-     * sentence. All three are inline-beside-a-non-inline, none is damaged, all three are
-     * what the browser holds too - and wrapping them puts a paragraph inside a heading,
+     * sentence. All three are inline-beside-a-non-inline, none is split, and the page prints
+     * all three as they were written - and wrapping them puts a paragraph inside a heading,
      * splits a caption away from its picture, and rewrites every nested list on the way
-     * through. A paragraph sibling appears in none of them.
+     * through. A paragraph sibling appears in none of them. (The first is not a shape the
+     * editor's schema holds - an item opens with a paragraph - but that is the field's to fit
+     * as it loads the document, which `BlockContent` does, not the page's.)
      *
      * @param  array<int, mixed>  $content
      */

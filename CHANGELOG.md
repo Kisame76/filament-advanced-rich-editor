@@ -23,6 +23,18 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   seconds to the first frame. The editor also no longer marks every picture that loaded; only a
   broken one is marked, which is the only mark the stylesheet draws
 
+- Content this editor did not write no longer breaks it. Filament parses stored markup on the
+  server without the editor's schema, and the browser takes the result unchecked, so markup
+  from an import or an older editor arrived in shapes the schema forbids: a picture or the text
+  of a `<div>` directly under the document, a table cell or a quotation holding text without a
+  paragraph, an empty cell, a nested list straight after its item's words. A click on such a
+  picture or a keystroke in such a cell threw "Called contentMatchAt on a node with invalid
+  content", and the picture's toolbar never came. The field now fits the document to the
+  schema as it loads it, the way the browser's own parser fits markup: each run of inline
+  content where only blocks belong becomes a paragraph, and a container that has to hold one
+  gets an empty one. Filament's own repair of list items, which put a nested list inside the
+  item's paragraph, is replaced by it. Filament's stock editor has the same problem
+
 ### Changed
 
 - A page of editors is a third smaller. Much of what every editor carries is the same for every

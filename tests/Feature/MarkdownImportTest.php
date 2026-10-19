@@ -281,8 +281,9 @@ it('leaves a document alone that was never broken', function (): void {
     // The guard on the repair, and the reason it is not simply "wrap every loose child".
     // `listItem`, `tableCell`, `blockquote`, `callout` and `taskItem` all hold bare text
     // when TipTap's parser is handed ordinary markup - `<ul><li>One</li></ul>` parses to
-    // `listItem[text]` and the browser agrees - so a rule that wrapped those would rewrite
-    // every document that ever passed through here rather than repair anything.
+    // `listItem[text]`, and the page prints it as written - so a rule that wrapped those
+    // would rewrite every document that ever passed through here rather than repair
+    // anything. The field fits them to its schema as it loads them: see `BlockContentTest`.
     //
     // Only the root is unconditional, and that is measured rather than assumed: the browser
     // wraps `doc[text]` in a paragraph while the renderer prints it bare, which is the one

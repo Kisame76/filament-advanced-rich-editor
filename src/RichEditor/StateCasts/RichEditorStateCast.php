@@ -7,8 +7,10 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\StateCasts;
 use Filament\Forms\Components\RichEditor\StateCasts\RichEditorStateCast as BaseRichEditorStateCast;
 use Illuminate\Contracts\Support\Htmlable;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\BlockContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
+use Tiptap\Editor;
 
 /**
  * Filament's rich editor cast, with the one shape it does not survive taken off the table.
@@ -26,6 +28,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
  *
  * Blank rather than empty, so a column holding nothing but spaces goes the same way: it
  * parses to the same empty document, and saying so here keeps the parser out of it.
+ *
+ * And what the parser makes of markup this editor did not write is fitted to the schema the
+ * browser holds it to - see `BlockContent` - since the browser takes it unchecked.
  */
 class RichEditorStateCast extends BaseRichEditorStateCast
 {
@@ -42,8 +47,20 @@ class RichEditorStateCast extends BaseRichEditorStateCast
             $state = null;
         }
 
-        return FileCard::withoutDrawnContent($this->resolveMediaSources(parent::set($state)));
+        $document = (new BlockContent)->apply(parent::set($state));
+
+        return FileCard::withoutDrawnContent($this->resolveMediaSources($document));
     }
+
+    /**
+     * Left to `BlockContent`, which fits a list item the way the schema reads it.
+     *
+     * Filament's own repair puts everything in an item into one paragraph once the item opens
+     * with text, so the nested list of `<li>One<ul>…</ul></li>` - every nested list written by
+     * anything but this editor - ends up inside the paragraph: a block where only inline
+     * content belongs, which the browser trips over at the first keystroke just the same.
+     */
+    protected function normalizeListItemContent(Editor $editor): void {}
 
     /**
      * The address of every player pointing at an attachment, asked for again.
