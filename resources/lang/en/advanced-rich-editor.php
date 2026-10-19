@@ -257,6 +257,11 @@ return [
             'exit' => 'Leave fullscreen',
         ],
         'image_replace' => 'Replace image',
+        'image_edit' => [
+            'label' => 'Edit image',
+            'apply' => 'Apply',
+            'hint' => 'Use the pencil on the picture to crop, turn or flip it. The original file is kept.',
+        ],
         'image_download' => 'Download image',
         'image_delete' => 'Delete image',
         'image_float_left' => 'Float left',

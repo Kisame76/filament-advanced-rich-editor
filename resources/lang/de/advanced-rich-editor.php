@@ -247,6 +247,11 @@ return [
             'exit' => 'Vollbild verlassen',
         ],
         'image_replace' => 'Bild ersetzen',
+        'image_edit' => [
+            'label' => 'Bild bearbeiten',
+            'apply' => 'Übernehmen',
+            'hint' => 'Mit dem Stift auf dem Bild zuschneiden, drehen oder spiegeln. Die ursprüngliche Datei bleibt erhalten.',
+        ],
         'image_download' => 'Bild herunterladen',
         'image_delete' => 'Bild löschen',
         'image_float_left' => 'Links umfließen',

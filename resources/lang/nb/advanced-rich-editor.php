@@ -257,6 +257,11 @@ return [
             'exit' => 'Avslutt fullskjerm',
         ],
         'image_replace' => 'Erstatt bilde',
+        'image_edit' => [
+            'label' => 'Rediger bilde',
+            'apply' => 'Bruk',
+            'hint' => 'Bruk blyanten på bildet for å beskjære, rotere eller speilvende det. Den opprinnelige filen beholdes.',
+        ],
         'image_download' => 'Last ned bilde',
         'image_delete' => 'Slett bilde',
         'image_float_left' => 'Flytende venstre',

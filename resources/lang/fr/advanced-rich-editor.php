@@ -257,6 +257,11 @@ return [
             'exit' => 'Quitter le plein écran',
         ],
         'image_replace' => 'Remplacer l\'image',
+        'image_edit' => [
+            'label' => 'Modifier l\'image',
+            'apply' => 'Appliquer',
+            'hint' => 'Utilisez le crayon sur l\'image pour la recadrer, la faire pivoter ou la retourner. Le fichier d\'origine est conservé.',
+        ],
         'image_download' => 'Télécharger l\'image',
         'image_delete' => 'Supprimer l\'image',
         'image_float_left' => 'Flottante à gauche',

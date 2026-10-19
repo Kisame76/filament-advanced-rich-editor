@@ -1297,6 +1297,8 @@ return [
 
         'link' => true,
 
+        'editor' => false,
+
         'dimensions' => true,
 
         'loading' => null,
@@ -1662,6 +1664,7 @@ return [
         'image_decorative' => 'heroicon-o-eye-slash',
 
         'image_link' => 'heroicon-o-link',
+        'image_edit' => 'arte-crop',
         'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
         'image_size' => 'heroicon-o-arrows-pointing-out',
         'image_replace' => 'heroicon-o-arrow-path',

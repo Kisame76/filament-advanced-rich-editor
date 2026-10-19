@@ -659,6 +659,20 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Image editor                                                               */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The dialog the image editor is reached through, unseen until the editor covers it - see
+ * `EditImageAction::OPENS_DIRECTLY`. Transparent rather than hidden: Filament's upload does
+ * not start inside anything `visibility: hidden`. Two classes, so that the modal's own fade
+ * cannot win the tie.
+ */
+.fi-modal-window.fi-arte-image-editor-pending {
+    opacity: 0;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Media browser                                                              */
 /* -------------------------------------------------------------------------- */
 

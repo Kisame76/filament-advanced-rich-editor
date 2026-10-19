@@ -134,6 +134,11 @@ trait FloatsToolbars
             $buttons[] = 'imageLink';
         }
 
+        // Beside Replace, because both give the picture another file.
+        if ($this->hasImageEditor()) {
+            $buttons[] = 'imageEdit';
+        }
+
         // Replace, Download, Delete: the order the bars over a card and a film use too.
         $buttons[] = 'imageReplace';
         $buttons[] = 'imageDownload';

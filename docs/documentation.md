@@ -2242,6 +2242,47 @@ there selects it so it can be resized, turned, placed or described.
 
 Per field: `->imageLink(false)`; project-wide: the `images.link` key.
 
+#### Cropping, turning and flipping a picture
+
+The **edit** button opens the picture in Filament's own image editor — the one
+[`FileUpload::imageEditor()`](https://filamentphp.com/docs/forms/file-upload#setting-up-the-image-editor)
+opens, with its crop box, a free ratio and 16:9, 4:3, 3:2 and 1:1, turning by any angle,
+flipping both ways and zoom. Nothing of it is this package's; it looks and translates the way
+it does everywhere else in the panel. It opens straight away, with no upload dialog in front of
+it: Save puts the result into the document, Cancel leaves the picture as it was. Only where
+the editor cannot open on its own — the picture did not load, or it is an SVG and Filament
+asks first — does the dialog around it show itself.
+
+```php
+AdvancedRichEditor::make('content')->imageEditor();
+```
+
+What an edit saves is **a new file**, and only this picture is pointed at it. It is held like
+any other upload until the form is saved, so closing the form without saving writes nothing;
+the old file stays where it was, for every other document that uses it and for an undo, which
+brings this picture back as it was. Cropping is done to the pixels rather than as a style the
+way the rotate buttons are, because a crop has to reach everywhere the document goes — a feed,
+a mail, an export — and a style does not.
+
+A picture with a size keeps its **scale** rather than its box, the way a word processor crops:
+cut half of a picture away and it is half as wide, instead of what is left being stretched
+back over the old box — blurred, on a picture that was small to begin with.
+
+Two things the editor needs from where the picture lives:
+
+- **The browser reads the file.** A picture on another host — a CDN, S3 — needs that host to
+  allow it ([CORS](https://developer.mozilla.org/docs/Web/HTTP/CORS)), the same as Filament's
+  upload field needs to show a stored file. Without it the dialog shows the picture as failed
+  to load and there is nothing to edit.
+- **An edit is drawn on a canvas.** An animated GIF keeps its first frame, and an SVG comes
+  out as a PNG — the dialog asks before it opens one, since a drawing that scaled to any size
+  does not afterwards.
+
+**It ships off.** Every edit writes a file of its own beside the one it was made from, which
+is right for the document and something a project should decide on for its disk — and most
+pictures are cropped before they are uploaded, by whoever took them. Filament's upload field
+ships its editor off for much the same reasons. Project-wide: the `images.editor` key.
+
 ### Media browser
 
 The `'mediaBrowser'` button — the one on the shipped bar — opens the **files** that are
@@ -4884,6 +4925,7 @@ the whole project; the method sets it for one field and wins.
 | Named styles (the list ships empty, so the dropdown is absent) | `styles` | `->styles([...])` |
 | A height cap (`null`) | `max_height` | `->maxHeight('400px')` |
 | Marking a picture as carrying nothing | `images.decorative` | `->imageDecorative()` |
+| Cropping, turning and flipping a picture | `images.editor` | `->imageEditor()` |
 | A loading hint on an inserted picture (`null`) | `images.loading` | `->imageLoading('lazy')` |
 
 | Ships **on** | Config key | Per field |

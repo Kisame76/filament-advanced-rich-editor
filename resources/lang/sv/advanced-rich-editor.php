@@ -257,6 +257,11 @@ return [
             'exit' => 'Avsluta helskärm',
         ],
         'image_replace' => 'Ersätt bild',
+        'image_edit' => [
+            'label' => 'Redigera bild',
+            'apply' => 'Använd',
+            'hint' => 'Använd pennan på bilden för att beskära, rotera eller spegelvända den. Originalfilen behålls.',
+        ],
         'image_download' => 'Ladda ner bild',
         'image_delete' => 'Radera bild',
         'image_float_left' => 'Flytande vänster',

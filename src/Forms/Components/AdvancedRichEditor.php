@@ -12,6 +12,7 @@ use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\EditImageAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
@@ -252,6 +253,12 @@ class AdvancedRichEditor extends RichEditor
                 ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ kind: \'image\', id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
                 ->activeStyling(false)
                 ->icon(Icons::get('image_replace')),
+
+            RichEditorTool::make('imageEdit')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_edit.label'))
+                ->action(EditImageAction::NAME, arguments: EditImageAction::ARGUMENTS)
+                ->activeStyling(false)
+                ->icon(Icons::get('image_edit')),
 
             RichEditorTool::make('imageDownload')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_download'))
@@ -786,6 +793,10 @@ class AdvancedRichEditor extends RichEditor
             // inside the browser's modal, because that is how an action becomes mountable
             // at all - the browser only renders its trigger, up beside Upload.
             $additions[] = MediaLibraryAction::fromUrl();
+        }
+
+        if ($this->hasImageEditor()) {
+            $additions[] = EditImageAction::make();
         }
 
         if ($replacements === [] && $additions === []) {

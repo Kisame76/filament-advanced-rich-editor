@@ -4,6 +4,18 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- A picture already in the document can be cropped, turned and flipped, in Filament's own image
+  editor - the one `FileUpload::imageEditor()` opens, with its crop box, its ratios and its
+  buttons. The edit button on the image bar opens it straight on the picture as the document
+  shows it, and Save puts the result into the document - no upload dialog in between.
+  What an edit saves is a new file, held like any upload until the form is saved, and only this
+  picture points at it: the old file stays for every other document using it, and undo brings
+  the picture back. A picture with a size keeps its scale, the way a word processor crops,
+  rather than having what is left stretched over the old box. Off by default, because every
+  edit writes a file of its own: switch it on with `->imageEditor()` or the `images.editor` key
+
 ### Fixed
 
 - A page of editors on Filament 5.10 is drawn in half the time again. Filament's new dropdown

@@ -257,6 +257,11 @@ return [
             'exit' => 'Volledig scherm sluiten',
         ],
         'image_replace' => 'Afbeelding vervangen',
+        'image_edit' => [
+            'label' => 'Afbeelding bewerken',
+            'apply' => 'Toepassen',
+            'hint' => 'Gebruik het potlood op de afbeelding om bij te snijden, te draaien of te spiegelen. Het oorspronkelijke bestand blijft bewaard.',
+        ],
         'image_download' => 'Afbeelding downloaden',
         'image_delete' => 'Afbeelding verwijderen',
         'image_float_left' => 'Links met tekstomloop',

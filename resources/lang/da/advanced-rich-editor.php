@@ -257,6 +257,11 @@ return [
             'exit' => 'Afslut fuld skærm',
         ],
         'image_replace' => 'Erstat billede',
+        'image_edit' => [
+            'label' => 'Rediger billede',
+            'apply' => 'Anvend',
+            'hint' => 'Brug blyanten på billedet til at beskære, rotere eller spejlvende det. Den oprindelige fil bevares.',
+        ],
         'image_download' => 'Download billede',
         'image_delete' => 'Slet billede',
         'image_float_left' => 'Flydende venstre',

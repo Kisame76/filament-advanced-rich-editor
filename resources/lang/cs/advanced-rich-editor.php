@@ -257,6 +257,11 @@ return [
             'exit' => 'Ukončit celou obrazovku',
         ],
         'image_replace' => 'Nahradit obrázek',
+        'image_edit' => [
+            'label' => 'Upravit obrázek',
+            'apply' => 'Použít',
+            'hint' => 'Tužkou na obrázku jej oříznete, otočíte nebo překlopíte. Původní soubor zůstane zachován.',
+        ],
         'image_download' => 'Stáhnout obrázek',
         'image_delete' => 'Smazat obrázek',
         'image_float_left' => 'Obtékat vlevo',

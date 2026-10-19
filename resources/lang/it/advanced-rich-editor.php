@@ -257,6 +257,11 @@ return [
             'exit' => 'Esci da schermo intero',
         ],
         'image_replace' => 'Sostituisci immagine',
+        'image_edit' => [
+            'label' => 'Modifica immagine',
+            'apply' => 'Applica',
+            'hint' => 'Usa la matita sull\'immagine per ritagliarla, ruotarla o capovolgerla. Il file originale resta invariato.',
+        ],
         'image_download' => 'Scarica immagine',
         'image_delete' => 'Elimina immagine',
         'image_float_left' => 'Allinea a sinistra',

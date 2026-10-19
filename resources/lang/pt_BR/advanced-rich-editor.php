@@ -257,6 +257,11 @@ return [
             'exit' => 'Sair da tela cheia',
         ],
         'image_replace' => 'Substituir imagem',
+        'image_edit' => [
+            'label' => 'Editar imagem',
+            'apply' => 'Aplicar',
+            'hint' => 'Use o lápis sobre a imagem para recortar, girar ou espelhar. O arquivo original é mantido.',
+        ],
         'image_download' => 'Baixar imagem',
         'image_delete' => 'Excluir imagem',
         'image_float_left' => 'Flutuar à esquerda',

@@ -257,6 +257,11 @@ return [
             'exit' => 'Zamknij pełny ekran',
         ],
         'image_replace' => 'Zastąp obraz',
+        'image_edit' => [
+            'label' => 'Edytuj obraz',
+            'apply' => 'Zastosuj',
+            'hint' => 'Użyj ołówka na obrazie, aby go przyciąć, obrócić lub odbić. Oryginalny plik pozostaje bez zmian.',
+        ],
         'image_download' => 'Pobierz obraz',
         'image_delete' => 'Usuń obraz',
         'image_float_left' => 'Do lewej, tekst obok',

@@ -257,6 +257,11 @@ return [
             'exit' => 'Salir de pantalla completa',
         ],
         'image_replace' => 'Reemplazar imagen',
+        'image_edit' => [
+            'label' => 'Editar imagen',
+            'apply' => 'Aplicar',
+            'hint' => 'Usa el lápiz sobre la imagen para recortarla, girarla o voltearla. El archivo original se conserva.',
+        ],
         'image_download' => 'Descargar imagen',
         'image_delete' => 'Eliminar imagen',
         'image_float_left' => 'Flotar a la izquierda',

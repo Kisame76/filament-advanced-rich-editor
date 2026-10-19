@@ -81,6 +81,8 @@ const RENDERED_ONLY_IN_A_DIALOG = [
     'resources/views/media-picker.blade.php',
     // The media dialog's own form, around the browser: its two hidden upload fields.
     'src/RichEditor/Actions/MediaLibraryAction.php',
+    // The image editor's dialog, kept unseen until the editor covers it.
+    'src/RichEditor/Actions/EditImageAction.php',
     // HelpAction's modal.
     'src/RichEditor/ShortcutTable.php',
     // StatisticsAction's modal.
