@@ -63,7 +63,18 @@ it('writes the shared settings in full on the first editor of a render, and only
         expect(array_intersect(array_keys($editors[$index]), [...SHARED_ATTRIBUTES, 'data-arte-carries']))->toBe([])
             ->and(json_decode($editors[$index]['data-arte-shared'], true))->toBe($shared);
     }
-});
+})->skip(fn (): bool => toolActionsNameTheirEditor(), 'Filament before 5.10.2 names each editor in its slash menu, so no two are the same.');
+
+it('carries the slash menu on every editor where Filament names the editor in its tools, and shares the rest', function (): void {
+    // The menu runs the toolbar's tools, and before 5.10.2 those say which editor they belong
+    // to. The find bar and the pickers' strings name nothing of the kind and are still shared.
+    $editors = sharingEditors(Livewire::test(RepeatedEditorsFormComponent::class)->html());
+
+    foreach ([1, 2] as $index) {
+        expect($editors[$index])->toHaveKey('data-arte-slash')
+            ->and(array_intersect(array_keys($editors[$index]), ['data-arte-find', 'data-arte-emoji', 'data-arte-characters']))->toBe([]);
+    }
+})->skip(fn (): bool => ! toolActionsNameTheirEditor(), 'Filament 5.10.2 and later write the same slash menu for every editor.');
 
 it('names each setting by what it holds, so a name can only ever mean the one setting', function (): void {
     // A field set up differently gets a different name and carries its own: nothing is ever

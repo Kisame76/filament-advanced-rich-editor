@@ -60,6 +60,20 @@ function editor(string $name = 'content'): AdvancedRichEditor
 }
 
 /**
+ * Whether Filament writes the editor's own key into every toolbar button that opens a dialog.
+ *
+ * It did until 5.10.2, which hands the button's element over instead and finds the editor from
+ * there when it is clicked. While it does, no two editors' floating bars or slash menus are the
+ * same markup, so nothing of either can be sent once a page: each editor carries its own, which
+ * is what `SharedMarkup` and `SharedSettings` do there. Asked of a tool rather than of the
+ * version, because what matters is what the button says.
+ */
+function toolActionsNameTheirEditor(): bool
+{
+    return str_contains((string) RichEditorTool::make('probe')->editor(editor())->action()->getJsHandler(), 'schemaComponent');
+}
+
+/**
  * The plugins a field registered, by class name.
  *
  * Every feature that is a `RichContentPlugin` asks the same question of a field - is it

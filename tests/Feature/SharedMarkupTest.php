@@ -49,7 +49,21 @@ it('sends the floating bars once a page, and only names them on every other edit
         ->and($templates[1]['bars'])->toBe([])
         ->and($templates[2]['bars'])->toBe([])
         ->and(array_unique(array_column($templates, 'key')))->toHaveCount(1);
-});
+})->skip(fn (): bool => toolActionsNameTheirEditor(), 'Filament before 5.10.2 names each editor in its bars, so no two are the same.');
+
+it('carries the bars on every editor where Filament names the editor in its buttons', function (): void {
+    // Before 5.10.2 every button that opens a dialog says which editor it belongs to, so the
+    // bars of two editors differ by that much - and a markup named by what it holds is then
+    // a markup of its own on every editor, carried by each. Nothing is lost but the saving.
+    $templates = markupTemplates(Livewire::test(RepeatedEditorsFormComponent::class)->html());
+
+    expect($templates)->toHaveCount(3)
+        ->and(array_unique(array_column($templates, 'key')))->toHaveCount(3);
+
+    foreach ($templates as $template) {
+        expect($template['bars'])->toContain('floatingToolbar::paragraph', 'floatingToolbar::image');
+    }
+})->skip(fn (): bool => ! toolActionsNameTheirEditor(), 'Filament 5.10.2 and later write the same bars for every editor.');
 
 it('writes the bars inside the element the editor is mounted on, where the editor looks for them', function (): void {
     // Filament reads them by `x-ref` off the component, and the text toolbar's rule asks the

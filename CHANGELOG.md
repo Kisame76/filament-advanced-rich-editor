@@ -60,7 +60,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   everything on every editor, since an editor already on the page is never drawn again and
   cannot be relied on to carry anything. The colour pickers draw their swatches from the palette
   their component already holds instead of writing each one out. Twenty editors went from 6.0
-  to 3.2 MB of markup, 615 to 352 KB gzipped. Run `php artisan filament:assets` after updating
+  to 3.2 MB of markup, 615 to 352 KB gzipped. On Filament before 5.10.2 the floating bars and
+  the slash menu still travel with every editor: Filament writes each editor's own key into
+  the buttons that open a dialog there, so no two editors' bars are the same. Run
+  `php artisan filament:assets` after updating
 
 - A page of editors renders faster on the server. The field keeps its answers while its state
   is hydrated, not only while it renders - filling a form asked for the whole toolbar four times
