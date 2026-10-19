@@ -50,6 +50,59 @@ it('resolves the toolbar a few times a render rather than once a question', func
     expect($resolved)->toBeLessThan(10);
 });
 
+it('resolves the toolbar a few times per editor while a repeater of them is filled', function (): void {
+    // Filling a form hydrates every field's state, and that is outside the windows Filament
+    // opens: each question asked while the state cast ran - whether the bar takes uploads,
+    // which pool answers for them, which tools there are - built the whole bar again, and
+    // building it asked the same questions from inside. Measured on a page of twenty editors:
+    // 172 resolutions per editor, two thirds of the request.
+    $resolved = 0;
+
+    config()->set('filament-advanced-rich-editor.tokens', [
+        'counted' => function () use (&$resolved): string {
+            $resolved++;
+
+            return 'bold';
+        },
+    ]);
+    config()->set('filament-advanced-rich-editor.toolbar', [
+        ...ToolbarPresets::shipped()['default']['toolbar'],
+        ['counted'],
+    ]);
+
+    Livewire::test(RepeatedEditorsFormComponent::class)->html();
+
+    // Three editors: once while each is filled, and the few times the render windows ask.
+    // Twelve a field before the hydration remembered its answers.
+    expect($resolved)->toBeLessThan(3 * 5);
+});
+
+it('builds the toolbar names once while they are asked for, not again from inside', function (): void {
+    // Whether the field takes uploads is read off the names on the bar. Expanding the bar runs
+    // the tools menu's token, which asked for the tools; the tools ask for the media pool, and
+    // the pool asks whether the field takes uploads - so the bar was expanded a second time
+    // from inside the first, on every editor, on every hydration.
+    $expanded = 0;
+
+    config()->set('filament-advanced-rich-editor.tokens', [
+        'counted' => function () use (&$expanded): string {
+            $expanded++;
+
+            return 'bold';
+        },
+    ]);
+    config()->set('filament-advanced-rich-editor.toolbar', [
+        ...ToolbarPresets::shipped()['default']['toolbar'],
+        ['counted'],
+    ]);
+
+    $field = editor();
+
+    Component::withVisibilityCache(fn (): bool => $field->hasFileAttachments());
+
+    expect($expanded)->toBe(1);
+});
+
 it('asks again in the next render, where the state may have moved on', function (): void {
     $button = 'bold';
 
@@ -122,6 +175,23 @@ it('measures the document for the counter once a render', function (): void {
     Livewire::test(MeasuredEditorFormComponent::class)->html();
 
     expect(MeasuringEditor::$measured)->toBe(1);
+});
+
+it('measures the document the field holds rather than the markup made from it', function (): void {
+    // `getState()` runs the state cast, which writes the document out as HTML - twice, the
+    // profiler said - and measuring then parsed that HTML back into the document it came from.
+    // The field already holds the document once the form was filled - and a state that was
+    // set as markup without a fill is still read, the way it always was.
+    MeasuringEditor::$measuredFrom = null;
+
+    Livewire::test(RepeatedEditorsFormComponent::class)->html();
+
+    expect(MeasuringEditor::$measuredFrom)->toBe('array');
+
+    Livewire::test(MeasuredEditorFormComponent::class)->html();
+
+    expect(MeasuringEditor::$measuredFrom)->toBe('string')
+        ->and(MeasuringEditor::$measured)->toBeGreaterThan(0);
 });
 
 it('measures each document in a repeater once a render', function (): void {

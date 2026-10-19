@@ -26,6 +26,9 @@ use WeakMap;
  * Held in a WeakMap rather than on the field. Repeaters and custom block modals clone fields,
  * and a property would be copied into every clone with the original's answer in it; an entry
  * in the map belongs to its object and goes when the object does.
+ *
+ * A field also opens a window of its own around work Filament does outside its windows but
+ * in which nothing about the field can move: see `rememberingThroughout()`.
  */
 trait RemembersWithinARender
 {
@@ -41,6 +44,50 @@ trait RemembersWithinARender
     protected static ?WeakMap $answersWithinRender = null;
 
     /**
+     * How many windows of the field's own are open, and what was answered inside them.
+     */
+    protected static int $windowsOfOurOwn = 0;
+
+    /**
+     * @var WeakMap<object, array<string, mixed>>|null
+     */
+    protected static ?WeakMap $answersWithinOurWindow = null;
+
+    /**
+     * Runs a piece of work with every answer remembered for its length, then forgets them.
+     *
+     * For what Filament does outside its own windows and in which this field's configuration
+     * cannot change - filling a form, above all, which hydrates every field's state and asks
+     * each one, through the state cast, whether it takes uploads, which pool answers for them
+     * and which tools it has. Each of those questions built the whole toolbar, and building it
+     * asked them again from inside: twelve times per editor, two thirds of a request for a
+     * page of twenty. Nested windows share the outermost one's answers.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    protected function rememberingThroughout(Closure $work): mixed
+    {
+        if (static::$windowsOfOurOwn === 0) {
+            static::$answersWithinOurWindow = new WeakMap;
+        }
+
+        static::$windowsOfOurOwn++;
+
+        try {
+            return $work();
+        } finally {
+            static::$windowsOfOurOwn--;
+
+            if (static::$windowsOfOurOwn === 0) {
+                static::$answersWithinOurWindow = null;
+            }
+        }
+    }
+
+    /**
      * @template T
      *
      * @param  Closure(): T  $answer
@@ -48,6 +95,23 @@ trait RemembersWithinARender
      */
     protected function rememberWithinRender(string $question, Closure $answer): mixed
     {
+        if ((static::$windowsOfOurOwn > 0) && (static::$answersWithinOurWindow !== null)) {
+            $answers = static::$answersWithinOurWindow[$this] ?? [];
+
+            if (array_key_exists($question, $answers)) {
+                return $answers[$question];
+            }
+
+            $value = $answer();
+
+            static::$answersWithinOurWindow[$this] = [
+                ...(static::$answersWithinOurWindow[$this] ?? []),
+                $question => $value,
+            ];
+
+            return $value;
+        }
+
         if (! Component::isVisibilityCacheEnabled()) {
             return $answer();
         }

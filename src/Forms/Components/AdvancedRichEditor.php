@@ -700,7 +700,11 @@ class AdvancedRichEditor extends RichEditor
             return CharacterCount::make()
                 ->enforced($component->enforcesMaxLength())
                 ->measuredBy(static function () use ($component): array {
-                    $counted = $component->measureCharacterCount($component->getState());
+                    // The raw state, not `getState()`: once the field is filled that is the
+                    // document itself, and the state cast would write it out as HTML - twice
+                    // - only for the measuring to parse it back. A state set as markup still
+                    // works, `toDocument()` reads either.
+                    $counted = $component->measureCharacterCount($component->getRawState());
 
                     return [
                         'characters' => $counted['characters'],
@@ -730,6 +734,26 @@ class AdvancedRichEditor extends RichEditor
             allowFilePathUsing: static fn (AdvancedRichEditor $component, string $file): bool => $component->getUploadedFileAttachment($file) !== null
                 || ($component->getMediaSource()?->has($file) ?? false),
         );
+    }
+
+    /**
+     * Filament's hydration, with this field's answers remembered while it runs.
+     *
+     * Filling a form hydrates every field outside the windows Filament opens, and the state
+     * cast asks the field, more than once each, whether it takes uploads, which pool answers
+     * for them and which tools it has - every one of those built the whole toolbar, and the
+     * toolbar asked them again from inside. Nothing about the field's configuration moves
+     * while its own state is being hydrated, so the answers hold for the length of it. See
+     * `rememberingThroughout()`.
+     *
+     * @param  array<string, mixed>|null  $hydratedDefaultState
+     * @param  array<string, true>  $appliedStateCastPaths
+     */
+    public function hydrateState(?array &$hydratedDefaultState, bool $shouldCallHydrationHooks = true, bool $shouldApplyStateCasts = true, array &$appliedStateCastPaths = []): void
+    {
+        $this->rememberingThroughout(function () use (&$hydratedDefaultState, $shouldCallHydrationHooks, $shouldApplyStateCasts, &$appliedStateCastPaths): void {
+            parent::hydrateState($hydratedDefaultState, $shouldCallHydrationHooks, $shouldApplyStateCasts, $appliedStateCastPaths);
+        });
     }
 
     /**

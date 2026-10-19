@@ -23,6 +23,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   seconds to the first frame. The editor also no longer marks every picture that loaded; only a
   broken one is marked, which is the only mark the stylesheet draws
 
+### Changed
+
+- A page of editors renders faster on the server. The field keeps its answers while its state
+  is hydrated, not only while it renders - filling a form asked for the whole toolbar four times
+  per editor - and the counter under the field measures the document instead of writing it out
+  as HTML first. Twenty editors went from 720 to about 460 ms to the first byte
+
 ## 1.7.0 - 2026-10-14
 
 ### Changed

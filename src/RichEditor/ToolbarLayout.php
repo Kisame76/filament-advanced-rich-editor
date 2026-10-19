@@ -174,13 +174,13 @@ class ToolbarLayout
             // source view and the shortcut list are each removable, so all four can be gone
             // while the list naming them is still as long as it ever was. A trigger opening
             // onto nothing is worse than no trigger.
+            //
+            // Asked of the tools the field registers rather than of `getTools()`: see
+            // `registersTool()` for the loop the other question ran.
             'tools' => static function (AdvancedRichEditor $editor): object|array {
                 $tools = $editor->getToolsMenu();
 
-                $available = array_filter(
-                    $tools,
-                    static fn (string $name): bool => array_key_exists($name, $editor->getTools()),
-                );
+                $available = array_filter($tools, $editor->registersTool(...));
 
                 return $available === [] ? [] : ToolbarDropdown::tools($tools);
             },
