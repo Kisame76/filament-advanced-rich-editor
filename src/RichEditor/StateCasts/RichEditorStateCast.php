@@ -55,10 +55,13 @@ class RichEditorStateCast extends BaseRichEditorStateCast
     /**
      * Left to `BlockContent`, which fits a list item the way the schema reads it.
      *
-     * Filament's own repair puts everything in an item into one paragraph once the item opens
-     * with text, so the nested list of `<li>One<ul>…</ul></li>` - every nested list written by
-     * anything but this editor - ends up inside the paragraph: a block where only inline
-     * content belongs, which the browser trips over at the first keystroke just the same.
+     * Filament before 5.10.3 repairs list items here, and puts everything in an item into one
+     * paragraph once the item opens with text, so the nested list of `<li>One<ul>…</ul></li>` -
+     * every nested list written by anything but this editor - ends up inside the paragraph: a
+     * block where only inline content belongs, which the browser trips over at the first
+     * keystroke just the same. From 5.10.3 on Filament repairs them in the browser instead and
+     * no longer has this method; `BlockContent` has fitted every item by then, so that repair
+     * finds nothing left to change.
      */
     protected function normalizeListItemContent(Editor $editor): void {}
 
