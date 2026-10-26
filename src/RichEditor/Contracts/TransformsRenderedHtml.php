@@ -17,7 +17,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts;
  * is part of, whether it was handed to that render or registered once with
  * `AdvancedRichContentRenderer::extendWith()`.
  *
- * Two things to know about when it runs:
+ * Three things to know about when it runs:
  *
  *  - after this package's own passes and after the code highlighting, so what arrives is the
  *    finished markup rather than a half-built version of it;
@@ -25,7 +25,12 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts;
  *    door as everything else, so a pass cannot put an attribute on a page that a document
  *    could not have carried there itself. A pass that needs one anyway widens the sanitiser
  *    the way this package widens it for embeds - `$this->app->extend(HtmlSanitizerConfig::class, ...)`
- *    in a service provider, which composes rather than replaces.
+ *    in a service provider, which composes rather than replaces;
+ *  - in `toHtml()` on Filament 5.11 and later, with each registered custom block standing
+ *    in as an empty `<div data-id="...">`. From that release Filament keeps what a registered
+ *    block renders out of the sanitiser, and a pass that rewrote it would be rewriting
+ *    markup nothing checks afterwards. Before 5.11, and in `toUnsafeHtml()` and
+ *    `toMarkdown()`, a block arrives as the markup it rendered.
  */
 interface TransformsRenderedHtml
 {

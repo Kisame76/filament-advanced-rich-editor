@@ -48,6 +48,7 @@ use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\HTMLToMarkdown\HtmlConverter;
+use ReflectionClass;
 use RuntimeException;
 use Tiptap\Core\Extension;
 use Tiptap\Editor;
@@ -126,6 +127,14 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     protected ?string $cacheStore = null;
 
     protected string|Closure|null $cacheKey = null;
+
+    /**
+     * What each registered custom block rendered, keyed by the placeholder standing in for it
+     * while `toHtml()` sanitises the page around it. Null everywhere else.
+     *
+     * @var array<string, string>|null
+     */
+    protected ?array $customBlockHtml = null;
 
     /**
      * What this package asks the converter for on top of its own defaults.
@@ -794,7 +803,48 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      */
     public function toHtml(): string
     {
-        return $this->remember('html', fn (): string => parent::toHtml());
+        // Built here rather than on `parent::toHtml()`: up to Filament 5.10 that sanitised
+        // `toUnsafeHtml()`, and from 5.11 on it renders the document a second way of its own.
+        // Every pass this package adds lives in `toUnsafeHtml()`, so a caption, a column width
+        // or a plugin's markup reached the page on 5.10 and quietly stopped on 5.11.
+        return $this->remember('html', function (): string {
+            if (! static::keepsCustomBlocksFromTheSanitiser()) {
+                return Str::sanitizeHtml($this->toUnsafeHtml());
+            }
+
+            // What 5.11 does, around this package's passes rather than instead of them: each
+            // registered block is a placeholder while the page is sanitised, and comes back
+            // only where its placeholder came through whole. An application that tightened
+            // the sanitiser, or markup around the block that swallowed it, keeps the block
+            // off the page too.
+            $this->customBlockHtml = [];
+
+            try {
+                $html = Str::sanitizeHtml($this->toUnsafeHtml());
+                $blocks = $this->customBlockHtml;
+            } finally {
+                $this->customBlockHtml = null;
+            }
+
+            return strtr($html, $blocks);
+        });
+    }
+
+    /**
+     * Whether the installed Filament keeps what a registered custom block renders out of the
+     * sanitiser, which it does from 5.11 on.
+     *
+     * Asked of Filament's renderer rather than of a version number. `renderHtml()` arrived in
+     * the same change as the step that stops a `renderedCustomBlock` stored in the document
+     * from passing for a registered one, and without that step, trusting a block would mean
+     * trusting whatever the document claims a block rendered.
+     *
+     * Through reflection rather than `method_exists()`, which PHPStan settles against the one
+     * release it happens to analyse - always true on 5.11, always false before it.
+     */
+    protected static function keepsCustomBlocksFromTheSanitiser(): bool
+    {
+        return (new ReflectionClass(RichContentRenderer::class))->hasMethod('renderHtml');
     }
 
     public function toUnsafeHtml(): string
@@ -1076,6 +1126,32 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         }
 
         parent::processNodes($editor);
+
+        $this->setCustomBlocksAside($editor);
+    }
+
+    /**
+     * Swaps each rendered custom block for a placeholder, while `toHtml()` is sanitising.
+     *
+     * Called from `processNodes()` because that is the last thing Filament does to the
+     * document before writing it out, on every release this package supports: a block set
+     * aside any earlier would be one a node processor never saw.
+     */
+    protected function setCustomBlocksAside(Editor $editor): void
+    {
+        if ($this->customBlockHtml === null) {
+            return;
+        }
+
+        $editor->descendants(function (object &$node): void {
+            if ($node->type !== 'renderedCustomBlock') {
+                return;
+            }
+
+            $placeholder = '<div data-id="'.Str::random(40).'"></div>';
+            $this->customBlockHtml[$placeholder] = $node->html ?? '';
+            $node->html = $placeholder;
+        });
     }
 
     /**
