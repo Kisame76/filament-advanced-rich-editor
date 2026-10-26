@@ -18,14 +18,6 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
-- Rendered content keeps everything this package adds to it on Filament 5.11. Filament 5.11
-  stopped building `toHtml()` on `toUnsafeHtml()`, which is where captions, linked and
-  decorative pictures, column widths, code colours and plugins' passes are applied - so on
-  5.11 none of them reached the page, and a record nobody had typed into threw instead of
-  rendering as nothing. `AdvancedRichContentRenderer::toHtml()` now builds the page itself.
-  What a registered custom block renders stays out of the sanitiser exactly where Filament
-  keeps it out - from 5.11 on, and never for a rendered block the stored document carries
-
 - A page of editors on Filament 5.10 is drawn in half the time again. Filament's new dropdown
   looks for the visible one among its triggers when it starts and whenever its panel changes,
   asking the browser for styles each time - and under Filament's own `:has()` rules each of
@@ -77,6 +69,18 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   is hydrated, not only while it renders - filling a form asked for the whole toolbar four times
   per editor - and the counter under the field measures the document instead of writing it out
   as HTML first. Twenty editors went from 720 to about 460 ms to the first byte
+
+## 1.7.1 - 2026-10-26
+
+### Fixed
+
+- Rendered content keeps everything this package adds to it on Filament 5.11. Filament 5.11
+  stopped building `toHtml()` on `toUnsafeHtml()`, which is where captions, linked and
+  decorative pictures, column widths, code colours and plugins' passes are applied - so on
+  5.11 none of them reached the page, and a record nobody had typed into threw instead of
+  rendering as nothing. `AdvancedRichContentRenderer::toHtml()` now builds the page itself.
+  What a registered custom block renders stays out of the sanitiser exactly where Filament
+  keeps it out - from 5.11 on, and never for a rendered block the stored document carries
 
 ## 1.7.0 - 2026-10-14
 
