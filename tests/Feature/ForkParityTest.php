@@ -83,6 +83,59 @@ function optionsAheadOfUpstream(): array
 }
 
 /**
+ * Options the fork keeps passing after upstream stopped, keyed by the release that stopped.
+ *
+ * The mirror of `LATER_UPSTREAM_OPTIONS`: one view serves the whole supported range, so an
+ * option the oldest supported release still reads stays in it, and a newer release ignores
+ * what it no longer asks for. Against a release before the one listed these are held to
+ * upstream like every other option; from that release on they are the only keys the fork
+ * is allowed to pass on top.
+ *
+ * @var array<string, string>
+ */
+const EARLIER_UPSTREAM_OPTIONS = [
+    // 5.11 reads mentions through the `$getMentionLabelsForJs()` and
+    // `$getMentionSearchResultsForJs()` its schema component scope hands every exposed
+    // method, and takes neither callback any more.
+    'getMentionLabelsUsing' => '5.11.0',
+    'getMentionSearchResultsUsing' => '5.11.0',
+];
+
+/**
+ * The options in `EARLIER_UPSTREAM_OPTIONS` the installed Filament no longer has.
+ *
+ * @return array<int, string>
+ */
+function optionsBehindUpstream(): array
+{
+    $installed = (string) InstalledVersions::getVersion('filament/forms');
+
+    return array_keys(array_filter(
+        EARLIER_UPSTREAM_OPTIONS,
+        static fn (string $release): bool => version_compare($installed, $release, '>='),
+    ));
+}
+
+/**
+ * The oldest Filament the package says it supports, off the `filament/forms` constraint.
+ *
+ * The first version number in it, which is the floor of the caret constraint the package
+ * uses. A constraint parser would be more general and is not something this suite installs.
+ *
+ * Written out to three parts, because `version_compare()` puts `5.11` before `5.11.0`.
+ */
+function oldestSupportedFilament(): string
+{
+    $composer = json_decode((string) file_get_contents(dirname(__DIR__, 2).'/composer.json'), associative: true);
+
+    if (! preg_match('/(\d+)\.(\d+)(?:\.(\d+))?/', (string) ($composer['require']['filament/forms'] ?? ''), $match)) {
+        throw new RuntimeException('No version in the filament/forms constraint.');
+    }
+
+    return $match[1].'.'.$match[2].'.'.($match[3] ?? '0');
+}
+
+/**
  * The body of `RichEditor::toEmbeddedHtml()`, read off the installed Filament.
  *
  * Located by reflection rather than by line number so that the guard survives upstream
@@ -238,7 +291,7 @@ it('offers the Alpine component exactly the options upstream offers it', functio
     $fork = array_keys(richEditorOptions(forkedEditorSource()));
 
     $missing = array_values(array_diff($upstream, $fork));
-    $extra = array_values(array_diff($fork, $upstream, optionsAheadOfUpstream()));
+    $extra = array_values(array_diff($fork, $upstream, optionsAheadOfUpstream(), optionsBehindUpstream()));
 
     expect($missing)->toBe([], 'Upstream passes these and the fork does not, so they arrive as undefined: '.implode(', ', $missing))
         ->and($extra)->toBe([], 'The fork passes these and upstream does not, so nothing reads them: '.implode(', ', $extra));
@@ -330,7 +383,7 @@ it('is looking at the code it claims to be looking at', function (): void {
     // guard passes while seeing nothing at all.
     $upstream = richEditorOptions(upstreamEditorSource());
 
-    expect($upstream)->toHaveCount(count(richEditorOptions(forkedEditorSource())) - count(optionsAheadOfUpstream()))
+    expect($upstream)->toHaveCount(count(richEditorOptions(forkedEditorSource())) - count(optionsAheadOfUpstream()) - count(optionsBehindUpstream()))
         ->and(count($upstream))->toBeGreaterThan(20)
         ->and($upstream)->toHaveKey('statePath')
         ->and($upstream)->toHaveKey('extensions')
@@ -346,6 +399,28 @@ it('passes every option it claims to be ahead with', function (): void {
     ));
 
     expect($missing)->toBe([], 'Listed as ahead of upstream but not passed by the fork: '.implode(', ', $missing));
+});
+
+it('passes every option it claims older releases still read', function (): void {
+    // The same honesty for the other allowance: an option kept for older releases that the
+    // fork has dropped anyway leaves those releases without it.
+    $missing = array_values(array_diff(
+        array_keys(EARLIER_UPSTREAM_OPTIONS),
+        array_keys(richEditorOptions(forkedEditorSource())),
+    ));
+
+    expect($missing)->toBe([], 'Listed as kept for older releases but not passed by the fork: '.implode(', ', $missing));
+});
+
+it('keeps no option for a release it no longer supports', function (): void {
+    // Once the oldest supported release is the one that stopped reading an option, nothing
+    // the package supports reads it, and the fork is passing it for nobody.
+    $stale = array_keys(array_filter(
+        EARLIER_UPSTREAM_OPTIONS,
+        static fn (string $release): bool => version_compare(oldestSupportedFilament(), $release, '>='),
+    ));
+
+    expect($stale)->toBe([], 'No supported release reads these any more, so the fork can stop passing them: '.implode(', ', $stale));
 });
 
 it('still renders the fork rather than the embedded HTML', function (): void {
