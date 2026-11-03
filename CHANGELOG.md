@@ -47,6 +47,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   gets an empty one. Filament's own repair of list items, which put a nested list inside the
   item's paragraph, is replaced by it. Filament's stock editor has the same problem
 
+- A picture keeps its loading hint. Filament's image node in the browser declares an id, a
+  width and a height and nothing else, and the editor drops what nothing declares - so the
+  `loading` that `->imageLoading()` writes was gone before the picture reached the document,
+  and a hint already stored was gone the first time somebody changed anything and saved. The
+  PHP half always kept it, which is why a record nobody typed into still had one. The new
+  `image-loading.js` declares it on every field, whatever that field writes itself, and keeps
+  `lazy` and `eager` only. Run `php artisan filament:assets` after updating - the script is new
+
 ### Changed
 
 - A page of editors is a third smaller. Much of what every editor carries is the same for every

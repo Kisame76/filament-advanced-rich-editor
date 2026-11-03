@@ -2164,6 +2164,9 @@ somebody switching it on is trying to improve. The measured size above earns the
 same prize without that risk. Set it project-wide under `images.loading`, and use
 `->imageLoading(false)` to keep one field eager where the project turned it on everywhere.
 
+Either way, this decides what an insert writes and not what a save keeps: a hint already in a
+document stays there on every field, whatever that field would write itself.
+
 #### A picture that carries nothing
 
 A divider, a texture, a flourish beside a heading the words already say. The **decorative**

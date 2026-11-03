@@ -64,6 +64,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageDecorativePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLoadingPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\IndentPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\InvisiblesPlugin;
@@ -493,6 +494,10 @@ class AdvancedRichEditor extends RichEditor
         // the schema - a field that stopped declaring it would drop every caption already
         // written on the next save.
         $this->plugins([ImageCaptionPlugin::make()]);
+
+        // Always, for the caption's reason: `imageLoading()` decides what an insert writes,
+        // and a field that writes nothing still opens documents that carry a hint.
+        $this->plugins([ImageLoadingPlugin::make()]);
 
         // Always, for a different reason: it repairs two keyboard shortcuts Filament's own
         // build binds and then declines to answer, on every field, whether or not this one

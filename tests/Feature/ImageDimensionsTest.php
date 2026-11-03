@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ImageAttributes;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLoadingPlugin;
 
 /**
  * What an inserted picture carries besides its source.
@@ -153,4 +154,37 @@ it('writes no loading hint until it is told one', function (): void {
         // And false is how a teaser field stays eager on a project that turned lazy
         // loading on everywhere. Without it there would be no way to say so.
         ->and(editor()->imageLoading(false)->getImageLoading())->toBeNull();
+});
+
+/**
+ * Where the hint goes once it is written: into a schema that has to declare it on both
+ * sides, or the first save after it was written drops it.
+ */
+it('keeps a loading hint through the round trip a save goes through', function (): void {
+    // The PHP half is Filament's own - its `ImageExtension` declares `loading` - and this is
+    // what says so. The browser half is `image-loading.js`.
+    $stored = '<p><img src="/a.jpg" loading="lazy"></p>';
+
+    $once = editor()->getTipTapEditor()->setContent($stored)->getHTML();
+    $twice = editor()->getTipTapEditor()->setContent($once)->getHTML();
+
+    expect($once)->toContain('loading="lazy"')
+        ->and($twice)->toBe($once);
+});
+
+it('declares the hint in the editor on every field, whatever the field writes', function (): void {
+    // A field that writes no hint of its own still opens documents that carry one - written
+    // while the project said lazy, or by another field - and without the declaration it
+    // drops them on the next save.
+    expect(pluginNames(editor()))->toContain(ImageLoadingPlugin::class)
+        ->and(pluginNames(editor()->imageLoading(false)))->toContain(ImageLoadingPlugin::class);
+
+    $plugin = ImageLoadingPlugin::make();
+
+    expect($plugin->getTipTapJsExtensions())->toHaveCount(1)
+        ->and($plugin->getTipTapJsExtensions()[0])->toContain('image-loading')
+        // Nothing on the PHP side: Filament's image node declares the attribute there.
+        ->and($plugin->getTipTapPhpExtensions())->toBe([])
+        ->and($plugin->getEditorTools())->toBe([])
+        ->and($plugin->getEditorActions())->toBe([]);
 });
