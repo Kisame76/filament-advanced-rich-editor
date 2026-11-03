@@ -9,6 +9,7 @@ use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use Kisame76\FilamentAdvancedRichEditor\Console\DiagnoseCommand;
 use Kisame76\FilamentAdvancedRichEditor\Console\MediaCoversCommand;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
@@ -34,7 +35,7 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasTranslations()
             ->hasViews()
-            ->hasCommand(MediaCoversCommand::class)
+            ->hasCommands([MediaCoversCommand::class, DiagnoseCommand::class])
             // `<x-arte-content :content="$post->body" />`. The prefix is the one the CSS
             // classes already use, so a project only ever learns the one abbreviation.
             ->hasViewComponents('arte', Content::class, Lightbox::class);

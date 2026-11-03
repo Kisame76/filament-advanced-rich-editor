@@ -285,6 +285,10 @@ return [
     | appears where the tools menu already reserves a place for it, after 'find'. Nothing
     | about any of it is stored.
     |
+    | `php artisan arte:diagnose` asks the same rules of every stored document, whether
+    | the check is on or not, and leaves out the ones 'rules' leaves out. Contrast is
+    | the editor's alone: it depends on the colours a field offers.
+    |
     | Per field: `->accessibility()`, `->accessibilityRules()`.
     */
     'accessibility' => [
@@ -1437,6 +1441,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Stored documents
+    |--------------------------------------------------------------------------
+    | Where documents are kept, for what has to read every one of them rather than the one
+    | on the screen: the media library, which takes a deleted file out of every entry using
+    | it and points them all at a replaced one, and `php artisan arte:diagnose`. A package
+    | cannot know which tables hold rich content, so it is told - a model with its columns,
+    | or a model alone, which then answers with the columns it registered as rich content
+    | itself (`registerRichContent()`).
+    |
+    | Models that registered rich content under `app/Models` are found by `arte:diagnose`
+    | without being named, and a media library field knows its own column; the list is for
+    | everything else. It used to be `media_library.documents`, which is still read.
+    | Per field, for the library: `->mediaLibraryDocuments()`.
+    |
+    |   'documents' => [
+    |       App\Models\Page::class => ['body', 'sidebar'],
+    |       App\Models\Post::class,
+    |   ],
+    */
+    'documents' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Media library
     |--------------------------------------------------------------------------
     | The 'mediaBrowser' button — the one on the shipped bar — opens a browser of the
@@ -1563,22 +1590,6 @@ return [
         'deletable' => null,
 
         'replaceable' => true,
-
-        /*
-         * Where else the library's files are used. Deleting a file takes it out of every entry
-         * using it, and replacing one points them all at the new file - which needs to know
-         * where entries live, and a package cannot know which tables hold rich content.
-         *
-         * The field's own column is known without being told. Name the rest: a model with its
-         * columns, or a model alone, which then answers with the columns it registered as rich
-         * content itself (`registerRichContent()`). Per field: `->mediaLibraryDocuments()`.
-         *
-         *   'documents' => [
-         *       App\Models\Page::class => ['body', 'sidebar'],
-         *       App\Models\Post::class,
-         *   ],
-         */
-        'documents' => [],
 
         /*
          * Whether an upload the library already holds - the same bytes, under whatever name -

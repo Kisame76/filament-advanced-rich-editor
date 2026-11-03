@@ -8,6 +8,7 @@ use BackedEnum;
 use Closure;
 use DateInterval;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
+use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
@@ -253,6 +254,27 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         }
 
         return array_values($plugins);
+    }
+
+    /**
+     * Everything a model says about one of its rich content attributes: its plugins, its
+     * merge tags, its mentions, and where its files are.
+     *
+     * Filament's own `RichContentAttribute::getRenderer()` says the same, into a renderer
+     * that is only this one where a project bound it - so an entry, a column and the
+     * diagnosis read the model through here instead, and draw what the editor wrote.
+     */
+    public function attribute(RichContentAttribute $attribute): static
+    {
+        return $this
+            ->plugins($attribute->getPlugins())
+            ->customBlocks($attribute->getCustomBlocks())
+            ->mergeTags($attribute->getMergeTags())
+            ->mentions($attribute->getMentionProviders())
+            ->fileAttachmentsDisk($attribute->getFileAttachmentsDiskName())
+            ->fileAttachmentsVisibility($attribute->getFileAttachmentsVisibility())
+            ->fileAttachmentProvider($attribute->getFileAttachmentProvider())
+            ->textColors($attribute->getTextColors());
     }
 
     /**

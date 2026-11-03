@@ -16,6 +16,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaUsages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\StoredDocuments;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -414,7 +415,7 @@ trait HoldsAMediaLibrary
      * Deleting a file takes it out of every entry using it, and replacing one points them at
      * the new file - which needs to know where entries are, and a package cannot know which of
      * an application's tables hold rich content. This field's own column is known without
-     * being told; everything else is named here or in `media_library.documents`:
+     * being told; everything else is named here or in the `documents` key:
      *
      *     ->mediaLibraryDocuments([
      *         Page::class => ['body', 'sidebar'],
@@ -438,33 +439,13 @@ trait HoldsAMediaLibrary
      */
     public function getMediaLibraryDocuments(): array
     {
-        $documents = [];
-
         $own = $this->getOwnMediaLibraryDocument();
 
-        if ($own !== null) {
-            $documents[$own[0]] = [$own[1]];
-        }
-
-        $named = [
-            ...(array) (config('filament-advanced-rich-editor.media_library.documents') ?? []),
-            ...(array) ($this->evaluate($this->mediaLibraryDocuments) ?? []),
-        ];
-
-        foreach ($named as $key => $value) {
-            [$model, $columns] = is_int($key) ? [$value, []] : [$key, (array) $value];
-
-            if (! is_string($model) || ! is_subclass_of($model, Model::class)) {
-                continue;
-            }
-
-            $documents[$model] = array_values(array_unique([
-                ...($documents[$model] ?? []),
-                ...MediaUsages::columnsOf($model, array_values(array_filter($columns, 'is_string'))),
-            ]));
-        }
-
-        return array_filter($documents);
+        return StoredDocuments::merge(
+            ($own === null) ? [] : [$own[0] => [$own[1]]],
+            StoredDocuments::configured(),
+            StoredDocuments::from((array) ($this->evaluate($this->mediaLibraryDocuments) ?? [])),
+        );
     }
 
     public function getMediaUsages(): MediaUsages

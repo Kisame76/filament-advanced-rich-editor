@@ -30,7 +30,7 @@ on top of it, checked against the current Filament v5 release:
 | **Reaching a tool** | Aim at the bar | [Type `/`](#slash-menu) for the commands *this* field offers, or use [the grip in the margin](#drag-handle) to move a block and the plus to start one |
 | **Formatting what you selected** | `->floatingToolbars()` exists; the only bar Filament ships is the one over a table cell | [A bar over the selected text](#toolbar-over-a-selection) carrying the styles, the marks, the link and both colour pickers — taking the same tokens the main toolbar does |
 | **Pasting from Word** | What Word wrote, minus what the sanitiser strips on save | [Cleaned on the way in](#pasting-from-word-and-google-docs): the list Word writes as twelve paragraphs is a list again, and somebody else's fonts, sizes and colours stay behind |
-| **Accessibility** | — | [A check](#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read — and [`lang` on a passage](#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
+| **Accessibility** | — | [A check](#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read, [asked of every stored document](#diagnosing-stored-documents) as well — and [`lang` on a passage](#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
 | **Closing the tab** | The text is gone | [A draft kept in the browser](#drafts-in-the-browser), offered back the next time the field is opened, and a warning before the tab closes |
 | **Seeing the HTML** | — | [The document in Filament's own code editor](#source-code) |
 | **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
@@ -89,6 +89,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Pasting from Word and Google Docs](#pasting-from-word-and-google-docs)
 
 **[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
+[Diagnosing stored documents](#diagnosing-stored-documents) ·
 [Drafts in the browser](#drafts-in-the-browser) · [Character count](#character-count) ·
 [Rules about the content](#rules-about-the-content) ·
 [Being told a document was saved](#being-told-a-document-was-saved) ·
@@ -2599,10 +2600,8 @@ else is named, per field or for all of them:
 ```
 
 ```php
-'media_library' => [
-    'documents' => [
-        App\Models\Page::class => ['body', 'sidebar'],
-    ],
+'documents' => [
+    App\Models\Page::class => ['body', 'sidebar'],
 ],
 ```
 
@@ -2615,6 +2614,10 @@ reported and passed over rather than stopping the delete.
 
 The dialog names other records, so they are only looked up on a field that may delete or
 replace at all.
+
+The configured list is also where [`arte:diagnose`](#diagnosing-stored-documents) looks for
+documents, beside the models that registered rich content. It used to be
+`media_library.documents`, which is still read.
 
 ```php
 'media_library' => [
@@ -3228,6 +3231,51 @@ that finds nothing is left out rather than drawn as an empty heading.
 
 Re-opening a link does not preselect the record it points at. Finding the record behind a URL
 means storing a reference next to it, which is exactly what the mark cannot carry.
+
+#### Links that no longer lead anywhere
+
+```bash
+php artisan arte:diagnose --only=links
+```
+
+asks every link in every stored document whether it still answers, and lists the ones that do
+not with the entry and column they are written in. It is one of the three things
+[`arte:diagnose`](#diagnosing-stored-documents) looks for, and the one that leaves the machine;
+which documents it reads and how to schedule it are said there.
+
+| Answer | Counts as | Fails the command |
+| --- | --- | --- |
+| 2xx, 3xx | working | |
+| 404, 410, a host that does not exist | broken | yes |
+| any other 4xx or 5xx | answering with an error | |
+| a timeout, a refused connection, a bad certificate | not answering | |
+
+An error is listed and not failed over: a server that is down for the afternoon, or turns away
+anything that is not a browser — plenty of large sites do — is not a link anybody has to fix.
+
+**What is asked.** A link on text and a link on a picture. Not a download card, which points
+into the [media library](#media-browser), and not an embed. A link to the site itself —
+`/about` — is asked of `app.url`, which is where a reader's browser would take it; on a
+machine that is not the site, a container or a build server, `app.url` may answer nobody, and
+the command says so when not one of those links answered. A link to a place on the page, an
+e-mail address or a phone number is not asked.
+
+**How.** Every address once however often it is written, ten at a time, `HEAD` first and `GET`
+where `HEAD` was refused — a server that answers `HEAD` with 405, 403 or even 404 for a page
+that is there is common enough that an error is only believed once `GET` says it too. The
+transfer is stopped once the headers are in, so a link to a large file does not download it.
+Redirects are followed, five at most.
+
+```php
+'link' => [
+    'check' => [
+        'dialog' => false,
+        'timeout' => 5,         // seconds per request
+        'concurrency' => 10,    // addresses asked at once
+        'user_agent' => null,   // null: "Mozilla/5.0 (compatible; link check; <app.name>)"
+    ],
+],
+```
 
 ##### A warning in the link dialog
 
@@ -4068,6 +4116,105 @@ The panel rechecks itself as the document changes, so a finding disappears when 
 rather than when the panel is opened again. Nothing about any of it is stored: a check marks
 no document, and a picture that was given alt text is an ordinary picture by the time it is
 saved.
+
+### Diagnosing stored documents
+
+```bash
+php artisan arte:diagnose
+```
+
+reads every stored document and lists what is wrong in it: files it points at that are gone,
+links that no longer lead anywhere, and what the [accessibility check](#accessibility-check)
+would say about it. Each finding comes with the entry and column it is in:
+
+```
+  Files
+
+   INFO  Looked for 14 files.
+
++------------------------+---------+----------------+
+| Entry                  | Column  | File           |
++------------------------+---------+----------------+
+| Article #3 “Prices”    | content | price-list.pdf |
++------------------------+---------+----------------+
+1 missing, 13 found.
+
+  Links
+
+   INFO  Asked 4 addresses, found in 2 entries.
+
++------------------------+---------+------------------------------+-------------------------------------+
+| Entry                  | Column  | Link                         | Answer                              |
++------------------------+---------+------------------------------+-------------------------------------+
+| Article #1 “Welcome”   | content | https://example.com/old-page | This address answers 404 Not Found. |
++------------------------+---------+------------------------------+-------------------------------------+
+1 broken, 0 not answering, 0 answering with an error, 3 working.
+
+  Accessibility
+
+   INFO  Read 212 documents.
+
++------------------------+---------+------------------------+-------------+
+| Entry                  | Column  | Problem                | Where       |
++------------------------+---------+------------------------+-------------+
+| Article #1 “Welcome”   | content | Image without alt text | /storage/…  |
+| Article #3 “Prices”    | content | Heading level skipped  | Small print |
++------------------------+---------+------------------------+-------------+
+Image without alt text: 1, Heading level skipped: 1.
+```
+
+**It fails where something is broken for every reader, and only there** — a file that is
+gone, a page that is gone, a host that does not exist. So it is something to schedule:
+
+```php
+Schedule::command('arte:diagnose')->weekly()->emailOutputOnFailure('editors@example.com');
+```
+
+The rest is listed without failing: a server that is down for the afternoon is not a link
+anybody has to fix, and a document written before anybody asked for alt text would fail every
+run until somebody rewrote the archive.
+
+**One check at a time.** `--only` takes `files`, `links` and `accessibility`, as often as
+needed. The links are the one check that leaves the machine — every address is a request —
+so `--only=files --only=accessibility` is the run that stays at home.
+
+**Which documents.** Found the way `model:prune` finds what to prune: every model under
+`app/Models` that registered rich content (`registerRichContent()`), plus the places the
+[`documents` key](#where-a-file-is-used) names. `--model` replaces both, as often as needed,
+with or without columns:
+
+```bash
+php artisan arte:diagnose --model="App\Models\Page:body,sidebar" --model="App\Models\Post"
+```
+
+A model named without columns is read for the ones it registered. Both shapes a column can
+hold are read, markup and a stored tree, and both through the schema the editor writes with —
+the package's own nodes and the plugins the model declares.
+
+**Files.** A picture, a player and a document card from the [media browser](#media-browser)
+or an upload point at their file by an id, and a file is gone where that id no longer leads to
+one: deleted from the disk, or from the media collection. Where a model keeps its files is what
+its `registerRichContent()` says — the disk, or the media library plugin — which is what every
+page rendering it is told too. A column the model does not register says nothing about it, so
+its files are not looked for, and the command says which columns those were rather than
+guessing. Where not one file of a column was found, it asks whether the model says the right
+thing: a media collection the attribute was never told about looks, from here, exactly like a
+library somebody emptied. A disk or a library that does not answer is not a file that is gone:
+those files are counted as not looked for, the error goes to the log, and the run does not fail
+over them. A document that cannot be read at all is passed over the same way.
+
+**Links** are asked the way [Links that no longer lead anywhere](#links-that-no-longer-lead-anywhere)
+describes.
+
+**Accessibility** is the check's own rules, every one but contrast: a colour is stored by its
+name, and what it means and what it is read against belong to the field that offered it.
+Which rules are asked follows `accessibility.rules`, and nothing else about the check — it is
+asked whether the check is switched on in the editor or not. The rules are said twice, once
+for the editor and once for this, and both are held to one list of cases in the test suite.
+
+Reading a document through the schema is the slow part - about 7 ms for an article of 15 KB,
+against a quarter of a millisecond for every rule, file and link in it together. A table of ten
+thousand entries takes a minute or so before the first link is asked.
 
 ### Drafts in the browser
 

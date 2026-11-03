@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import CASES from './fixtures/accessibility-findings.json'
 import {
     RULES,
     contrastRatio,
@@ -278,6 +279,14 @@ describe('the seven rules', () => {
     it('says nothing about a colour it could not read', () => {
         expect(findingsFor([subject('colour', { color: 'var(--brand)' })])).toEqual([])
         expect(findingsFor([subject('colour', { color: 'rgba(0, 0, 0, 0.4)' })])).toEqual([])
+    })
+})
+
+describe('the cases PHP is held to as well', () => {
+    // `AccessibilityFindings` asks the same rules of stored documents, for `arte:diagnose`.
+    // Both suites read this list, so a rule changed on one side fails on the other.
+    it.each(CASES)('$case', ({ subjects, rules, weakPhrases, findings }) => {
+        expect(findingsFor(subjects, { rules, weakPhrases }).map(({ rule, text }) => ({ rule, text }))).toEqual(findings)
     })
 })
 

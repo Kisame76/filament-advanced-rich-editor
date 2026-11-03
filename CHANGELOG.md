@@ -56,6 +56,22 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   keeps working. The button and its dialog say "Embed" rather than "Video" now, in all twelve
   languages
 
+- `php artisan arte:diagnose` reads every stored document and lists what is wrong in it, with
+  the entry and column it is in: files it points at that are gone, links that no longer lead
+  anywhere, and what the accessibility check would say about it. It fails where something is
+  broken for every reader - a file that is gone, a page that is gone, a host that does not
+  exist - and only there, so it can be scheduled with the output mailed on failure; a link
+  answering with an error, or not at all, and an accessibility finding are listed without
+  failing. `--only` runs one check at a time; the links are the one that leaves the machine.
+  The documents are found the way `model:prune` finds its models - every model in `app/Models`
+  that registered rich content, plus the `documents` key - or named with `--model`. A file is
+  looked for where the model's `registerRichContent()` says its files are, which is what every
+  page rendering it is told too. Every address is asked once, `HEAD` first and `GET` where that
+  was refused, and no body is downloaded. The accessibility rules are the editor's, every one
+  but contrast, and follow `accessibility.rules`. `->linkCheck()` adds a warning to the link
+  dialog for a typed address that does not answer; off by default, because it is the server
+  that asks, and switched on it asks only the public internet
+
 - Link cards: a link drawn as the page's title, a line about it and the site it is on, with the
   site's icon. The dialog reads the page as its address is left - Open Graph first, then the
   Twitter tags, then `<title>` - and fills in fields that can still be corrected. What the card
@@ -160,6 +176,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   `lazy` and `eager` only. Run `php artisan filament:assets` after updating - the script is new
 
 ### Changed
+
+- Where documents are kept is the top-level `documents` key now rather than
+  `media_library.documents`, because the media library is no longer the only thing reading it.
+  A published config with the old key keeps working: both are read, and a model named in both
+  is read for every column either names
 
 - A page of editors is a third smaller. Much of what every editor carries is the same for every
   field set up the same way, and gzip could not shrink the repeats because its window ends long

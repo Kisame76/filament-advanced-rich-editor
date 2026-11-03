@@ -1,0 +1,93 @@
+[
+    {
+        "case": "a picture nobody described",
+        "subjects": [{ "kind": "image", "alt": "", "src": "cat.png", "decorative": false, "href": null }],
+        "findings": [{ "rule": "missing_alt", "text": "cat.png" }]
+    },
+    {
+        "case": "a description of nothing but spaces",
+        "subjects": [{ "kind": "image", "alt": "   ", "src": "cat.png", "decorative": false, "href": null }],
+        "findings": [{ "rule": "missing_alt", "text": "cat.png" }]
+    },
+    {
+        "case": "a picture with a description",
+        "subjects": [{ "kind": "image", "alt": "A cat asleep on a keyboard", "src": "cat.png", "decorative": false, "href": null }],
+        "findings": []
+    },
+    {
+        "case": "a picture marked as carrying nothing",
+        "subjects": [{ "kind": "image", "alt": "", "src": "divider.png", "decorative": true, "href": null }],
+        "findings": []
+    },
+    {
+        "case": "a picture marked as carrying nothing that is the whole of a link",
+        "subjects": [{ "kind": "image", "alt": "", "src": "logo.png", "decorative": true, "href": "/somewhere" }],
+        "findings": [{ "rule": "decorative_link", "text": "/somewhere" }]
+    },
+    {
+        "case": "a linked picture with a description",
+        "subjects": [{ "kind": "image", "alt": "Eine Katze", "src": "cat.png", "decorative": false, "href": "/somewhere" }],
+        "findings": []
+    },
+    {
+        "case": "a link with nothing in it, which is not also called weak",
+        "subjects": [{ "kind": "link", "href": "/a", "text": "  " }],
+        "weakPhrases": [""],
+        "findings": [{ "rule": "empty_link", "text": "/a" }]
+    },
+    {
+        "case": "a link whose whole text says nothing, past its case and punctuation",
+        "subjects": [{ "kind": "link", "href": "/a", "text": "Click here! " }],
+        "weakPhrases": ["click here"],
+        "findings": [{ "rule": "weak_link_text", "text": "Click here! " }]
+    },
+    {
+        "case": "a link that says what it is although it starts with the phrase",
+        "subjects": [{ "kind": "link", "href": "/a", "text": "click here for the report" }],
+        "weakPhrases": ["click here"],
+        "findings": []
+    },
+    {
+        "case": "a phrase in another language",
+        "subjects": [{ "kind": "link", "href": "/a", "text": "Hier klicken…" }],
+        "weakPhrases": ["hier klicken"],
+        "findings": [{ "rule": "weak_link_text", "text": "Hier klicken…" }]
+    },
+    {
+        "case": "headings that start low, go down one at a time and come back up",
+        "subjects": [
+            { "kind": "heading", "level": 3, "text": "Three" },
+            { "kind": "heading", "level": 4, "text": "Four" },
+            { "kind": "heading", "level": 2, "text": "Two" }
+        ],
+        "findings": []
+    },
+    {
+        "case": "a heading level jumped over",
+        "subjects": [
+            { "kind": "heading", "level": 2, "text": "Two" },
+            { "kind": "heading", "level": 4, "text": "Four" }
+        ],
+        "findings": [{ "rule": "skipped_heading", "text": "Four" }]
+    },
+    {
+        "case": "a table with no header row, and one with",
+        "subjects": [
+            { "kind": "table", "headerCells": 0, "text": "Q1Q2" },
+            { "kind": "table", "headerCells": 2, "text": "YearTotal" }
+        ],
+        "findings": [{ "rule": "table_without_header", "text": "Q1Q2" }]
+    },
+    {
+        "case": "only the rules asked for, with the heading levels followed all the same",
+        "rules": ["skipped_heading"],
+        "subjects": [
+            { "kind": "image", "alt": "", "src": "cat.png", "decorative": false, "href": null },
+            { "kind": "heading", "level": 2, "text": "Two" },
+            { "kind": "heading", "level": 4, "text": "Four" },
+            { "kind": "heading", "level": 5, "text": "Five" },
+            { "kind": "table", "headerCells": 0, "text": "" }
+        ],
+        "findings": [{ "rule": "skipped_heading", "text": "Four" }]
+    }
+]
