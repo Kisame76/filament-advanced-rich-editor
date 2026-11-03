@@ -84,6 +84,10 @@ trait AttachesFiles
      * becomes "what a stored id may resolve to". Attaching it anywhere else would leave some
      * of those paths reading against the record scope alone, and a picture picked from the
      * library would resolve in the editor and vanish on the page.
+     *
+     * The page's unsaved state goes along for the same reason it has to be here: whichever
+     * path found the provider, its sweep runs before the record is written, and at that moment
+     * what the other editors are about to save exists nowhere but on the page.
      */
     protected function withMediaSource(?FileAttachmentProvider $provider): ?FileAttachmentProvider
     {
@@ -91,6 +95,8 @@ trait AttachesFiles
             $provider->source(
                 $this->hasMediaLibrary() ? $this->buildSpatieMediaSource($provider) : null,
             );
+
+            $provider->unsavedStateUsing(fn (): array => $this->getLivewire()->all());
         }
 
         return $provider;

@@ -14,6 +14,9 @@ return new class extends Migration
             $table->id();
             $table->string('title')->nullable();
             $table->text('content')->nullable();
+            // A second document on the same record, which is what two editors sharing one
+            // media collection needs.
+            $table->text('summary')->nullable();
         });
     }
 

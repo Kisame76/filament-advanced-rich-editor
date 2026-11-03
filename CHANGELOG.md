@@ -36,6 +36,17 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- **Two editors on one record no longer delete each other's pictures.** Each picture remembers
+  the field that uploaded it, and saving a field deleted the pictures it had uploaded and no
+  longer showed. On one record the other field can show them too - with
+  `->mediaLibraryScope('record')` the browser lists the record's whole collection, and a picture
+  copied from one editor into the other resolves there, browser or not. So when `content` took
+  out a picture that `summary` had picked from it, saving `content` deleted the file, and the
+  picture in `summary` was gone without a word. The sweep now looks for a picture everywhere
+  else on the record before deleting it: in the record's other columns, and in what the page is
+  about to save, because Filament sweeps before it writes the record. A picture goes once
+  nothing there mentions it any more
+
 - Replacing a picture in the media library lost its responsive images for good: they were
   deleted with the old file, and Spatie's own regeneration skips a row whose list is empty.
   The new file gets them again, and gets them too where its collection asks for them

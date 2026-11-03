@@ -2816,6 +2816,15 @@ Automatic clean-up comes back the moment nothing else can be holding the id:
 ->mediaLibrary(false)           // no browser at all; likewise
 ```
 
+**Narrowed to the record, the sweep still reads the whole record.** Two editors on one record
+share its collection, and the record-scoped browser lists all of it — so `summary` can pick a
+picture `content` uploaded, and a picture copied from one editor into the other resolves there
+too, with or without a browser. Before it deletes a picture, the sweep looks for its id
+everywhere else on the record: in the record's other columns, for what the other editors saved
+before, and in what the page is about to save, for what they are taking in this very save —
+Filament sweeps before it writes the record. A picture is deleted only once nothing there
+mentions it any more. Until then it stays, at the cost of a file.
+
 Beyond that, **a picture is deleted by whoever owns it.** The sweep only ever considers
 attachments *this field* uploaded to *this record* — media it did not put there is never
 touched, so an image picked from a shared pool is not a candidate in the first place. But if
@@ -2868,6 +2877,12 @@ project keeps in that collection is never touched:
 AdvancedRichEditor::make('content')->spatieMediaLibrary(),
 AdvancedRichEditor::make('summary')->spatieMediaLibrary(),   // same collection, separate images
 ```
+
+The stamp says who uploaded a picture, not who shows it. When `summary` shows a picture
+`content` uploaded — picked from the record's library, or copied across — `content` taking it
+out of its own text does not delete it: the sweep reads the record's other columns and what
+the page is about to save, and keeps every picture mentioned there. See
+[Sharing a library safely](#sharing-a-library-safely).
 
 #### Responsive images
 

@@ -8,6 +8,7 @@ use Closure;
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ContentHash;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
@@ -50,6 +51,8 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     protected ?Closure $getRecordUsing = null;
 
     protected ?Closure $getOwnerUsing = null;
+
+    protected ?Closure $getUnsavedStateUsing = null;
 
     protected ?MediaSource $source = null;
 
@@ -103,6 +106,18 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     public function ownerUsing(?Closure $callback): static
     {
         $this->getOwnerUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * The field injects `fn () => $component->getLivewire()->all()` here: everything the page
+     * holds and has not written yet, which is where another editor's document lives until the
+     * save that sweeps this one has finished. See `getContentBesides()`.
+     */
+    public function unsavedStateUsing(?Closure $callback): static
+    {
+        $this->getUnsavedStateUsing = $callback;
 
         return $this;
     }
@@ -341,6 +356,12 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      * something that is not this field, and the worst case for keeping a file is a file too
      * many, while the worst case for deleting one is somebody's content.
      *
+     * The mark says who uploaded a picture, not who shows it. The record-scoped browser lists
+     * the whole collection, and a picture copied from one editor into another resolves there
+     * too, so the other editor on the record may be showing it - and the uploader removing it
+     * from its own document is no reason to take it out of that one. So a picture is only
+     * deleted once nothing else on the record mentions it; see `getContentBesides()`.
+     *
      * And nothing at all is deleted once the browser has offered these pictures to other
      * records; see `sweepsSafely()`.
      *
@@ -369,17 +390,68 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
             array_filter($exceptIds, fn (mixed $id): bool => is_string($id) || is_numeric($id)),
         );
 
+        // Read once, and only when there is something to delete - which most saves never have.
+        $elsewhere = null;
+
         foreach ($record->getMedia($this->getCollection()) as $media) {
             if ($media->getCustomProperty(static::OWNER_PROPERTY) !== $owner) {
                 continue;
             }
 
-            if (in_array((string) $media->getAttributeValue('uuid'), $exceptIds, strict: true)) {
+            $uuid = (string) $media->getAttributeValue('uuid');
+
+            if (in_array($uuid, $exceptIds, strict: true)) {
                 continue;
+            }
+
+            $elsewhere ??= $this->getContentBesides($record, $owner);
+
+            foreach ($elsewhere as $content) {
+                if (str_contains($content, $uuid)) {
+                    continue 2;
+                }
             }
 
             $media->delete();
         }
+    }
+
+    /**
+     * Everything on the record that could be showing one of this field's pictures, besides this
+     * field's own document.
+     *
+     * Two places, because a save writes in two steps. The record's other columns hold what the
+     * other editors saved before. What they are about to save is still on the page: Filament
+     * sweeps while it collects the form's state, and only writes the record after that - so a
+     * picture taken into the other editor in the same save is in nothing the record holds yet.
+     *
+     * Read as plain text, not as documents. Which columns hold rich content is something the
+     * record does not say - a model needs no `HasRichContent` for an editor to write to it - and
+     * a media uuid is thirty-six random characters that turn up nowhere by accident. Reading too
+     * much can only keep a file too many.
+     *
+     * This field's own column is left out: the record still holds the version being replaced,
+     * which shows every picture the edit removed.
+     *
+     * @return array<string>
+     */
+    protected function getContentBesides(Model $record, string $owner): array
+    {
+        $values = Arr::except($record->getAttributes(), [$owner]);
+
+        if ($this->getUnsavedStateUsing instanceof Closure) {
+            $values[] = ($this->getUnsavedStateUsing)();
+        }
+
+        $content = [];
+
+        array_walk_recursive($values, function (mixed $value) use (&$content): void {
+            if (is_string($value)) {
+                $content[] = $value;
+            }
+        });
+
+        return $content;
     }
 
     /**
@@ -400,7 +472,8 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      *
      * `->mediaLibraryScope('record')` narrows the pool back to this record and turns automatic
      * sweeping on again, as does switching the browser off: with nothing wider than the record
-     * on offer, nothing else can be holding the uuid.
+     * on offer, nothing outside the record can be holding the uuid - and inside it, the sweep
+     * reads everything; see `getContentBesides()`.
      */
     protected function sweepsSafely(): bool
     {
