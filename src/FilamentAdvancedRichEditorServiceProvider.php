@@ -277,6 +277,10 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/focus-mode', __DIR__.'/../resources/dist/js/focus-mode.js')
                     ->loadedOnRequest(),
 
+                // Locked parts: the node, the guard and the button that locks.
+                Js::make('advanced-rich-editor/locked', __DIR__.'/../resources/dist/js/locked.js')
+                    ->loadedOnRequest(),
+
                 // The keys a project moved. Only a field that moved one loads it.
                 Js::make('advanced-rich-editor/shortcuts', __DIR__.'/../resources/dist/js/shortcuts.js')
                     ->loadedOnRequest(),

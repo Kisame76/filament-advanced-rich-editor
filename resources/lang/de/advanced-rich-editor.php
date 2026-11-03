@@ -418,6 +418,10 @@ return [
         'block_outlines' => [
             'label' => 'Blöcke anzeigen',
         ],
+        'lock' => [
+            'label' => 'Sperren',
+            'badge' => 'Gesperrt',
+        ],
         'focus_mode' => [
             'label' => 'Fokusmodus',
         ],
@@ -553,6 +557,7 @@ return [
         'min_words' => ':attribute muss mindestens :min Wörter enthalten.',
         'max_words' => ':attribute darf höchstens :max Wörter enthalten.',
         'must_contain' => ':attribute muss :content enthalten.',
+        'locked' => 'Gesperrte Teile von :attribute dürfen nicht geändert werden.',
 
         /*
          * Wie ein Knoten oder eine Marke in diesem Satz heißt. Ein Typ ohne Eintrag fällt auf

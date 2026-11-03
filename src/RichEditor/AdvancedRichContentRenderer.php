@@ -33,6 +33,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionTerm;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\LinkPreview;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Locked;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
@@ -579,6 +580,9 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // And the same again: a note somebody wrote is a note that belongs on the page,
             // whether or not this render was told the field had callouts switched on.
             app(Callout::class),
+            // And a locked part, whose text is a reader's like any other. Without the node a
+            // stored document would lose the wrapper at best and what it held at worst.
+            app(Locked::class),
             app(ImageCaption::class),
             // And again, for the reason above it: a picture somebody turned is one that
             // should still be turned, and one somebody set the text to run past is one the

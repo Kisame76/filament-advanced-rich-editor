@@ -82,6 +82,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the bar, so they are not cut off by it, and every menu of the package now measures against
   the part of the page the keyboard leaves visible. Asked of the pointer, not of the width
 
+- Locked regions: parts of a document the people writing in it cannot change, for templates
+  and contracts. Whoever `->lockedRegionsEditable()` allows locks and unlocks blocks with the
+  padlock in the more menu; everybody else writes around them, and every save is checked on the
+  server against the record's stored value or the field's default, so a part changed, removed
+  or added in the browser is refused. Off by default (`->lockedRegions()`, `locked_regions`)
+
 ### Fixed
 
 - A pinned toolbar in dark mode is the colour of its own field again wherever the field sits.

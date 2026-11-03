@@ -30,6 +30,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\FormatsText;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\HoldsAMediaLibrary;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\KeepsADraft;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\KeepsContentClean;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\LocksRegions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OffersWritingAids;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensMenus;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
@@ -74,6 +75,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LockedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
@@ -119,6 +121,7 @@ class AdvancedRichEditor extends RichEditor
     use HoldsAMediaLibrary;
     use KeepsADraft;
     use KeepsContentClean;
+    use LocksRegions;
     use OffersWritingAids;
     use OpensMenus;
     use PlacesImages;
@@ -678,6 +681,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasFocusMode()
                 ? [FocusModePlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasLockedRegions()
+                ? [LockedPlugin::make()->editable($component->areLockedRegionsEditable())]
                 : [],
         );
 

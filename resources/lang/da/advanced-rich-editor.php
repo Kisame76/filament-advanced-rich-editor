@@ -438,6 +438,10 @@ return [
         'block_outlines' => [
             'label' => 'Vis blokke',
         ],
+        'lock' => [
+            'label' => 'Lås',
+            'badge' => 'Låst',
+        ],
         'focus_mode' => [
             'label' => 'Fokustilstand',
         ],
@@ -577,6 +581,7 @@ return [
         'min_words' => ':attribute skal have mindst :min ord.',
         'max_words' => ':attribute må ikke have mere end :max ord.',
         'must_contain' => ':attribute skal indeholde :content.',
+        'locked' => 'Låste dele af :attribute kan ikke ændres.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls

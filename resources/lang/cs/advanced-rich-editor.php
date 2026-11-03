@@ -438,6 +438,10 @@ return [
         'block_outlines' => [
             'label' => 'Zobrazit bloky',
         ],
+        'lock' => [
+            'label' => 'Zamknout',
+            'badge' => 'Zamčeno',
+        ],
         'focus_mode' => [
             'label' => 'Režim soustředění',
         ],
@@ -578,6 +582,7 @@ return [
         'min_words' => 'Počet slov v poli :attribute musí být alespoň :min.',
         'max_words' => 'Počet slov v poli :attribute nesmí být vyšší než :max.',
         'must_contain' => 'Pole :attribute musí obsahovat :content.',
+        'locked' => 'Zamčené části pole :attribute nelze měnit.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls

@@ -62,7 +62,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 **[Blocks](#blocks)** — [Heading levels](#heading-levels) ·
 [Lists and task lists](#lists-and-task-lists) · [Definition lists](#definition-lists) ·
 [List markers, numbering and direction](#lists-markers-numbering-and-direction) ·
-[Callouts](#callouts) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
+[Callouts](#callouts) · [Locked regions](#locked-regions) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
 [Indenting](#indenting) · [Text direction](#text-direction) · [Code blocks](#code-blocks)
 
 **[Characters](#characters)** — [Styles](#styles) · [Fonts](#fonts) ·
@@ -1239,6 +1239,41 @@ disappears from the bar on its own and the editor's JSON stays free of callout n
 `AdvancedRichContentRenderer` declares the node either way: a callout somebody wrote is one
 that belongs on the page, whether or not this render was told the field had them switched
 on.
+
+### Locked regions
+
+Parts of a document the people writing in it cannot change - a template's fixed paragraphs, a
+contract's clauses - while everything around them stays theirs.
+
+```php
+AdvancedRichEditor::make('content')
+    ->lockedRegions()                                                   // default: config('...locked_regions'), false
+    ->lockedRegionsEditable(fn (): bool => auth()->user()->can('edit-templates'));
+```
+
+Two questions, kept apart. Whether a field has locked parts at all is the field's; who may
+lock, unlock and change them is the person's, and nobody may until the field says who.
+
+**Locking.** Somebody who may selects the blocks and presses the padlock in the more menu
+(`'lock'`, already in the shipped `more` list and on no bar - put it on one like any other
+name). Pressing it inside a locked part unlocks it: the frame goes, everything it held stays.
+In the editor a locked part is framed and labelled; for a reader it is a plain `div` around
+the blocks, with a class nothing on a page styles.
+
+**Everybody else** can write before, after and between the locked parts but not in them: the
+text takes no caret, and a paste, a deletion across one or a select-all-and-delete that would
+touch one does nothing. Moving one is allowed, since moving is not changing.
+
+**On the server.** The editor runs in the browser, and a browser can be made to send anything,
+so every save is checked again: each locked part the document had before has to be in the
+new one holding exactly what it held, and nothing else may be locked. "Before" is the
+record's stored value - or, on a form that creates one, the field's `default()`, which is how
+a template with locked parts gets into a new record. A save that fails is refused with
+"Locked parts of the content cannot be changed." Emptying the field counts; somebody who may
+lock is never checked.
+
+A field with the feature off unwraps any locked part it is handed: the text is kept, the lock
+is not, which is what switching it off ought to mean.
 
 ### Alignment
 
@@ -5315,6 +5350,7 @@ the whole project; the method sets it for one field and wins.
 | A warning in the link dialog for an address that does not answer | `link.check.dialog` | `->linkCheck()` |
 | Link cards | `link.previews` | `->linkPreviews()` |
 | Focus mode | `focus_mode` | `->focusMode()` |
+| Locked regions | `locked_regions` | `->lockedRegions()` |
 
 | Ships **on** | Config key | Per field |
 | --- | --- | --- |

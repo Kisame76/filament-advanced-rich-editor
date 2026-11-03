@@ -438,6 +438,10 @@ return [
         'block_outlines' => [
             'label' => 'Blokken tonen',
         ],
+        'lock' => [
+            'label' => 'Vergrendelen',
+            'badge' => 'Vergrendeld',
+        ],
         'focus_mode' => [
             'label' => 'Focusmodus',
         ],
@@ -578,6 +582,7 @@ return [
         'min_words' => ':attribute moet minstens :min woorden bevatten.',
         'max_words' => ':attribute mag niet meer dan :max woorden bevatten.',
         'must_contain' => ':attribute moet :content bevatten.',
+        'locked' => 'Vergrendelde delen van :attribute kunnen niet worden gewijzigd.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls

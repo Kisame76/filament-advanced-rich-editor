@@ -126,6 +126,7 @@ trait ChecksItsContent
         return [
             ...parent::getValidationRules(),
             ...$this->getContentValidationRules(),
+            ...$this->getLockedRegionRules(),
         ];
     }
 

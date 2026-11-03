@@ -207,6 +207,11 @@ class ToolbarLayout
             'focusMode' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFocusMode()
                 ? 'focusMode'
                 : [],
+            // Only for somebody who may lock: for everybody else the parts are guarded, and a
+            // button that cannot be pressed is not one to show them.
+            'lock' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasLockedRegions() && $editor->areLockedRegionsEditable()
+                ? 'lock'
+                : [],
             'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
                 ? 'help'
                 : [],

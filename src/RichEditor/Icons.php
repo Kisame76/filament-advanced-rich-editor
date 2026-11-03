@@ -97,6 +97,7 @@ class Icons
             'invisible_characters' => 'arte-pilcrow',
             'block_outlines' => 'arte-square-dashed',
             'focus_mode' => 'heroicon-o-viewfinder-circle',
+            'lock' => 'heroicon-o-lock-closed',
             'statistics' => 'heroicon-o-chart-bar',
             'preview' => 'heroicon-o-eye',
             // Searching. The magnifier is the button, and the three inside the bar are the

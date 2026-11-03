@@ -199,6 +199,7 @@ return [
         'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
         'details',
         'emoji', 'characters',
+        'lock',
     ],
 
     /*
@@ -772,6 +773,24 @@ return [
     | this on is all it takes. Per field: `->focusMode()`.
     */
     'focus_mode' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Locked regions
+    |--------------------------------------------------------------------------
+    | Parts of a document the people writing in it cannot change - a template's fixed
+    | paragraphs, a contract's clauses. Somebody who may lock selects the blocks and presses
+    | the padlock in the more menu ('lock'); everybody else can write around them but not in
+    | them, and a save that changed, removed or added one is refused on the server too.
+    |
+    | Off by default: most fields hold something one person writes from top to bottom.
+    | Nobody may lock or unlock until the field says who, per person:
+    |
+    |   ->lockedRegions()->lockedRegionsEditable(fn (): bool => auth()->user()->isAdmin())
+    |
+    | A field with this off unwraps any locked part it is handed. Per field: `->lockedRegions()`.
+    */
+    'locked_regions' => false,
 
     /*
     |--------------------------------------------------------------------------
@@ -1686,6 +1705,7 @@ return [
         'invisible_characters' => 'arte-pilcrow',
         'block_outlines' => 'arte-square-dashed',
         'focus_mode' => 'heroicon-o-viewfinder-circle',
+        'lock' => 'heroicon-o-lock-closed',
         'statistics' => 'heroicon-o-chart-bar',
         'preview' => 'heroicon-o-eye',
         'find' => 'heroicon-o-magnifying-glass',

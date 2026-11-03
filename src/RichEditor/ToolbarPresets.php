@@ -159,6 +159,7 @@ class ToolbarPresets
                     'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
                     'details',
                     'emoji', 'characters',
+                    'lock',
                 ],
                 'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'sourceCode', 'help'],
                 'text_toolbar_buttons' => ['styles', 'bold', 'italic', 'underline', 'link'],
@@ -191,6 +192,7 @@ class ToolbarPresets
                     'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
                     'details',
                     'emoji', 'characters',
+                    'lock',
                 ],
                 'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'sourceCode', 'help'],
                 'text_toolbar_buttons' => [
@@ -232,6 +234,7 @@ class ToolbarPresets
                     'horizontalRule',
                     'details',
                     'emoji', 'characters',
+                    'lock',
                 ],
                 'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'sourceCode', 'help'],
                 'text_toolbar_buttons' => [

@@ -438,6 +438,10 @@ return [
         'block_outlines' => [
             'label' => 'Mostrar bloques',
         ],
+        'lock' => [
+            'label' => 'Bloquear',
+            'badge' => 'Bloqueado',
+        ],
         'focus_mode' => [
             'label' => 'Modo concentración',
         ],
@@ -578,6 +582,7 @@ return [
         'min_words' => 'El campo :attribute debe tener al menos :min palabras.',
         'max_words' => 'El campo :attribute no debe tener más de :max palabras.',
         'must_contain' => 'El campo :attribute debe contener :content.',
+        'locked' => 'Las partes bloqueadas del campo :attribute no se pueden cambiar.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
