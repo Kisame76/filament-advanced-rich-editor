@@ -10,6 +10,7 @@ use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\Validator;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
@@ -24,6 +25,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarStylePicker;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
+use League\HTMLToMarkdown\HtmlConverter;
+use Phiki\Phiki;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tiptap\Core\Extension;
 use Tiptap\Editor;
 
@@ -606,3 +610,25 @@ function splitAtTopLevel(string $selector, string $separator): array
 
     return [...$parts, $current];
 }
+/**
+ * Skips the test where a package it needs is not installed.
+ *
+ * Every package here is a `suggest` and a dev dependency, so this repository always has them -
+ * but the `minimal` job in CI runs the suite against nothing but what `require` names, and a
+ * test of what a suggested package adds has nothing to show there. Called first in a test, or
+ * in `beforeEach()` where a whole file is about the package.
+ */
+function requires(string $package): void
+{
+    $class = [
+        'filament/tables' => TextColumn::class,
+        'league/html-to-markdown' => HtmlConverter::class,
+        'phiki/phiki' => Phiki::class,
+        'spatie/laravel-medialibrary' => Media::class,
+    ][$package];
+
+    if (! class_exists($class)) {
+        test()->markTestSkipped("{$package} is not installed.");
+    }
+}
+
