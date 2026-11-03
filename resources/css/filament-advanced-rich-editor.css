@@ -69,9 +69,11 @@
  * the containing block the dropdown menus are anchored to.
  *
  * The background has to be opaque, otherwise editor content scrolls visibly through the
- * pinned bar. Filament's input wrapper is plain white in light mode; in dark mode it is
- * two stacked white/5 overlays (section content container + input wrapper) on top of
- * gray-900, and the color-mix below is the flattened equivalent of those two overlays.
+ * pinned bar, and the colour of the field, or the bar is a stripe of another grey. In dark
+ * mode that colour depends on where the field sits - Filament draws it as a translucent white
+ * over a section, or over the page - so `sticky-toolbar.js` measures it and hands it over as
+ * `--fi-arte-behind`. Until it has, light mode is white and dark mode the field in a section:
+ * two white/5 overlays on gray-900, which the color-mix below flattens.
  *
  * The bottom border is restated because a pinned bar has nothing but that border
  * separating it from the content sliding underneath.
@@ -83,7 +85,7 @@
     position: sticky;
     top: var(--fi-arte-sticky-offset, 4rem);
     z-index: 10;
-    background-color: var(--fi-arte-sticky-bg, var(--color-white, #fff));
+    background-color: var(--fi-arte-sticky-bg, var(--fi-arte-behind, var(--color-white, #fff)));
     border-bottom-style: solid;
     border-bottom-width: 1px;
     border-bottom-color: var(--gray-200, #e4e4e7);
@@ -101,7 +103,7 @@
 .fi-fo-rich-editor-toolbar.fi-arte-sticky:where(.dark, .dark *) {
     background-color: var(
         --fi-arte-sticky-bg,
-        color-mix(in oklab, var(--color-white, #fff) 10%, var(--gray-900, #18181b))
+        var(--fi-arte-behind, color-mix(in oklab, var(--color-white, #fff) 10%, var(--gray-900, #18181b)))
     );
     border-bottom-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
 }

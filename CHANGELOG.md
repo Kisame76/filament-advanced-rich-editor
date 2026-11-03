@@ -77,6 +77,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- A pinned toolbar in dark mode is the colour of its own field again wherever the field sits.
+  Its background was written down for a field inside a section, so on a field straight on the
+  page it was a lighter stripe across the top. It is now measured from what is behind the bar,
+  and measured again when the page turns light or dark, once Filament's fade has finished
+
 - **Two editors on one record no longer delete each other's pictures.** Each picture remembers
   the field that uploaded it, and saving a field deleted the pictures it had uploaded and no
   longer showed. On one record the other field can show them too - with

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import stickyToolbarExtension, { isStuck, STUCK_CLASS, scrollParent, watch } from '../../resources/js/sticky-toolbar.js'
+import stickyToolbarExtension, {
+    colourBehind,
+    isStuck,
+    STUCK_CLASS,
+    scrollParent,
+    watch,
+} from '../../resources/js/sticky-toolbar.js'
 
 /**
  * Telling a pinned toolbar from one that is resting at the top of its field.
@@ -115,6 +121,37 @@ describe('watching a bar', () => {
         expect(bar.classList.contains(STUCK_CLASS)).toBe(false)
     })
 
+    it('measures the colour behind it again when the page turns light or dark', () => {
+        let theme = null
+
+        class FakeMutations {
+            constructor(callback) {
+                theme = this
+                this.callback = callback
+            }
+
+            observe(target, options) {
+                this.target = target
+                this.options = options
+            }
+
+            disconnect() {
+                this.disconnected = true
+            }
+        }
+
+        const stop = watch(toolbar(), FakeObserver, FakeMutations)
+
+        // Filament turns the page dark with a class on the root.
+        expect(theme.target).toBe(document.documentElement)
+        expect(theme.options).toEqual({ attributes: true, attributeFilter: ['class'] })
+        expect(() => theme.callback()).not.toThrow()
+
+        stop()
+
+        expect(theme.disconnected).toBe(true)
+    })
+
     it('lets go of the bar when it is stopped', () => {
         const bar = toolbar()
         const stop = watch(bar, FakeObserver)
@@ -124,6 +161,77 @@ describe('watching a bar', () => {
 
         expect(FakeObserver.last.disconnected).toBe(true)
         expect(bar.classList.contains(STUCK_CLASS)).toBe(false)
+    })
+})
+
+/**
+ * A one-pixel canvas that lays `rgb()` and `rgba()` over each other the way a browser's does -
+ * jsdom has no canvas. A colour it cannot read leaves the last one in place, as a browser's does.
+ */
+function canvas() {
+    let pixel = [0, 0, 0, 0]
+    let fill = [0, 0, 0, 0]
+
+    return {
+        set fillStyle(colour) {
+            const match = /^rgba?\(([^)]+)\)$/.exec(colour)
+
+            if (colour === 'transparent') {
+                fill = [0, 0, 0, 0]
+            } else if (match) {
+                const [red, green, blue, alpha = 1] = match[1].split(/[\s,/]+/).map(Number)
+                fill = [red, green, blue, alpha]
+            }
+        },
+        clearRect: () => {
+            pixel = [0, 0, 0, 0]
+        },
+        fillRect: () => {
+            const alpha = fill[3] + pixel[3] * (1 - fill[3])
+            const over = (index) =>
+                alpha === 0 ? 0 : (fill[index] * fill[3] + pixel[index] * pixel[3] * (1 - fill[3])) / alpha
+
+            pixel = [over(0), over(1), over(2), alpha]
+        },
+        getImageData: () => ({ data: [...pixel.slice(0, 3).map(Math.round), Math.round(pixel[3] * 255)] }),
+    }
+}
+
+describe('the colour behind a bar', () => {
+    const stack = (...colours) => {
+        document.body.innerHTML = ''
+        let parent = document.body
+
+        for (const colour of colours) {
+            const layer = document.createElement('div')
+            layer.style.backgroundColor = colour
+            parent.append(layer)
+            parent = layer
+        }
+
+        const bar = document.createElement('div')
+        bar.style.backgroundColor = 'rgb(255, 0, 0)'
+        parent.append(bar)
+
+        return bar
+    }
+
+    it('lays every background from the bar outwards over the next, down to the first opaque one', () => {
+        // A field straight on a dark page, and the same field in a section: one grey each,
+        // which is the whole reason this is measured rather than written down.
+        expect(colourBehind(stack('rgb(9, 9, 11)', 'rgba(255, 255, 255, 0.05)'), canvas())).toBe('rgb(21 21 23)')
+        expect(
+            colourBehind(stack('rgb(9, 9, 11)', 'rgb(24, 24, 27)', 'rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.05)'), canvas()),
+        ).toBe('rgb(47 47 49)')
+    })
+
+    it('leaves out the bar itself, and whatever is transparent', () => {
+        expect(colourBehind(stack('rgb(255, 255, 255)', 'rgba(0, 0, 0, 0)'), canvas())).toBe('rgb(255 255 255)')
+    })
+
+    it('cannot tell where nothing behind the bar is opaque, or there is no canvas', () => {
+        expect(colourBehind(stack('rgba(255, 255, 255, 0.05)'), canvas())).toBeNull()
+        expect(colourBehind(stack('rgb(9, 9, 11)'), null)).toBeNull()
     })
 })
 

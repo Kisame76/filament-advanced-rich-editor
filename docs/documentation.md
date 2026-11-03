@@ -5441,7 +5441,8 @@ Everything the package adds is prefixed with `fi-arte-` and can be restyled from
 theme:
 
 ```css
-/* Opaque background painted behind the pinned toolbar. */
+/* Opaque background painted behind the pinned toolbar. Without it the bar is painted in
+   the colour measured behind it, so it matches its field in a section and out of one. */
 .fi-fo-rich-editor-toolbar.fi-arte-sticky {
   --fi-arte-sticky-bg: #fff;
 }
