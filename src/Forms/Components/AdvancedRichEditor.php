@@ -71,6 +71,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\InvisiblesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
@@ -507,6 +508,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasEmbeds()
                 ? [EmbedPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasLinkPreviews()
+                ? [LinkPreviewPlugin::make()]
                 : [],
         );
 

@@ -58,6 +58,12 @@ const STYLE_HOOKS = [
     'fi-arte-file-text',
     'fi-arte-file-name',
     'fi-arte-file-size',
+    // The parts of a link card, for the same reason: the card carries its shape inline,
+    // written by `Nodes/LinkPreview` and mirrored in `link-preview.js`.
+    'fi-arte-link-preview-title',
+    'fi-arte-link-preview-description',
+    'fi-arte-link-preview-site',
+    'fi-arte-link-preview-icon',
 ];
 
 /**

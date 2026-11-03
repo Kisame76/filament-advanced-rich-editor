@@ -306,6 +306,8 @@ function interpolatedArteClassValues(): array
         'fi-arte-character-count-' => ['warning', 'danger'],
         // Nodes\Media: the element it renders.
         'fi-arte-media-' => MediaUrl::KINDS,
+        // Nodes\LinkPreview and link-preview.js: the parts of the card.
+        'fi-arte-link-preview-' => ['title', 'description', 'site', 'icon'],
         // TipTapExtensions\Mention: the trigger's name.
         'fi-arte-mention-' => array_values(Mention::TRIGGERS),
         // BuildsTheToolbar: where the groups sit, and which edge the pinned buttons keep.

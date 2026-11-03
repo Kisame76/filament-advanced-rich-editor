@@ -62,6 +62,7 @@ class Icons
             // they are one door under two names, and a second icon would say otherwise.
             'media_browser' => 'heroicon-o-photo',
             'embed' => 'heroicon-o-film',
+            'link_preview' => 'heroicon-o-bookmark-square',
             // A file on this server, which is a different thing from an embed and gets a
             // different sign: the button a player carries, and the note a sound is drawn
             // with everywhere. The film reel stays with the embed, because that is the one
@@ -214,6 +215,8 @@ class Icons
             'media_delete' => 'heroicon-o-trash',
             'embed_replace' => 'heroicon-o-arrow-path',
             'embed_delete' => 'heroicon-o-trash',
+            'link_preview_edit' => 'heroicon-o-pencil-square',
+            'link_preview_delete' => 'heroicon-o-trash',
         ];
     }
 

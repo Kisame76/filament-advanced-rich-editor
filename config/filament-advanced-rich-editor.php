@@ -534,7 +534,7 @@ return [
                 'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
-                'image', 'attachFiles', 'embed', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
+                'image', 'attachFiles', 'embed', 'linkPreview', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
                 'emoji', 'characters',
                 'dateTime', 'customBlocks', 'mergeTags',
             ],
@@ -576,6 +576,15 @@ return [
     */
     'link' => [
         'attributes' => true,
+
+        /*
+         * Link cards - the page's title, a line about it and the site it is on, read from the
+         * page once, when the card is made, and kept in the document. Off: most documents link
+         * in a sentence, and making a card has the server read the page. Not on the shipped bar
+         * either way; the slash menu finds it. Per field: `->linkPreviews()`. The timeout and
+         * the user agent below apply to reading the page too.
+         */
+        'previews' => false,
 
         'check' => [
             /*
@@ -1619,6 +1628,7 @@ return [
         'image' => 'heroicon-o-photo',
         'media_browser' => 'heroicon-o-photo',
         'embed' => 'heroicon-o-film',
+        'link_preview' => 'heroicon-o-bookmark-square',
         'media_video' => 'heroicon-o-play-circle',
         'media_audio' => 'heroicon-o-musical-note',
         'media_file' => 'heroicon-o-paper-clip',
@@ -1733,6 +1743,8 @@ return [
         'media_delete' => 'heroicon-o-trash',
         'embed_replace' => 'heroicon-o-arrow-path',
         'embed_delete' => 'heroicon-o-trash',
+        'link_preview_edit' => 'heroicon-o-pencil-square',
+        'link_preview_delete' => 'heroicon-o-trash',
     ],
 
     /*

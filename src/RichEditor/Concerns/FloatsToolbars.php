@@ -94,6 +94,10 @@ trait FloatsToolbars
             $toolbars['embed'] = ['embedReplace', 'embedDelete'];
         }
 
+        if ($this->hasLinkPreviews()) {
+            $toolbars['linkPreview'] = ['linkPreviewEdit', 'linkPreviewDelete'];
+        }
+
         if (! $this->hasImageToolbar()) {
             return $toolbars;
         }

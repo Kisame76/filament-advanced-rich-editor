@@ -32,6 +32,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionList;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionTerm;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\LinkPreview;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
@@ -573,6 +574,8 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // reader three bare spans - a file name with a word after it, which is what
             // the card exists not to be.
             app(FileCard::class),
+            // And a link card, which is a link a reader can follow whatever the field offers.
+            app(LinkPreview::class),
             // And the same again: a note somebody wrote is a note that belongs on the page,
             // whether or not this render was told the field had callouts switched on.
             app(Callout::class),

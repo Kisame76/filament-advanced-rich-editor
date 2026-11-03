@@ -151,6 +151,9 @@ class ToolbarLayout
             'embed' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmbeds()
                 ? 'embed'
                 : [],
+            'linkPreview' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasLinkPreviews()
+                ? 'linkPreview'
+                : [],
             // Nothing to pick from means no trigger, the same way the overflow menu and the
             // colour pickers vanish when what they open onto is empty.
             'lineHeight' => static function (AdvancedRichEditor $editor): object|array {

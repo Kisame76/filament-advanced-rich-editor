@@ -181,6 +181,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/embed', __DIR__.'/../resources/dist/js/embed.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/link-preview', __DIR__.'/../resources/dist/js/link-preview.js')
+                    ->loadedOnRequest(),
+
                 // The note, tip, warning and danger boxes. Loaded only by fields that offer
                 // at least one of them.
                 Js::make('advanced-rich-editor/callout', __DIR__.'/../resources/dist/js/callout.js')

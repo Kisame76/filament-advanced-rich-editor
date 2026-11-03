@@ -3091,6 +3091,51 @@ the address that was checked rather than whatever the name resolves to a moment 
 redirect is followed. Without that, the dialog would be a way for anybody who can edit a
 document to find out which machines answer on the server's own network.
 
+#### Link cards
+
+```php
+AdvancedRichEditor::make('content')
+    ->linkPreviews();   // default: config('filament-advanced-rich-editor.link.previews'), false
+```
+
+A link drawn as a card: the page's title, a line about it and the site it is on, with the
+site's icon. The slash menu finds it — `/link card`, `/bookmark` — and a bar that names
+`'linkPreview'` gets a button; selecting a card shows a bar to edit or remove it.
+
+The dialog asks for the address and reads the page as the field is left: Open Graph first,
+which is written to be shown on a card, then the Twitter tags, then `<title>` and the meta
+description. What it found lands in the fields below the address, where it can be corrected
+before the card goes in — a page's own title is often the site's name twice and a slogan. A
+page that cannot be read says so, and the card is whatever somebody types.
+
+**Off unless asked for.** Most documents link in a sentence, and a card is a different kind of
+thing — a recommendation, a further-reading list — that a few kinds of writing use a lot and most
+never do. Making one also has the server read the page.
+
+**What the card says is written down when it is made,** into the document like any other text.
+Read again on every render instead, a card would always be current, and a page view would be a
+request to somebody else's server — slow, unreliable, and not what showing an article should
+involve. A card that has gone stale is a card somebody can edit.
+
+**The icon travels inside the card,** as a small picture in a `data:` address — 12 KB of
+file at most, a favicon usually a few hundred bytes. Pointing at the site's own would
+have every reader's browser ask that site for it, the reason embeds go through
+youtube-nocookie. The page's large preview picture is left out for the same reason and one
+more: it is the size of a photograph.
+
+**The page is read the way the link dialog's check asks:** the public internet only, the
+connection pinned to the address that was checked. A redirect is followed — a page moving from
+`http` to `https` is the commonest answer there is — and every step of it is checked again,
+since a redirect is the other server choosing where the next request goes. At most 2 MB of the
+page is downloaded; the head is at the top. `link.check.timeout` and `link.check.user_agent`
+apply here too.
+
+The card carries its shape inline, like the [document card](#documents): the page it ends up
+on never loaded this package's stylesheet. The classes are there to restyle it from a theme —
+`fi-arte-link-preview` and its `-title`, `-description`, `-site` and `-icon`. It is a link
+[`arte:diagnose`](#links-that-no-longer-lead-anywhere) checks like any other, and a renderer draws
+it whether or not the field still offers cards.
+
 ### Embeds
 
 **Registered and on, but not on the shipped bar.** The
@@ -5157,6 +5202,7 @@ the whole project; the method sets it for one field and wins.
 | Cropping, turning and flipping a picture | `images.editor` | `->imageEditor()` |
 | A loading hint on an inserted picture (`null`) | `images.loading` | `->imageLoading('lazy')` |
 | A warning in the link dialog for an address that does not answer | `link.check.dialog` | `->linkCheck()` |
+| Link cards | `link.previews` | `->linkPreviews()` |
 
 | Ships **on** | Config key | Per field |
 | --- | --- | --- |

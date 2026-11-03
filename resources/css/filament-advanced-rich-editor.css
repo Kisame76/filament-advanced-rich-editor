@@ -2005,6 +2005,35 @@ body.fi-arte-fullscreen-lock {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Link card                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The same arrangement as the document card above: the shape is inline, written by
+ * `Nodes/LinkPreview` and `link-preview.js`, and what is left here is what only the editor
+ * has - a card that reads as selected, a pointer that says it is not a link right now, and a
+ * hover that says it can be grabbed.
+ */
+.fi-arte-link-preview {
+    cursor: default;
+    background-color: var(--fi-arte-link-preview-bg, transparent);
+    transition: background-color 75ms ease;
+}
+
+.fi-arte-link-preview:hover {
+    --fi-arte-link-preview-bg: rgb(244 244 245);
+}
+
+.fi-arte-link-preview:hover:where(.dark, .dark *) {
+    --fi-arte-link-preview-bg: rgb(52 52 56);
+}
+
+.fi-arte-link-preview.ProseMirror-selectednode {
+    outline: 2px solid var(--fi-arte-link-preview-selected, rgb(59 130 246));
+    outline-offset: 1px;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Code block language                                                        */
 /* -------------------------------------------------------------------------- */
 

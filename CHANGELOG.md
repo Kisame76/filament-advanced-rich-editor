@@ -56,6 +56,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   keeps working. The button and its dialog say "Embed" rather than "Video" now, in all twelve
   languages
 
+- Link cards: a link drawn as the page's title, a line about it and the site it is on, with the
+  site's icon. The dialog reads the page as its address is left - Open Graph first, then the
+  Twitter tags, then `<title>` - and fills in fields that can still be corrected. What the card
+  says is written into the document when it is made, so a page view asks nobody else's server
+  for anything; the icon travels inside the card as a small `data:` picture for the same reason.
+  The page is read from the public internet only, every redirect checked again. Off by default
+  (`->linkPreviews()`, `link.previews`) and off the shipped bar; the slash menu finds it
+
 ### Fixed
 
 - **Two editors on one record no longer delete each other's pictures.** Each picture remembers
