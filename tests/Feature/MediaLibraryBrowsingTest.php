@@ -16,9 +16,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * thumbnails into something you can find one picture in.
  */
 beforeEach(function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
 

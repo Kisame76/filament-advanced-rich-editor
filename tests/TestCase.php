@@ -34,26 +34,31 @@ abstract class TestCase extends Orchestra
 
     /**
      * Filament is not auto-discovered inside the package test suite, so every provider a
-     * form field touches is registered by hand. `filament/filament` itself is only needed
-     * for the icon aliases and the `filament.*` config the editor reads.
+     * form field touches is registered by hand.
+     *
+     * The panel, its tables and its widgets only where they are installed. They come with
+     * `filament/filament`, a dev dependency, so they are there in this repository - but the
+     * package asks for `filament/forms` and nothing more, and the `minimal` job in CI runs this
+     * suite without them. A suite that could not start without them could not prove that.
      *
      * @return array<int, class-string>
      */
     protected function getPackageProviders($app): array
     {
+        $installed = static fn (string ...$providers): array => array_values(array_filter($providers, 'class_exists'));
+
         return [
             ActionsServiceProvider::class,
             BladeCaptureDirectiveServiceProvider::class,
             BladeHeroiconsServiceProvider::class,
             BladeIconsServiceProvider::class,
-            FilamentServiceProvider::class,
+            ...$installed(FilamentServiceProvider::class),
             FormsServiceProvider::class,
             InfolistsServiceProvider::class,
             NotificationsServiceProvider::class,
             SchemasServiceProvider::class,
             SupportServiceProvider::class,
-            TablesServiceProvider::class,
-            WidgetsServiceProvider::class,
+            ...$installed(TablesServiceProvider::class, WidgetsServiceProvider::class),
             // After Filament's, which is the order package discovery gives an application.
             // `SupportServiceProvider` rebinds Livewire's `DataStore` to its own subclass;
             // registered before it, Livewire keeps the shared instance, and registered after
@@ -61,10 +66,7 @@ abstract class TestCase extends Orchestra
             // `Livewire::test()` then loses its error bag between setting and reading it.
             LivewireServiceProvider::class,
             FilamentAdvancedRichEditorServiceProvider::class,
-            // Registered only when it is installed. It is a dev dependency, so it is there in
-            // this repository - but the package itself works without it, and a suite that
-            // cannot start without it would stop being able to prove that.
-            ...(class_exists(MediaLibraryServiceProvider::class) ? [MediaLibraryServiceProvider::class] : []),
+            ...$installed(MediaLibraryServiceProvider::class),
         ];
     }
 

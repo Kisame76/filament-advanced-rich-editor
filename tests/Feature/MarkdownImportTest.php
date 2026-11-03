@@ -205,6 +205,8 @@ it('has nothing to read in an empty string', function (): void {
 });
 
 it('reads back what the export wrote', function (): void {
+    requires('league/html-to-markdown');
+
     // The two directions meet here, and a round trip is the only test that fails when
     // either one drifts.
     $markdown = "## Intro\n\nSome **bold** text.\n\n- [x] Shipped\n- [ ] Open";

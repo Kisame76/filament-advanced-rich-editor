@@ -23,9 +23,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * from a cache under the new one's name, and the name the library and every card show.
  */
 beforeEach(function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
 

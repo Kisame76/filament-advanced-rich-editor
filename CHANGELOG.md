@@ -182,6 +182,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   A published config with the old key keeps working: both are read, and a model named in both
   is read for every column either names
 
+- `filament/infolists` is no longer listed under `suggest`. It never needed installing for
+  `AdvancedRichEntry`: `filament/forms` brings it, through `filament/actions`
+
 - A page of editors is a third smaller. Much of what every editor carries is the same for every
   field set up the same way, and gzip could not shrink the repeats because its window ends long
   before the next editor starts. The slash menu, the find bar and the strings of both pickers -

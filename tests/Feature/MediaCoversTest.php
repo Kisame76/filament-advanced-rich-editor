@@ -153,9 +153,7 @@ it('starts no process for a single lookup, only for a listing', function (): voi
 });
 
 it('writes a media row its cover where Spatie keeps its conversions', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 
@@ -177,9 +175,7 @@ it('writes a media row its cover where Spatie keeps its conversions', function (
 });
 
 it('remembers a media row it could not get a picture out of', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 

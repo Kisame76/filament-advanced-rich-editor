@@ -3,7 +3,8 @@
 declare(strict_types=1);
 
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
-use Phiki\Phiki;
+
+beforeEach(fn () => requires('phiki/phiki'));
 
 it('leaves code alone until it is asked to colour it', function (): void {
     $stored = '<pre><code class="language-php">echo 1;</code></pre>';
@@ -101,9 +102,3 @@ it('leaves everything that is not code alone', function (): void {
     expect($html)->toContain('<h2>Title</h2>')
         ->toContain('<p>Body <code>inline</code></p>');
 });
-
-it('says what to install when the highlighter is missing', function (): void {
-    // Phiki carries every grammar and every theme, which is nine megabytes nobody who does
-    // not colour code should be made to carry.
-    expect(class_exists(Phiki::class))->toBeTrue();
-})->skip('the exception can only be seen where phiki is absent, which is not this suite');

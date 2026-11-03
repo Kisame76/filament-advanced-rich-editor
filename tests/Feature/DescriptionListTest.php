@@ -92,6 +92,8 @@ it('reads the list through the field own schema too', function (): void {
 });
 
 it('writes the list as Markdown in the spelling Markdown Extra and CommonMark agree on', function (): void {
+    requires('league/html-to-markdown');
+
     // A term on its own line, its description after a colon, and a blank line between one
     // entry and the next. Left to itself the converter strips the tags and runs the four
     // parts together into one line.
@@ -100,11 +102,15 @@ it('writes the list as Markdown in the spelling Markdown Extra and CommonMark ag
 });
 
 it('keeps a term with two descriptions as one entry', function (): void {
+    requires('league/html-to-markdown');
+
     expect(AdvancedRichContentRenderer::make('<dl><dt>Bank</dt><dd>Where money is kept.</dd><dd>The side of a river.</dd></dl>')->toMarkdown())
         ->toBe("Bank\n: Where money is kept.\n: The side of a river.");
 });
 
 it('keeps two terms that share a description together', function (): void {
+    requires('league/html-to-markdown');
+
     // A blank line between them would make the first a paragraph of its own: CommonMark
     // only reads lines with no blank between them as one entry's terms.
     $html = '<dl><dt>Color</dt><dt>Colour</dt><dd>A hue.</dd><dt>Grey</dt><dd>Between.</dd></dl>';

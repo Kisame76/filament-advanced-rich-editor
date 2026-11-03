@@ -9,7 +9,6 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Embeds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaPost;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * A video somebody else hosts, in the library beside the ones this project does.
@@ -142,9 +141,7 @@ it('resolves an embed by its path, and nothing else by it', function (): void {
 });
 
 it('lists a media row that holds an embed', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 
@@ -173,9 +170,7 @@ it('lists a media row that holds an embed', function (): void {
 });
 
 it('keeps an embed row out of a library narrowed to pictures', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 
@@ -203,9 +198,7 @@ it('keeps an embed row out of a library narrowed to pictures', function (): void
 });
 
 it('narrows a media library to its embeds, and away from them', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 

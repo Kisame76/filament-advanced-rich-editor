@@ -25,9 +25,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * deletes owns them.
  */
 beforeEach(function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
     Storage::fake('tmp-for-tests');

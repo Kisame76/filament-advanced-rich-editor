@@ -100,9 +100,7 @@ it('deletes an embed entry like any other', function (): void {
 });
 
 it('deletes a media row and its file', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 
@@ -123,9 +121,7 @@ it('deletes a media row and its file', function (): void {
 });
 
 it('refuses a media row in a collection shared across records', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 
@@ -191,9 +187,7 @@ it('lets a shared pool delete only when it was told it may', function (): void {
 });
 
 it('deletes a media row in a shared collection when it was told it may', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 

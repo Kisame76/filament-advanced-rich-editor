@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TaskListPlugin;
 
+beforeEach(fn () => requires('league/html-to-markdown'));
+
 it('writes the document as markdown', function (): void {
     expect(AdvancedRichContentRenderer::make('<h2>Intro</h2><p>Some <strong>bold</strong> text.</p>')->toMarkdown())
         ->toBe("## Intro\n\nSome **bold** text.");

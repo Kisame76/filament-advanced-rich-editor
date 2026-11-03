@@ -19,9 +19,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * file that is not there.
  */
 beforeEach(function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
 

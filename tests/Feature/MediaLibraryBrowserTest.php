@@ -22,9 +22,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * and a lookup that allows more than the grid shows is a hole.
  */
 beforeEach(function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
 

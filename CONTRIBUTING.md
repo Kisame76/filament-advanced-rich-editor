@@ -29,6 +29,11 @@ composer analyse
 npm test
 ```
 
+CI also runs the suite on an install of nothing but what `require` names — no tables, no
+panel, no media library, no Markdown, no code colouring — because that is the smallest case
+the package promises to work in. A test of something a suggested package adds starts with
+`requires('league/html-to-markdown')`, or the package it needs, and skips itself there.
+
 ## Front-end assets
 
 There is no bundler. `resources/css` and `resources/js` are the sources, and Filament

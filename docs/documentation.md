@@ -5323,8 +5323,8 @@ describes the field, the entry describes one place it is shown.
 The document is drawn in `fi-prose`, Filament's own class for rich content — the same one
 the editor draws it in, so the view page and the form agree.
 
-`filament/infolists` is not a dependency of this package; the class needs it and says so in
-`suggest`.
+`filament/infolists` needs no installing of its own: `filament/forms` brings it, through
+`filament/actions`.
 
 #### Ticking a box on the view page
 

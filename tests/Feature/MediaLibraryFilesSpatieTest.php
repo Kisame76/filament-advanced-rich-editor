@@ -23,9 +23,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * for what is not - the same split the disk makes, asked of a table instead of a directory.
  */
 beforeEach(function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
 

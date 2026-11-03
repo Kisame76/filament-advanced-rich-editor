@@ -71,6 +71,8 @@ it('answers a second render out of the store', function (): void {
 });
 
 it('keeps the markup, the text and the Markdown apart', function (): void {
+    requires('league/html-to-markdown');
+
     // One document is three answers, and a single key would hand whoever asked second
     // whatever the first one wanted.
     $renderer = cachedRenderer();
@@ -85,6 +87,8 @@ it('keeps the markup, the text and the Markdown apart', function (): void {
 });
 
 it('tells two Markdown conversions apart by the options they were given', function (): void {
+    requires('league/html-to-markdown');
+
     $renderer = cachedRenderer('<h1>Titel</h1>');
 
     expect($renderer->toMarkdown())->toBe('# Titel')
