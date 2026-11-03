@@ -112,6 +112,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- A field with a maximum height drew its scrollbar flush against the text: a card, a picture
+  or a table running the full width ran into the bar, and the outline of a selected block was
+  cut off on both sides. The document keeps a rem of room before the bar now, the text stays
+  where it was, and the bar is a thin one in the grey of the field's border, without the dark
+  trough - in fullscreen too
+
 - The language picker on a code block sat on top of a long first line. In the editor the
   block keeps a narrow strip above the code for it; the rendered page is unchanged
 

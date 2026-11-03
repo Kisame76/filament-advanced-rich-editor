@@ -1358,14 +1358,53 @@
 .fi-fo-rich-editor.fi-arte-max-height .fi-fo-rich-editor-content > .tiptap {
     max-height: var(--fi-arte-max-height);
     overflow-y: auto;
+
+    /*
+     * The document reaches into the padding of the box around it, and takes the same amount
+     * back as its own, so the text stays exactly where it was. Without it the scrollbar sat
+     * flush against the text column: a card, a picture or a table running the full width
+     * ran into the bar, and the outline of a selected block - drawn outside the block - was
+     * cut off on both sides, since a box that scrolls clips whatever leaves it. The bar now
+     * sits a quarter rem inside the border, with a rem of room between it and the text.
+     * Filament's padding is 1.25rem on either side, or wider at the start for the grip.
+     */
+    margin-inline: -0.25rem -1rem;
+    padding-inline: 0.25rem 1rem;
+
+    /*
+     * Room for the bar whether it shows or not, the way Filament's own capped editor keeps
+     * it: otherwise every line moves the moment the text grows past the cap.
+     */
+    scrollbar-gutter: stable;
 }
 
 /*
  * Fullscreen is a height of its own and wins: the overlay already fills the window, and a
- * 400px box inside it would leave most of the screen empty.
+ * 400px box inside it would leave most of the screen empty. The box around the document
+ * scrolls there, so the document gives its room back.
  */
 .fi-arte-fullscreen.fi-arte-max-height .fi-fo-rich-editor-content > .tiptap {
     max-height: none;
+    overflow-y: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+    scrollbar-gutter: auto;
+}
+
+/*
+ * A thin bar with no track, in the grey of the field's own border, for both boxes that
+ * scroll inside an editor. The platform's bar is a dark trough the height of the field,
+ * which in a form full of quiet borders reads as something broken.
+ */
+.fi-fo-rich-editor.fi-arte-max-height .fi-fo-rich-editor-content > .tiptap,
+.fi-arte-fullscreen .fi-fo-rich-editor-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-300) transparent;
+}
+
+.fi-fo-rich-editor.fi-arte-max-height .fi-fo-rich-editor-content > .tiptap:where(.dark, .dark *),
+.fi-arte-fullscreen .fi-fo-rich-editor-content:where(.dark, .dark *) {
+    scrollbar-color: var(--gray-600) transparent;
 }
 
 /*
