@@ -2473,7 +2473,10 @@ body.fi-arte-fullscreen-lock {
 
 .fi-arte-drag-handle {
     position: fixed;
-    z-index: 20;
+    /* Over the text and under every bar: Filament's floating toolbars (5), a pinned toolbar
+       (10, 20 when docked) and the sticky header of a custom block (10). Above them, the
+       grip and the plus showed through the bar of a selection on the first line. */
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 0.125rem;

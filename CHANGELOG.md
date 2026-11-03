@@ -125,6 +125,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   the level of the service's badge beside it: the panel's typography put a top margin on it.
   Badge and title are centred on one line now, and the card is that much lower
 
+- The grip and the plus beside a block showed through the bar of a selection when it opened
+  over them. They are drawn under every bar now - the floating ones, a pinned toolbar and the
+  sticky header of a custom block - and over the text as before
+
 - A pinned toolbar in dark mode is the colour of its own field again wherever the field sits.
   Its background was written down for a field inside a section, so on a field straight on the
   page it was a lighter stripe across the top. It is now measured from what is behind the bar,

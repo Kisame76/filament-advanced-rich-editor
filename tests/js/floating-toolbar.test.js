@@ -19,7 +19,7 @@ import { afterEach, beforeEach, expect, it } from 'vitest'
  * and Filament's rule for the bar after it, the way the panel orders them.
  */
 
-const FILAMENT_BAR_RULE = '.fi-fo-rich-editor .fi-fo-rich-editor-floating-toolbar { visibility: hidden; display: flex; position: absolute; }'
+const FILAMENT_BAR_RULE = '.fi-fo-rich-editor .fi-fo-rich-editor-floating-toolbar { visibility: hidden; display: flex; position: absolute; z-index: 5; }'
 
 // From the root Vitest runs in: under jsdom neither `URL` nor `import.meta.url` is the one `fs` takes.
 const sheet = readFileSync(resolve(process.cwd(), 'resources/css/filament-advanced-rich-editor.css'), 'utf8')
@@ -72,4 +72,16 @@ it('keeps a bar laid out that TipTap hid while it stayed in the document', () =>
 
 it('leaves the bars of a plain Filament editor alone', () => {
     expect(getComputedStyle(bar('fi-fo-rich-editor')).display).toBe('flex')
+})
+
+it('is drawn over the drag handle of the block beside it', () => {
+    // A selection on the first line of a block opens its bar over the gutter of the next
+    // one, and the grip and the plus of that block showed through it.
+    const element = bar()
+
+    element.style.visibility = 'visible'
+    element.insertAdjacentHTML('afterend', '<div class="fi-arte-drag-handle fi-not-prose"></div>')
+
+    expect(Number(getComputedStyle(document.querySelector('.fi-arte-drag-handle')).zIndex))
+        .toBeLessThan(Number(getComputedStyle(element).zIndex))
 })
