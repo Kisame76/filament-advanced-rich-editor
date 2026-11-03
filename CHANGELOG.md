@@ -202,6 +202,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 - `filament/infolists` is no longer listed under `suggest`. It never needed installing for
   `AdvancedRichEntry`: `filament/forms` brings it, through `filament/actions`
 
+- `guzzlehttp/promises` below 2.0.3 is refused. Laravel 13.0's HTTP client is written for 2.x
+  but lets 1.5 be installed, and with 1.5 every `Http::pool()` stops with a fatal error - the
+  link check among them. Later Laravel 13 releases ask for 2.0.3 themselves
+
 - A page of editors is a third smaller. Much of what every editor carries is the same for every
   field set up the same way, and gzip could not shrink the repeats because its window ends long
   before the next editor starts. The slash menu, the find bar and the strings of both pickers -
