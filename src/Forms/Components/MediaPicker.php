@@ -7,6 +7,8 @@ namespace Kisame76\FilamentAdvancedRichEditor\Forms\Components;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 
 /**
@@ -201,13 +203,15 @@ class MediaPicker extends Field
             'download' => (string) __($key.'download'),
             'play' => (string) __($key.'play'),
             // What a tile and the panel call a service, rather than the bare provider key.
-            'providers' => [
-                'youtube' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.youtube'),
-                'vimeo' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.vimeo'),
-            ],
+            'providers' => array_map(
+                static fn (EmbedProvider $provider): string => $provider->label(),
+                EmbedProviders::all(),
+            ),
             'delete' => (string) __($key.'delete'),
             'deleting' => (string) __($key.'deleting'),
             'rejected' => (string) __($key.'rejected'),
+            // `:name` and `:existing` are filled in the browser.
+            'alreadyInLibrary' => (string) __($key.'already_in_library'),
             'dismiss' => (string) __($key.'dismiss'),
             // The two dialogs are Filament's own confirmation, so what it calls its cancel
             // button is what they call it: the word every other confirmation in the panel

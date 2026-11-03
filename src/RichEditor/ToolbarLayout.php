@@ -127,6 +127,12 @@ class ToolbarLayout
 
                 return $formats === [] ? [] : ToolbarDropdown::dateTime(array_keys($formats));
             },
+            // Nothing to pick from means no trigger: a field without snippets shows nothing.
+            'snippets' => static function (AdvancedRichEditor $editor): object|array {
+                $snippets = $editor->getSnippets();
+
+                return $snippets === [] ? [] : ToolbarDropdown::snippets(array_keys($snippets));
+            },
             // Nothing to offer means no button, the same rule the rest of the bar follows.
             'formatBrush' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFormatBrush()
                 ? 'formatBrush'
@@ -151,6 +157,9 @@ class ToolbarLayout
             'embed' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasEmbeds()
                 ? 'embed'
                 : [],
+            'linkPreview' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasLinkPreviews()
+                ? 'linkPreview'
+                : [],
             // Nothing to pick from means no trigger, the same way the overflow menu and the
             // colour pickers vanish when what they open onto is empty.
             'lineHeight' => static function (AdvancedRichEditor $editor): object|array {
@@ -174,13 +183,13 @@ class ToolbarLayout
             // source view and the shortcut list are each removable, so all four can be gone
             // while the list naming them is still as long as it ever was. A trigger opening
             // onto nothing is worse than no trigger.
+            //
+            // Asked of the tools the field registers rather than of `getTools()`: see
+            // `registersTool()` for the loop the other question ran.
             'tools' => static function (AdvancedRichEditor $editor): object|array {
                 $tools = $editor->getToolsMenu();
 
-                $available = array_filter(
-                    $tools,
-                    static fn (string $name): bool => array_key_exists($name, $editor->getTools()),
-                );
+                $available = array_filter($tools, $editor->registersTool(...));
 
                 return $available === [] ? [] : ToolbarDropdown::tools($tools);
             },
@@ -200,6 +209,14 @@ class ToolbarLayout
                 : [],
             'blockOutlines' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasInvisibles()
                 ? 'blockOutlines'
+                : [],
+            'focusMode' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFocusMode()
+                ? 'focusMode'
+                : [],
+            // Only for somebody who may lock: for everybody else the parts are guarded, and a
+            // button that cannot be pressed is not one to show them.
+            'lock' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasLockedRegions() && $editor->areLockedRegionsEditable()
+                ? 'lock'
                 : [],
             'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
                 ? 'help'

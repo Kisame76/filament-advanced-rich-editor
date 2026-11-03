@@ -8,7 +8,10 @@ use Closure;
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ContentHash;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
@@ -18,6 +21,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\ResponsiveImages\ResponsiveImage;
 
 /**
  * Stores rich editor image attachments as `spatie/laravel-medialibrary` media instead of
@@ -31,7 +35,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * project that never uses this provider is unaffected by its absence; only actually using the
  * feature raises an exception telling the developer to install the package.
  */
-class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
+class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider, ProvidesSrcset
 {
     /**
      * The custom property every attachment this package uploads is stamped with.
@@ -47,6 +51,8 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     protected ?Closure $getRecordUsing = null;
 
     protected ?Closure $getOwnerUsing = null;
+
+    protected ?Closure $getUnsavedStateUsing = null;
 
     protected ?MediaSource $source = null;
 
@@ -100,6 +106,18 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     public function ownerUsing(?Closure $callback): static
     {
         $this->getOwnerUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * The field injects `fn () => $component->getLivewire()->all()` here: everything the page
+     * holds and has not written yet, which is where another editor's document lives until the
+     * save that sweeps this one has finished. See `getContentBesides()`.
+     */
+    public function unsavedStateUsing(?Closure $callback): static
+    {
+        $this->getUnsavedStateUsing = $callback;
 
         return $this;
     }
@@ -253,6 +271,14 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
                 $properties += $dimensions;
             }
 
+            // And for the same reason what it holds, which is what tells the next upload of
+            // the same file that it is one - see `FindsCopies`.
+            $hash = ContentHash::ofPath($temporaryPath);
+
+            if ($hash !== null) {
+                $properties[SpatieMediaSource::HASH_PROPERTY] = $hash;
+            }
+
             if ($properties !== []) {
                 $adder = $adder->withCustomProperties($properties);
             }
@@ -287,6 +313,38 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
     }
 
     /**
+     * The responsive images Spatie made of the picture, where the project asked it for them -
+     * on the collection, or on the conversion the picture is shown as. Those of the conversion
+     * where there is one: the original's are another picture, perhaps cut differently.
+     *
+     * Built from the files rather than taken from `getSrcset()`, which ends the list with an
+     * inline placeholder 32 pixels wide. That is for Spatie's own component, which loads it
+     * first and swaps in the right size with a script; in a document it is a few kilobytes of
+     * markup per picture that no browser picks.
+     *
+     * None on a private disk. Spatie addresses them as public files, always, and there they
+     * lead nowhere.
+     */
+    public function getFileAttachmentSrcset(mixed $file): ?string
+    {
+        if ($this->getDefaultFileAttachmentVisibility() === 'private') {
+            return null;
+        }
+
+        $media = $this->resolveMedia($file);
+
+        if (! $media) {
+            return null;
+        }
+
+        $srcset = $media->responsiveImages($this->getConversion() ?? '')->files
+            ->map(fn (ResponsiveImage $image): string => $image->url().' '.$image->width().'w')
+            ->implode(', ');
+
+        return ($srcset === '') ? null : $srcset;
+    }
+
+    /**
      * Removes the attachments this field uploaded and no longer references.
      *
      * Scoped to this field's own uploads, and to nothing else in the collection. A media
@@ -297,6 +355,12 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      * Media without the mark is left alone rather than assumed to be ours: it was put there by
      * something that is not this field, and the worst case for keeping a file is a file too
      * many, while the worst case for deleting one is somebody's content.
+     *
+     * The mark says who uploaded a picture, not who shows it. The record-scoped browser lists
+     * the whole collection, and a picture copied from one editor into another resolves there
+     * too, so the other editor on the record may be showing it - and the uploader removing it
+     * from its own document is no reason to take it out of that one. So a picture is only
+     * deleted once nothing else on the record mentions it; see `getContentBesides()`.
      *
      * And nothing at all is deleted once the browser has offered these pictures to other
      * records; see `sweepsSafely()`.
@@ -326,17 +390,68 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
             array_filter($exceptIds, fn (mixed $id): bool => is_string($id) || is_numeric($id)),
         );
 
+        // Read once, and only when there is something to delete - which most saves never have.
+        $elsewhere = null;
+
         foreach ($record->getMedia($this->getCollection()) as $media) {
             if ($media->getCustomProperty(static::OWNER_PROPERTY) !== $owner) {
                 continue;
             }
 
-            if (in_array((string) $media->getAttributeValue('uuid'), $exceptIds, strict: true)) {
+            $uuid = (string) $media->getAttributeValue('uuid');
+
+            if (in_array($uuid, $exceptIds, strict: true)) {
                 continue;
+            }
+
+            $elsewhere ??= $this->getContentBesides($record, $owner);
+
+            foreach ($elsewhere as $content) {
+                if (str_contains($content, $uuid)) {
+                    continue 2;
+                }
             }
 
             $media->delete();
         }
+    }
+
+    /**
+     * Everything on the record that could be showing one of this field's pictures, besides this
+     * field's own document.
+     *
+     * Two places, because a save writes in two steps. The record's other columns hold what the
+     * other editors saved before. What they are about to save is still on the page: Filament
+     * sweeps while it collects the form's state, and only writes the record after that - so a
+     * picture taken into the other editor in the same save is in nothing the record holds yet.
+     *
+     * Read as plain text, not as documents. Which columns hold rich content is something the
+     * record does not say - a model needs no `HasRichContent` for an editor to write to it - and
+     * a media uuid is thirty-six random characters that turn up nowhere by accident. Reading too
+     * much can only keep a file too many.
+     *
+     * This field's own column is left out: the record still holds the version being replaced,
+     * which shows every picture the edit removed.
+     *
+     * @return array<string>
+     */
+    protected function getContentBesides(Model $record, string $owner): array
+    {
+        $values = Arr::except($record->getAttributes(), [$owner]);
+
+        if ($this->getUnsavedStateUsing instanceof Closure) {
+            $values[] = ($this->getUnsavedStateUsing)();
+        }
+
+        $content = [];
+
+        array_walk_recursive($values, function (mixed $value) use (&$content): void {
+            if (is_string($value)) {
+                $content[] = $value;
+            }
+        });
+
+        return $content;
     }
 
     /**
@@ -357,7 +472,8 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
      *
      * `->mediaLibraryScope('record')` narrows the pool back to this record and turns automatic
      * sweeping on again, as does switching the browser off: with nothing wider than the record
-     * on offer, nothing else can be holding the uuid.
+     * on offer, nothing outside the record can be holding the uuid - and inside it, the sweep
+     * reads everything; see `getContentBesides()`.
      */
     protected function sweepsSafely(): bool
     {

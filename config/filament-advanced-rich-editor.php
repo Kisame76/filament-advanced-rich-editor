@@ -1,6 +1,13 @@
 <?php
 
 declare(strict_types=1);
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\CodePen;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\GoogleMaps;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\Loom;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\Spotify;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\TikTok;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\Vimeo;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\YouTube;
 
 return [
     /*
@@ -44,7 +51,7 @@ return [
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'mediaBrowser', 'table', 'callouts'],
+        ['lists', 'mediaBrowser', 'table', 'callouts', 'snippets'],
         'divider',
         ['more'],
         'pin',
@@ -192,6 +199,7 @@ return [
         'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
         'details',
         'emoji', 'characters',
+        'lock',
     ],
 
     /*
@@ -217,7 +225,7 @@ return [
     |
     | An empty menu is dropped rather than drawn. Per field: `->toolsMenu()`.
     */
-    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help'],
+    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'sourceCode', 'help'],
 
     /*
     |--------------------------------------------------------------------------
@@ -276,6 +284,10 @@ return [
     | wrong. Switch it on here or per field with `->accessibility()`, and the entry
     | appears where the tools menu already reserves a place for it, after 'find'. Nothing
     | about any of it is stored.
+    |
+    | `php artisan arte:diagnose` asks the same rules of every stored document, whether
+    | the check is on or not, and leaves out the ones 'rules' leaves out. Contrast is
+    | the editor's alone: it depends on the colours a field offers.
     |
     | Per field: `->accessibility()`, `->accessibilityRules()`.
     */
@@ -430,18 +442,25 @@ return [
     |--------------------------------------------------------------------------
     | Embeds
     |--------------------------------------------------------------------------
-    | Video embeds. A pasted link is taken apart and the embed URL is built from it, so
-    | every shape a share button produces works - watch, youtu.be, shorts, embed, and the
-    | Vimeo equivalents - including the timestamp.
+    | Embeds from other sites: videos, songs, maps, pens. A pasted link is taken apart and
+    | the embed URL is built from it, so every shape a share button produces works - watch,
+    | youtu.be, shorts, embed - including the timestamp.
     |
+    |   'providers'         the services an embed may come from, by class. Taking one off
+    |                       refuses its links and renders its stored embeds as nothing;
+    |                       adding one is a class extending `EmbedProvider`. X and Instagram
+    |                       are not here: they embed through a script of their own, and a
+    |                       script is something no document should be able to put on a page.
     |   'sanitizer'         allows `<iframe>` back into rendered content, with `src`
-    |                       narrowed to 'allowed_hosts'. Filament's sanitiser drops iframes,
-    |                       so without this an embed is stored and never shown. It changes a
-    |                       configuration the whole application shares, which is why it is a
-    |                       switch rather than something the package just does.
-    |   'allowed_hosts'     hosts an embed may point at, subdomains included. Something else
-    |                       in the project embedding iframes has to be listed here too - see
-    |                       the README on why both cannot allowlist separately.
+    |                       narrowed to the hosts those services frame from. Filament's
+    |                       sanitiser drops iframes, so without this an embed is stored and
+    |                       never shown. It changes a configuration the whole application
+    |                       shares, which is why it is a switch rather than something the
+    |                       package just does.
+    |   'allowed_hosts'     further hosts an iframe may point at, subdomains included -
+    |                       something else in the project that embeds iframes has to be
+    |                       listed here too; see the README on why both cannot allowlist
+    |                       separately. The services' own hosts need not be.
     |   'youtube_nocookie'  embeds through youtube-nocookie.com, which is what keeps an
     |                       embedded video from setting a tracking cookie on the reader.
     |
@@ -455,11 +474,16 @@ return [
         'enabled' => true,
         'sanitizer' => true,
         'youtube_nocookie' => true,
-        'allowed_hosts' => [
-            'youtube-nocookie.com',
-            'youtube.com',
-            'vimeo.com',
+        'providers' => [
+            YouTube::class,
+            Vimeo::class,
+            Spotify::class,
+            Loom::class,
+            CodePen::class,
+            TikTok::class,
+            GoogleMaps::class,
         ],
+        'allowed_hosts' => [],
     ],
 
     /*
@@ -515,9 +539,9 @@ return [
                 'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
-                'image', 'attachFiles', 'embed', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
+                'image', 'attachFiles', 'embed', 'linkPreview', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
                 'emoji', 'characters',
-                'dateTime', 'customBlocks', 'mergeTags',
+                'dateTime', 'snippets', 'customBlocks', 'mergeTags',
             ],
         ],
     ],
@@ -549,9 +573,42 @@ return [
     | Turning this off falls back to Filament's own dialog and its own link mark, and the
     | extra attributes are stripped from content that already carries them on the next
     | save. Per field: `->linkAttributes()`.
+    |
+    | 'check' is whether links still lead anywhere. `php artisan arte:diagnose` asks every
+    | link in every stored document and fails where one is broken, which makes it something
+    | to schedule. 'dialog' asks a typed address as the link dialog's field is left, and
+    | warns where it does not answer; per field: `->linkCheck()`.
     */
     'link' => [
         'attributes' => true,
+
+        /*
+         * Link cards - the page's title, a line about it and the site it is on, read from the
+         * page once, when the card is made, and kept in the document. Off: most documents link
+         * in a sentence, and making a card has the server read the page. Not on the shipped bar
+         * either way; the slash menu finds it. Per field: `->linkPreviews()`. The timeout and
+         * the user agent below apply to reading the page too.
+         */
+        'previews' => false,
+
+        'check' => [
+            /*
+             * Off, because it is the server that asks: every address somebody types becomes
+             * a request leaving it, and a server that may not reach the internet would warn
+             * about every link written on it. Only public addresses are asked.
+             */
+            'dialog' => false,
+
+            // Seconds per request. The dialog waits this long at most for its answer.
+            'timeout' => 5,
+
+            // How many addresses the command asks at once.
+            'concurrency' => 10,
+
+            // What the requests call themselves. Null sends "Mozilla/5.0 (compatible; link
+            // check; <app.name>)" - some sites turn away anything that does not say Mozilla.
+            'user_agent' => null,
+        ],
     ],
 
     /*
@@ -641,6 +698,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Keyboard shortcuts
+    |--------------------------------------------------------------------------
+    | Keys for the tools, by the names the toolbar takes: another key for a tool that has
+    | one, a first key for a tool that has none, or null to take a tool's key away.
+    |
+    |   'shortcuts' => [
+    |       'link' => 'Mod-K',
+    |       'highlight' => 'Mod-Shift-Y',
+    |       'underline' => null,
+    |   ],
+    |
+    | Mod is ⌘ on a Mac and Ctrl everywhere else; the other modifiers are Ctrl, Alt and
+    | Shift, and one of Mod, Ctrl or Alt is needed unless the key is F1 to F12. A key given
+    | to one tool is taken from whichever tool had it. A key taken away does nothing in the
+    | editor. Tools a field does not have are skipped, and the help dialog lists what is
+    | bound.
+    |
+    | Empty, the editor answers to the keys it ships with and loads nothing for this. The
+    | link has no key out of the box: panels often give Mod+K to the global search, and
+    | that would fire as well. Per field: `->shortcuts()`, laid over this list tool by tool.
+    */
+    'shortcuts' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Source code
     |--------------------------------------------------------------------------
     | The button that opens the document as HTML. Both directions run through the
@@ -680,6 +762,59 @@ return [
     | the browser's Fullscreen API, so Filament's modals still appear above it.
     */
     'fullscreen' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Focus mode
+    |--------------------------------------------------------------------------
+    | A button in the tools menu: every block but the one being written in is dimmed, and
+    | the line being written stays in the middle of the view - in fullscreen, or on the page.
+    | Nothing about it is stored, and it starts off on every page load.
+    |
+    | Off: some people write like this every day and most never reach for it, and in a form
+    | a page that scrolls to keep a line in the middle surprises anybody who did not ask.
+    | 'focusMode' already sits in the shipped tools menu and resolves to nothing, so turning
+    | this on is all it takes. Per field: `->focusMode()`.
+    */
+    'focus_mode' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Locked regions
+    |--------------------------------------------------------------------------
+    | Parts of a document the people writing in it cannot change - a template's fixed
+    | paragraphs, a contract's clauses. Somebody who may lock selects the blocks and presses
+    | the padlock in the more menu ('lock'); everybody else can write around them but not in
+    | them, and a save that changed, removed or added one is refused on the server too.
+    |
+    | Off by default: most fields hold something one person writes from top to bottom.
+    | Nobody may lock or unlock until the field says who, per person:
+    |
+    |   ->lockedRegions()->lockedRegionsEditable(fn (): bool => auth()->user()->isAdmin())
+    |
+    | A field with this off unwraps any locked part it is handed. Per field: `->lockedRegions()`.
+    */
+    'locked_regions' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Snippets
+    |--------------------------------------------------------------------------
+    | Ready-made content to put where the caret is - a signature, a disclaimer, the skeleton
+    | of a report. Keyed by a name, with the content as markup or as a document array, and
+    | a label where the name is not one:
+    |
+    |   'snippets' => [
+    |       'signature' => '<p>Kind regards,<br>The editorial team</p>',
+    |       'disclaimer' => ['label' => 'Legal note', 'content' => '<p>...</p>'],
+    |   ],
+    |
+    | Offered through the 'snippets' dropdown (in the shipped toolbar, beside the callouts)
+    | and in the slash menu. With none, neither shows anything. The content is asked of the
+    | server when one is picked, so a long list costs the page only its names.
+    | Per field: `->snippets()`, which replaces this list and takes a closure.
+    */
+    'snippets' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -1297,10 +1432,35 @@ return [
 
         'link' => true,
 
+        'editor' => false,
+
         'dimensions' => true,
 
         'loading' => null,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stored documents
+    |--------------------------------------------------------------------------
+    | Where documents are kept, for what has to read every one of them rather than the one
+    | on the screen: the media library, which takes a deleted file out of every entry using
+    | it and points them all at a replaced one, and `php artisan arte:diagnose`. A package
+    | cannot know which tables hold rich content, so it is told - a model with its columns,
+    | or a model alone, which then answers with the columns it registered as rich content
+    | itself (`registerRichContent()`).
+    |
+    | Models that registered rich content under `app/Models` are found by `arte:diagnose`
+    | without being named, and a media library field knows its own column; the list is for
+    | everything else. It used to be `media_library.documents`, which is still read.
+    | Per field, for the library: `->mediaLibraryDocuments()`.
+    |
+    |   'documents' => [
+    |       App\Models\Page::class => ['body', 'sidebar'],
+    |       App\Models\Post::class,
+    |   ],
+    */
+    'documents' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -1432,20 +1592,12 @@ return [
         'replaceable' => true,
 
         /*
-         * Where else the library's files are used. Deleting a file takes it out of every entry
-         * using it, and replacing one points them all at the new file - which needs to know
-         * where entries live, and a package cannot know which tables hold rich content.
-         *
-         * The field's own column is known without being told. Name the rest: a model with its
-         * columns, or a model alone, which then answers with the columns it registered as rich
-         * content itself (`registerRichContent()`). Per field: `->mediaLibraryDocuments()`.
-         *
-         *   'documents' => [
-         *       App\Models\Page::class => ['body', 'sidebar'],
-         *       App\Models\Post::class,
-         *   ],
+         * Whether an upload the library already holds - the same bytes, under whatever name -
+         * becomes the file that is there instead of a second copy. The browser selects the
+         * file it found and says so; a picture dropped into the text points at it once the
+         * form is saved. Per field: `->mediaLibraryDeduplicates(false)`.
          */
-        'documents' => [],
+        'deduplicate' => true,
 
         'page_size' => 40,
 
@@ -1566,6 +1718,7 @@ return [
         'image' => 'heroicon-o-photo',
         'media_browser' => 'heroicon-o-photo',
         'embed' => 'heroicon-o-film',
+        'link_preview' => 'heroicon-o-bookmark-square',
         'media_video' => 'heroicon-o-play-circle',
         'media_audio' => 'heroicon-o-musical-note',
         'media_file' => 'heroicon-o-paper-clip',
@@ -1582,6 +1735,9 @@ return [
         'source_code' => 'heroicon-o-code-bracket',
         'invisible_characters' => 'arte-pilcrow',
         'block_outlines' => 'arte-square-dashed',
+        'focus_mode' => 'heroicon-o-viewfinder-circle',
+        'lock' => 'heroicon-o-lock-closed',
+        'snippets' => 'heroicon-o-clipboard-document-list',
         'statistics' => 'heroicon-o-chart-bar',
         'preview' => 'heroicon-o-eye',
         'find' => 'heroicon-o-magnifying-glass',
@@ -1662,6 +1818,7 @@ return [
         'image_decorative' => 'heroicon-o-eye-slash',
 
         'image_link' => 'heroicon-o-link',
+        'image_edit' => 'arte-crop',
         'image_alt' => 'heroicon-o-chat-bubble-bottom-center-text',
         'image_size' => 'heroicon-o-arrows-pointing-out',
         'image_replace' => 'heroicon-o-arrow-path',
@@ -1679,6 +1836,8 @@ return [
         'media_delete' => 'heroicon-o-trash',
         'embed_replace' => 'heroicon-o-arrow-path',
         'embed_delete' => 'heroicon-o-trash',
+        'link_preview_edit' => 'heroicon-o-pencil-square',
+        'link_preview_delete' => 'heroicon-o-trash',
     ],
 
     /*

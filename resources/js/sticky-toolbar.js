@@ -46,15 +46,93 @@ export function scrollParent(element) {
 }
 
 /**
- * Keeps `fi-arte-stuck` on a bar while it is stuck. Returns what stops it.
+ * The colour a field shows behind its bar, as one opaque colour - or null where it cannot be
+ * told.
+ *
+ * A pinned bar has to be opaque, or the text slides visibly through it, and opaque in the
+ * colour of the field or it is a stripe of another grey. That colour is not one value: in dark
+ * mode Filament draws a field as a translucent white over whatever it sits on, so it is one
+ * grey in a section and a darker one straight on the page. The stylesheet can only guess which.
+ * So every background from the bar outwards is laid over the next, down to the first opaque
+ * one, on a one-pixel canvas - which does the compositing, and reads every colour notation the
+ * browser does, `oklab()` included.
  */
-export function watch(toolbar, Observer = window.IntersectionObserver) {
+export function colourBehind(element, context = canvasContext()) {
+    if (!element || !context) {
+        return null
+    }
+
+    const alphaOf = (colour) => {
+        context.clearRect(0, 0, 1, 1)
+        // Reset first: a colour the canvas cannot read leaves the last one in place, and
+        // would be counted twice.
+        context.fillStyle = 'transparent'
+        context.fillStyle = colour
+        context.fillRect(0, 0, 1, 1)
+
+        return context.getImageData(0, 0, 1, 1).data[3]
+    }
+
+    const layers = []
+
+    for (let node = element.parentElement; node; node = node.parentElement) {
+        const colour = window.getComputedStyle(node).backgroundColor
+        const alpha = alphaOf(colour)
+
+        if (alpha === 0) {
+            continue
+        }
+
+        layers.unshift(colour)
+
+        if (alpha === 255) {
+            context.clearRect(0, 0, 1, 1)
+
+            for (const layer of layers) {
+                context.fillStyle = layer
+                context.fillRect(0, 0, 1, 1)
+            }
+
+            const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
+
+            return `rgb(${red} ${green} ${blue})`
+        }
+    }
+
+    return null
+}
+
+let canvas = null
+
+function canvasContext() {
+    canvas ??= document.createElement('canvas')
+    canvas.width = 1
+    canvas.height = 1
+
+    return canvas.getContext?.('2d', { willReadFrequently: true }) ?? null
+}
+
+/**
+ * Keeps `fi-arte-stuck` on a bar while it is stuck, and the colour behind it on the bar for the
+ * stylesheet to paint it with. Returns what stops both.
+ */
+export function watch(toolbar, Observer = window.IntersectionObserver, Mutations = window.MutationObserver) {
     if (!toolbar || !Observer) {
         return () => {}
     }
 
     // Resolved to pixels whatever the field was configured with - `4rem`, a calc().
     const top = Number.parseFloat(window.getComputedStyle(toolbar).top) || 0
+
+    const paint = () => {
+        const colour = colourBehind(toolbar)
+
+        if (colour) {
+            toolbar.style.setProperty('--fi-arte-behind', colour)
+        } else {
+            toolbar.style.removeProperty('--fi-arte-behind')
+        }
+    }
 
     const observer = new Observer(
         ([entry]) => {
@@ -64,10 +142,34 @@ export function watch(toolbar, Observer = window.IntersectionObserver) {
     )
 
     observer.observe(toolbar)
+    paint()
+
+    // Again whenever the page changes between light and dark, which Filament does with a class
+    // on the root - the colour measured for one is wrong for the other. Filament fades a field's
+    // background from one to the other, so what is read at the switch is a colour on its way:
+    // it is read again once every fade behind the bar has arrived.
+    const repaint = () => {
+        paint()
+
+        const fading = []
+
+        for (let node = toolbar.parentElement; node; node = node.parentElement) {
+            fading.push(...(node.getAnimations?.() ?? []))
+        }
+
+        if (fading.length > 0) {
+            Promise.allSettled(fading.map((animation) => animation.finished)).then(paint)
+        }
+    }
+
+    const theme = Mutations ? new Mutations(repaint) : null
+    theme?.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 
     return () => {
         observer.disconnect()
+        theme?.disconnect()
         toolbar.classList.remove(STUCK_CLASS)
+        toolbar.style.removeProperty('--fi-arte-behind')
     }
 }
 

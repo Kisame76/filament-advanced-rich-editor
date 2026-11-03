@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'código, pre, trecho, snippet',
             'horizontalRule' => 'hr, separador, divisor, linha',
             'details' => 'acordeão, sanfona, expandir, recolher',
-            'embed' => 'vídeo, youtube, vimeo, iframe, incorporar, mídia',
+            'embed' => 'vídeo, youtube, vimeo, iframe, incorporar, mídia, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'favorito, cartão, prévia, link, url, site',
             'video' => 'mp4, webm, filme, clipe, player, mídia',
             'audio' => 'mp3, som, música, podcast, player, mídia',
             'file' => 'arquivo, documento, pdf, anexo, download, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Link para um registro',
                 'hint' => 'Escolher um preenche a URL abaixo, que é o que o link armazena.',
             ],
+            'check' => [
+                'answers' => 'Este endereço responde :status.',
+                'no_host' => 'O host :host não existe.',
+                'silent' => 'Este endereço não respondeu.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Texto simples',
         ],
         'embed' => [
-            'label' => 'Vídeo',
-            'heading' => 'Incorporar um vídeo',
-            'url' => 'Link do vídeo',
-            'url_hint' => 'Cole o link da barra de endereço ou do botão Compartilhar. O tempo de início que ele tiver é mantido.',
+            'label' => 'Incorporar',
+            'heading' => 'Incorporar de outro site',
+            'url' => 'Link',
+            'url_hint' => 'Cole o link da barra de endereço ou do botão Compartilhar — para um mapa, o código de incorporação. A marcação de tempo de um link de vídeo é mantida.',
             'title' => 'Título',
-            'title_hint' => 'Lido por um leitor de tela no lugar de “vídeo”.',
+            'title_hint' => 'Lido por um leitor de tela no lugar de “quadro”.',
             'ratio' => 'Proporção',
-            'unsupported' => 'Esse link não é um vídeo que este editor consiga incorporar.',
+            'unsupported' => 'Este editor não consegue incorporar esse link.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Substituir vídeo',
+            'replace' => 'Substituir incorporação',
+            'delete' => 'Remover',
+        ],
+        'link_preview' => [
+            'label' => 'Cartão de link',
+            'heading' => 'Mostrar um link como cartão',
+            'url' => 'Link',
+            'url_hint' => 'A página é lida uma vez, quando você sai deste campo: o título, uma linha sobre ela e o site em que está. Tudo abaixo pode ser corrigido.',
+            'title' => 'Título',
+            'description' => 'Descrição',
+            'site' => 'Site',
+            'unreadable' => 'Não foi possível ler esta página. Preencha o cartão você mesmo.',
+            'not_a_page' => 'Só um endereço web que comece com http:// ou https:// pode virar um cartão.',
+            'edit' => 'Editar cartão',
             'delete' => 'Remover',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Sair da tela cheia',
         ],
         'image_replace' => 'Substituir imagem',
+        'image_edit' => [
+            'label' => 'Editar imagem',
+            'apply' => 'Aplicar',
+            'hint' => 'Use o lápis sobre a imagem para recortar, girar ou espelhar. O arquivo original é mantido.',
+        ],
         'image_download' => 'Baixar imagem',
         'image_delete' => 'Excluir imagem',
         'image_float_left' => 'Flutuar à esquerda',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'De um link',
             'from_url_heading' => 'Adicionar de um link',
             'from_url_label' => 'Link',
-            'from_url_hint' => 'Um link do YouTube ou do Vimeo é adicionado à sua biblioteca e pode ser usado de novo. Qualquer outro endereço — um arquivo no servidor de outra pessoa — é inserido como está, um documento como cartão, e não é armazenado aqui.',
+            'from_url_hint' => 'Um link do YouTube, Vimeo, Spotify ou de outro serviço que este editor incorpora é adicionado à sua biblioteca e pode ser reutilizado. Qualquer outro endereço — um arquivo no servidor de outra pessoa — é inserido como está, um documento como cartão, e não é armazenado aqui.',
             'from_url_hint_files' => 'Um arquivo hospedado por outra pessoa. Ele é inserido como está, um documento como cartão, e nada é adicionado à sua biblioteca.',
-            'from_url_no_embeds' => 'Vídeos do YouTube e do Vimeo estão desativados para este campo.',
+            'from_url_no_embeds' => 'Incorporações de outros sites estão desativadas para este campo.',
             'all_types' => 'Todos os tipos',
             'all_kinds' => 'Todos',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Excluído e removido de uma entrada.',
             'replaced_in' => 'Substituído e atualizado em :count entradas.',
             'replaced_in_one' => 'Substituído e atualizado em uma entrada.',
+            'already_in_library' => '“:name” já está na biblioteca como “:existing”, então esse arquivo foi selecionado.',
             'copy_url' => 'Copiar link',
             'copied' => 'Copiado',
             'drop' => 'Solte para enviar',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Mostrar blocos',
+        ],
+        'snippets' => [
+            'label' => 'Trechos',
+        ],
+        'lock' => [
+            'label' => 'Bloquear',
+            'badge' => 'Bloqueado',
+        ],
+        'focus_mode' => [
+            'label' => 'Modo foco',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -545,6 +585,7 @@ return [
         'min_words' => 'O campo :attribute deve ter pelo menos :min palavras.',
         'max_words' => 'O campo :attribute não pode ter mais de :max palavras.',
         'must_contain' => 'O campo :attribute deve conter :content.',
+        'locked' => 'As partes bloqueadas do campo :attribute não podem ser alteradas.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -556,7 +597,8 @@ return [
             'bulletList' => 'uma lista com marcadores',
             'callout' => 'uma caixa de destaque',
             'codeBlock' => 'um bloco de código',
-            'embed' => 'um vídeo incorporado',
+            'embed' => 'uma incorporação',
+            'linkPreview' => 'um cartão de link',
             'heading' => 'um título',
             'horizontalRule' => 'uma linha horizontal',
             'image' => 'uma imagem',
@@ -566,5 +608,8 @@ return [
             'taskList' => 'uma lista de tarefas',
             'descriptionList' => 'uma lista de definições',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Fechar',
     ],
 ];

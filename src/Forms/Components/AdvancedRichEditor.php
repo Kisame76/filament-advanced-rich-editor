@@ -8,9 +8,11 @@ use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\EditImageAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
@@ -26,8 +28,10 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\FloatsToolbars;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\FormatsBlocks;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\FormatsText;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\HoldsAMediaLibrary;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\InsertsSnippets;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\KeepsADraft;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\KeepsContentClean;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\LocksRegions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OffersWritingAids;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\OpensMenus;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
@@ -54,6 +58,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FileCardPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FocusModePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FormatBrushPlugin;
@@ -62,19 +67,24 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageCaptionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageDecorativePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageFloatPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageLoadingPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ImageResizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\IndentPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\InvisiblesPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LanguagePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LineHeightPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LinkPreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ListPropertiesPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LockedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ShortcutsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SnippetsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StatisticsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StickyToolbarPlugin;
@@ -84,6 +94,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextCasePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextToolbarPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TouchToolbarPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TypographyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
 use Tiptap\Editor;
@@ -110,8 +121,10 @@ class AdvancedRichEditor extends RichEditor
     use FormatsBlocks;
     use FormatsText;
     use HoldsAMediaLibrary;
+    use InsertsSnippets;
     use KeepsADraft;
     use KeepsContentClean;
+    use LocksRegions;
     use OffersWritingAids;
     use OpensMenus;
     use PlacesImages;
@@ -150,13 +163,13 @@ class AdvancedRichEditor extends RichEditor
             RichEditorTool::make('mediaBrowser')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.media_browser'))
                 ->icon(Icons::get('media_browser'))
-                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: MediaLibraryAction::PICTURE_ARGUMENTS)
                 ->activeKey('image'),
 
             RichEditorTool::make('image')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image'))
                 ->icon(Icons::get('image'))
-                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: MediaLibraryAction::PICTURE_ARGUMENTS)
                 ->activeKey('image'),
 
             // Filament's alignment labels read "Align start" and so on, which is noise in a
@@ -248,9 +261,15 @@ class AdvancedRichEditor extends RichEditor
             // Both replace the selected picture when they are handed its address.
             RichEditorTool::make('imageReplace')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_replace'))
-                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ kind: \'image\', id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: "{ kind: 'image', ...".MediaLibraryAction::PICTURE_ARGUMENTS.' }')
                 ->activeStyling(false)
                 ->icon(Icons::get('image_replace')),
+
+            RichEditorTool::make('imageEdit')
+                ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_edit.label'))
+                ->action(EditImageAction::NAME, arguments: EditImageAction::ARGUMENTS)
+                ->activeStyling(false)
+                ->icon(Icons::get('image_edit')),
 
             RichEditorTool::make('imageDownload')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_download'))
@@ -421,6 +440,10 @@ class AdvancedRichEditor extends RichEditor
                 : [],
         );
 
+        // Always: whether the field is worked with a finger is the browser's to know, and on a
+        // mouse the script stops before it does anything.
+        $this->plugins([TouchToolbarPlugin::make()]);
+
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTextDirection()
                 ? [TextDirectionPlugin::make()]
@@ -486,6 +509,10 @@ class AdvancedRichEditor extends RichEditor
         // written on the next save.
         $this->plugins([ImageCaptionPlugin::make()]);
 
+        // Always, for the caption's reason: `imageLoading()` decides what an insert writes,
+        // and a field that writes nothing still opens documents that carry a hint.
+        $this->plugins([ImageLoadingPlugin::make()]);
+
         // Always, for a different reason: it repairs two keyboard shortcuts Filament's own
         // build binds and then declines to answer, on every field, whether or not this one
         // shows the alignment dropdown.
@@ -494,6 +521,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasEmbeds()
                 ? [EmbedPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasLinkPreviews()
+                ? [LinkPreviewPlugin::make()]
                 : [],
         );
 
@@ -533,6 +566,13 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasDateTime()
                 ? [DateTimePlugin::make($component->getDateTimeFormats())]
+                : [],
+        );
+
+        // One tool per snippet; a field with none registers nothing.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasSnippets()
+                ? [SnippetsPlugin::make(array_map(static fn (array $snippet): string => $snippet['label'], $component->getSnippets()))]
                 : [],
         );
 
@@ -649,8 +689,28 @@ class AdvancedRichEditor extends RichEditor
         );
 
         $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasFocusMode()
+                ? [FocusModePlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasLockedRegions()
+                ? [LockedPlugin::make()->editable($component->areLockedRegionsEditable())]
+                : [],
+        );
+
+        $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasHelp()
                 ? [HelpPlugin::make()]
+                : [],
+        );
+
+        // Asked of what was written rather than of what it binds: working that out needs the
+        // field's tools, and the tools are what this list of plugins is building.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->getShortcuts() !== []
+                ? [ShortcutsPlugin::make()]
                 : [],
         );
 
@@ -700,7 +760,11 @@ class AdvancedRichEditor extends RichEditor
             return CharacterCount::make()
                 ->enforced($component->enforcesMaxLength())
                 ->measuredBy(static function () use ($component): array {
-                    $counted = $component->measureCharacterCount($component->getState());
+                    // The raw state, not `getState()`: once the field is filled that is the
+                    // document itself, and the state cast would write it out as HTML - twice
+                    // - only for the measuring to parse it back. A state set as markup still
+                    // works, `toDocument()` reads either.
+                    $counted = $component->measureCharacterCount($component->getRawState());
 
                     return [
                         'characters' => $counted['characters'],
@@ -730,6 +794,26 @@ class AdvancedRichEditor extends RichEditor
             allowFilePathUsing: static fn (AdvancedRichEditor $component, string $file): bool => $component->getUploadedFileAttachment($file) !== null
                 || ($component->getMediaSource()?->has($file) ?? false),
         );
+    }
+
+    /**
+     * Filament's hydration, with this field's answers remembered while it runs.
+     *
+     * Filling a form hydrates every field outside the windows Filament opens, and the state
+     * cast asks the field, more than once each, whether it takes uploads, which pool answers
+     * for them and which tools it has - every one of those built the whole toolbar, and the
+     * toolbar asked them again from inside. Nothing about the field's configuration moves
+     * while its own state is being hydrated, so the answers hold for the length of it. See
+     * `rememberingThroughout()`.
+     *
+     * @param  array<string, mixed>|null  $hydratedDefaultState
+     * @param  array<string, true>  $appliedStateCastPaths
+     */
+    public function hydrateState(?array &$hydratedDefaultState, bool $shouldCallHydrationHooks = true, bool $shouldApplyStateCasts = true, array &$appliedStateCastPaths = []): void
+    {
+        $this->rememberingThroughout(function () use (&$hydratedDefaultState, $shouldCallHydrationHooks, $shouldApplyStateCasts, &$appliedStateCastPaths): void {
+            parent::hydrateState($hydratedDefaultState, $shouldCallHydrationHooks, $shouldApplyStateCasts, $appliedStateCastPaths);
+        });
     }
 
     /**
@@ -763,6 +847,10 @@ class AdvancedRichEditor extends RichEditor
             $additions[] = MediaLibraryAction::fromUrl();
         }
 
+        if ($this->hasImageEditor()) {
+            $additions[] = EditImageAction::make();
+        }
+
         if ($replacements === [] && $additions === []) {
             return parent::getDefaultActions();
         }
@@ -790,6 +878,28 @@ class AdvancedRichEditor extends RichEditor
     public function getTipTapEditor(): Editor
     {
         return $this->getRichContentRenderer()->getEditor();
+    }
+
+    /**
+     * The plugins' scripts, and the one that hands every editor the settings the page's
+     * editors share wherever this field has any of them to share.
+     *
+     * `SharedSettings` writes the slash menu, the pickers' strings and the find bar's in full
+     * on the first editor of a render only; this is what puts them back on the rest, before
+     * any of the four reads them. A field with all four switched off has nothing to share and
+     * loads nothing for it.
+     *
+     * @return array<string>
+     */
+    public function getTipTapJsExtensions(): array
+    {
+        $extensions = parent::getTipTapJsExtensions();
+
+        if ($this->hasSlashMenu() || $this->hasEmoji() || $this->hasCharacters() || $this->hasFind()) {
+            $extensions[] = FilamentAsset::getScriptSrc('advanced-rich-editor/shared-settings', 'kisame76/filament-advanced-rich-editor');
+        }
+
+        return $extensions;
     }
 
     /**

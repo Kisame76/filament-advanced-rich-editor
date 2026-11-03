@@ -10,10 +10,16 @@ use Filament\Forms\Components\RichEditor\ToolbarButtonGroup;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Promise\Create;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Validator;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Links\PublicHosts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarColorPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
@@ -24,6 +30,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarPin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarStylePicker;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
+use League\HTMLToMarkdown\HtmlConverter;
+use Phiki\Phiki;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tiptap\Core\Extension;
 use Tiptap\Editor;
 
@@ -38,6 +47,31 @@ uses(TestCase::class)->in('Feature');
 function testSchema(): Schema
 {
     return Schema::make(new TestSchemaComponent)->operation('edit');
+}
+
+/**
+ * Host names that resolve to what the test says, so the guard on what the panel may ask can be
+ * tried against a private network without there being one. A name not listed resolves the way
+ * it always would - an address to itself.
+ *
+ * @param  array<string, array<int, string>>  $hosts
+ */
+function resolvingHosts(array $hosts): void
+{
+    $resolver = new class extends PublicHosts
+    {
+        /** @var array<string, array<int, string>> */
+        public static array $hosts = [];
+
+        protected function addresses(string $host): array
+        {
+            return self::$hosts[$host] ?? (filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : []);
+        }
+    };
+
+    $resolver::$hosts = $hosts;
+
+    app()->bind(PublicHosts::class, $resolver::class);
 }
 
 /**
@@ -57,6 +91,20 @@ function withStyles(array $styles): void
 function editor(string $name = 'content'): AdvancedRichEditor
 {
     return AdvancedRichEditor::make($name)->container(testSchema());
+}
+
+/**
+ * Whether Filament writes the editor's own key into every toolbar button that opens a dialog.
+ *
+ * It did until 5.10.2, which hands the button's element over instead and finds the editor from
+ * there when it is clicked. While it does, no two editors' floating bars or slash menus are the
+ * same markup, so nothing of either can be sent once a page: each editor carries its own, which
+ * is what `SharedMarkup` and `SharedSettings` do there. Asked of a tool rather than of the
+ * version, because what matters is what the button says.
+ */
+function toolActionsNameTheirEditor(): bool
+{
+    return str_contains((string) RichEditorTool::make('probe')->editor(editor())->action()->getJsHandler(), 'schemaComponent');
 }
 
 /**
@@ -591,4 +639,39 @@ function splitAtTopLevel(string $selector, string $separator): array
     }
 
     return [...$parts, $current];
+}
+
+/**
+ * Skips the test where a package it needs is not installed.
+ *
+ * Every package here is a `suggest` and a dev dependency, so this repository always has them -
+ * but the `minimal` job in CI runs the suite against nothing but what `require` names, and a
+ * test of what a suggested package adds has nothing to show there. Called first in a test, or
+ * in `beforeEach()` where a whole file is about the package.
+ */
+function requires(string $package): void
+{
+    $class = [
+        'filament/tables' => TextColumn::class,
+        'league/html-to-markdown' => HtmlConverter::class,
+        'phiki/phiki' => Phiki::class,
+        'spatie/laravel-medialibrary' => Media::class,
+    ][$package];
+
+    if (! class_exists($class)) {
+        test()->markTestSkipped("{$package} is not installed.");
+    }
+}
+
+/**
+ * A request that never reached a server, for `Http::fake()` - `Http::failedConnection()`,
+ * which Laravel 11 only gained partway through, written out so the suite runs on the first
+ * release of it too.
+ */
+function failedConnection(?string $message = null): Closure
+{
+    return static fn (Request $request): PromiseInterface => Create::rejectionFor(new ConnectException(
+        $message ?? "cURL error 6: Could not resolve host: {$request->toPsrRequest()->getUri()->getHost()}",
+        $request->toPsrRequest(),
+    ));
 }

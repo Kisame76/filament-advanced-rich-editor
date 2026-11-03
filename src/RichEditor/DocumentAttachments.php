@@ -55,6 +55,37 @@ class DocumentAttachments
     }
 
     /**
+     * Every file a document tree points at, each once, in document order: its id, and what
+     * the document calls it - a card's name, or the last part of the address it was saved
+     * with. An id alone is a uuid nobody can tell one file by.
+     *
+     * A tree only: markup is read into one first by whoever asks, through the schema that
+     * knows which elements are files - see `arte:diagnose`. Keyed by the id, which PHP turns
+     * into a number where it looks like one.
+     *
+     * @param  array<string, mixed>  $document
+     * @return array<int|string, string>
+     */
+    public static function files(array $document): array
+    {
+        $files = [];
+
+        static::walk($document, static function (array &$node) use (&$files): void {
+            $id = FileAttachments::carriedBy($node['type'] ?? null) ? static::id($node['attrs']['id'] ?? null) : null;
+
+            if (($id === null) || isset($files[$id])) {
+                return;
+            }
+
+            $name = $node['attrs']['name'] ?? basename((string) parse_url((string) ($node['attrs']['src'] ?? ''), PHP_URL_PATH));
+
+            $files[$id] = (is_string($name) && filled($name)) ? $name : $id;
+        });
+
+        return $files;
+    }
+
+    /**
      * The document without anything pointing at the file, or null where nothing did.
      *
      * @param  string|array<string, mixed>|null  $content

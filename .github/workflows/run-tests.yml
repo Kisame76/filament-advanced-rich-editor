@@ -59,6 +59,39 @@ jobs:
       - name: Execute tests
         run: vendor/bin/pest
 
+  minimal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # The package asks for `filament/forms` and nothing more: tables, the panel, the media
+    # library, Markdown and code colouring are suggestions. Every other job installs them all
+    # through `require-dev`, so nothing anywhere ran the case the README advertises. This one
+    # takes them away again and runs the suite on what a project with the least of it has;
+    # tests of what a suggestion adds skip themselves (`requires()` in `tests/Pest.php`), and
+    # the ones about what such a project is told run only here. One leg: what it guards
+    # against is a path that is always loaded reaching for a class that is not, and that does
+    # not depend on the PHP or Laravel version.
+    name: minimal
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, sqlite, pdo_sqlite, intl, gd, exif, iconv, fileinfo
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer remove --dev filament/filament spatie/laravel-medialibrary league/html-to-markdown phiki/phiki --no-update --no-interaction
+          composer update --prefer-stable --prefer-dist --no-interaction --no-progress
+
+      - name: Execute tests
+        run: vendor/bin/pest
+
   databases:
     runs-on: ubuntu-latest
     timeout-minutes: 10

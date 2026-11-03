@@ -7,3 +7,7 @@
 @else
     {!! $html !!}
 @endif
+
+@if ($lightboxAssets)
+    <x-arte-lightbox />
+@endif

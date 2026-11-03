@@ -47,6 +47,10 @@ trait FormatsText
 
     protected bool|Closure|null $hasLinkAttributes = null;
 
+    protected bool|Closure|null $hasLinkCheck = null;
+
+    protected bool|Closure|null $hasLinkPreviews = null;
+
     /**
      * @var array<int, LinkSource>|Closure|null
      */
@@ -70,6 +74,48 @@ trait FormatsText
     public function hasLinkAttributes(): bool
     {
         return (bool) ($this->evaluate($this->hasLinkAttributes) ?? config('filament-advanced-rich-editor.link.attributes') ?? true);
+    }
+
+    /**
+     * Whether the link dialog asks a typed address if it answers, and says so where it does
+     * not - a page that is gone, a host that does not exist.
+     *
+     * Off unless asked for, because it is the server that asks: every address somebody types
+     * is a request leaving it, and a server that may not reach the internet would warn about
+     * every link written on it. Only the public internet is asked; see `LinkCheck::guarded()`.
+     * The links already written are `php artisan arte:diagnose`'s.
+     */
+    public function linkCheck(bool|Closure $condition = true): static
+    {
+        $this->hasLinkCheck = $condition;
+
+        return $this;
+    }
+
+    public function hasLinkCheck(): bool
+    {
+        return (bool) ($this->evaluate($this->hasLinkCheck) ?? config('filament-advanced-rich-editor.link.check.dialog') ?? false);
+    }
+
+    /**
+     * Whether the field offers link cards: a link drawn as the page's title, a line about it
+     * and the site it is on, read from the page when the card is made.
+     *
+     * Off unless asked for. Most documents link in a sentence, and a card is a different kind
+     * of thing - a recommendation, a further-reading list - that a few kinds of writing use a
+     * lot and most never do. Making one also has the server read the page. Not on the shipped
+     * bar either way: the slash menu finds it, and a bar that names `linkPreview` gets it.
+     */
+    public function linkPreviews(bool|Closure $condition = true): static
+    {
+        $this->hasLinkPreviews = $condition;
+
+        return $this;
+    }
+
+    public function hasLinkPreviews(): bool
+    {
+        return (bool) ($this->evaluate($this->hasLinkPreviews) ?? config('filament-advanced-rich-editor.link.previews') ?? false);
     }
 
     /**

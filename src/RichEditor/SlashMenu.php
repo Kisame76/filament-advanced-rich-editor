@@ -27,8 +27,8 @@ class SlashMenu
     /**
      * The groups and their contents, when the config file has nothing to say.
      *
-     * `'headings'`, `'callouts'` and `'dateTime'` expand to what the field offers - its
-     * heading levels, its kinds of callout and its date formats - which are the same tokens
+     * `'headings'`, `'callouts'`, `'dateTime'` and `'snippets'` expand to what the field
+     * offers - its heading levels, its kinds of callout, its date formats and its snippets - which are the same tokens
      * the toolbar uses.
      *
      * @var array<string, array<int, string>>
@@ -44,9 +44,9 @@ class SlashMenu
         // What arrives. Uploading is not a group of its own, the way it is in some editors:
         // one entry does not need a heading over it.
         'insert' => [
-            'image', 'attachFiles', 'embed', 'video', 'audio', 'table', 'horizontalRule', 'details',
+            'image', 'attachFiles', 'embed', 'linkPreview', 'video', 'audio', 'table', 'horizontalRule', 'details',
             'emoji', 'characters',
-            'dateTime', 'customBlocks', 'mergeTags',
+            'dateTime', 'snippets', 'customBlocks', 'mergeTags',
         ],
     ];
 
@@ -157,6 +157,14 @@ class SlashMenu
                             $expanded[] = $toolName;
                         }
                     }
+                }
+
+                continue;
+            }
+
+            if ($name === 'snippets') {
+                foreach (array_keys($editor->getSnippets()) as $key) {
+                    $expanded[] = Snippets::toolName($key);
                 }
 
                 continue;

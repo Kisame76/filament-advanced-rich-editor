@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'kód, pre, zdrojový kód, snippet',
             'horizontalRule' => 'hr, oddělovač, čára, linka',
             'details' => 'akordeon, rozbalit, sbalit, rozbalovací',
-            'embed' => 'video, youtube, vimeo, iframe, vložené video, média',
+            'embed' => 'video, youtube, vimeo, iframe, vložené video, média, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'záložka, karta, náhled, odkaz, url, web',
             'video' => 'mp4, webm, film, klip, přehrávač, média',
             'audio' => 'mp3, zvuk, hudba, podcast, přehrávač, média',
             'file' => 'soubor, dokument, pdf, příloha, stáhnout, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Odkaz na záznam',
                 'hint' => 'Výběrem se vyplní URL níže, kterou odkaz ukládá.',
             ],
+            'check' => [
+                'answers' => 'Tato adresa odpovídá :status.',
+                'no_host' => 'Hostitel :host neexistuje.',
+                'silent' => 'Tato adresa neodpověděla.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Prostý text',
         ],
         'embed' => [
-            'label' => 'Video',
-            'heading' => 'Vložit video',
-            'url' => 'Odkaz na video',
-            'url_hint' => 'Vložte odkaz z adresního řádku nebo z tlačítka Sdílet. Časová značka v něm zůstane zachována.',
+            'label' => 'Vložit z webu',
+            'heading' => 'Vložit z jiného webu',
+            'url' => 'Odkaz',
+            'url_hint' => 'Vložte odkaz z adresního řádku nebo tlačítka Sdílet, u mapy její kód pro vložení. Časová značka v odkazu na video zůstane zachována.',
             'title' => 'Název',
-            'title_hint' => 'Čtečka obrazovky přečte tento název místo slova „video“.',
+            'title_hint' => 'Čtečka obrazovky ho přečte místo „rámec“.',
             'ratio' => 'Poměr stran',
-            'unsupported' => 'Tento odkaz není video, které tento editor umí vložit.',
+            'unsupported' => 'Tento odkaz tento editor vložit neumí.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Nahradit video',
+            'replace' => 'Nahradit vložený obsah',
+            'delete' => 'Odstranit',
+        ],
+        'link_preview' => [
+            'label' => 'Karta odkazu',
+            'heading' => 'Zobrazit odkaz jako kartu',
+            'url' => 'Odkaz',
+            'url_hint' => 'Stránka se načte jednou, jakmile opustíte toto pole: její název, řádek o ní a web, na kterém je. Vše níže lze opravit.',
+            'title' => 'Název',
+            'description' => 'Popis',
+            'site' => 'Web',
+            'unreadable' => 'Tuto stránku se nepodařilo načíst. Vyplňte kartu sami.',
+            'not_a_page' => 'Kartou může být jen webová adresa začínající http:// nebo https://.',
+            'edit' => 'Upravit kartu',
             'delete' => 'Odstranit',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Ukončit celou obrazovku',
         ],
         'image_replace' => 'Nahradit obrázek',
+        'image_edit' => [
+            'label' => 'Upravit obrázek',
+            'apply' => 'Použít',
+            'hint' => 'Tužkou na obrázku jej oříznete, otočíte nebo překlopíte. Původní soubor zůstane zachován.',
+        ],
         'image_download' => 'Stáhnout obrázek',
         'image_delete' => 'Smazat obrázek',
         'image_float_left' => 'Obtékat vlevo',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'Z odkazu',
             'from_url_heading' => 'Přidat z odkazu',
             'from_url_label' => 'Odkaz',
-            'from_url_hint' => 'Odkaz na YouTube nebo Vimeo se přidá do vaší knihovny a můžete ho použít znovu. Jakákoli jiná adresa — soubor na cizím serveru — se vloží tak, jak je, dokument jako karta, a sem se neuloží.',
+            'from_url_hint' => 'Odkaz z YouTube, Vimea, Spotify nebo jiné služby, kterou tento editor umí vložit, se přidá do knihovny a lze ho použít znovu. Jakákoli jiná adresa — soubor na cizím serveru — se vloží tak, jak je, dokument jako karta, a neuloží se sem.',
             'from_url_hint_files' => 'Soubor, který hostuje někdo jiný. Vloží se tak, jak je, dokument jako karta, a do vaší knihovny se nic nepřidá.',
-            'from_url_no_embeds' => 'Videa z YouTube a Vimea jsou pro toto pole vypnutá.',
+            'from_url_no_embeds' => 'Vkládání z jiných webů je pro toto pole vypnuté.',
             'all_types' => 'Všechny typy',
             'all_kinds' => 'Vše',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Smazáno a odstraněno z jednoho záznamu.',
             'replaced_in' => 'Nahrazeno a aktualizováno v :count záznamech.',
             'replaced_in_one' => 'Nahrazeno a aktualizováno v jednom záznamu.',
+            'already_in_library' => '„:name“ už v knihovně je jako „:existing“, proto je vybrán tento soubor.',
             'copy_url' => 'Kopírovat odkaz',
             'copied' => 'Zkopírováno',
             'drop' => 'Pusťte pro nahrání',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Zobrazit bloky',
+        ],
+        'snippets' => [
+            'label' => 'Textové bloky',
+        ],
+        'lock' => [
+            'label' => 'Zamknout',
+            'badge' => 'Zamčeno',
+        ],
+        'focus_mode' => [
+            'label' => 'Režim soustředění',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -545,6 +585,7 @@ return [
         'min_words' => 'Počet slov v poli :attribute musí být alespoň :min.',
         'max_words' => 'Počet slov v poli :attribute nesmí být vyšší než :max.',
         'must_contain' => 'Pole :attribute musí obsahovat :content.',
+        'locked' => 'Zamčené části pole :attribute nelze měnit.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -556,7 +597,8 @@ return [
             'bulletList' => 'seznam s odrážkami',
             'callout' => 'infobox',
             'codeBlock' => 'blok kódu',
-            'embed' => 'vložené video',
+            'embed' => 'vložený obsah',
+            'linkPreview' => 'kartu odkazu',
             'heading' => 'nadpis',
             'horizontalRule' => 'vodorovnou čáru',
             'image' => 'obrázek',
@@ -566,5 +608,8 @@ return [
             'taskList' => 'seznam úkolů',
             'descriptionList' => 'seznam definic',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Zavřít',
     ],
 ];

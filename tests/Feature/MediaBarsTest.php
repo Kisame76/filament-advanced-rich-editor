@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\RecordingSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\Post;
@@ -52,7 +53,8 @@ it('lets a picture be replaced from its own bar', function (): void {
     expect(array_slice($buttons, -3))->toBe(['imageReplace', 'imageDownload', 'imageDelete'])
         ->and($replace?->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('mediaBrowser'/")
         ->and($replace?->getJsHandler())->toContain("kind: 'image'")
-        ->and($replace?->getJsHandler())->toContain("getAttributes('image')?.id");
+        // What the picture hands over is pinned in `tests/js/library-picture-arguments.test.js`.
+        ->and($replace?->getJsHandler())->toContain(MediaLibraryAction::PICTURE_ARGUMENTS);
 });
 
 it('replaces a picture through Filament\'s own dialog where there is no library', function (): void {
@@ -62,7 +64,7 @@ it('replaces a picture through Filament\'s own dialog where there is no library'
 
     expect(editor()->getFloatingToolbars()['image'] ?? [])->toContain('imageReplace')
         ->and($replace?->getJsHandler())->toMatch("/mount(?:Tool)?Action\\('attachFiles'/")
-        ->and($replace?->getJsHandler())->toContain("getAttributes('image')?.src");
+        ->and($replace?->getJsHandler())->toContain(MediaLibraryAction::PICTURE_ARGUMENTS);
 });
 
 it('puts a bar over a film or a sound', function (): void {

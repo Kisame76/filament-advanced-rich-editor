@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes;
 
 use DOMElement;
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Tiptap\Core\Node;
 use Tiptap\Utils\HTML;
 
 /**
- * A video, as the frame a browser will actually show.
+ * A video - or a song, a map, a pen - as the frame a browser will actually show.
  *
  * The node stores what the video *is* - a provider, an id, a timestamp - and builds the
  * embed URL on the way out. Storing the URL instead would mean trusting whatever was in
@@ -74,18 +75,20 @@ class Embed extends Node
                 'default' => null,
                 'parseHTML' => static fn ($DOMNode): ?string => static::iframe($DOMNode)?->getAttribute('title') ?: null,
             ],
+            // None until somebody picks one: the service's own shape is the default, and a
+            // TikTok left at the widescreen default would be drawn on its side.
             'ratio' => [
-                'default' => static::DEFAULT_RATIO,
-                'parseHTML' => static function ($DOMNode): string {
+                'default' => null,
+                'parseHTML' => static function ($DOMNode): ?string {
                     if (! ($DOMNode instanceof DOMElement)) {
-                        return static::DEFAULT_RATIO;
+                        return null;
                     }
 
                     // The ratio rides in the wrapper's own `aspect-ratio`, which is the
                     // property doing the work rather than a copy of it kept alongside.
                     preg_match('/aspect-ratio:\s*([0-9.]+\s*\/\s*[0-9.]+)/i', $DOMNode->getAttribute('style'), $matches);
 
-                    return isset($matches[1]) ? trim($matches[1]) : static::DEFAULT_RATIO;
+                    return isset($matches[1]) ? static::ratio($matches[1]) : null;
                 },
             ],
         ];
@@ -132,13 +135,13 @@ class Embed extends Node
         // Nothing to frame. Rendering an empty iframe instead - which is what allowing the
         // element and dropping the `src` leaves behind - would be a hole in the page where
         // the reader expects a video and the author expects nothing to be wrong.
-        if (! is_string($provider) || ! is_string($id) || ! isset(EmbedUrl::IDS[$provider])) {
+        if (! EmbedUrl::accepts($provider, $id)) {
             return null;
         }
 
         $src = EmbedUrl::src($provider, $id, static::start($attributes['start'] ?? null));
 
-        if (! static::isAllowed($src)) {
+        if (! EmbedProviders::allowsFrame($src)) {
             return null;
         }
 
@@ -152,7 +155,7 @@ class Embed extends Node
                 // else's - an embed arriving there with only a class on it is a 300x150
                 // box in the corner. `style` survives the sanitiser, so the shape travels
                 // with the markup. The class is still there to style further.
-                'style' => 'aspect-ratio: '.($attributes['ratio'] ?? static::DEFAULT_RATIO).'; width: 100%;',
+                'style' => static::box(EmbedProviders::get($provider), $attributes['ratio'] ?? null),
             ],
             [
                 'iframe',
@@ -204,13 +207,39 @@ class Embed extends Node
         return is_numeric($value) && (int) $value > 0 ? (int) $value : null;
     }
 
-    protected static function isAllowed(string $src): bool
+    /**
+     * The shape of the frame, as the wrapper's inline style.
+     *
+     * A player with a height of its own keeps it, whatever ratio the node carries - a music
+     * player is a strip however wide the column is. Everything else is a ratio, the node's if
+     * it is one and the service's otherwise. Checked rather than printed: a document kept as
+     * JSON hands the value over unparsed, and CSS is not something the sanitiser reads.
+     *
+     * An upright frame is held to the width of a phone. Across a whole column a 9:16 frame is
+     * taller than the screen it is read on.
+     */
+    public static function box(?EmbedProvider $provider, mixed $ratio): string
     {
-        $host = parse_url($src, PHP_URL_HOST);
+        if ($provider?->height() !== null) {
+            return 'width: 100%; height: '.$provider->height().'px;';
+        }
 
-        return is_string($host) && EmbedHostSanitizer::allows(
-            $host,
-            (array) config('filament-advanced-rich-editor.embed.allowed_hosts', []),
-        );
+        $ratio = static::ratio($ratio) ?? static::ratio($provider?->ratio()) ?? static::DEFAULT_RATIO;
+
+        [$width, $height] = array_map(floatval(...), explode('/', $ratio));
+
+        return 'aspect-ratio: '.$ratio.'; width: 100%;'.($width < $height ? ' max-width: 22.5rem;' : '');
+    }
+
+    /**
+     * A ratio in the one spelling the wrapper writes, `16 / 9`, or null where it is not one.
+     */
+    public static function ratio(mixed $value): ?string
+    {
+        if (! is_string($value) || preg_match('~^\s*([0-9]+(?:\.[0-9]+)?)\s*/\s*([0-9]+(?:\.[0-9]+)?)\s*$~', $value, $matches) !== 1) {
+            return null;
+        }
+
+        return ((float) $matches[1] > 0 && (float) $matches[2] > 0) ? $matches[1].' / '.$matches[2] : null;
     }
 }

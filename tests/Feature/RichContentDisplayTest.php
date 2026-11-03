@@ -31,6 +31,8 @@ function richEntry(Model $record, string $name = 'content'): AdvancedRichEntry
 
 function richColumn(Model $record, string $name = 'content'): AdvancedRichColumn
 {
+    requires('filament/tables');
+
     return AdvancedRichColumn::make($name)->record($record);
 }
 

@@ -211,20 +211,23 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
                 x-bind:class="{ [menuUpClass]: dropUp }"
                 class="fi-fo-rich-editor-dropdown-tool-menu fi-arte-color-menu"
             >
+                <?php /* Drawn from the palette the component already carries for the preview bar,
+                   rather than written out a second time as one button per colour - four pickers
+                   per editor made that a large share of every editor's markup. */ ?>
                 <div class="fi-arte-color-grid">
-                    <?php foreach ($colors as $color) { ?>
+                    <template x-for="color in colors" x-bind:key="color.value">
                         <button
                             type="button"
                             tabindex="-1"
                             role="menuitem"
-                            aria-label="<?= e($color['label']) ?>"
-                            x-tooltip="{ content: <?= Js::from($color['label'])->toHtml() ?>, theme: $store.theme }"
-                            x-bind:class="{ 'fi-active': current === <?= Js::from($color['value'])->toHtml() ?> }"
-                            x-on:click="apply(<?= Js::from($color['value'])->toHtml() ?>)"
-                            style="--fi-arte-color: <?= e($color['color']) ?>; --fi-arte-dark-color: <?= e($color['darkColor']) ?>"
+                            x-bind:aria-label="color.label"
+                            x-tooltip="{ content: color.label, theme: $store.theme }"
+                            x-bind:class="{ 'fi-active': current === color.value }"
+                            x-on:click="apply(color.value)"
+                            x-bind:style="{ '--fi-arte-color': color.color, '--fi-arte-dark-color': color.darkColor }"
                             class="fi-arte-color-swatch"
                         ></button>
-                    <?php } ?>
+                    </template>
                 </div>
 
                 <div class="fi-arte-color-actions">

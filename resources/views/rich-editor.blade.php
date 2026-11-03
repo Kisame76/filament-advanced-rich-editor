@@ -27,7 +27,8 @@
         off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
         $codeBlockSettings, $findSettings, $emojiSettings, $characterSettings,
         $pasteSettings, $dragHandleSettings, $autosaveSettings, $accessibilitySettings,
-        $typographySettings, $characterCountSettings, $indentSettings), resolved alongside them
+        $typographySettings, $characterCountSettings, $indentSettings, $shortcutSettings,
+        $lockedSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -47,10 +48,16 @@
         the toolbar carries a 'pin' marker, so the buttons behind it can keep an edge of
         the bar while the rest stays aligned; without a marker the groups are emitted
         exactly as upstream emits them
+      - .fi-fo-rich-editor-content div: the floating toolbars are captured and handed to
+        SharedMarkup, which writes them inside a <template> that stamps them out as Alpine
+        reaches it - in full on the first editor of a page, named only on the rest. The bars
+        themselves are drawn exactly as upstream draws them
       - .fi-fo-rich-editor-content div: one data-arte-* attribute per resolved settings
         object above. A TipTap extension has no other channel to anything the field knows,
         so dropping this block on a re-fork leaves every one of those features mounted and
-        silent rather than broken
+        silent rather than broken. The four every editor of a page reads the same - slash,
+        find, emoji, characters - come from $sharedSettings, which writes them in full on
+        the first editor of a render and names them on the rest (see SharedSettings)
 
     Carried over from Filament v5.9, which added them to toEmbeddedHtml(): the
     deleteCustomBlockButtonLabel, editCustomBlockButtonLabel, hasMinimalCustomBlockControls
@@ -108,6 +115,13 @@
     $findSettings = $getFindSettingsForJs();
     $emojiSettings = $getEmojiSettingsForJs();
     $characterSettings = $getCharacterSettingsForJs();
+    // The four the page's editors share, in full on the first editor of this render only.
+    $sharedSettings = \Kisame76\FilamentAdvancedRichEditor\RichEditor\SharedSettings::attributes($this, [
+        'arteSlash' => $slashMenu,
+        'arteFind' => $findSettings,
+        'arteEmoji' => $emojiSettings,
+        'arteCharacters' => $characterSettings,
+    ]);
     $pasteSettings = $getPasteSettingsForJs();
     $dragHandleSettings = $getDragHandleSettingsForJs();
     $autosaveSettings = $getAutosaveSettingsForJs();
@@ -115,6 +129,8 @@
     $characterCountSettings = $getCharacterCountSettingsForJs();
     $typographySettings = $getTypographySettingsForJs();
     $indentSettings = $getIndentSettingsForJs();
+    $shortcutSettings = $getShortcutSettingsForJs();
+    $lockedSettings = $getLockedRegionSettingsForJs();
     // Filament v5.9. Each closure exists only where the installed release has the method.
     $hasUpstreamStickyToolbar = isset($hasStickyToolbar) && $hasStickyToolbar();
     $hasUpstreamStickyPanels = isset($hasStickyPanels) && $hasStickyPanels();
@@ -308,13 +324,10 @@
                 <div
                     class="fi-fo-rich-editor-content fi-prose"
                     x-ref="editor"
-                    @if ($slashMenu) data-arte-slash="{{ json_encode($slashMenu) }}" @endif
+                    {!! $sharedSettings !!}
                     @if ($mentionMenu) data-arte-mentions="{{ json_encode($mentionMenu) }}" @endif
                     @if ($embedSettings) data-arte-embed="{{ json_encode($embedSettings) }}" @endif
                     @if ($codeBlockSettings) data-arte-code-block="{{ json_encode($codeBlockSettings) }}" @endif
-                    @if ($findSettings) data-arte-find="{{ json_encode($findSettings) }}" @endif
-                    @if ($emojiSettings) data-arte-emoji="{{ json_encode($emojiSettings) }}" @endif
-                    @if ($characterSettings) data-arte-characters="{{ json_encode($characterSettings) }}" @endif
                     @if ($pasteSettings) data-arte-paste="{{ json_encode($pasteSettings) }}" @endif
                     @if ($dragHandleSettings) data-arte-drag-handle="{{ json_encode($dragHandleSettings) }}" @endif
                     @if ($autosaveSettings) data-arte-autosave="{{ json_encode($autosaveSettings) }}" @endif
@@ -322,7 +335,10 @@
                     @if ($characterCountSettings) data-arte-character-count="{{ json_encode($characterCountSettings) }}" @endif
                     @if ($typographySettings) data-arte-typography="{{ json_encode($typographySettings) }}" @endif
                     @if ($indentSettings) data-arte-indent="{{ json_encode($indentSettings) }}" @endif
+                    @if ($shortcutSettings) data-arte-shortcuts="{{ json_encode($shortcutSettings) }}" @endif
+                    @if ($lockedSettings) data-arte-locked="{{ json_encode($lockedSettings) }}" @endif
                 >
+                    @php ob_start(); @endphp
                     @foreach ($floatingToolbars as $nodeName => $buttons)
                         <div
                             x-ref="floatingToolbar::{{ $nodeName }}"
@@ -337,6 +353,7 @@
                             @endforeach
                         </div>
                     @endforeach
+                    {!! \Kisame76\FilamentAdvancedRichEditor\RichEditor\SharedMarkup::template($this, ob_get_clean()) !!}
                 </div>
 
                 @if (! $isDisabled)

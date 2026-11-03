@@ -84,10 +84,10 @@ class ShortcutTable extends ViewComponent implements HasEmbeddedView
                     navigator.userAgentData?.platform || navigator.platform || navigator.userAgent,
                 ),
                 glyph(token) {
-                    // Only the three glyphs that carry no emoji presentation. `↩` and `⇥`
-                    // are emoji on most systems and turn up as coloured stickers between
-                    // the keycaps, so those two keys keep their names on every platform.
-                    const apple = { Mod: '⌘', Alt: '⌥', Shift: '⇧' }
+                    // Only the glyphs that carry no emoji presentation. `↩` and `⇥` are
+                    // emoji on most systems and turn up as coloured stickers between the
+                    // keycaps, so those two keys keep their names on every platform.
+                    const apple = { Mod: '⌘', Ctrl: '⌃', Alt: '⌥', Shift: '⇧' }
 
                     return (this.isApple ? apple[token] : null) ?? this.name(token)
                 },

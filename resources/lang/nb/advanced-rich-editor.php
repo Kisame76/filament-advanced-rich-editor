@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'kode, pre, kildekode, kodesnutt',
             'horizontalRule' => 'hr, skillelinje, linje, skille',
             'details' => 'trekkspill, accordion, utvid, skjul, sammenleggbar',
-            'embed' => 'video, youtube, vimeo, iframe, innebygging, medier',
+            'embed' => 'video, youtube, vimeo, iframe, innebygging, medier, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'bokmerke, kort, forhåndsvisning, lenke, url, nettside',
             'video' => 'mp4, webm, film, klipp, avspiller, medier',
             'audio' => 'mp3, lyd, musikk, podkast, podcast, avspiller, medier',
             'file' => 'fil, dokument, pdf, vedlegg, nedlasting, last ned, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Lenke til en post',
                 'hint' => 'Et valg fyller ut URL-en nedenfor, og det er den lenken lagrer.',
             ],
+            'check' => [
+                'answers' => 'Denne adressen svarer :status.',
+                'no_host' => 'Verten :host finnes ikke.',
+                'silent' => 'Denne adressen svarte ikke.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Ren tekst',
         ],
         'embed' => [
-            'label' => 'Video',
-            'heading' => 'Bygg inn en video',
-            'url' => 'Videolenke',
-            'url_hint' => 'Lim inn lenken fra adresselinjen eller deleknappen. Et tidsstempel i den beholdes.',
+            'label' => 'Bygg inn',
+            'heading' => 'Bygg inn fra et annet nettsted',
+            'url' => 'Lenke',
+            'url_hint' => 'Lim inn lenken fra adressefeltet eller del-knappen – for et kart innbyggingskoden. Et tidsstempel i en videolenke beholdes.',
             'title' => 'Tittel',
-            'title_hint' => 'Leses opp av en skjermleser i stedet for «video».',
+            'title_hint' => 'Leses opp av en skjermleser i stedet for «ramme».',
             'ratio' => 'Sideforhold',
-            'unsupported' => 'Den lenken er ikke en video denne editoren kan bygge inn.',
+            'unsupported' => 'Den lenken kan ikke denne editoren bygge inn.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Erstatt video',
+            'replace' => 'Erstatt innbygging',
+            'delete' => 'Fjern',
+        ],
+        'link_preview' => [
+            'label' => 'Lenkekort',
+            'heading' => 'Vis en lenke som et kort',
+            'url' => 'Lenke',
+            'url_hint' => 'Siden leses én gang, når du forlater feltet: tittelen, en linje om den og nettstedet den ligger på. Alt nedenfor kan rettes.',
+            'title' => 'Tittel',
+            'description' => 'Beskrivelse',
+            'site' => 'Nettsted',
+            'unreadable' => 'Siden kunne ikke leses. Fyll ut kortet selv.',
+            'not_a_page' => 'Bare en nettadresse som begynner med http:// eller https:// kan bli et kort.',
+            'edit' => 'Rediger kort',
             'delete' => 'Fjern',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Avslutt fullskjerm',
         ],
         'image_replace' => 'Erstatt bilde',
+        'image_edit' => [
+            'label' => 'Rediger bilde',
+            'apply' => 'Bruk',
+            'hint' => 'Bruk blyanten på bildet for å beskjære, rotere eller speilvende det. Den opprinnelige filen beholdes.',
+        ],
         'image_download' => 'Last ned bilde',
         'image_delete' => 'Slett bilde',
         'image_float_left' => 'Flytende venstre',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'Fra en lenke',
             'from_url_heading' => 'Legg til fra en lenke',
             'from_url_label' => 'Lenke',
-            'from_url_hint' => 'En YouTube- eller Vimeo-lenke legges til i biblioteket ditt og kan brukes igjen. Alle andre adresser — en fil på noen andres server — settes inn som de er, et dokument som et kort, og lagres ikke her.',
+            'from_url_hint' => 'En lenke fra YouTube, Vimeo, Spotify eller en annen tjeneste denne editoren bygger inn, legges til i biblioteket og kan brukes igjen. Enhver annen adresse – en fil på noen andres server – settes inn som den er, et dokument som et kort, og lagres ikke her.',
             'from_url_hint_files' => 'En fil som noen andre er vert for. Den settes inn som den er, et dokument som et kort, og ingenting legges til i biblioteket ditt.',
-            'from_url_no_embeds' => 'Videoer fra YouTube og Vimeo er slått av for dette feltet.',
+            'from_url_no_embeds' => 'Innbygging fra andre nettsteder er slått av for dette feltet.',
             'all_types' => 'Alle typer',
             'all_kinds' => 'Alle',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Slettet og fjernet fra én oppføring.',
             'replaced_in' => 'Erstattet og oppdatert i :count oppføringer.',
             'replaced_in_one' => 'Erstattet og oppdatert i én oppføring.',
+            'already_in_library' => '«:name» finnes allerede i biblioteket som «:existing», så den filen er valgt.',
             'copy_url' => 'Kopier lenke',
             'copied' => 'Kopiert',
             'drop' => 'Slipp for å laste opp',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Vis blokker',
+        ],
+        'snippets' => [
+            'label' => 'Tekstblokker',
+        ],
+        'lock' => [
+            'label' => 'Lås',
+            'badge' => 'Låst',
+        ],
+        'focus_mode' => [
+            'label' => 'Fokusmodus',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -544,6 +584,7 @@ return [
         'min_words' => ':attribute må ha minst :min ord.',
         'max_words' => ':attribute kan ikke ha mer enn :max ord.',
         'must_contain' => ':attribute må inneholde :content.',
+        'locked' => 'Låste deler av :attribute kan ikke endres.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -555,7 +596,8 @@ return [
             'bulletList' => 'en punktliste',
             'callout' => 'en infoboks',
             'codeBlock' => 'en kodeblokk',
-            'embed' => 'en innebygd video',
+            'embed' => 'en innbygging',
+            'linkPreview' => 'et lenkekort',
             'heading' => 'en overskrift',
             'horizontalRule' => 'en horisontal linje',
             'image' => 'et bilde',
@@ -565,5 +607,8 @@ return [
             'taskList' => 'en oppgaveliste',
             'descriptionList' => 'en definisjonsliste',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Lukk',
     ],
 ];

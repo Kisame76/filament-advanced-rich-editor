@@ -200,9 +200,7 @@ it('browses a shared directory once it is given one', function (): void {
 });
 
 it('browses the media collection for a field that stores media', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     $post = MediaPost::create(['title' => 'Post', 'content' => '']);
 
@@ -218,9 +216,7 @@ it('browses the media collection for a field that stores media', function (): vo
 });
 
 it('scopes the media collection to the collection, and narrows on request', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     $post = MediaPost::create(['title' => 'Post', 'content' => '']);
 
@@ -263,9 +259,7 @@ it('guards a disk field against a path the browser never offered', function (): 
 });
 
 it('leaves the guard alone where the media library provider enforces the rule', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     // Every media lookup goes through the provider, which is scoped to the pool already.
     // Turning a path guard on there would be a second answer to a question that has one.

@@ -9,7 +9,7 @@ it('parks the rarely used tools in a dropdown at the end of the toolbar', functi
     // The end of the aligned groups, not of the whole bar: what the menu holds are tools
     // for the text, so it travels with them rather than with the pinned corner.
     expect(array_slice(toolbarGroupsShape(editor()->getFlowToolbarButtons()), -1))->toBe([
-        ['dropdown:subscript,superscript,code,codeBlock,blockquote,clearFormatting,horizontalRule,details,emoji,characters'],
+        ['dropdown:subscript,superscript,code,codeBlock,blockquote,clearFormatting,horizontalRule,details,emoji,characters,lock'],
     ]);
 });
 

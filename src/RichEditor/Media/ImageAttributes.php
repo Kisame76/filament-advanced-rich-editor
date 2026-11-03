@@ -64,6 +64,64 @@ class ImageAttributes
     }
 
     /**
+     * What a picture is given once its file has been edited into a new one: the new file, and
+     * a size that draws it at the scale the old one was drawn at.
+     *
+     * A picture without a size is drawn at the size of its file and needs nothing more. One
+     * with a size keeps its scale rather than its box: cutting away half of a picture shown at
+     * full size leaves a picture half as wide, the way a word processor crops, where keeping
+     * the box would stretch what is left back over it - blurred, on a picture that was small
+     * to begin with. Where the browser could not say how wide the old file was, the width
+     * stays and the height follows the new shape.
+     *
+     * Both or neither, as on insert: Filament draws the pair as an inline style, and a height
+     * kept from the old shape squashes the new one.
+     *
+     * @param  array<string, mixed>  $item  the new file, resolved
+     * @param  array<string, mixed>  $current  the picture's `width` and `height`, and the width of its old file as `naturalWidth`
+     * @return array<string, mixed>
+     */
+    public static function afterEditing(array $item, array $current): array
+    {
+        $attributes = [
+            'id' => $item['id'] ?? null,
+            'src' => $item['url'] ?? null,
+        ];
+
+        $width = static::length($current['width'] ?? null);
+        $height = static::length($current['height'] ?? null);
+        $fileWidth = static::pixels($item['width'] ?? null);
+        $fileHeight = static::pixels($item['height'] ?? null);
+
+        if ($width === null || $height === null || $fileWidth === null || $fileHeight === null) {
+            return $attributes;
+        }
+
+        $oldFileWidth = static::length($current['naturalWidth'] ?? null);
+        $newWidth = $oldFileWidth === null ? $width : $fileWidth * $width / $oldFileWidth;
+
+        $attributes['width'] = (int) max(1, round($newWidth));
+        $attributes['height'] = (int) max(1, round($newWidth * $fileHeight / $fileWidth));
+
+        return $attributes;
+    }
+
+    /**
+     * A length in pixels as a picture carries it - a number, possibly with a fraction from a
+     * drag - or nothing where it is not one: a percentage says nothing about a scale.
+     */
+    protected static function length(mixed $value): ?float
+    {
+        if (! is_int($value) && ! is_float($value) && ! (is_string($value) && is_numeric(trim($value)))) {
+            return null;
+        }
+
+        $length = (float) $value;
+
+        return is_finite($length) && $length > 0 ? $length : null;
+    }
+
+    /**
      * A whole number of pixels, or nothing.
      *
      * A zero is the interesting case rather than an attack: the measuring returns one for a

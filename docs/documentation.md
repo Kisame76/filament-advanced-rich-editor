@@ -22,7 +22,7 @@ on top of it, checked against the current Filament v5 release:
 | **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser) on its own button, with Filament's dialog left untouched beside it, [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
 | **Sizing a picture** | `->resizableImages()`, off by default, and the drag always keeps the ratio | [On by default, with the pixel size beside the pointer](#images) — a ratio lock you can open, quarter turns, a panel to type the two numbers into, and a download |
 | **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window, and [a search over your own records](#linking-to-a-record-instead-of-typing-a-url) instead of a typed URL |
-| **Video** | — | [Paste a YouTube or Vimeo link](#video-embeds) and get a player, timestamp included, through the cookie-free host |
+| **Embeds** | — | [Paste a link from YouTube, Vimeo, Spotify, Loom, CodePen, TikTok or a Google Maps embed code](#embeds) and get the player, timestamp included, YouTube through the cookie-free host |
 | **Code** | A code block with no language | [A language picker on the block](#code-blocks), and syntax colours rendered in PHP |
 | **Callouts** | — | [Note, tip, warning and danger](#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
 | **Finding text** | The browser's `Ctrl+F` — which finds, and stops there | [Find and replace inside the field](#find-and-replace) — every hit marked at once, whole words and case optional, and replacing all of them is one undo |
@@ -30,13 +30,13 @@ on top of it, checked against the current Filament v5 release:
 | **Reaching a tool** | Aim at the bar | [Type `/`](#slash-menu) for the commands *this* field offers, or use [the grip in the margin](#drag-handle) to move a block and the plus to start one |
 | **Formatting what you selected** | `->floatingToolbars()` exists; the only bar Filament ships is the one over a table cell | [A bar over the selected text](#toolbar-over-a-selection) carrying the styles, the marks, the link and both colour pickers — taking the same tokens the main toolbar does |
 | **Pasting from Word** | What Word wrote, minus what the sanitiser strips on save | [Cleaned on the way in](#pasting-from-word-and-google-docs): the list Word writes as twelve paragraphs is a list again, and somebody else's fonts, sizes and colours stay behind |
-| **Accessibility** | — | [A check](#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read — and [`lang` on a passage](#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
+| **Accessibility** | — | [A check](#accessibility-check) for missing alt text, "click here" links, skipped heading levels, tables with no header row and colours too weak to read, [asked of every stored document](#diagnosing-stored-documents) as well — and [`lang` on a passage](#language-of-a-passage), which is what WCAG 3.1.2 actually asks for |
 | **Closing the tab** | The text is gone | [A draft kept in the browser](#drafts-in-the-browser), offered back the next time the field is opened, and a warning before the tab closes |
 | **Seeing the HTML** | — | [The document in Filament's own code editor](#source-code) |
 | **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
 | **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [word counts and rules about what the document holds](#rules-about-the-content), [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
-| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
+| **Editor chrome** | — | [Fullscreen](#fullscreen), [a toolbar for touch screens](#on-a-touch-screen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters), [snippets](#snippets-and-templates) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
@@ -53,22 +53,24 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Custom tokens](#custom-tokens) · [Custom tools](#custom-tools) ·
 [Toolbar alignment](#toolbar-alignment) · [Pinned buttons](#pinned-buttons) ·
 [The tools menu](#the-tools-menu) · [The more menu](#the-more-menu) ·
-[Sticky toolbar](#sticky-toolbar) · [Toolbar over a selection](#toolbar-over-a-selection) ·
+[Sticky toolbar](#sticky-toolbar) · [On a touch screen](#on-a-touch-screen) ·
+[Toolbar over a selection](#toolbar-over-a-selection) ·
 [Floating toolbars](#floating-toolbars) · [Maximum height](#maximum-height) ·
 [Fullscreen](#fullscreen) · [A hard limit](#a-hard-limit) ·
-[Statistics](#statistics) · [Help](#help)
+[Statistics](#statistics) · [Help](#help) · [Keyboard shortcuts](#keyboard-shortcuts)
 
 **[Blocks](#blocks)** — [Heading levels](#heading-levels) ·
 [Lists and task lists](#lists-and-task-lists) · [Definition lists](#definition-lists) ·
 [List markers, numbering and direction](#lists-markers-numbering-and-direction) ·
-[Callouts](#callouts) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
+[Callouts](#callouts) · [Locked regions](#locked-regions) · [Alignment](#alignment) · [Line spacing](#line-spacing) ·
 [Indenting](#indenting) · [Text direction](#text-direction) · [Code blocks](#code-blocks)
 
 **[Characters](#characters)** — [Styles](#styles) · [Fonts](#fonts) ·
 [Font size](#font-size) · [Colours](#colours) ·
 [Language of a passage](#language-of-a-passage) · [Emoji](#emoji) ·
 [Special characters](#special-characters) · [Format brush](#format-brush) ·
-[Changing the case](#changing-the-case) · [Date and time](#date-and-time)
+[Changing the case](#changing-the-case) · [Date and time](#date-and-time) ·
+[Snippets and templates](#snippets-and-templates)
 
 **[Media and links](#media-and-links)** — [Images](#images) ·
 [Where a picture sits](#where-a-picture-sits) ·
@@ -76,17 +78,18 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [A picture that carries nothing](#a-picture-that-carries-nothing) ·
 [A picture that points somewhere](#a-picture-that-points-somewhere) ·
 [Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
-[Links](#links) · [Video embeds](#video-embeds) ·
+[Links](#links) · [Embeds](#embeds) ·
 [Video and audio you host](#video-and-audio-you-host) ·
 [Anchors in the editor](#anchors-in-the-editor)
 
 **[Typing instead of aiming](#typing-instead-of-aiming)** — [Slash menu](#slash-menu) ·
 [Typography while typing](#typography-while-typing) · [Drag handle](#drag-handle) ·
 [Find and replace](#find-and-replace) ·
-[Invisible characters and block outlines](#invisible-characters-and-block-outlines) ·
+[Invisible characters and block outlines](#invisible-characters-and-block-outlines) · [Focus mode](#focus-mode) ·
 [Pasting from Word and Google Docs](#pasting-from-word-and-google-docs)
 
 **[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
+[Diagnosing stored documents](#diagnosing-stored-documents) ·
 [Drafts in the browser](#drafts-in-the-browser) · [Character count](#character-count) ·
 [Rules about the content](#rules-about-the-content) ·
 [Being told a document was saved](#being-told-a-document-was-saved) ·
@@ -651,6 +654,35 @@ under the page header it is square, since the top of the field has scrolled away
 small script watches for that and gives the bar `fi-arte-stuck` while it is pinned, which is
 also the class to hang anything else on that should only show while the bar is.
 
+### On a touch screen
+
+Held with a finger - a phone, a tablet - the toolbar changes in three ways. Nothing to switch
+on: it is asked of the pointer (`pointer: coarse`), not of the width, so a narrow desktop
+window keeps the mouse layout.
+
+**One row that scrolls sideways.** On a phone the shipped bar wraps into five rows, two
+hundred pixels of a screen the keyboard takes half of. On touch the flowing part of the bar is
+one row a thumb swipes through, and the [pinned buttons](#pinned-buttons) stay beside it - the
+tools menu and fullscreen are always one tap away. The dropdowns in the row open as they
+always do and are not cut off at its edge; their menus are placed against the bar, which does
+not scroll, and follow their button when the row is swiped. A bar with nothing pinned keeps
+wrapping: its groups sit in the bar itself, and those bars are short anyway - the `minimal`
+preset fits one row on a phone.
+
+**Buttons a finger can hit.** 44 pixels square, the size Apple and WCAG 2.5.5 name, where
+Filament's are 32; the rows in the toolbar's menus are as tall.
+
+**The bar on the keyboard.** While the field is written in and the keyboard is up, the bar
+sits on top of the keyboard, the full width of the screen, and goes back to the top of the
+field when the focus leaves it or the keyboard folds away. At the top of the field it would be
+out of a thumb's reach and often out of sight, since the browser scrolls the page within the
+window to keep the caret in view. A tap on one of the field's buttons also keeps the keyboard
+up rather than folding it away and opening it again. Not while the page is zoomed in, and not
+inside a container that would carry a fixed bar off with it - a modal or slide-over moves in
+with a transform - where the bar stays at the top of the field.
+
+The keyboard part is a small script on every field, which stops at once on a mouse.
+
 ### Toolbar over a selection
 
 Select text and a small bar appears over it: the project's own styles, bold, italic,
@@ -713,7 +745,7 @@ one, over a table cell. This package ships the rest.
 | `image` | an image is selected | the aspect lock, the size panel, the two quarter turns, the alt and caption panel, replace, download, delete |
 | `file` | a [document card](#documents) is selected | replace, download, remove |
 | `media` | a [video or a sound](#video-and-audio-you-host) is selected | replace, download, remove |
-| `embed` | an [embed](#video-embeds) is selected | replace, remove |
+| `embed` | an [embed](#embeds) is selected | replace, remove |
 | `bulletList` / `orderedList` | the caret is in a list | [the marker, start number and reverse panel](#lists-markers-numbering-and-direction) |
 
 The four bars over something that came out of the library end the same way — Replace,
@@ -721,7 +753,10 @@ Download, Delete, wherever each applies — so a hand that learned one knows the
 embed has nothing to download, since the video is on somebody else's server, and its Replace
 is the embed dialog filled in with it. Replace on a card or a player needs a
 [media browser](#media-browser) to go back to and is left out without one; a picture's goes
-to Filament's own dialog then, which replaces the selected picture too. Download saves a
+to Filament's own dialog then, which replaces the selected picture too. A picture replaced from
+the media browser keeps the width it was drawn at and takes the new file's shape, so a tall
+picture in place of a wide one is not pressed into the old box; the same file picked again, or
+one whose shape is not known, keeps its size. Download saves a
 card under the card's own name, and everything else under the last part of its address.
 
 All of them assemble themselves from what the field has switched on: no
@@ -913,7 +948,8 @@ On Windows and Linux `Ctrl+Shift+J` (justify), `Ctrl+Shift+E` (centre) and `Ctrl
 (strikethrough) are developer-tools shortcuts in Chrome or Firefox and open a panel instead.
 On German, Polish and other AltGr layouts, `AltGr` is `Ctrl+Alt`, so the paragraph, heading
 and code block keys sit on top of `{`, `[`, `]`, `}`, `²` and `³`. Both are upstream
-defaults; the toolbar, the slash menu and the dropdowns are the way round them.
+defaults; the toolbar, the slash menu and the dropdowns are one way round them, and moving
+the key to another is the other - see [Keyboard shortcuts](#keyboard-shortcuts).
 
 Add a second tab with something to tell the people writing in the field:
 
@@ -926,6 +962,55 @@ Without a note the dialog stays one plain list - a tab bar over a single tab is 
 A plain string is escaped and keeps its line breaks; pass an `Htmlable` for markup, which is
 trusted, so build it in code rather than out of anything a user typed. The tab's own label
 is the second argument, and `help_more` in the config sets a note for every field at once.
+
+### Keyboard shortcuts
+
+Any tool can be given a key, by the name the toolbar takes: another key for a tool that has
+one, a first key for a tool that has none, or `null` to take a tool's key away.
+
+```php
+AdvancedRichEditor::make('content')->shortcuts([
+    'link' => 'Mod-K',             // the link dialog, which has no key out of the box
+    'strike' => 'Mod-Shift-X',     // off Ctrl+Shift+S, which a browser may take first
+    'highlight' => null,           // Mod+Shift+H does nothing in this field any more
+]);
+```
+
+`shortcuts` in the config does the same for every field, and `->shortcuts()` is laid over it
+tool by tool, so a field changes one key without restating the rest.
+
+**How a key is written.** Modifiers and a key joined by dashes, in any order and any case -
+`Mod-Shift-K`, `shift+mod+k`. `Mod` is ⌘ on a Mac and Ctrl everywhere else, which is almost
+always the one to write; the others are `Ctrl`, `Alt` and `Shift`. `Cmd` is refused, because
+a key written for a Mac would do nothing anywhere else. The key is a letter, a digit, a
+punctuation mark, `F1` to `F12`, or one of `Enter`, `Tab`, `Space`, `Backspace`, `Delete`,
+`Escape`, `Home`, `End`, `PageUp`, `PageDown` and the four arrows. One of `Mod`, `Ctrl` or
+`Alt` is required unless the key is a function key: anything else types a character, and
+binding it would take that character away from the field. A key that cannot be bound throws
+as the field renders, naming the tool - that is always a mistake. A tool the field does not
+have is skipped instead, so the config can name tools only some fields switch on.
+
+**What it does.** The key runs the tool's own handler - exactly what clicking its button does,
+dialog and all - whether or not the button is on the bar. A key given to one tool is taken
+from whichever tool had it, so `'bold' => 'Mod-Shift-B'` leaves the quote without a key; when
+the config and the field both claim one, the field wins. A key taken away does nothing in
+the editor. It does not fall back to the browser either, which in an editable page would
+apply its own bold behind the editor's back. The help dialog lists the keys as they now are.
+
+Fields that change nothing load nothing for this; only a field whose keys moved loads a small
+script, which binds those keys ahead of every other extension.
+
+The link has no key out of the box, although `Mod+K` is what most editors use. Panels often
+give `Mod+K` to the global search (`->globalSearchKeyBindings()`), and Filament binds those
+globally, so both would fire - the link dialog and the search field. Bind it where the panel
+does not.
+
+A closure works too, which is how keys somebody chose for themselves reach the field. This
+package keeps no keymap per person, because it has nowhere to keep one:
+
+```php
+->shortcuts(fn (): array => auth()->user()->editor_shortcuts ?? [])
+```
 
 ## Blocks
 
@@ -1060,7 +1145,7 @@ sanitiser's safe list:
 halves of this package parse and what a bare browser honours. The inline `list-style-type`
 is what survives a stylesheet that sets one — and Filament's own prose styles do, so a list
 marked `type="a"` would otherwise still be drawn with numbers. It is the same reasoning the
-[embed wrapper](#video-embeds) carries its aspect ratio inline for: the page a document ends
+[embed wrapper](#embeds) carries its aspect ratio inline for: the page a document ends
 up on is not this package's, and `style` is what travels there.
 
 The marker is also read back *out* of that CSS, which is what makes a list pasted from Word
@@ -1156,6 +1241,41 @@ disappears from the bar on its own and the editor's JSON stays free of callout n
 `AdvancedRichContentRenderer` declares the node either way: a callout somebody wrote is one
 that belongs on the page, whether or not this render was told the field had them switched
 on.
+
+### Locked regions
+
+Parts of a document the people writing in it cannot change - a template's fixed paragraphs, a
+contract's clauses - while everything around them stays theirs.
+
+```php
+AdvancedRichEditor::make('content')
+    ->lockedRegions()                                                   // default: config('...locked_regions'), false
+    ->lockedRegionsEditable(fn (): bool => auth()->user()->can('edit-templates'));
+```
+
+Two questions, kept apart. Whether a field has locked parts at all is the field's; who may
+lock, unlock and change them is the person's, and nobody may until the field says who.
+
+**Locking.** Somebody who may selects the blocks and presses the padlock in the more menu
+(`'lock'`, already in the shipped `more` list and on no bar - put it on one like any other
+name). Pressing it inside a locked part unlocks it: the frame goes, everything it held stays.
+In the editor a locked part is framed and labelled; for a reader it is a plain `div` around
+the blocks, with a class nothing on a page styles.
+
+**Everybody else** can write before, after and between the locked parts but not in them: the
+text takes no caret, and a paste, a deletion across one or a select-all-and-delete that would
+touch one does nothing. Moving one is allowed, since moving is not changing.
+
+**On the server.** The editor runs in the browser, and a browser can be made to send anything,
+so every save is checked again: each locked part the document had before has to be in the
+new one holding exactly what it held, and nothing else may be locked. "Before" is the
+record's stored value - or, on a form that creates one, the field's `default()`, which is how
+a template with locked parts gets into a new record. A save that fails is refused with
+"Locked parts of the content cannot be changed." Emptying the field counts; somebody who may
+lock is never checked.
+
+A field with the feature off unwraps any locked part it is handed: the text is kept, the lock
+is not, which is what switching it off ought to mean.
 
 ### Alignment
 
@@ -1917,6 +2037,48 @@ itself — a format a project added has no name anybody wrote down. That example
 with the page, which is worth knowing for a format that is only a clock: the menu then shows
 the hour the page was opened while the insert writes the hour it was clicked.
 
+
+### Snippets and templates
+
+Ready-made content to put where the caret is: a signature, a disclaimer, the skeleton of a
+report. Not the same thing as Filament's `customBlocks()`: a custom block is structure with
+fields to fill in, kept as one piece. A snippet is text, and once it is
+in, it is the document's like anything typed.
+
+```php
+AdvancedRichEditor::make('content')->snippets([
+    'signature' => '<p>Kind regards,<br>The editorial team</p>',
+    'report' => [
+        'label' => 'Report template',
+        'content' => '<h2>Situation</h2><p></p><h2>Findings</h2><p></p><h2>Next steps</h2>',
+    ],
+]);
+```
+
+The key names the snippet - a letter, then letters, digits and underscores - and its label is
+the key made readable unless one is given. Each snippet is a tool named after its key, so
+`legal_note` and `legalNote` would be the same one and are refused together. The content is markup, or a document as an array.
+`snippets` in the config is the list for every field; `->snippets()` replaces it, and takes a
+closure, which is where snippets kept in a table come in:
+
+```php
+->snippets(fn (): array => Snippet::query()->get()->mapWithKeys(
+    fn (Snippet $snippet): array => ["s{$snippet->id}" => ['label' => $snippet->title, 'content' => $snippet->body]],
+)->all())
+```
+
+A field with snippets offers them in the `'snippets'` dropdown, which is in the shipped
+toolbar beside the callouts and resolves to nothing on a field with none, and in the slash
+menu under what gets added. Each one is also a tool of its own, `snippet` plus the key in
+StudlyCase - `snippetSignature` - for a bar that wants one as a button. The content is asked of
+the server when one is picked, so a long list costs the page only its names, and a request
+for a key that is not on the field's list gets nothing.
+
+**Templates** are the same thing at another moment: a snippet put into an empty field, or a
+field's `default()` on a form that creates a record. A template with
+[locked regions](#locked-regions) comes in through `default()`: inserting locked parts is
+locking, which only somebody who may lock can do.
+
 ## Media and links
 
 ### Images
@@ -2164,6 +2326,9 @@ somebody switching it on is trying to improve. The measured size above earns the
 same prize without that risk. Set it project-wide under `images.loading`, and use
 `->imageLoading(false)` to keep one field eager where the project turned it on everywhere.
 
+Either way, this decides what an insert writes and not what a save keeps: a hint already in a
+document stays there on every field, whatever that field would write itself.
+
 #### A picture that carries nothing
 
 A divider, a texture, a flourish beside a heading the words already say. The **decorative**
@@ -2242,6 +2407,47 @@ there selects it so it can be resized, turned, placed or described.
 
 Per field: `->imageLink(false)`; project-wide: the `images.link` key.
 
+#### Cropping, turning and flipping a picture
+
+The **edit** button opens the picture in Filament's own image editor — the one
+[`FileUpload::imageEditor()`](https://filamentphp.com/docs/forms/file-upload#setting-up-the-image-editor)
+opens, with its crop box, a free ratio and 16:9, 4:3, 3:2 and 1:1, turning by any angle,
+flipping both ways and zoom. Nothing of it is this package's; it looks and translates the way
+it does everywhere else in the panel. It opens straight away, with no upload dialog in front of
+it: Save puts the result into the document, Cancel leaves the picture as it was. Only where
+the editor cannot open on its own — the picture did not load, or it is an SVG and Filament
+asks first — does the dialog around it show itself.
+
+```php
+AdvancedRichEditor::make('content')->imageEditor();
+```
+
+What an edit saves is **a new file**, and only this picture is pointed at it. It is held like
+any other upload until the form is saved, so closing the form without saving writes nothing;
+the old file stays where it was, for every other document that uses it and for an undo, which
+brings this picture back as it was. Cropping is done to the pixels rather than as a style the
+way the rotate buttons are, because a crop has to reach everywhere the document goes — a feed,
+a mail, an export — and a style does not.
+
+A picture with a size keeps its **scale** rather than its box, the way a word processor crops:
+cut half of a picture away and it is half as wide, instead of what is left being stretched
+back over the old box — blurred, on a picture that was small to begin with.
+
+Two things the editor needs from where the picture lives:
+
+- **The browser reads the file.** A picture on another host — a CDN, S3 — needs that host to
+  allow it ([CORS](https://developer.mozilla.org/docs/Web/HTTP/CORS)), the same as Filament's
+  upload field needs to show a stored file. Without it the dialog shows the picture as failed
+  to load and there is nothing to edit.
+- **An edit is drawn on a canvas.** An animated GIF keeps its first frame, and an SVG comes
+  out as a PNG — the dialog asks before it opens one, since a drawing that scaled to any size
+  does not afterwards.
+
+**It ships off.** Every edit writes a file of its own beside the one it was made from, which
+is right for the document and something a project should decide on for its disk — and most
+pictures are cropped before they are uploaded, by whoever took them. Filament's upload field
+ships its editor off for much the same reasons. Project-wide: the `images.editor` key.
+
 ### Media browser
 
 The `'mediaBrowser'` button — the one on the shipped bar — opens the **files** that are
@@ -2287,7 +2493,7 @@ Asking somebody to choose between two dialogs before they know which one their l
 in was the wrong question, so there is one door. What follows from the link is still two
 different things, and that difference is real rather than cosmetic.
 
-Picking an embed and pressing Submit runs exactly what the [embed dialog](#video-embeds)
+Picking an embed and pressing Submit runs exactly what the [embed dialog](#embeds)
 runs — same node, same attributes — so nothing about what a document stores has changed. That
 dialog keeps the aspect ratio; this one asks only for the link and a title, because a file
 address has no ratio to state.
@@ -2320,7 +2526,7 @@ file it turns away is named in the panel with what would have been taken:
 | | With Spatie Media Library | On a plain disk |
 | --- | --- | --- |
 | What stays | the row: uuid, key, owner, order, description | the path — which is the id, and the file's name — and the description beside it |
-| What changes | the file, and its names: the file name and the name in the library both come from the upload, as they would have on upload; type and size; conversions are made again | the file's bytes |
+| What changes | the file, and its names: the file name and the name in the library both come from the upload, as they would have on upload; type and size; conversions and responsive images are made again | the file's bytes |
 | A picture, a film, a sound | may change format within its family — a png for a webp | keeps its ending, because the path is the id |
 | A document | keeps its ending, because every card using it downloads under that name | keeps its ending |
 
@@ -2394,10 +2600,8 @@ else is named, per field or for all of them:
 ```
 
 ```php
-'media_library' => [
-    'documents' => [
-        App\Models\Page::class => ['body', 'sidebar'],
-    ],
+'documents' => [
+    App\Models\Page::class => ['body', 'sidebar'],
 ],
 ```
 
@@ -2410,6 +2614,10 @@ reported and passed over rather than stopping the delete.
 
 The dialog names other records, so they are only looked up on a field that may delete or
 replace at all.
+
+The configured list is also where [`arte:diagnose`](#diagnosing-stored-documents) looks for
+documents, beside the models that registered rich content. It used to be
+`media_library.documents`, which is still read.
 
 ```php
 'media_library' => [
@@ -2688,6 +2896,39 @@ a reason worth reading: see [Sharing a library safely](#sharing-a-library-safely
 
 This also works on create pages, where there is no record for a media row to belong to yet.
 
+#### A file that is already there
+
+**An upload the library already holds becomes the file that is there.** What decides is the
+bytes, not the name: `IMG_0412.png` is the same picture as `harbour.png` if it holds the same
+bytes, and two files called `logo.png` may well be two logos.
+
+- **In the browser** the upload is let go of, the file that was there is put at the front and
+  selected, and the dialog says so: *“IMG_0412.png” is already in the library as
+  “harbour.png”, so that file is selected.*
+- **Dropped or pasted into the text**, or saved from the image editor, the picture points at
+  the file that is there once the form is saved, and nothing is written. Nobody is asked,
+  because nobody is in a dialog.
+
+Only the pool the browser lists is searched, so finding a copy is exactly what picking it from
+the browser would have been — no wider. A description typed against the upload stays with the
+upload; the file it turned out to be keeps its own.
+
+How it compares: by size first, which costs nothing, then by a SHA-256 of what is in the file,
+for the few of the same size. A media collection keeps the hash on the row as it is written
+(`arte_hash`), and a row from before is hashed the first time it is compared. A disk keeps no
+index — one listing of the library, which the browser reads for every page anyway, and only
+files of the same size are opened.
+
+On by default. A field whose documents must each own their own file turns it off:
+
+```php
+AdvancedRichEditor::make('content')
+    ->mediaLibraryDeduplicates(false);   // default: config('...media_library.deduplicate')
+```
+
+The catch is the one picking from the browser has always had: a file two documents share is
+one file, and replacing it in the library replaces it in both.
+
 #### One rule
 
 **A stored `data-id` resolves only inside the pool the browser draws from.** The pool is the
@@ -2735,6 +2976,15 @@ Automatic clean-up comes back the moment nothing else can be holding the id:
 ->mediaLibraryScope('record')   // the browser shows only this record; the sweep resumes
 ->mediaLibrary(false)           // no browser at all; likewise
 ```
+
+**Narrowed to the record, the sweep still reads the whole record.** Two editors on one record
+share its collection, and the record-scoped browser lists all of it — so `summary` can pick a
+picture `content` uploaded, and a picture copied from one editor into the other resolves there
+too, with or without a browser. Before it deletes a picture, the sweep looks for its id
+everywhere else on the record: in the record's other columns, for what the other editors saved
+before, and in what the page is about to save, for what they are taking in this very save —
+Filament sweeps before it writes the record. A picture is deleted only once nothing there
+mentions it any more. Until then it stays, at the cost of a file.
 
 Beyond that, **a picture is deleted by whoever owns it.** The sweep only ever considers
 attachments *this field* uploaded to *this record* — media it did not put there is never
@@ -2788,6 +3038,64 @@ project keeps in that collection is never touched:
 AdvancedRichEditor::make('content')->spatieMediaLibrary(),
 AdvancedRichEditor::make('summary')->spatieMediaLibrary(),   // same collection, separate images
 ```
+
+The stamp says who uploaded a picture, not who shows it. When `summary` shows a picture
+`content` uploaded — picked from the record's library, or copied across — `content` taking it
+out of its own text does not delete it: the sweep reads the record's other columns and what
+the page is about to save, and keeps every picture mentioned there. See
+[Sharing a library safely](#sharing-a-library-safely).
+
+#### Responsive images
+
+A picture is rendered with the responsive images Spatie made of it — the same picture at a few
+smaller widths — as `srcset`, so a phone is not sent the file a wide screen needs. Spatie makes
+them only where the project asks, because each one is a file on the disk and a job on the
+queue; ask on the collection, and every picture the field uploads gets them, the image
+editor's included:
+
+```php
+public function registerMediaCollections(): void
+{
+    $this->addMediaCollection('rich-editor')->withResponsiveImages();
+}
+```
+
+There is nothing to switch on in the field, and a project that does not ask renders as before.
+Where the field embeds a conversion, the conversion's own responsive images are used —
+`->withResponsiveImages()` on the conversion — and never the original's, which are another
+picture.
+
+`sizes` comes from the width the picture is drawn at: `(max-width: 320px) 100vw, 320px` for one
+drawn 320 pixels wide, `100vw` where it has no width in pixels. A lazy picture with a width
+starts the list with `auto`, which lets a browser that can measure the laid-out picture do so.
+
+Worth knowing:
+
+- **The list is read from the media row on every render, never from the document.** Nothing
+  checks the addresses in a `srcset` — Symfony's sanitiser checks `src`, not this — so one the
+  stored content carried is dropped.
+- **Spatie's blurred placeholder is left out.** It is for Spatie's own component, which swaps
+  in the right size with a script; in a document it is markup no browser picks.
+- **None on a private disk.** Spatie addresses responsive images as public files, always.
+- **Pictures uploaded before you asked have none.** `media-library:regenerate
+  --with-responsive-images` only remakes the ones a picture already had. Send the rest to
+  Spatie's job once:
+
+  ```php
+  use Spatie\MediaLibrary\Conversions\ImageGenerators\Image;
+  use Spatie\MediaLibrary\MediaCollections\Models\Media;
+  use Spatie\MediaLibrary\ResponsiveImages\Jobs\GenerateResponsiveImagesJob;
+
+  Media::query()->where('collection_name', 'rich-editor')->each(function (Media $media): void {
+      if ((new Image)->canConvert($media) && ! $media->hasResponsiveImages()) {
+          dispatch(new GenerateResponsiveImagesJob($media));
+      }
+  });
+  ```
+
+- **They are made on the queue.** A page drawn before the job is done shows the picture
+  without the list — and keeps showing it that way while a [cached render](#caching-a-render)
+  lasts. Replacing a file in the library makes them again for the new file.
 
 #### Extending the provider
 
@@ -2924,25 +3232,139 @@ that finds nothing is left out rather than drawn as an empty heading.
 Re-opening a link does not preselect the record it points at. Finding the record behind a URL
 means storing a reference next to it, which is exactly what the mark cannot carry.
 
-### Video embeds
+#### Links that no longer lead anywhere
+
+```bash
+php artisan arte:diagnose --only=links
+```
+
+asks every link in every stored document whether it still answers, and lists the ones that do
+not with the entry and column they are written in. It is one of the three things
+[`arte:diagnose`](#diagnosing-stored-documents) looks for, and the one that leaves the machine;
+which documents it reads and how to schedule it are said there.
+
+| Answer | Counts as | Fails the command |
+| --- | --- | --- |
+| 2xx, 3xx | working | |
+| 404, 410, a host that does not exist | broken | yes |
+| any other 4xx or 5xx | answering with an error | |
+| a timeout, a refused connection, a bad certificate | not answering | |
+
+An error is listed and not failed over: a server that is down for the afternoon, or turns away
+anything that is not a browser — plenty of large sites do — is not a link anybody has to fix.
+
+**What is asked.** A link on text and a link on a picture. Not a download card, which points
+into the [media library](#media-browser), and not an embed. A link to the site itself —
+`/about` — is asked of `app.url`, which is where a reader's browser would take it; on a
+machine that is not the site, a container or a build server, `app.url` may answer nobody, and
+the command says so when not one of those links answered. A link to a place on the page, an
+e-mail address or a phone number is not asked.
+
+**How.** Every address once however often it is written, ten at a time, `HEAD` first and `GET`
+where `HEAD` was refused — a server that answers `HEAD` with 405, 403 or even 404 for a page
+that is there is common enough that an error is only believed once `GET` says it too. The
+transfer is stopped once the headers are in, so a link to a large file does not download it.
+Redirects are followed, five at most.
+
+```php
+'link' => [
+    'check' => [
+        'dialog' => false,
+        'timeout' => 5,         // seconds per request
+        'concurrency' => 10,    // addresses asked at once
+        'user_agent' => null,   // null: "Mozilla/5.0 (compatible; link check; <app.name>)"
+    ],
+],
+```
+
+##### A warning in the link dialog
+
+```php
+AdvancedRichEditor::make('content')
+    ->linkCheck();   // default: config('filament-advanced-rich-editor.link.check.dialog'), false
+```
+
+asks a typed address once the URL field is left — not at every keystroke, since half an
+address is always broken — and warns beside the field where it is broken or does not answer.
+A warning and never a refusal: a page behind a login answers a checker with an error and a
+reader with the page.
+
+**Off unless asked for, because it is the server that asks.** Every address somebody types
+becomes a request leaving it, and a server that may not reach the internet would warn about
+every link written on it. Switched on, the dialog asks only the public internet: a host that
+resolves to a private, loopback or reserved address is not asked at all, the connection goes to
+the address that was checked rather than whatever the name resolves to a moment later, and no
+redirect is followed. Without that, the dialog would be a way for anybody who can edit a
+document to find out which machines answer on the server's own network.
+
+#### Link cards
+
+```php
+AdvancedRichEditor::make('content')
+    ->linkPreviews();   // default: config('filament-advanced-rich-editor.link.previews'), false
+```
+
+A link drawn as a card: the page's title, a line about it and the site it is on, with the
+site's icon. The slash menu finds it — `/link card`, `/bookmark` — and a bar that names
+`'linkPreview'` gets a button; selecting a card shows a bar to edit or remove it.
+
+The dialog asks for the address and reads the page as the field is left: Open Graph first,
+which is written to be shown on a card, then the Twitter tags, then `<title>` and the meta
+description. What it found lands in the fields below the address, where it can be corrected
+before the card goes in — a page's own title is often the site's name twice and a slogan. A
+page that cannot be read says so, and the card is whatever somebody types.
+
+**Off unless asked for.** Most documents link in a sentence, and a card is a different kind of
+thing — a recommendation, a further-reading list — that a few kinds of writing use a lot and most
+never do. Making one also has the server read the page.
+
+**What the card says is written down when it is made,** into the document like any other text.
+Read again on every render instead, a card would always be current, and a page view would be a
+request to somebody else's server — slow, unreliable, and not what showing an article should
+involve. A card that has gone stale is a card somebody can edit.
+
+**The icon travels inside the card,** as a small picture in a `data:` address — 12 KB of
+file at most, a favicon usually a few hundred bytes. Pointing at the site's own would
+have every reader's browser ask that site for it, the reason embeds go through
+youtube-nocookie. The page's large preview picture is left out for the same reason and one
+more: it is the size of a photograph.
+
+**The page is read the way the link dialog's check asks:** the public internet only, the
+connection pinned to the address that was checked. A redirect is followed — a page moving from
+`http` to `https` is the commonest answer there is — and every step of it is checked again,
+since a redirect is the other server choosing where the next request goes. At most 2 MB of the
+page is downloaded; the head is at the top. `link.check.timeout` and `link.check.user_agent`
+apply here too.
+
+The card carries its shape inline, like the [document card](#documents): the page it ends up
+on never loaded this package's stylesheet. The classes are there to restyle it from a theme —
+`fi-arte-link-preview` and its `-title`, `-description`, `-site` and `-icon`. It is a link
+[`arte:diagnose`](#links-that-no-longer-lead-anywhere) checks like any other, and a renderer draws
+it whether or not the field still offers cards.
+
+### Embeds
 
 **Registered and on, but not on the shipped bar.** The
 [media browser](#media-browser) covers video from your own server, and two video-shaped
 buttons beside each other is one door too many for a bar with a finite number of places. The
-way in is the slash menu — `/video`, `/youtube`, `/vimeo` — and a bar or
+way in is the slash menu — `/embed`, `/video`, `/youtube`, `/spotify`, `/maps` — and a bar or
 [`more`](#the-more-menu) that names `'embed'` gets the button back.
 
 An embed can also live in the [media browser](#media-browser), where `+ Add → Embed` puts it
 in the library and it is picked from a grid instead of pasted again. The same node either
 way: a library entry is a shortcut to this dialog, not a second way of storing a video.
 
-The `embed` tool takes a link and puts a video in the document. Paste the link from the
-address bar or the share button — every shape either of them produces is understood:
+The `embed` tool takes a link and puts the player in the document — a video, a song, a
+recording, a pen, a map. Paste the link from the address bar or the share button — every
+shape either of them produces is understood:
 
 ```
 https://www.youtube.com/watch?v=ID          https://vimeo.com/ID
 https://youtu.be/ID?t=90                    https://player.vimeo.com/video/ID
 https://www.youtube.com/shorts/ID           https://www.youtube.com/embed/ID?start=45
+https://open.spotify.com/track/ID           https://www.loom.com/share/ID
+https://codepen.io/USER/pen/ID              https://www.tiktok.com/@USER/video/ID
+<iframe src="https://www.google.com/maps/embed?pb=…"></iframe>
 ```
 
 The timestamp in a link shared "from 1:30" is kept, in all three spellings (`t=90`,
@@ -2951,8 +3373,9 @@ timestamp — and the embed URL is built from that on the way out. Storing the U
 would mean trusting whatever the document held: a watch link, which no browser will frame,
 or a host this package has no business pointing an iframe at.
 
-**Pasting a video link on an empty line turns it into a video.** The same link pasted into
-the middle of a sentence stays a link, because there it is a link somebody is writing.
+**Pasting a link on an empty line turns it into the player**, and so does pasting a map's
+embed code. The same link pasted into the middle of a sentence stays a link, because there it
+is a link somebody is writing.
 
 ```php
 AdvancedRichEditor::make('content')
@@ -2969,6 +3392,57 @@ own requests and its own cookie, in a screen where nobody is watching anything �
 iframe swallows every click, so the block could not be selected, dragged or deleted like
 the rest of the document.
 
+#### Services
+
+| Service | What is read | Drawn |
+| --- | --- | --- |
+| YouTube | watch, `youtu.be`, Shorts, live and embed links, with their timestamp | 16:9, through `youtube-nocookie.com` |
+| Vimeo | site and player links, with their timestamp | 16:9 |
+| Spotify | a track, album, playlist, episode, show or artist link, also `intl-…` | 352 px high, whatever the width |
+| Loom | share and embed links | 16:9 |
+| CodePen | pen, full, details and embed links — opened on the result | 16:9 |
+| TikTok | the video's own address, `tiktok.com/@user/video/ID` | 9:16, no wider than a phone |
+| Google Maps | the code from *Share → Embed a map*, or the address inside it | 4:3 |
+
+Each service is one class extending `EmbedProvider`, and `embed.providers` lists them. Take
+one off the list and its links are refused in the dialog and its stored embeds render as
+nothing; add your own and it works everywhere the built-in ones do — the dialog, pasting, the
+media library, the sanitiser:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProvider;
+
+class Dailymotion extends EmbedProvider
+{
+    public function name(): string { return 'dailymotion'; }
+    public function hosts(): array { return ['www.dailymotion.com', 'dai.ly']; }
+    // Over `host/path?query`; the id is the named groups, joined by `/`.
+    public function patterns(): array { return ['^dai\.ly/(?<id>[a-z0-9]+)', '^[^/]+/video/(?<id>[a-z0-9]+)']; }
+    public function id(): string { return '[a-z0-9]{5,10}'; }
+    public function src(): string { return 'https://www.dailymotion.com/embed/video/{id}'; }
+    public function share(): string { return 'https://www.dailymotion.com/video/{id}'; }
+}
+
+// config/filament-advanced-rich-editor.php
+'embed' => [
+    'providers' => [...EmbedProviders::BUILT_IN, Dailymotion::class],
+],
+```
+
+A provider is a description rather than code on purpose: the editor in the browser reads the
+same patterns and templates to decide what a paste becomes, so they are written once and
+cannot disagree. Write them as regular expressions both PHP and JavaScript read alike — named
+groups, classes, anchors — and without delimiters. `ratio()`, `height()`, `start()`, `cover()`
+and `oembed()` are there to override where the defaults do not fit.
+
+**Not here: X, Instagram, and short links.** X and Instagram hand out a `<blockquote>` and a
+script that turns it into the post, and no document should be able to put a script on a page —
+the sanitiser removes it, rightly. Their `iframe` addresses exist but are undocumented and
+size themselves by talking to that script, so a frame without it is a box of the wrong height.
+Short links — `vm.tiktok.com`, `maps.app.goo.gl` — only say what they point at when somebody
+follows them, which would be a request from your server for every paste; the long form in the
+address bar works.
+
 #### The sanitiser
 
 Filament renders rich content through `Str::sanitizeHtml()`, and Symfony's safe element
@@ -2979,21 +3453,19 @@ this package allows the element back — and only ever together with a restricti
 // config/filament-advanced-rich-editor.php
 'embed' => [
     'sanitizer' => true,                       // allow <iframe> back at all
-    'allowed_hosts' => [
-        'youtube-nocookie.com',
-        'youtube.com',
-        'vimeo.com',
-    ],
+    'allowed_hosts' => [],                     // beyond the services' own hosts
 ],
 ```
 
-An iframe whose host is not on the list loses its `src` on the way to the page. The node
+The list is the hosts the services above frame from, taken from their classes, plus whatever
+`allowed_hosts` adds. An iframe whose host is not on it loses its `src` on the way to the page. The node
 goes further and refuses to build the element at all, so what reaches the sanitiser is
 already an embed rather than an iframe — the sanitiser is the second line, for markup that
 arrived some other way. A database is not written only by this editor.
 
 Subdomains of a listed host count (`player.vimeo.com` for `vimeo.com`); a host that merely
-*ends* in one does not — `youtube.com.attacker.test` is a domain anybody can register.
+*ends* in one does not — `youtube.com.attacker.test` is a domain anybody can register. A link
+is read the same way, against each service's hosts spelled out.
 
 `'sanitizer' => false` leaves the application's sanitiser alone. Embeds are then still
 stored and edited, and stripped from every rendered page — which is a coherent choice only
@@ -3008,7 +3480,9 @@ if something else in the project renders them.
 #### Privacy
 
 YouTube is embedded through `youtube-nocookie.com` by default: embedding a video should not
-decide on its own to put a tracking cookie on the reader's machine. The frame is also given
+decide on its own to put a tracking cookie on the reader's machine. The other services have no
+such host, and their frames set what cookies they set once the frame loads — which, being
+lazy, is when the reader scrolls to it, and only where an author put one. The frame is also given
 `referrerpolicy="strict-origin-when-cross-origin"` and `loading="lazy"`, and its `allow`
 list is short — fullscreen and picture-in-picture, no camera and no microphone.
 
@@ -3019,9 +3493,17 @@ list is short — fullscreen and picture-in-picture, no camera and no microphone
 #### Shape and titles
 
 The wrapper carries the aspect ratio in its own `style`, and the frame fills it — so a
-video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in the dialog.
+video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in the dialog,
+and pasting a link picks the service's own: a TikTok is upright, a map 4:3. An embed nobody
+picked a shape for — a pasted one — is drawn in that shape too. An upright frame is held to
+the width of a phone (22.5rem); across a whole column, 9:16 is taller than the screen. A
+player with a height of its own — Spotify's — keeps it, and the dialog does not offer a ratio
+for it.
 
-A title is optional and worth setting: a screen reader announces it instead of "video".
+The ratio is checked before it is written into the style, wherever it came from: a document
+kept as JSON hands its attributes over unparsed, and the sanitiser does not read CSS.
+
+A title is optional and worth setting: a screen reader announces it instead of "frame".
 
 **The rendered embed needs no stylesheet of yours.** The aspect ratio and the frame's size
 are written into the markup as inline styles, because this package's stylesheet is loaded
@@ -3031,7 +3513,7 @@ still on the wrapper for styling beyond that.
 
 ### Video and audio you host
 
-The other half of the question [embeds](#video-embeds) answer. `'video'` and `'audio'`
+The other half of the question [embeds](#embeds) answer. `'video'` and `'audio'`
 place a `<video>` or an `<audio>` pointing at a file on your own server; one node draws
 both, and which of the two it is stays an attribute you can correct.
 
@@ -3409,6 +3891,37 @@ What a keystroke costs while the characters are shown grows with the paragraph b
 not with the document: an edit redraws only the paragraphs it touched. Measured on 3,000
 paragraphs (55,000 words), typing went from 4.5 to 13 ms a keystroke with the view on.
 
+### Focus mode
+
+```php
+AdvancedRichEditor::make('content')
+    ->focusMode();   // default: config('filament-advanced-rich-editor.focus_mode'), false
+```
+
+A button in the [tools menu](#the-tools-menu): every block but the one being written in is
+dimmed, and the line being written stays in the middle of the view — the focus and the
+typewriter modes of the writing apps, as one switch. It goes well with [fullscreen](#fullscreen)
+and works without it.
+
+What stays bright is every paragraph the selection reaches into — one for a caret, each of them
+for a selection across several, the item in a list rather than the whole list — or the picture,
+embed or card that is selected. Paragraphs, headings and code are dimmed wherever they sit, and
+so are the pictures, embeds and cards at the top; the frames around text — a quote's bar, a
+table's lines, a callout's box — stay as they are, the way the page around a paragraph does.
+
+The line moves to the middle at once while typing — a page that glides after every letter lags
+behind it — and smoothly when the caret was put somewhere else, unless the reader asked for less
+motion. In fullscreen there is half a screen of room under the last line, so that it too reaches
+the middle; on the page the room below is the page's own.
+
+**Off unless asked for.** Some people write like this every day and most never reach for it, and
+in a form a page that scrolls to keep a line in the middle surprises anybody who did not ask.
+`'focusMode'` already sits in the shipped tools menu and resolves to nothing, so switching it on
+is all a project does. Nothing about it is stored, and it starts off on every page load.
+
+The dimming is `--fi-arte-focus-dim` (0.3) on `.fi-arte-focus-mode`, and the block in focus
+carries `.fi-arte-focus-current`.
+
 ### Pasting from Word and Google Docs
 
 A paste is cleaned on the way in. Nothing is stored about it, there is no button for it and
@@ -3603,6 +4116,105 @@ The panel rechecks itself as the document changes, so a finding disappears when 
 rather than when the panel is opened again. Nothing about any of it is stored: a check marks
 no document, and a picture that was given alt text is an ordinary picture by the time it is
 saved.
+
+### Diagnosing stored documents
+
+```bash
+php artisan arte:diagnose
+```
+
+reads every stored document and lists what is wrong in it: files it points at that are gone,
+links that no longer lead anywhere, and what the [accessibility check](#accessibility-check)
+would say about it. Each finding comes with the entry and column it is in:
+
+```
+  Files
+
+   INFO  Looked for 14 files.
+
++------------------------+---------+----------------+
+| Entry                  | Column  | File           |
++------------------------+---------+----------------+
+| Article #3 “Prices”    | content | price-list.pdf |
++------------------------+---------+----------------+
+1 missing, 13 found.
+
+  Links
+
+   INFO  Asked 4 addresses, found in 2 entries.
+
++------------------------+---------+------------------------------+-------------------------------------+
+| Entry                  | Column  | Link                         | Answer                              |
++------------------------+---------+------------------------------+-------------------------------------+
+| Article #1 “Welcome”   | content | https://example.com/old-page | This address answers 404 Not Found. |
++------------------------+---------+------------------------------+-------------------------------------+
+1 broken, 0 not answering, 0 answering with an error, 3 working.
+
+  Accessibility
+
+   INFO  Read 212 documents.
+
++------------------------+---------+------------------------+-------------+
+| Entry                  | Column  | Problem                | Where       |
++------------------------+---------+------------------------+-------------+
+| Article #1 “Welcome”   | content | Image without alt text | /storage/…  |
+| Article #3 “Prices”    | content | Heading level skipped  | Small print |
++------------------------+---------+------------------------+-------------+
+Image without alt text: 1, Heading level skipped: 1.
+```
+
+**It fails where something is broken for every reader, and only there** — a file that is
+gone, a page that is gone, a host that does not exist. So it is something to schedule:
+
+```php
+Schedule::command('arte:diagnose')->weekly()->emailOutputOnFailure('editors@example.com');
+```
+
+The rest is listed without failing: a server that is down for the afternoon is not a link
+anybody has to fix, and a document written before anybody asked for alt text would fail every
+run until somebody rewrote the archive.
+
+**One check at a time.** `--only` takes `files`, `links` and `accessibility`, as often as
+needed. The links are the one check that leaves the machine — every address is a request —
+so `--only=files --only=accessibility` is the run that stays at home.
+
+**Which documents.** Found the way `model:prune` finds what to prune: every model under
+`app/Models` that registered rich content (`registerRichContent()`), plus the places the
+[`documents` key](#where-a-file-is-used) names. `--model` replaces both, as often as needed,
+with or without columns:
+
+```bash
+php artisan arte:diagnose --model="App\Models\Page:body,sidebar" --model="App\Models\Post"
+```
+
+A model named without columns is read for the ones it registered. Both shapes a column can
+hold are read, markup and a stored tree, and both through the schema the editor writes with —
+the package's own nodes and the plugins the model declares.
+
+**Files.** A picture, a player and a document card from the [media browser](#media-browser)
+or an upload point at their file by an id, and a file is gone where that id no longer leads to
+one: deleted from the disk, or from the media collection. Where a model keeps its files is what
+its `registerRichContent()` says — the disk, or the media library plugin — which is what every
+page rendering it is told too. A column the model does not register says nothing about it, so
+its files are not looked for, and the command says which columns those were rather than
+guessing. Where not one file of a column was found, it asks whether the model says the right
+thing: a media collection the attribute was never told about looks, from here, exactly like a
+library somebody emptied. A disk or a library that does not answer is not a file that is gone:
+those files are counted as not looked for, the error goes to the log, and the run does not fail
+over them. A document that cannot be read at all is passed over the same way.
+
+**Links** are asked the way [Links that no longer lead anywhere](#links-that-no-longer-lead-anywhere)
+describes.
+
+**Accessibility** is the check's own rules, every one but contrast: a colour is stored by its
+name, and what it means and what it is read against belong to the field that offered it.
+Which rules are asked follows `accessibility.rules`, and nothing else about the check — it is
+asked whether the check is switched on in the editor or not. The rules are said twice, once
+for the editor and once for this, and both are held to one list of cases in the test suite.
+
+Reading a document through the schema is the slow part - about 7 ms for an article of 15 KB,
+against a quarter of a millisecond for every rule, file and link in it together. A table of ten
+thousand entries takes a minute or so before the first link is asked.
 
 ### Drafts in the browser
 
@@ -4611,6 +5223,7 @@ The props follow the renderer:
     disk="s3"
     visibility="private"
     :cache="3600"
+    lightbox                      {{-- pictures open large; brings its script along --}}
 />
 ```
 
@@ -4620,6 +5233,44 @@ then applies its own props on top of:
 ```blade
 <x-arte-content :renderer="$renderer" :content="$article->content" />
 ```
+
+#### Pictures that open large
+
+`lightbox` on the component, or `->lightbox()` on the renderer, puts a link around every
+picture to its own address, and a small script opens that link in a box over the page — dark
+around it, the caption under it, a close button, Escape and a click anywhere to close.
+
+```blade
+<x-arte-content :content="$article->content" lightbox />
+```
+
+The component brings the script and its stylesheet along, once a page however many documents
+are on it. A page that renders through the renderer itself puts them there with one tag:
+
+```blade
+{!! AdvancedRichContentRenderer::make($article->content)->lightbox()->toHtml() !!}
+
+<x-arte-lightbox />
+```
+
+Both files are Filament assets, published by `php artisan filament:assets` like the rest.
+
+Off by default, because it is a decision about the page rather than the document: a site may
+well have a lightbox of its own. Worth knowing:
+
+- **It works without the script.** The link opens the picture; a click with Ctrl or Cmd opens
+  it in a new tab, as any link does. The script only turns the plain click into the box.
+- **The box is the browser's own `<dialog>`**, so it keeps focus inside, closes on Escape and
+  hands focus back to the picture.
+- **What opens large is the picture as published**: its `src`, and its `srcset` with
+  `sizes="100vw"`, so the browser picks a file for a screen-filling picture from the sizes it
+  already has — not the original upload. A conversion the field embeds stays the conversion.
+- **Left alone:** a picture that already points somewhere keeps its own link, a picture that
+  says it carries nothing gets none (an empty link is worse than one that does not open), and
+  an inline `data:` picture has no address to link to. A caption stays outside the link.
+- **Restyling** is a rule of your own after the package's: the box is
+  `.fi-arte-lightbox-dialog`, the link around a picture `.fi-arte-lightbox`. The stylesheet is
+  a file rather than styles the script writes, so a strict Content-Security-Policy is fine.
 
 ### On a view page
 
@@ -4672,8 +5323,8 @@ describes the field, the entry describes one place it is shown.
 The document is drawn in `fi-prose`, Filament's own class for rich content — the same one
 the editor draws it in, so the view page and the form agree.
 
-`filament/infolists` is not a dependency of this package; the class needs it and says so in
-`suggest`.
+`filament/infolists` needs no installing of its own: `filament/forms` brings it, through
+`filament/actions`.
 
 #### Ticking a box on the view page
 
@@ -4884,14 +5535,19 @@ the whole project; the method sets it for one field and wins.
 | Named styles (the list ships empty, so the dropdown is absent) | `styles` | `->styles([...])` |
 | A height cap (`null`) | `max_height` | `->maxHeight('400px')` |
 | Marking a picture as carrying nothing | `images.decorative` | `->imageDecorative()` |
+| Cropping, turning and flipping a picture | `images.editor` | `->imageEditor()` |
 | A loading hint on an inserted picture (`null`) | `images.loading` | `->imageLoading('lazy')` |
+| A warning in the link dialog for an address that does not answer | `link.check.dialog` | `->linkCheck()` |
+| Link cards | `link.previews` | `->linkPreviews()` |
+| Focus mode | `focus_mode` | `->focusMode()` |
+| Locked regions | `locked_regions` | `->lockedRegions()` |
 
 | Ships **on** | Config key | Per field |
 | --- | --- | --- |
 | Drafts in the browser | `autosave.enabled` | `->autosave(false)` |
 | Drag handle | `drag_handle.enabled` | `->dragHandle(false)` |
 | Slash menu | `slash.enabled` | `->slashMenu(false)` |
-| Video embeds | `embed.enabled` | `->embeds(false)` |
+| Embeds *(on, but off the shipped bar — see [Embeds](#embeds))* | `embed.enabled` | `->embeds(false)` |
 | Callouts | `callouts.enabled` | `->callouts(false)` |
 | Language of a passage | `languages.enabled` | `->languages(false)` |
 | Task lists | `task_list` | `->taskList(false)` |
@@ -5041,7 +5697,8 @@ Everything the package adds is prefixed with `fi-arte-` and can be restyled from
 theme:
 
 ```css
-/* Opaque background painted behind the pinned toolbar. */
+/* Opaque background painted behind the pinned toolbar. Without it the bar is painted in
+   the colour measured behind it, so it matches its field in a section and out of one. */
 .fi-fo-rich-editor-toolbar.fi-arte-sticky {
   --fi-arte-sticky-bg: #fff;
 }
@@ -5053,7 +5710,7 @@ theme:
 
 .fi-arte-toolbar-divider { /* the vertical rule between clusters, --fi-arte-divider-color */ }
 .fi-arte-toolbar-flow { /* the aligned half of a toolbar carrying a 'pin' */ }
-.fi-arte-toolbar-pinned { /* the half pinned to an edge; on its own row below 24rem */ }
+.fi-arte-toolbar-pinned { /* the half pinned to an edge; on its own row below 24rem, beside the row on a touch screen */ }
 .fi-arte-stuck { /* a sticky toolbar while it is held under the page header */ }
 .fi-arte-task-list { /* <ul data-type="taskList"> */ }
 .fi-arte-task-item { /* a single checkbox item */ }

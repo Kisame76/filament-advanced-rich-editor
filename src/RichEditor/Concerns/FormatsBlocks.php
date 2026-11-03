@@ -6,6 +6,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Closure;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\IndentPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Indent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
@@ -170,8 +171,9 @@ trait FormatsBlocks
     }
 
     /**
-     * What the embed script needs from PHP: the provider names, in the panel's language,
-     * and whether YouTube is embedded through its cookie-free host.
+     * What the embed script needs from PHP: every service, described - how its links are read,
+     * how its frame is built, what it is called in the panel's language. The script reads
+     * these rather than knowing any service itself, so a service is added in one place.
      *
      * @return array<string, mixed>|null
      */
@@ -181,13 +183,7 @@ trait FormatsBlocks
             return null;
         }
 
-        return [
-            'nocookie' => (bool) config('filament-advanced-rich-editor.embed.youtube_nocookie', true),
-            'labels' => [
-                'youtube' => __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.youtube'),
-                'vimeo' => __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.vimeo'),
-            ],
-        ];
+        return ['providers' => EmbedProviders::forJs()];
     }
 
     /**

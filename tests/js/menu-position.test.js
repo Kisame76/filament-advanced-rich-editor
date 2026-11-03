@@ -190,3 +190,129 @@ describe('capping a menu neither side can hold', () => {
         expect(component.dropUp).toBe(false)
     })
 })
+
+describe('a menu on a bar that scrolls sideways', () => {
+    // A touch screen's toolbar: the dropdown's own box is static there, so its menu is placed
+    // against the bar, outside the row that scrolls.
+    function row({ trigger, height = 200, width = 150, bar = { left: 16, right: 359, top: 0 } }) {
+        Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true })
+
+        const box = document.createElement('div')
+        box.style.overflow = 'visible'
+        box.getBoundingClientRect = () => bar
+
+        const scroller = document.createElement('div')
+        scroller.style.overflow = 'auto'
+        scroller.style.overflowX = 'auto'
+        scroller.getBoundingClientRect = () => ({ top: trigger.top, bottom: trigger.bottom })
+
+        const wrapper = document.createElement('div')
+        const triggerElement = document.createElement('button')
+        let triggerBox = trigger
+        triggerElement.getBoundingClientRect = () => triggerBox
+
+        const menu = document.createElement('div')
+        let open = true
+        Object.defineProperty(menu, 'offsetHeight', { value: height })
+        Object.defineProperty(menu, 'offsetWidth', { value: width })
+        Object.defineProperty(menu, 'offsetParent', { get: () => (open ? box : null) })
+
+        wrapper.append(triggerElement, menu)
+        scroller.append(wrapper)
+        box.append(scroller)
+        document.body.append(box)
+        scenes.push(box)
+
+        const ticks = []
+        const component = {
+            dropUp: false,
+            $refs: { trigger: triggerElement, menu },
+            $nextTick: (callback) => ticks.push(callback),
+        }
+
+        return {
+            component,
+            menu,
+            scroller,
+            open: () => {
+                positionMenu(component)
+
+                for (const callback of ticks.splice(0)) {
+                    callback()
+                }
+            },
+            moveTrigger: (to) => {
+                triggerBox = to
+            },
+            close: () => {
+                open = false
+            },
+        }
+    }
+
+    it('is not cut off by the row, which does not hold it', () => {
+        const { component, menu, open } = row({ trigger: { top: 100, bottom: 140, left: 200, right: 240 } })
+
+        open()
+
+        // Measured against the row it would have been capped to the row's forty pixels.
+        expect(component.dropUp).toBe(false)
+        expect(menu.style.maxHeight).toBe('')
+    })
+
+    it('lines up under its trigger rather than at the start of the bar, and stays on screen', () => {
+        const { menu, open } = row({ trigger: { top: 100, bottom: 140, left: 200, right: 240 } })
+
+        open()
+
+        expect(menu.style.insetInlineStart).toBe('184px')
+
+        const near = row({ trigger: { top: 100, bottom: 140, left: 950, right: 990 } })
+
+        near.open()
+
+        expect(near.menu.style.insetInlineStart).toBe(`${window.innerWidth - MARGIN - 150 - 16}px`)
+    })
+
+    it('follows its trigger while the row scrolls, and lets go once it has closed', () => {
+        const { menu, scroller, open, moveTrigger, close } = row({
+            trigger: { top: 100, bottom: 140, left: 200, right: 240 },
+        })
+
+        open()
+        moveTrigger({ top: 100, bottom: 140, left: 120, right: 160 })
+        scroller.dispatchEvent(new Event('scroll'))
+
+        expect(menu.style.insetInlineStart).toBe('104px')
+
+        close()
+        moveTrigger({ top: 100, bottom: 140, left: 60, right: 100 })
+        scroller.dispatchEvent(new Event('scroll'))
+
+        expect(menu.style.insetInlineStart).toBe('104px')
+        expect(menu._arteFollowing).toBe(false)
+    })
+})
+
+describe('a menu with the keyboard up', () => {
+    afterEach(() => {
+        delete window.visualViewport
+    })
+
+    it('measures against the part of the page that can be seen, not the window behind the keys', () => {
+        const opened = () => {
+            const { component, settle } = scene({ trigger: { top: 330, bottom: 350 }, height: 200 })
+
+            positionMenu(component)
+            settle()
+
+            return component.dropUp
+        }
+
+        expect(opened()).toBe(false)
+
+        window.visualViewport = { offsetTop: 0, height: 420, scale: 1 }
+
+        expect(opened()).toBe(true)
+    })
+})

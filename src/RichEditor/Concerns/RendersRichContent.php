@@ -225,15 +225,7 @@ trait RendersRichContent
         $renderer = AdvancedRichContentRenderer::make($this->resolveRichContent($state));
 
         if ($attribute !== null) {
-            $renderer
-                ->plugins($attribute->getPlugins())
-                ->customBlocks($attribute->getCustomBlocks())
-                ->mergeTags($attribute->getMergeTags())
-                ->mentions($attribute->getMentionProviders())
-                ->fileAttachmentsDisk($attribute->getFileAttachmentsDiskName())
-                ->fileAttachmentsVisibility($attribute->getFileAttachmentsVisibility())
-                ->fileAttachmentProvider($attribute->getFileAttachmentProvider())
-                ->textColors($attribute->getTextColors());
+            $renderer->attribute($attribute);
         }
 
         // Last, and that is the point: whatever the entry was told wins over whatever the

@@ -302,13 +302,51 @@ describe('keeping the image toolbar open', () => {
     })
 })
 
+describe('the pictures TipTap holds back until they load', () => {
+    it('shows every one of them at once as the view starts, so no load handler writes again', () => {
+        // TipTap shows each from its image's load handler, one write into the editable DOM per
+        // picture - and every write there has ProseMirror read the selection back, which has
+        // the browser work out the page's styles to answer.
+        const { definition } = build({})
+        const editorView = editorViewFor()
+        const waiting = picture(editorView)
+        const shown = picture(editorView)
+
+        waiting.container.style.visibility = 'hidden'
+        waiting.container.style.pointerEvents = 'none'
+
+        const [plugin] = definition.addProseMirrorPlugins.call({ storage: { unlocked: false, resizing: false } })
+        const write = vi.spyOn(shown.container.style, 'setProperty')
+
+        live.push(plugin.spec.view(editorView))
+
+        expect(waiting.container.style.visibility).toBe('')
+        expect(waiting.container.style.pointerEvents).toBe('')
+        expect(shown.container.getAttribute('style')).toBeNull()
+        expect(write).not.toHaveBeenCalled()
+    })
+
+    it('leaves a picture added later to TipTap, which shows it from its own load handler', () => {
+        const { editorView } = mount()
+        const added = picture(editorView)
+
+        added.container.style.visibility = 'hidden'
+        Object.defineProperty(added.image, 'complete', { configurable: true, value: true })
+        Object.defineProperty(added.image, 'naturalWidth', { configurable: true, value: 640 })
+        added.image.dispatchEvent(new Event('load'))
+        vi.runAllTimers()
+
+        expect(added.container.style.visibility).toBe('hidden')
+    })
+})
+
 describe('a picture that did not load', () => {
     const decided = (image, { complete, naturalWidth }) => {
         Object.defineProperty(image, 'complete', { configurable: true, value: complete })
         Object.defineProperty(image, 'naturalWidth', { configurable: true, value: naturalWidth })
     }
 
-    it('marks the wrapper broken when the file did not come, and loaded when it did', () => {
+    it('marks the wrapper broken when the file did not come, and leaves it alone when it did', () => {
         const { editorView } = mount()
         const broken = picture(editorView)
         const fine = picture(editorView)
@@ -319,20 +357,32 @@ describe('a picture that did not load', () => {
         fine.image.dispatchEvent(new Event('load'))
 
         expect(broken.wrapper.getAttribute('data-arte-image')).toBe('error')
-        expect(fine.wrapper.getAttribute('data-arte-image')).toBe('loaded')
+        expect(fine.wrapper.hasAttribute('data-arte-image')).toBe(false)
+    })
+
+    it('takes the mark away when a picture that failed loads after all', () => {
+        const { editorView } = mount()
+        const { image, wrapper } = picture(editorView)
+
+        decided(image, { complete: true, naturalWidth: 0 })
+        image.dispatchEvent(new Event('error'))
+        decided(image, { complete: true, naturalWidth: 640 })
+        image.dispatchEvent(new Event('load'))
+
+        expect(wrapper.hasAttribute('data-arte-image')).toBe(false)
     })
 
     it('hears both events although neither of them bubbles', () => {
         const { editorView } = mount()
         const { image, wrapper } = picture(editorView)
 
-        decided(image, { complete: true, naturalWidth: 10 })
-        image.dispatchEvent(new Event('load', { bubbles: false }))
-        expect(wrapper.getAttribute('data-arte-image')).toBe('loaded')
-
         decided(image, { complete: true, naturalWidth: 0 })
         image.dispatchEvent(new Event('error', { bubbles: false }))
         expect(wrapper.getAttribute('data-arte-image')).toBe('error')
+
+        decided(image, { complete: true, naturalWidth: 10 })
+        image.dispatchEvent(new Event('load', { bubbles: false }))
+        expect(wrapper.hasAttribute('data-arte-image')).toBe(false)
     })
 
     it('ignores anything that is not a picture', () => {
@@ -360,15 +410,31 @@ describe('a picture that did not load', () => {
         expect(paragraph.hasAttribute('data-arte-image')).toBe(false)
     })
 
-    it('writes the mark only when it changes, since it sits in the editable DOM', () => {
+    it('writes nothing for a picture that loaded, since every write is in the editable DOM', () => {
+        // Each write there makes ProseMirror read the selection back, and the browser work out
+        // the page's styles to answer it: one per picture, on a page full of pictures.
         const { editorView } = mount()
         const { image, wrapper } = picture(editorView)
-        const write = vi.spyOn(wrapper, 'setAttribute')
+        const set = vi.spyOn(wrapper, 'setAttribute')
+        const remove = vi.spyOn(wrapper, 'removeAttribute')
 
         decided(image, { complete: true, naturalWidth: 10 })
         image.dispatchEvent(new Event('load'))
         image.dispatchEvent(new Event('load'))
-        image.dispatchEvent(new Event('load'))
+
+        expect(set).not.toHaveBeenCalled()
+        expect(remove).not.toHaveBeenCalled()
+    })
+
+    it('writes the broken mark only when it changes', () => {
+        const { editorView } = mount()
+        const { image, wrapper } = picture(editorView)
+        const write = vi.spyOn(wrapper, 'setAttribute')
+
+        decided(image, { complete: true, naturalWidth: 0 })
+        image.dispatchEvent(new Event('error'))
+        image.dispatchEvent(new Event('error'))
+        image.dispatchEvent(new Event('error'))
 
         expect(write).toHaveBeenCalledTimes(1)
     })
@@ -378,11 +444,11 @@ describe('a picture that did not load', () => {
         const cached = picture(editorView)
         const pending = picture(editorView)
 
-        decided(cached.image, { complete: true, naturalWidth: 50 })
+        decided(cached.image, { complete: true, naturalWidth: 0 })
         decided(pending.image, { complete: false, naturalWidth: 0 })
         vi.runAllTimers()
 
-        expect(cached.wrapper.getAttribute('data-arte-image')).toBe('loaded')
+        expect(cached.wrapper.getAttribute('data-arte-image')).toBe('error')
         expect(pending.wrapper.hasAttribute('data-arte-image')).toBe(false)
     })
 

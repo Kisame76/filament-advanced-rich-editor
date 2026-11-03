@@ -128,6 +128,21 @@ trait BuildsTheToolbar
     }
 
     /**
+     * Whether the field registers a tool by this name at all - before the filter above leaves
+     * out the ones it cannot honour.
+     *
+     * For the question a toolbar token asks, whether a menu would have anything in it: asked
+     * through `getTools()` it needed the media pool, the pool needed to know whether the
+     * field takes uploads, and that is read off the bar the token was in the middle of
+     * building - so the bar was built a second time from inside the first. The filter only
+     * ever removes the file tools, and a menu left holding nothing but those renders nothing.
+     */
+    public function registersTool(string $name): bool
+    {
+        return array_key_exists($name, $this->getEveryTool());
+    }
+
+    /**
      * Filament's tools, before the filter above.
      *
      * @return array<string, RichEditorTool>
@@ -160,6 +175,22 @@ trait BuildsTheToolbar
     }
 
     /**
+     * The bar with its tokens expanded and nothing else done to it: the groups and dropdowns
+     * name their buttons, and no tool has been looked up yet.
+     *
+     * Enough to answer which buttons the bar names - Filament's own lookup reads a group's
+     * names and nothing it resolved - and the first half of building the bar, so the two share
+     * it within a render. The dropdowns in it are resolved against the tools afterwards, in
+     * place; reading their names before or after gives the same answer.
+     *
+     * @return array<int, mixed>
+     */
+    protected function getExpandedToolbarButtons(): array
+    {
+        return $this->rememberWithinRender('expandedToolbar', fn (): array => ToolbarLayout::resolve($this->getBaseToolbarButtons(), $this));
+    }
+
+    /**
      * @return array{flow: array<int, array<int, mixed>>, pinned: array<int, array<int, mixed>>}
      */
     protected function resolveSplitToolbarButtons(): array
@@ -168,7 +199,7 @@ trait BuildsTheToolbar
         // `string | ToolbarButtonGroup`, which would fail on dividers and any
         // other custom object. It is therefore reimplemented on top of the very
         // same trait method the parent aliases, with a widened item handling.
-        $groups = ToolbarLayout::resolve($this->getBaseToolbarButtons(), $this);
+        $groups = $this->getExpandedToolbarButtons();
 
         $tools = $this->getTools();
 
@@ -384,7 +415,20 @@ trait BuildsTheToolbar
         // is not - which is why `mediaBrowser` had to be added here the moment it became
         // what the shipped bar names: without it, every field on the default bar would have
         // switched its uploads, its drops and its paste-uploads off in silence.
-        return $this->hasToolbarButton(['attachFiles', 'mediaBrowser', 'image']);
+        //
+        // Read off the names the bar carries, not off the bar built for drawing. Building it
+        // looks the tools up, the tools ask for the pool, the pool asks this - and so every
+        // tool lookup built the whole bar a second time from inside: twelve times per editor
+        // on a page of them. Filament's lookup reads only names, which the expanded bar has.
+        $expanded = $this->getExpandedToolbarButtons();
+
+        foreach (['attachFiles', 'mediaBrowser', 'image'] as $button) {
+            if ($this->hasToolbarButtonInButtons($expanded, $button)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

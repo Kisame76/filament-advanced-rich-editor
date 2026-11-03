@@ -2,6 +2,231 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.8.0 - 2026-11-03
+
+### Added
+
+- A picture already in the document can be cropped, turned and flipped, in Filament's own image
+  editor - the one `FileUpload::imageEditor()` opens, with its crop box, its ratios and its
+  buttons. The edit button on the image bar opens it straight on the picture as the document
+  shows it, and Save puts the result into the document - no upload dialog in between.
+  What an edit saves is a new file, held like any upload until the form is saved, and only this
+  picture points at it: the old file stays for every other document using it, and undo brings
+  the picture back. A picture with a size keeps its scale, the way a word processor crops,
+  rather than having what is left stretched over the old box. Off by default, because every
+  edit writes a file of its own: switch it on with `->imageEditor()` or the `images.editor` key
+
+- A picture from a media collection is rendered with the responsive images Spatie made of it,
+  as `srcset`, and a `sizes` worked out from the width the picture is drawn at. Spatie makes
+  them only where the project asks for them - `->withResponsiveImages()` on the collection, or
+  on the conversion the field embeds - so nothing changes for a project that does not, and
+  there is nothing to switch on in the field. The list is read from the media row each time
+  and never from the document, whose `srcset` nothing would check; Spatie's inline
+  placeholder is left out, and a private disk gets none, since Spatie addresses them as public
+  files
+
+- An upload the media library already holds becomes the file that is there instead of a second
+  copy. The bytes decide, not the name: by size first, then by a SHA-256 of the few of the same
+  size. The browser selects the file it found and says so; a picture dropped or pasted into the
+  text, or saved from the image editor, points at it once the form is saved. Only the pool the
+  browser lists is searched, so finding a copy is what picking it would have been. A media
+  collection keeps the hash on the row (`arte_hash`), a disk is read from the listing the
+  browser already makes. On by default; `->mediaLibraryDeduplicates(false)` or the
+  `media_library.deduplicate` key turns it off
+
+- Pictures on a rendered page can open large: `->lightbox()` on the renderer, or `lightbox` on
+  `<x-arte-content>`, links every picture to its own address, and a small script opens the link
+  in the browser's own `<dialog>` over the page, with the caption under it. Without the script
+  the link simply opens the picture. What opens large is the picture as published, `srcset`
+  and all; a picture with a link of its own keeps it, and a decorative one gets none. Off by
+  default: `<x-arte-content lightbox>` brings the script and stylesheet along, and
+  `<x-arte-lightbox />` puts them on a page that renders by itself
+
+- Embeds from more services than YouTube and Vimeo: Spotify, Loom, CodePen, TikTok and Google
+  Maps, read from the links their share buttons write - and for a map, from the embed code its
+  share dialog hands out, pasted whole. Each service is a class extending `EmbedProvider`,
+  listed in `embed.providers`: a project takes one off or adds its own, and the dialog, pasting,
+  the media library and the sanitiser follow. A service is described rather than programmed,
+  and the editor in the browser reads the same description PHP does, so a link cannot mean one
+  thing to the paste and another to the save. A player keeps its service's shape - a TikTok
+  upright and no wider than a phone, a Spotify player its own height - and the dialog picks it
+  as the link goes in. X and Instagram are not among them: both embed through a script of their
+  own, which no document should be able to put on a page. `embed.allowed_hosts` now only lists
+  hosts beyond the services' own; a published config still listing YouTube and Vimeo there
+  keeps working. The button and its dialog say "Embed" rather than "Video" now, in all twelve
+  languages
+
+- `php artisan arte:diagnose` reads every stored document and lists what is wrong in it, with
+  the entry and column it is in: files it points at that are gone, links that no longer lead
+  anywhere, and what the accessibility check would say about it. It fails where something is
+  broken for every reader - a file that is gone, a page that is gone, a host that does not
+  exist - and only there, so it can be scheduled with the output mailed on failure; a link
+  answering with an error, or not at all, and an accessibility finding are listed without
+  failing. `--only` runs one check at a time; the links are the one that leaves the machine.
+  The documents are found the way `model:prune` finds its models - every model in `app/Models`
+  that registered rich content, plus the `documents` key - or named with `--model`. A file is
+  looked for where the model's `registerRichContent()` says its files are, which is what every
+  page rendering it is told too. Every address is asked once, `HEAD` first and `GET` where that
+  was refused, and no body is downloaded. The accessibility rules are the editor's, every one
+  but contrast, and follow `accessibility.rules`. `->linkCheck()` adds a warning to the link
+  dialog for a typed address that does not answer; off by default, because it is the server
+  that asks, and switched on it asks only the public internet
+
+- Link cards: a link drawn as the page's title, a line about it and the site it is on, with the
+  site's icon. The dialog reads the page as its address is left - Open Graph first, then the
+  Twitter tags, then `<title>` - and fills in fields that can still be corrected. What the card
+  says is written into the document when it is made, so a page view asks nobody else's server
+  for anything; the icon travels inside the card as a small `data:` picture for the same reason.
+  The page is read from the public internet only, every redirect checked again. Off by default
+  (`->linkPreviews()`, `link.previews`) and off the shipped bar; the slash menu finds it
+
+- A focus mode in the tools menu: every block but the one being written in is dimmed, and the
+  line being written stays in the middle of the view - at once while typing, smoothly when the
+  caret was moved, and not at all for a reader who asked for less motion. Nothing about it is
+  stored. Off by default (`->focusMode()`, `focus_mode`)
+
+- Keyboard shortcuts can be moved: `->shortcuts(['link' => 'Mod-K', 'highlight' => null])`, or
+  `shortcuts` in the config for every field. Any tool can be given a key, which runs what its
+  button runs; a shipped key can be moved to another or taken away, and a key given to one tool
+  is taken from the tool that had it. The help dialog lists the keys as they are. A field that
+  changes nothing loads nothing for it
+
+- The toolbar on a touch screen: the flowing part of the bar is one row that scrolls sideways
+  instead of wrapping into five on a phone, with the pinned buttons beside it; buttons and menu
+  rows are 44 pixels; and while the field is written in, the bar sits on the keyboard and a tap
+  on a button no longer folds the keyboard away. Menus in the scrolling row are placed against
+  the bar, so they are not cut off by it, and every menu of the package now measures against
+  the part of the page the keyboard leaves visible. Asked of the pointer, not of the width
+
+- Locked regions: parts of a document the people writing in it cannot change, for templates
+  and contracts. Whoever `->lockedRegionsEditable()` allows locks and unlocks blocks with the
+  padlock in the more menu; everybody else writes around them, and every save is checked on the
+  server against the record's stored value or the field's default, so a part changed, removed
+  or added in the browser is refused. Off by default (`->lockedRegions()`, `locked_regions`)
+
+- Snippets: ready-made content to insert where the caret is - a signature, a disclaimer, a
+  report's skeleton - from `->snippets([...])` or `snippets` in the config, a closure for a list
+  kept in a table. Offered in a `'snippets'` dropdown in the shipped toolbar and in the slash
+  menu, and as one tool per snippet; the content is fetched when one is picked. A field with
+  none shows nothing
+
+### Fixed
+
+- A field with a maximum height drew its scrollbar flush against the text: a card, a picture
+  or a table running the full width ran into the bar, and the outline of a selected block was
+  cut off on both sides. The document keeps a rem of room before the bar now, the text stays
+  where it was, and the bar is a thin one in the grey of the field's border, without the dark
+  trough - in fullscreen too
+
+- The language picker on a code block sat on top of a long first line. In the editor the
+  block keeps a narrow strip above the code for it; the rendered page is unchanged
+
+- The card an embed is drawn as in the editor had its title a line below the middle, under
+  the level of the service's badge beside it: the panel's typography put a top margin on it.
+  Badge and title are centred on one line now, and the card is that much lower
+
+- The grip and the plus beside a block showed through the bar of a selection when it opened
+  over them. They are drawn under every bar now - the floating ones, a pinned toolbar and the
+  sticky header of a custom block - and over the text as before
+
+- A pinned toolbar in dark mode is the colour of its own field again wherever the field sits.
+  Its background was written down for a field inside a section, so on a field straight on the
+  page it was a lighter stripe across the top. It is now measured from what is behind the bar,
+  and measured again when the page turns light or dark, once Filament's fade has finished
+
+- **Two editors on one record no longer delete each other's pictures.** Each picture remembers
+  the field that uploaded it, and saving a field deleted the pictures it had uploaded and no
+  longer showed. On one record the other field can show them too - with
+  `->mediaLibraryScope('record')` the browser lists the record's whole collection, and a picture
+  copied from one editor into the other resolves there, browser or not. So when `content` took
+  out a picture that `summary` had picked from it, saving `content` deleted the file, and the
+  picture in `summary` was gone without a word. The sweep now looks for a picture everywhere
+  else on the record before deleting it: in the record's other columns, and in what the page is
+  about to save, because Filament sweeps before it writes the record. A picture goes once
+  nothing there mentions it any more
+
+- Replacing a picture in the media library lost its responsive images for good: they were
+  deleted with the old file, and Spatie's own regeneration skips a row whose list is empty.
+  The new file gets them again, and gets them too where its collection asks for them
+
+- A picture replaced by another one from the media browser takes the new file's shape. It kept
+  the old height, and Filament draws the width and the height as an inline style, so a tall
+  picture put in place of a wide one was pressed into the old box. The width stays as the
+  picture was drawn; the same file picked again, or one whose shape is not known, keeps its
+  size, as replacing a file in the library already did in the open editor
+
+- A page of editors on Filament 5.10 is drawn in half the time again. Filament's new dropdown
+  looks for the visible one among its triggers when it starts and whenever its panel changes,
+  asking the browser for styles each time - and under Filament's own `:has()` rules each of
+  those asks costs the whole page. Seven dropdowns per editor made that 4.3 seconds on a page
+  of twenty editors. A toolbar dropdown has a single trigger, which is the trigger whether it
+  is visible or not, so it is now taken without measuring; a dropdown with several keeps
+  Filament's way. Twenty editors in a repeater went from 8.4 to 4.1 seconds to the first frame
+  with all of them in it
+
+- A page with many pictures is drawn sooner. TipTap hides every resizable picture until its
+  file arrives and shows it again from the picture's load handler, and every such write into
+  the editor makes ProseMirror read the selection back - which made the browser work out the
+  page's styles once per picture. The pictures already in a document are shown at once as the
+  editor starts, in one pass. Five editors with thirty pictures each went from 3.5 to 1.0
+  seconds to the first frame. The editor also no longer marks every picture that loaded; only a
+  broken one is marked, which is the only mark the stylesheet draws
+
+- Content this editor did not write no longer breaks it. Filament parses stored markup on the
+  server without the editor's schema, and the browser takes the result unchecked, so markup
+  from an import or an older editor arrived in shapes the schema forbids: a picture or the text
+  of a `<div>` directly under the document, a table cell or a quotation holding text without a
+  paragraph, an empty cell, a nested list straight after its item's words. A click on such a
+  picture or a keystroke in such a cell threw "Called contentMatchAt on a node with invalid
+  content", and the picture's toolbar never came. The field now fits the document to the
+  schema as it loads it, the way the browser's own parser fits markup: each run of inline
+  content where only blocks belong becomes a paragraph, and a container that has to hold one
+  gets an empty one. Filament's own repair of list items, which put a nested list inside the
+  item's paragraph, is replaced by it. Filament's stock editor has the same problem
+
+- A picture keeps its loading hint. Filament's image node in the browser declares an id, a
+  width and a height and nothing else, and the editor drops what nothing declares - so the
+  `loading` that `->imageLoading()` writes was gone before the picture reached the document,
+  and a hint already stored was gone the first time somebody changed anything and saved. The
+  PHP half always kept it, which is why a record nobody typed into still had one. The new
+  `image-loading.js` declares it on every field, whatever that field writes itself, and keeps
+  `lazy` and `eager` only. Run `php artisan filament:assets` after updating - the script is new
+
+### Changed
+
+- Where documents are kept is the top-level `documents` key now rather than
+  `media_library.documents`, because the media library is no longer the only thing reading it.
+  A published config with the old key keeps working: both are read, and a model named in both
+  is read for every column either names
+
+- `filament/infolists` is no longer listed under `suggest`. It never needed installing for
+  `AdvancedRichEntry`: `filament/forms` brings it, through `filament/actions`
+
+- `guzzlehttp/promises` below 2.0.3 is refused. Laravel 13.0's HTTP client is written for 2.x
+  but lets 1.5 be installed, and with 1.5 every `Http::pool()` stops with a fatal error - the
+  link check among them. Later Laravel 13 releases ask for 2.0.3 themselves
+
+- A page of editors is a third smaller. Much of what every editor carries is the same for every
+  field set up the same way, and gzip could not shrink the repeats because its window ends long
+  before the next editor starts. The slash menu, the find bar and the strings of both pickers -
+  45 KB of JSON per editor - are written in full on the first editor of a page and named by a
+  hash on the others, and a small script, `shared-settings.js`, puts them back before any
+  extension reads them. The bars that float over a selection, a picture, a table or a list -
+  82 KB per editor - go into a `<template>` that only the first editor carries, and every editor
+  stamps out a copy as Alpine starts it. Only a page is shared this way: a Livewire update writes
+  everything on every editor, since an editor already on the page is never drawn again and
+  cannot be relied on to carry anything. The colour pickers draw their swatches from the palette
+  their component already holds instead of writing each one out. Twenty editors went from 6.0
+  to 3.2 MB of markup, 615 to 352 KB gzipped. On Filament before 5.10.2 the floating bars and
+  the slash menu still travel with every editor: Filament writes each editor's own key into
+  the buttons that open a dialog there, so no two editors' bars are the same. Run
+  `php artisan filament:assets` after updating
+
+- A page of editors renders faster on the server. The field keeps its answers while its state
+  is hydrated, not only while it renders - filling a form asked for the whole toolbar four times
+  per editor - and the counter under the field measures the document instead of writing it out
+  as HTML first. Twenty editors went from 720 to about 460 ms to the first byte
+
 ## 1.7.1 - 2026-10-26
 
 ### Fixed

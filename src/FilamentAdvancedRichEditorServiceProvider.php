@@ -9,10 +9,17 @@ use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use Kisame76\FilamentAdvancedRichEditor\Console\DiagnoseCommand;
 use Kisame76\FilamentAdvancedRichEditor\Console\MediaCoversCommand;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\RenderLedger;
 use Kisame76\FilamentAdvancedRichEditor\View\Components\Content;
+use Kisame76\FilamentAdvancedRichEditor\View\Components\Lightbox;
+
+use function Livewire\on;
+
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
@@ -28,10 +35,10 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasTranslations()
             ->hasViews()
-            ->hasCommand(MediaCoversCommand::class)
+            ->hasCommands([MediaCoversCommand::class, DiagnoseCommand::class])
             // `<x-arte-content :content="$post->body" />`. The prefix is the one the CSS
             // classes already use, so a project only ever learns the one abbreviation.
-            ->hasViewComponents('arte', Content::class);
+            ->hasViewComponents('arte', Content::class, Lightbox::class);
     }
 
     public function packageBooted(): void
@@ -48,6 +55,16 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // editor and the media browser ask for it with `x-load-css` as they start, so a
                 // dashboard or a login page never downloads it.
                 Css::make('filament-advanced-rich-editor-overlays', __DIR__.'/../resources/dist/filament-advanced-rich-editor-overlays.css')
+                    ->loadedOnRequest(),
+
+                // The box a picture opens in on the page a document is published on. Never in
+                // the panel: `<x-arte-lightbox />` writes both tags, and only where a renderer
+                // was told to link its pictures. A module, because it is a script of its own
+                // with nothing of Filament's to wait for.
+                Css::make('filament-advanced-rich-editor-lightbox', __DIR__.'/../resources/dist/filament-advanced-rich-editor-lightbox.css')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/lightbox', __DIR__.'/../resources/dist/js/lightbox.js')
+                    ->module()
                     ->loadedOnRequest(),
 
                 // The media browser, as an Alpine component rather than a script: it is one
@@ -90,6 +107,11 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/image-caption', __DIR__.'/../resources/dist/js/image-caption.js')
                     ->loadedOnRequest(),
 
+                // The loading hint, which Filament's image node in the browser does not
+                // declare. Schema only, and asked for by every field, as the caption is.
+                Js::make('advanced-rich-editor/image-loading', __DIR__.'/../resources/dist/js/image-loading.js')
+                    ->loadedOnRequest(),
+
                 // The side a picture sits on. Schema and one command, so a field that does
                 // not offer it loads nothing.
                 Js::make('advanced-rich-editor/image-float', __DIR__.'/../resources/dist/js/image-float.js')
@@ -120,6 +142,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/alignment', __DIR__.'/../resources/dist/js/alignment.js')
                     ->loadedOnRequest(),
                 Js::make('advanced-rich-editor/sticky-toolbar', __DIR__.'/../resources/dist/js/sticky-toolbar.js')
+                    ->loadedOnRequest(),
+                // The bar on a phone's keyboard. On every field; it stops at once on a mouse.
+                Js::make('advanced-rich-editor/touch-toolbar', __DIR__.'/../resources/dist/js/touch-toolbar.js')
                     ->loadedOnRequest(),
 
                 // The language a passage is written in, and what a list is told about
@@ -158,6 +183,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                     ->loadedOnRequest(),
 
                 Js::make('advanced-rich-editor/embed', __DIR__.'/../resources/dist/js/embed.js')
+                    ->loadedOnRequest(),
+
+                Js::make('advanced-rich-editor/link-preview', __DIR__.'/../resources/dist/js/link-preview.js')
                     ->loadedOnRequest(),
 
                 // The note, tip, warning and danger boxes. Loaded only by fields that offer
@@ -247,10 +275,26 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/invisibles', __DIR__.'/../resources/dist/js/invisibles.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/focus-mode', __DIR__.'/../resources/dist/js/focus-mode.js')
+                    ->loadedOnRequest(),
+
+                // Locked parts: the node, the guard and the button that locks.
+                Js::make('advanced-rich-editor/locked', __DIR__.'/../resources/dist/js/locked.js')
+                    ->loadedOnRequest(),
+
+                // The keys a project moved. Only a field that moved one loads it.
+                Js::make('advanced-rich-editor/shortcuts', __DIR__.'/../resources/dist/js/shortcuts.js')
+                    ->loadedOnRequest(),
+
                 // Where a dropdown opens: every menu of the package hands itself to this when
                 // it opens, instead of carrying the measuring in its own `x-data`. The editor
                 // loads it as it starts, so the first menu opened does not wait for it.
                 Js::make('advanced-rich-editor/menu-position', __DIR__.'/../resources/dist/js/menu-position.js')
+                    ->loadedOnRequest(),
+
+                // Puts the settings a page's editors share back on every editor but the one
+                // carrying them, before any extension reads them. See `SharedSettings`.
+                Js::make('advanced-rich-editor/shared-settings', __DIR__.'/../resources/dist/js/shared-settings.js')
                     ->loadedOnRequest(),
             ],
             'kisame76/filament-advanced-rich-editor',
@@ -259,6 +303,12 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
         $this->registerIconSet();
         $this->allowEmbedIframes();
         $this->allowMediaPreviews();
+
+        // Every render of a component starts the count of what its editors share again -
+        // and an update shares nothing. See `RenderLedger`.
+        on('render', static function (object $component): void {
+            RenderLedger::rendering($component);
+        });
     }
 
     /**
@@ -298,8 +348,8 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
      * Symfony's safe element list has no `<iframe>` in it, which is the right default and
      * also removes every embed this package can insert. The element is allowed back only
      * where a project switched embeds on, and never on its own terms: `EmbedHostSanitizer`
-     * narrows `src` to the video hosts, so what is allowed back is an embed rather than an
-     * iframe.
+     * narrows `src` to the hosts the embed services frame from, so what is allowed back is an
+     * embed rather than an iframe.
      *
      * This changes a configuration the whole application shares, which is why it is a
      * config key rather than something installing the package does.
@@ -320,9 +370,7 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                     'src', 'title', 'loading', 'allow', 'allowfullscreen', 'referrerpolicy',
                     'style', 'width', 'height',
                 ])
-                ->withAttributeSanitizer(new EmbedHostSanitizer(
-                    (array) config('filament-advanced-rich-editor.embed.allowed_hosts', []),
-                )),
+                ->withAttributeSanitizer(new EmbedHostSanitizer(EmbedProviders::frameHosts())),
         );
     }
 

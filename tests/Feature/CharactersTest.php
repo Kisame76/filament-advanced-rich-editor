@@ -73,7 +73,7 @@ it('sits in the overflow menu next to the emoji picker', function (): void {
     $more = editor()->getMoreTools();
 
     expect($more)->toContain('emoji', 'characters')
-        ->and(array_slice($more, -2))->toBe(['emoji', 'characters']);
+        ->and(array_slice($more, (int) array_search('emoji', $more, true), 2))->toBe(['emoji', 'characters']);
 });
 
 it('is listed in the slash menu under what gets added to the document', function (): void {

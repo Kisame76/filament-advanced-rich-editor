@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'kode, pre, kildekode, snippet',
             'horizontalRule' => 'hr, skillelinje, linje, adskiller',
             'details' => 'harmonika, accordion, fold ud, udvid, skjul',
-            'embed' => 'video, youtube, vimeo, iframe, indlejr, medier',
+            'embed' => 'video, youtube, vimeo, iframe, indlejr, medier, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'bogmærke, kort, forhåndsvisning, link, url, hjemmeside',
             'video' => 'mp4, webm, film, klip, afspiller, medier',
             'audio' => 'mp3, lyd, musik, podcast, afspiller, medier',
             'file' => 'fil, dokument, pdf, vedhæftning, bilag, download, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Link til en post',
                 'hint' => 'Et valg udfylder URL-feltet nedenfor, og det er den adresse, linket gemmer.',
             ],
+            'check' => [
+                'answers' => 'Denne adresse svarer :status.',
+                'no_host' => 'Værten :host findes ikke.',
+                'silent' => 'Denne adresse svarede ikke.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Ren tekst',
         ],
         'embed' => [
-            'label' => 'Video',
-            'heading' => 'Indlejr en video',
-            'url' => 'Videolink',
-            'url_hint' => 'Indsæt linket fra adresselinjen eller deleknappen. Et tidsstempel i linket bevares.',
+            'label' => 'Indlejr',
+            'heading' => 'Indlejr fra et andet websted',
+            'url' => 'Link',
+            'url_hint' => 'Indsæt linket fra adresselinjen eller del-knappen – for et kort dets indlejringskode. Et tidsstempel i et videolink bevares.',
             'title' => 'Titel',
-            'title_hint' => 'Læses op af en skærmlæser i stedet for »video«.',
+            'title_hint' => 'Læses op af en skærmlæser i stedet for »ramme«.',
             'ratio' => 'Størrelsesforhold',
-            'unsupported' => 'Det link er ikke en video, som denne editor kan indlejre.',
+            'unsupported' => 'Det link kan denne editor ikke indlejre.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Erstat video',
+            'replace' => 'Erstat indlejring',
+            'delete' => 'Fjern',
+        ],
+        'link_preview' => [
+            'label' => 'Linkkort',
+            'heading' => 'Vis et link som et kort',
+            'url' => 'Link',
+            'url_hint' => 'Siden læses én gang, når du forlader feltet: dens titel, en linje om den og det websted, den ligger på. Alt nedenfor kan rettes.',
+            'title' => 'Titel',
+            'description' => 'Beskrivelse',
+            'site' => 'Websted',
+            'unreadable' => 'Siden kunne ikke læses. Udfyld kortet selv.',
+            'not_a_page' => 'Kun en webadresse, der begynder med http:// eller https://, kan være et kort.',
+            'edit' => 'Rediger kort',
             'delete' => 'Fjern',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Afslut fuld skærm',
         ],
         'image_replace' => 'Erstat billede',
+        'image_edit' => [
+            'label' => 'Rediger billede',
+            'apply' => 'Anvend',
+            'hint' => 'Brug blyanten på billedet til at beskære, rotere eller spejlvende det. Den oprindelige fil bevares.',
+        ],
         'image_download' => 'Download billede',
         'image_delete' => 'Slet billede',
         'image_float_left' => 'Flydende venstre',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'Fra et link',
             'from_url_heading' => 'Tilføj fra et link',
             'from_url_label' => 'Link',
-            'from_url_hint' => 'Et YouTube- eller Vimeo-link føjes til dit bibliotek og kan bruges igen. Enhver anden adresse — en fil på en andens server — indsættes, som den er, et dokument som et kort, og gemmes ikke her.',
+            'from_url_hint' => 'Et link fra YouTube, Vimeo, Spotify eller en anden tjeneste, som denne editor indlejrer, føjes til dit bibliotek og kan bruges igen. Enhver anden adresse – en fil på en andens server – indsættes, som den er, et dokument som et kort, og gemmes ikke her.',
             'from_url_hint_files' => 'En fil, som en anden hoster. Den indsættes, som den er, et dokument som et kort, og intet føjes til dit bibliotek.',
-            'from_url_no_embeds' => 'Videoer fra YouTube og Vimeo er slået fra for dette felt.',
+            'from_url_no_embeds' => 'Indlejringer fra andre websteder er slået fra for dette felt.',
             'all_types' => 'Alle typer',
             'all_kinds' => 'Alle',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Slettet og fjernet fra én post.',
             'replaced_in' => 'Erstattet og opdateret i :count poster.',
             'replaced_in_one' => 'Erstattet og opdateret i én post.',
+            'already_in_library' => '»:name« findes allerede i biblioteket som »:existing«, så den fil er valgt.',
             'copy_url' => 'Kopiér link',
             'copied' => 'Kopieret',
             'drop' => 'Slip for at uploade',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Vis blokke',
+        ],
+        'snippets' => [
+            'label' => 'Tekstblokke',
+        ],
+        'lock' => [
+            'label' => 'Lås',
+            'badge' => 'Låst',
+        ],
+        'focus_mode' => [
+            'label' => 'Fokustilstand',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -544,6 +584,7 @@ return [
         'min_words' => ':attribute skal have mindst :min ord.',
         'max_words' => ':attribute må ikke have mere end :max ord.',
         'must_contain' => ':attribute skal indeholde :content.',
+        'locked' => 'Låste dele af :attribute kan ikke ændres.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -555,7 +596,8 @@ return [
             'bulletList' => 'en punktopstilling',
             'callout' => 'en infoboks',
             'codeBlock' => 'en kodeblok',
-            'embed' => 'en indlejret video',
+            'embed' => 'en indlejring',
+            'linkPreview' => 'et linkkort',
             'heading' => 'en overskrift',
             'horizontalRule' => 'en vandret linje',
             'image' => 'et billede',
@@ -565,5 +607,8 @@ return [
             'taskList' => 'en opgaveliste',
             'descriptionList' => 'en definitionsliste',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Luk',
     ],
 ];

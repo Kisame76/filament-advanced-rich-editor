@@ -58,6 +58,12 @@ const STYLE_HOOKS = [
     'fi-arte-file-text',
     'fi-arte-file-name',
     'fi-arte-file-size',
+    // The parts of a link card, for the same reason: the card carries its shape inline,
+    // written by `Nodes/LinkPreview` and mirrored in `link-preview.js`.
+    'fi-arte-link-preview-title',
+    'fi-arte-link-preview-description',
+    'fi-arte-link-preview-site',
+    'fi-arte-link-preview-icon',
 ];
 
 /**
@@ -72,8 +78,8 @@ function styleSheetDefines(string $css, string $class): bool
 }
 
 /**
- * Both stylesheets as one: the page sheet and the overlay sheet together are what the
- * package ships, and a class is styled when either of them has the rule.
+ * Every stylesheet as one: the page sheet, the overlay sheet and the lightbox's together are
+ * what the package ships, and a class is styled when any of them has the rule.
  */
 function shippedStylesheets(): string
 {
@@ -144,6 +150,8 @@ it('keeps the published assets identical to the source ones', function (): void 
     $stylesheets = glob($root.'/resources/css/*.css') ?: [];
 
     expect(array_map('basename', $stylesheets))->toBe([
+        // The page a document is published on, never the panel - see `<x-arte-lightbox />`.
+        'filament-advanced-rich-editor-lightbox.css',
         'filament-advanced-rich-editor-overlays.css',
         'filament-advanced-rich-editor.css',
     ]);

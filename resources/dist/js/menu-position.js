@@ -57,15 +57,24 @@ function place(component) {
     menu.style.overflowY = ''
     menu.style.insetBlockStart = ''
     menu.style.insetBlockEnd = ''
+    menu.style.insetInlineStart = ''
+
+    if (alignWithTrigger(menu, trigger)) {
+        follow(component)
+    }
 
     // `offsetHeight` rather than the bounding box: Filament's own menus open through a
     // transition that scales them, and a box measured mid-scale is a menu measured smaller
     // than it is.
     const height = menu.offsetHeight
 
+    // The part of the page that can be seen, which with a phone's keyboard up is not the
+    // window: the keyboard covers the bottom of it, and a menu measured against the window
+    // would open into the keys.
+    const visible = window.visualViewport
     const clip = clippingRect(menu)
-    const floor = Math.min(window.innerHeight, clip.bottom)
-    const ceiling = Math.max(0, clip.top)
+    const floor = Math.min(window.innerHeight, visible ? visible.offsetTop + visible.height : Number.POSITIVE_INFINITY, clip.bottom)
+    const ceiling = Math.max(0, visible?.offsetTop ?? 0, clip.top)
 
     const below = floor - trigger.bottom - MARGIN
     const above = trigger.top - ceiling - MARGIN
@@ -109,11 +118,83 @@ function place(component) {
 }
 
 /**
+ * Lines a menu up under its trigger where it is not positioned against the trigger's own box,
+ * and says whether it had to.
+ *
+ * That is the toolbar on a touch screen. Its row scrolls sideways there, and a menu positioned
+ * inside a scrolling row is cut off by it - so the stylesheet takes the position off the
+ * dropdown's own box, and the menu is placed against the bar instead, which does not scroll.
+ * Its `inset-inline-start: 0` then means the start of the bar, so the trigger's offset is
+ * written in, kept inside the window.
+ */
+function alignWithTrigger(menu, trigger) {
+    const box = menu.offsetParent
+
+    if (!box || box === menu.parentElement || !box.contains(menu)) {
+        return false
+    }
+
+    const outer = box.getBoundingClientRect()
+    const width = menu.offsetWidth
+    const room = document.documentElement.clientWidth || window.innerWidth
+    const clamp = (value, low, high) => Math.max(low, Math.min(value, high))
+
+    menu.style.insetInlineStart =
+        window.getComputedStyle(box).direction === 'rtl'
+            ? `${outer.right - clamp(trigger.right, MARGIN + width, room - MARGIN)}px`
+            : `${clamp(trigger.left, MARGIN, room - MARGIN - width) - outer.left}px`
+
+    return true
+}
+
+/**
+ * Keeps a menu under its trigger while the row the trigger sits in scrolls - a finger that
+ * swipes the bar with a menu open would otherwise leave the menu behind. Lets go of the row
+ * once the menu has closed.
+ */
+function follow(component) {
+    const { menu, trigger } = component.$refs
+    let row = null
+
+    for (let node = trigger.parentElement; node && node !== menu.offsetParent; node = node.parentElement) {
+        if (/(auto|scroll)/.test(window.getComputedStyle(node).overflowX)) {
+            row = node
+
+            break
+        }
+    }
+
+    if (!row || menu._arteFollowing) {
+        return
+    }
+
+    const onScroll = () => {
+        if (!menu.isConnected || menu.offsetParent === null) {
+            row.removeEventListener('scroll', onScroll)
+            menu._arteFollowing = false
+
+            return
+        }
+
+        alignWithTrigger(menu, trigger.getBoundingClientRect())
+    }
+
+    menu._arteFollowing = true
+    row.addEventListener('scroll', onScroll, { passive: true })
+}
+
+/**
  * The nearest ancestor that would cut the menu off. The editor's own content box is one of
  * them, which is why the window alone is not enough to go on.
+ *
+ * Looked for from the box the menu is positioned against rather than from its parent: an
+ * ancestor in between does not cut a positioned menu off, however it scrolls - which is the
+ * whole of how a menu gets out of the toolbar's sideways scrolling row on a touch screen.
  */
 function clippingRect(element) {
-    for (let node = element?.parentElement; node && node !== document.body; node = node.parentElement) {
+    const box = element?.offsetParent?.contains(element) ? element.offsetParent : element?.parentElement
+
+    for (let node = box; node && node !== document.body; node = node.parentElement) {
         const style = window.getComputedStyle(node)
 
         if (style.overflow !== 'visible' || style.overflowY !== 'visible') {

@@ -13,6 +13,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\DateTimeFormats;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Shortcuts;
 use Livewire\Attributes\Renderless;
 
 /**
@@ -43,7 +44,14 @@ trait OffersWritingAids
 
     protected string|Closure|null $helpMoreLabel = null;
 
+    /**
+     * @var array<string, string|false|null>|Closure|null
+     */
+    protected array|Closure|null $shortcuts = null;
+
     protected bool|Closure|null $hasFullscreen = null;
+
+    protected bool|Closure|null $hasFocusMode = null;
 
     protected bool|Closure|null $hasDateTime = null;
 
@@ -218,6 +226,50 @@ trait OffersWritingAids
     }
 
     /**
+     * Keys for this field's tools, by tool name: another key for a tool that has one, a
+     * first key for one that has none, or null to take a tool's key away. Laid over the
+     * `shortcuts` config tool by tool. See `Shortcuts` for how a key is written.
+     *
+     * A closure is how keys a person chose for themselves reach the field - this package
+     * keeps no keymaps of its own, because it has nowhere to keep them.
+     *
+     * @param  array<string, string|false|null>|Closure  $shortcuts
+     */
+    public function shortcuts(array|Closure $shortcuts): static
+    {
+        $this->shortcuts = $shortcuts;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getShortcuts(): array
+    {
+        $config = config('filament-advanced-rich-editor.shortcuts');
+        $field = $this->evaluate($this->shortcuts);
+
+        $config = is_array($config) ? $config : [];
+        $field = is_array($field) ? $field : [];
+
+        // The field's after the config's, so that a key the field gives one tool is taken
+        // from the tool the config gave it to, and not the other way round.
+        return [...array_diff_key($config, $field), ...$field];
+    }
+
+    /**
+     * What the script has to bind, for the view to hand to it. Null where no key was moved,
+     * which is also when the script is not loaded.
+     *
+     * @return array<int, array{keys: string, tool: string, handler: ?string}>|null
+     */
+    public function getShortcutSettingsForJs(): ?array
+    {
+        return Shortcuts::bindings($this) ?: null;
+    }
+
+    /**
      * The button that opens the document as HTML.
      */
     public function sourceCode(bool|Closure $condition = true): static
@@ -274,6 +326,28 @@ trait OffersWritingAids
     {
         return (bool) ($this->evaluate($this->hasFullscreen)
             ?? config('filament-advanced-rich-editor.fullscreen', true));
+    }
+
+    /**
+     * The focus mode in the tools menu: every block but the one being written in dimmed, and
+     * the line being written kept in the middle of the view. Nothing about it is stored.
+     *
+     * Off unless asked for. It is a way of writing long text without looking up, which some
+     * people want every day and most never reach for - and in a form, where an editor shares
+     * the page with other fields, the page scrolling to keep a line in the middle is a surprise
+     * to anybody who did not ask for it.
+     */
+    public function focusMode(bool|Closure $condition = true): static
+    {
+        $this->hasFocusMode = $condition;
+
+        return $this;
+    }
+
+    public function hasFocusMode(): bool
+    {
+        return (bool) ($this->evaluate($this->hasFocusMode)
+            ?? config('filament-advanced-rich-editor.focus_mode') ?? false);
     }
 
     /**

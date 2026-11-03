@@ -24,6 +24,7 @@ const sheet = readFileSync(resolve(process.cwd(), 'resources/css/filament-advanc
 const FILAMENT = `
     .fi-fo-rich-editor .fi-fo-rich-editor-toolbar { display: flex; flex-wrap: wrap; }
     .fi-fo-rich-editor .fi-fo-rich-editor-toolbar-group { display: flex; }
+    .fi-fo-rich-editor-dropdown-tool { position: relative; }
 `
 
 afterEach(() => {
@@ -31,13 +32,16 @@ afterEach(() => {
     document.body.innerHTML = ''
 })
 
-function bar({ split = true, align = 'center', pin = 'end', narrow = false } = {}) {
+function bar({ split = true, align = 'center', pin = 'end', narrow = false, touch = false } = {}) {
+    // Each query's rules after the sheet, the way a matching query would apply them.
+    const staged = [...(narrow ? narrowRules() : []), ...(touch ? touchRules() : [])]
+
     document.head.innerHTML = `<style>${sheet}</style><style>${FILAMENT}</style>`
 
-    if (narrow) {
+    if (staged.length > 0) {
         const style = document.createElement('style')
 
-        style.textContent = narrowRules().map((rule) => rule.cssText).join('\n')
+        style.textContent = staged.map((rule) => rule.cssText).join('\n')
         document.head.append(style)
     }
 
@@ -49,8 +53,13 @@ function bar({ split = true, align = 'center', pin = 'end', narrow = false } = {
 
     document.body.innerHTML = split
         ? `<div class="fi-fo-rich-editor fi-arte"><div class="${classes.join(' ')}">
-               <div class="fi-arte-toolbar-flow"><div class="fi-fo-rich-editor-toolbar-group" id="flowing"></div></div>
-               <div class="fi-arte-toolbar-pinned"><div class="fi-fo-rich-editor-toolbar-group" id="pinned"></div></div>
+               <div class="fi-arte-toolbar-flow"><div class="fi-fo-rich-editor-toolbar-group" id="flowing">
+                   <button class="fi-fo-rich-editor-tool" id="button"></button>
+                   <div class="fi-fo-rich-editor-dropdown-tool" id="dropdown"></div>
+               </div></div>
+               <div class="fi-arte-toolbar-pinned"><div class="fi-fo-rich-editor-toolbar-group" id="pinned">
+                   <div class="fi-fo-rich-editor-dropdown-tool" id="pinnedDropdown"></div>
+               </div></div>
            </div></div>`
         : `<div class="fi-fo-rich-editor fi-arte"><div class="${classes.join(' ')}">
                <div class="fi-fo-rich-editor-toolbar-group" id="flowing"></div>
@@ -62,19 +71,28 @@ function bar({ split = true, align = 'center', pin = 'end', narrow = false } = {
         pinned: document.querySelector('.fi-arte-toolbar-pinned'),
         flowing: document.getElementById('flowing'),
         pinnedGroup: document.getElementById('pinned'),
+        button: document.getElementById('button'),
+        dropdown: document.getElementById('dropdown'),
+        pinnedDropdown: document.getElementById('pinnedDropdown'),
     }
 }
 
-// The rules inside the query that rearranges a split bar too narrow for its two halves.
-function narrowRules() {
+// The rules inside the first query of the sheet that matches.
+function rulesIn(matches) {
     document.head.innerHTML = `<style>${sheet}</style>`
 
-    const query = [...document.styleSheets[0].cssRules].find(
-        (rule) => rule.constructor.name === 'CSSContainerRule' && /^@container\s+fi-arte-toolbar\b/.test(rule.cssText),
-    )
+    const query = [...document.styleSheets[0].cssRules].find(matches)
 
     return query ? [...query.cssRules] : []
 }
+
+// The rules inside the query that rearranges a split bar too narrow for its two halves.
+const narrowRules = () =>
+    rulesIn((rule) => rule.constructor.name === 'CSSContainerRule' && /^@container\s+fi-arte-toolbar\b/.test(rule.cssText))
+
+// The rules for a finger rather than a mouse - a media query, which jsdom does not evaluate.
+const touchRules = () =>
+    rulesIn((rule) => rule.constructor.name === 'CSSMediaRule' && rule.conditionText === '(pointer: coarse)')
 
 describe('a group', () => {
     it('wraps in the half of a split bar that flows, so the bar is never wider than its column', () => {
@@ -137,6 +155,50 @@ describe('a split bar too narrow for both halves side by side', () => {
 
         expect(getComputedStyle(pinned).gridColumn).toBe('3')
         expect(getComputedStyle(flow).gridColumn).toBe('2')
+    })
+})
+
+describe('on a touch screen', () => {
+    it('has rules for it at all', () => {
+        expect(touchRules()).not.toHaveLength(0)
+    })
+
+    it('keeps the flow on one line that scrolls sideways, beside the pinned half, however narrow', () => {
+        for (const pin of ['end', 'start']) {
+            for (const align of ['center', 'start']) {
+                const { toolbar, pinned, flow, flowing } = bar({ narrow: true, touch: true, pin, align })
+                const label = `${align}, pinned to the ${pin}`
+
+                expect(getComputedStyle(toolbar).gridTemplateColumns, label).toBe(
+                    pin === 'end' ? 'minmax(0, 1fr) auto' : 'auto minmax(0, 1fr)',
+                )
+                expect(getComputedStyle(flow).gridRow, label).toBe('1')
+                expect(getComputedStyle(pinned).gridRow, label).toBe('1')
+                expect(getComputedStyle(flow).gridColumn, label).toBe(pin === 'end' ? '1' : '2')
+                expect(getComputedStyle(pinned).gridColumn, label).toBe(pin === 'end' ? '2' : '1')
+                expect(getComputedStyle(flow).overflowX, label).toBe('auto')
+                expect(getComputedStyle(flow).flexWrap, label).toBe('nowrap')
+                expect(getComputedStyle(flowing).flexWrap, label).toBe('nowrap')
+            }
+        }
+    })
+
+    it('takes the position off a dropdown in the row, so its menu is placed against the bar and not cut off by the row', () => {
+        const { dropdown, pinnedDropdown } = bar({ touch: true })
+
+        expect(getComputedStyle(dropdown).position).toBe('static')
+        // The pinned half does not scroll, so its menus hang from their own trigger as ever.
+        expect(getComputedStyle(pinnedDropdown).position).toBe('relative')
+        expect(getComputedStyle(bar().dropdown).position).toBe('relative')
+    })
+
+    it("gives a button a finger's room", () => {
+        expect(getComputedStyle(bar({ touch: true }).button).minBlockSize).toBe('44px')
+        expect(getComputedStyle(bar({ touch: true }).button).minInlineSize).toBe('44px')
+    })
+
+    it('leaves a bar with nothing pinned wrapping, since the bar itself is what its menus hang from', () => {
+        expect(getComputedStyle(bar({ split: false, touch: true }).flowing).flexWrap).toBe('wrap')
     })
 })
 

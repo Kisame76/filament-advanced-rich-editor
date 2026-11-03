@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions;
 
 use DOMElement;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Concerns\ReadsAttributes;
 use Tiptap\Core\Extension;
 
 /**
@@ -22,6 +23,8 @@ use Tiptap\Core\Extension;
  */
 class ImageCaption extends Extension
 {
+    use ReadsAttributes;
+
     /**
      * @var string
      */
@@ -68,18 +71,5 @@ class ImageCaption extends Extension
         $caption = trim($value);
 
         return $caption === '' ? null : $caption;
-    }
-
-    protected static function read(mixed $attributes, string $key): mixed
-    {
-        if (is_array($attributes)) {
-            return $attributes[$key] ?? null;
-        }
-
-        if (is_object($attributes)) {
-            return $attributes->{$key} ?? null;
-        }
-
-        return null;
     }
 }

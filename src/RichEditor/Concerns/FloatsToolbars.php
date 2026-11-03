@@ -94,6 +94,10 @@ trait FloatsToolbars
             $toolbars['embed'] = ['embedReplace', 'embedDelete'];
         }
 
+        if ($this->hasLinkPreviews()) {
+            $toolbars['linkPreview'] = ['linkPreviewEdit', 'linkPreviewDelete'];
+        }
+
         if (! $this->hasImageToolbar()) {
             return $toolbars;
         }
@@ -132,6 +136,11 @@ trait FloatsToolbars
         // means rather than where it sits.
         if ($this->hasImageLink()) {
             $buttons[] = 'imageLink';
+        }
+
+        // Beside Replace, because both give the picture another file.
+        if ($this->hasImageEditor()) {
+            $buttons[] = 'imageEdit';
         }
 
         // Replace, Download, Delete: the order the bars over a card and a film use too.

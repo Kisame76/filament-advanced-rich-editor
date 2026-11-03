@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'kod, pre, källkod, kodsnutt',
             'horizontalRule' => 'hr, avdelare, linje, skiljelinje',
             'details' => 'dragspel, accordion, expandera, komprimera, fäll ut',
-            'embed' => 'video, youtube, vimeo, iframe, bädda in, media',
+            'embed' => 'video, youtube, vimeo, iframe, bädda in, media, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'bokmärke, kort, förhandsvisning, länk, url, webbplats',
             'video' => 'mp4, webm, film, klipp, spelare, media',
             'audio' => 'mp3, ljud, musik, podcast, podd, spelare, media',
             'file' => 'fil, dokument, pdf, bilaga, nedladdning, ladda ner, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Länk till en post',
                 'hint' => 'Ett val fyller i URL-adressen nedan, och det är den som länken sparar.',
             ],
+            'check' => [
+                'answers' => 'Den här adressen svarar :status.',
+                'no_host' => 'Värden :host finns inte.',
+                'silent' => 'Den här adressen svarade inte.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Ren text',
         ],
         'embed' => [
-            'label' => 'Video',
-            'heading' => 'Bädda in en video',
-            'url' => 'Videolänk',
-            'url_hint' => 'Klistra in länken från adressfältet eller dela-knappen. En tidsstämpel i den behålls.',
+            'label' => 'Bädda in',
+            'heading' => 'Bädda in från en annan webbplats',
+            'url' => 'Länk',
+            'url_hint' => 'Klistra in länken från adressfältet eller dela-knappen – för en karta dess inbäddningskod. En tidsstämpel i en videolänk behålls.',
             'title' => 'Titel',
-            'title_hint' => 'Läses upp av en skärmläsare i stället för ”video”.',
+            'title_hint' => 'Läses upp av en skärmläsare i stället för ”ram”.',
             'ratio' => 'Bildformat',
-            'unsupported' => 'Den länken är ingen video som den här redigeraren kan bädda in.',
+            'unsupported' => 'Den länken kan den här redigeraren inte bädda in.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Ersätt video',
+            'replace' => 'Ersätt inbäddning',
+            'delete' => 'Ta bort',
+        ],
+        'link_preview' => [
+            'label' => 'Länkkort',
+            'heading' => 'Visa en länk som ett kort',
+            'url' => 'Länk',
+            'url_hint' => 'Sidan läses en gång, när du lämnar fältet: dess titel, en rad om den och webbplatsen den ligger på. Allt nedanför går att rätta.',
+            'title' => 'Titel',
+            'description' => 'Beskrivning',
+            'site' => 'Webbplats',
+            'unreadable' => 'Sidan kunde inte läsas. Fyll i kortet själv.',
+            'not_a_page' => 'Bara en webbadress som börjar med http:// eller https:// kan bli ett kort.',
+            'edit' => 'Redigera kort',
             'delete' => 'Ta bort',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Avsluta helskärm',
         ],
         'image_replace' => 'Ersätt bild',
+        'image_edit' => [
+            'label' => 'Redigera bild',
+            'apply' => 'Använd',
+            'hint' => 'Använd pennan på bilden för att beskära, rotera eller spegelvända den. Originalfilen behålls.',
+        ],
         'image_download' => 'Ladda ner bild',
         'image_delete' => 'Radera bild',
         'image_float_left' => 'Flytande vänster',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'Från en länk',
             'from_url_heading' => 'Lägg till från en länk',
             'from_url_label' => 'Länk',
-            'from_url_hint' => 'En YouTube- eller Vimeo-länk läggs till i ditt bibliotek och kan användas igen. Alla andra adresser — en fil på någon annans server — infogas som de är, ett dokument som ett kort, och sparas inte här.',
+            'from_url_hint' => 'En länk från YouTube, Vimeo, Spotify eller en annan tjänst som den här redigeraren bäddar in läggs till i ditt bibliotek och kan användas igen. Alla andra adresser – en fil på någon annans server – infogas som de är, ett dokument som ett kort, och sparas inte här.',
             'from_url_hint_files' => 'En fil som någon annan står värd för. Den infogas som den är, ett dokument som ett kort, och inget läggs till i ditt bibliotek.',
-            'from_url_no_embeds' => 'Videor från YouTube och Vimeo är avstängda för det här fältet.',
+            'from_url_no_embeds' => 'Inbäddningar från andra webbplatser är avstängda för det här fältet.',
             'all_types' => 'Alla typer',
             'all_kinds' => 'Alla',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Raderad och borttagen från en post.',
             'replaced_in' => 'Ersatt och uppdaterad i :count poster.',
             'replaced_in_one' => 'Ersatt och uppdaterad i en post.',
+            'already_in_library' => '”:name” finns redan i biblioteket som ”:existing”, så den filen är vald.',
             'copy_url' => 'Kopiera länk',
             'copied' => 'Kopierat',
             'drop' => 'Släpp för att ladda upp',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Visa block',
+        ],
+        'snippets' => [
+            'label' => 'Textblock',
+        ],
+        'lock' => [
+            'label' => 'Lås',
+            'badge' => 'Låst',
+        ],
+        'focus_mode' => [
+            'label' => 'Fokusläge',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -545,6 +585,7 @@ return [
         'min_words' => ':attribute måste ha minst :min ord.',
         'max_words' => ':attribute får inte ha fler än :max ord.',
         'must_contain' => ':attribute måste innehålla :content.',
+        'locked' => 'Låsta delar av :attribute kan inte ändras.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -556,7 +597,8 @@ return [
             'bulletList' => 'en punktlista',
             'callout' => 'en inforuta',
             'codeBlock' => 'ett kodblock',
-            'embed' => 'en inbäddad video',
+            'embed' => 'en inbäddning',
+            'linkPreview' => 'ett länkkort',
             'heading' => 'en rubrik',
             'horizontalRule' => 'en horisontell linje',
             'image' => 'en bild',
@@ -566,5 +608,8 @@ return [
             'taskList' => 'en uppgiftslista',
             'descriptionList' => 'en definitionslista',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Stäng',
     ],
 ];

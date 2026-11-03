@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Media;
 
+use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\EmbedAction;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 
@@ -29,9 +31,16 @@ class Embeds
      */
     public const SUFFIX = 'embed.json';
 
+    /**
+     * One name per embed, so adding the same one twice corrects the entry. An id that is not
+     * a plain word is hashed: a Spotify id carries a slash, which would be a folder, and a map's
+     * is a few hundred characters, which no file system takes as a name.
+     */
     public static function fileName(string $provider, string $id): string
     {
-        return $provider.'-'.$id.'.'.self::SUFFIX;
+        $name = (preg_match('/^[A-Za-z0-9_-]{1,64}$/', $id) === 1) ? $id : hash('xxh128', $id);
+
+        return $provider.'-'.$name.'.'.self::SUFFIX;
     }
 
     /**
@@ -48,7 +57,7 @@ class Embeds
 
         // The same two checks the node makes on its way out, made again on the way in: a
         // provider this package has no business framing, and an id that is not an id.
-        if (! isset(EmbedUrl::IDS[$provider]) || preg_match(EmbedUrl::IDS[$provider], $id) !== 1) {
+        if (! EmbedUrl::accepts($provider, $id)) {
             return null;
         }
 
@@ -66,7 +75,7 @@ class Embeds
         // The same list the dialog offers, so the two cannot drift.
         $ratio = is_string($embed['ratio'] ?? null) && array_key_exists($embed['ratio'], EmbedAction::RATIOS)
             ? $embed['ratio']
-            : Embed::DEFAULT_RATIO;
+            : (EmbedProviders::get($provider)?->ratio() ?? Embed::DEFAULT_RATIO);
 
         return [
             'provider' => $provider,
@@ -109,12 +118,7 @@ class Embeds
      */
     public static function link(array $embed): string
     {
-        $start = $embed['start'];
-
-        return match ($embed['provider']) {
-            'vimeo' => 'https://vimeo.com/'.$embed['id'].($start ? '#t='.$start.'s' : ''),
-            default => 'https://www.youtube.com/watch?v='.$embed['id'].($start ? '&t='.$start : ''),
-        };
+        return EmbedUrl::share($embed['provider'], $embed['id'], $embed['start']);
     }
 
     /**
@@ -129,8 +133,9 @@ class Embeds
             return (string) $embed['title'];
         }
 
-        $provider = (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.providers.'.$embed['provider']);
+        $provider = EmbedProviders::get($embed['provider'])?->label() ?? $embed['provider'];
 
-        return $provider.' · '.$embed['id'];
+        // Cut where an id is long enough to be noise: a map's runs to hundreds of characters.
+        return $provider.' · '.Str::limit($embed['id'], 24);
     }
 }

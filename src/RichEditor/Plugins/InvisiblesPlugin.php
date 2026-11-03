@@ -8,7 +8,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Support\Facades\FilamentAsset;
-use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\Concerns\BuildsToggles;
 use Tiptap\Core\Extension;
 
 /**
@@ -27,6 +27,8 @@ use Tiptap\Core\Extension;
  */
 class InvisiblesPlugin implements RichContentPlugin
 {
+    use BuildsToggles;
+
     public static function make(): static
     {
         return app(static::class);
@@ -59,38 +61,9 @@ class InvisiblesPlugin implements RichContentPlugin
     public function getEditorTools(): array
     {
         return [
-            $this->view('invisibleCharacters', 'characters', 'invisible_characters', 'toggleInvisibleCharacters'),
-            $this->view('blockOutlines', 'blocks', 'block_outlines', 'toggleBlockOutlines'),
+            $this->toggleTool('invisibleCharacters', 'invisible_characters', 'toggleInvisibleCharacters', '$getEditor()?.storage?.arteInvisibles?.characters === true'),
+            $this->toggleTool('blockOutlines', 'block_outlines', 'toggleBlockOutlines', '$getEditor()?.storage?.arteInvisibles?.blocks === true'),
         ];
-    }
-
-    /**
-     * One of the two views as a toggle.
-     *
-     * Strict against `true`, so a field whose script never arrived - where `$getEditor()` or
-     * the storage is still undefined - cannot render a button that says a view is on.
-     *
-     * `aria-pressed` is written here as well as being asked for by `toggle()`, because these
-     * ship in the tools menu, and a tool drawn as a dropdown option gets the active class
-     * from Filament and no `aria-pressed` at all. It names `editorUpdatedAt`: Alpine
-     * re-evaluates a binding when something it read changes, and the editor's storage is a
-     * plain object it does not watch. On the bar Filament writes its own and this stands
-     * down, because `ComponentAttributeBag::merge()` treats these as defaults. The format
-     * brush measured both halves of that; see `FormatBrushPlugin`.
-     */
-    protected function view(string $name, string $view, string $key, string $command): RichEditorTool
-    {
-        $isOn = "\$getEditor()?.storage?.arteInvisibles?.{$view} === true";
-
-        return RichEditorTool::make($name)
-            ->label(__("filament-advanced-rich-editor::advanced-rich-editor.tools.{$key}.label"))
-            ->jsHandler("\$getEditor()?.chain().focus().{$command}().run()")
-            ->icon(Icons::get($key))
-            ->toggle()
-            ->activeJsExpression($isOn)
-            ->extraAttributes([
-                'x-bind:aria-pressed' => "editorUpdatedAt && {$isOn} ? 'true' : 'false'",
-            ], merge: true);
     }
 
     /**

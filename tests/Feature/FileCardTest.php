@@ -140,6 +140,8 @@ it('keeps a size only as the short label it is', function (): void {
 });
 
 it('exports a card as the link and the name, and nothing else', function (): void {
+    requires('league/html-to-markdown');
+
     // Without a converter of its own a card is an `<a>` holding three spans, and the
     // converter runs them together: `[PDFQuartalsbericht Q3.pdf88 KB](/storage/…)`. The
     // kind and the size are drawn rather than written - a Markdown file claiming `88 KB`
@@ -159,6 +161,8 @@ it('exports a card as the link and the name, and nothing else', function (): voi
 });
 
 it('leaves an ordinary link an ordinary link in Markdown', function (): void {
+    requires('league/html-to-markdown');
+
     // The trap the first version fell into: reading the link's own text as a name made
     // every link in the document a block on its own line.
     $markdown = AdvancedRichContentRenderer::make(

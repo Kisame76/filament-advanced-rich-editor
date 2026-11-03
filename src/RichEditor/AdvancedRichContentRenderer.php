@@ -8,6 +8,7 @@ use BackedEnum;
 use Closure;
 use DateInterval;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
+use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
@@ -24,6 +25,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Language;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionDetails;
@@ -31,6 +33,8 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionList;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionTerm;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\LinkPreview;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Locked;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
@@ -40,6 +44,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageDecorat
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageFloat;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageLink;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageRotate;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
@@ -88,6 +93,8 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     protected ?array $styles = null;
 
     protected bool $hasLinkAttributes = true;
+
+    protected bool $hasLightbox = false;
 
     protected ?CodeHighlighter $codeHighlighter = null;
 
@@ -250,6 +257,27 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     }
 
     /**
+     * Everything a model says about one of its rich content attributes: its plugins, its
+     * merge tags, its mentions, and where its files are.
+     *
+     * Filament's own `RichContentAttribute::getRenderer()` says the same, into a renderer
+     * that is only this one where a project bound it - so an entry, a column and the
+     * diagnosis read the model through here instead, and draw what the editor wrote.
+     */
+    public function attribute(RichContentAttribute $attribute): static
+    {
+        return $this
+            ->plugins($attribute->getPlugins())
+            ->customBlocks($attribute->getCustomBlocks())
+            ->mergeTags($attribute->getMergeTags())
+            ->mentions($attribute->getMentionProviders())
+            ->fileAttachmentsDisk($attribute->getFileAttachmentsDiskName())
+            ->fileAttachmentsVisibility($attribute->getFileAttachmentsVisibility())
+            ->fileAttachmentProvider($attribute->getFileAttachmentProvider())
+            ->textColors($attribute->getTextColors());
+    }
+
+    /**
      * The named styles this render knows about, overriding the project's.
      *
      * A field passes its own list here so that the schema a save is parsed through is the
@@ -278,6 +306,30 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         $this->hasLinkAttributes = $condition;
 
         return $this;
+    }
+
+    /**
+     * Opens a picture large over the page when it is clicked.
+     *
+     * Off by default, because it is a decision about the page rather than the document: a
+     * project may well have a lightbox of its own, and this one needs its script on the page.
+     * `<x-arte-content lightbox>` brings it along; a page rendering through this class itself
+     * puts `<x-arte-lightbox />` on it.
+     *
+     * Each picture gets a link to its own address, which is what makes it work without the
+     * script too: the link opens the picture. A picture that already points somewhere keeps
+     * its link, and one that says it carries nothing is left alone.
+     */
+    public function lightbox(bool $condition = true): static
+    {
+        $this->hasLightbox = $condition;
+
+        return $this;
+    }
+
+    public function hasLightbox(): bool
+    {
+        return $this->hasLightbox;
     }
 
     /**
@@ -416,6 +468,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             'anchors' => [$this->anchorLevels, $this->anchorPosition->value, $this->anchorSymbol, $this->anchorClass],
             'styles' => $this->styles,
             'linkAttributes' => $this->hasLinkAttributes,
+            'lightbox' => $this->hasLightbox,
             'code' => $this->codeThemes,
             'disk' => $this->fileAttachmentsDiskName,
             'visibility' => $this->fileAttachmentsVisibility,
@@ -544,9 +597,14 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // reader three bare spans - a file name with a word after it, which is what
             // the card exists not to be.
             app(FileCard::class),
+            // And a link card, which is a link a reader can follow whatever the field offers.
+            app(LinkPreview::class),
             // And the same again: a note somebody wrote is a note that belongs on the page,
             // whether or not this render was told the field had callouts switched on.
             app(Callout::class),
+            // And a locked part, whose text is a reader's like any other. Without the node a
+            // stored document would lose the wrapper at best and what it held at worst.
+            app(Locked::class),
             app(ImageCaption::class),
             // And again, for the reason above it: a picture somebody turned is one that
             // should still be turned, and one somebody set the text to run past is one the
@@ -561,6 +619,9 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             app(ImageDecorative::class),
             // And an address a picture points at is one it should still point at.
             app(ImageLink::class),
+            // Declared for the attribute's other half: it never reads a list out of the
+            // markup, so it is the only way one written by the attachment pass gets out.
+            app(ImageSrcset::class),
             // The same again, six times over. Every one of these used to arrive only with
             // the plugin that puts its button on the bar, so a plain render of a stored
             // document dropped it without a word: a task list came back as an ordinary
@@ -866,7 +927,10 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         // After the captions, and that order is the point: the link belongs around the
         // picture inside a `<figure>` rather than around the figure, because a caption is
         // text about the picture rather than part of what is being linked.
-        $html = (new LinkedImages)->apply($html);
+        //
+        // The lightbox's link is written in the same pass, which is what keeps it off a
+        // picture that already has a link of its own.
+        $html = (new LinkedImages(lightbox: $this->hasLightbox))->apply($html);
 
         // Same again: the empty description that belongs beside `role="presentation"` is one
         // no schema can write, because a blank attribute value is dropped on the way out.
@@ -1097,6 +1161,13 @@ class AdvancedRichContentRenderer extends RichContentRenderer
                 return;
             }
 
+            // The list of sizes is only ever this pass's own answer. A document kept as JSON
+            // hands its attributes over as they were stored, past the parse that drops one,
+            // and nothing checks the addresses in it.
+            if (isset($node->attrs->srcset)) {
+                unset($node->attrs->srcset);
+            }
+
             if (blank($node->attrs->id ?? null)) {
                 return;
             }
@@ -1108,6 +1179,12 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             }
 
             $node->attrs->src = $url;
+
+            // Asked here, of the provider that just answered for the address, because nothing
+            // after this pass knows which file a picture is; `ImageSrcset` writes it out.
+            if ($node->type === 'image' && ($provider = $this->getFileAttachmentProvider()) instanceof ProvidesSrcset) {
+                $node->attrs->srcset = $provider->getFileAttachmentSrcset($node->attrs->id);
+            }
         });
     }
 

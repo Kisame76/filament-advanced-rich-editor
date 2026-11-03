@@ -3,7 +3,7 @@
 `case-lower.svg`, `case-sensitive.svg`, `case-upper.svg`, `highlighter.svg`,
 `indent-decrease.svg`, `indent-increase.svg`, `message-square-quote.svg`,
 `palette.svg`, `pilcrow.svg`, `pilcrow-left.svg`, `pilcrow-right.svg`, `rotate-ccw.svg`,
-`rotate-cw.svg` and `square-dashed.svg` are from
+`rotate-cw.svg`, `square-dashed.svg` and `crop.svg` are from
 [Lucide](https://lucide.dev), used under the ISC licence, and
 `letter-a.svg` is Lucide's `baseline` with the baseline itself removed and the letter
 recentred. Their stroke width is changed from 2 to 1.5 so they sit next to Filament's

@@ -10,7 +10,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageFloat;
 
 /**
  * What a picture may do once it is in the document: sit left or right of the text,
- * carry a link, be marked decorative, or be dragged to a new size.
+ * carry a link, be marked decorative, be dragged to a new size, or be edited into a new file.
  *
  * Each is an attribute on the image node rather than a node of its own, which is why each
  * needs its own extension to survive the parser, and why the toolbar's active states are
@@ -27,6 +27,8 @@ trait PlacesImages
     protected bool|Closure|null $hasImageDecorative = null;
 
     protected bool|Closure|null $hasImageLink = null;
+
+    protected bool|Closure|null $hasImageEditor = null;
 
     protected string|Closure|false|null $imageLoading = null;
 
@@ -84,6 +86,28 @@ trait PlacesImages
     {
         return (bool) ($this->evaluate($this->hasImageLink)
             ?? config('filament-advanced-rich-editor.images.link', true));
+    }
+
+    /**
+     * Whether a picture in the document may be cropped, turned and flipped into a new file -
+     * in Filament's own image editor, see `EditImageAction`.
+     *
+     * Off, because every edit writes a file of its own beside the one it was made from, which
+     * is the right thing for the document and something a project should decide on for its
+     * disk - and because most pictures are cropped before they are uploaded, by whoever took
+     * them. Filament's upload field ships its editor off for much the same reasons.
+     */
+    public function imageEditor(bool|Closure $condition = true): static
+    {
+        $this->hasImageEditor = $condition;
+
+        return $this;
+    }
+
+    public function hasImageEditor(): bool
+    {
+        return (bool) ($this->evaluate($this->hasImageEditor)
+            ?? config('filament-advanced-rich-editor.images.editor', false));
     }
 
     /**

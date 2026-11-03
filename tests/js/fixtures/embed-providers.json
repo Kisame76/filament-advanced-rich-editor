@@ -1,0 +1,123 @@
+[
+    {
+        "name": "youtube",
+        "label": "YouTube",
+        "hosts": [
+            "youtube.com",
+            "www.youtube.com",
+            "m.youtube.com",
+            "music.youtube.com",
+            "youtube-nocookie.com",
+            "www.youtube-nocookie.com",
+            "youtu.be"
+        ],
+        "patterns": [
+            "^youtu\\.be/(?<id>[^/?#]+)",
+            "^[^/]+/(?:embed|shorts|v|live)/(?<id>[^/?#]+)",
+            "^[^/]+/[^?]*\\?(?:[^#]*&)?v=(?<id>[^&#]+)"
+        ],
+        "id": "[A-Za-z0-9_-]{6,20}",
+        "src": "https://www.youtube-nocookie.com/embed/{id}",
+        "start": "?start={start}",
+        "ratio": "16 / 9",
+        "height": null
+    },
+    {
+        "name": "vimeo",
+        "label": "Vimeo",
+        "hosts": [
+            "vimeo.com",
+            "www.vimeo.com",
+            "player.vimeo.com"
+        ],
+        "patterns": [
+            "/(?:video/)?(?<id>[0-9]+)"
+        ],
+        "id": "[0-9]{6,12}",
+        "src": "https://player.vimeo.com/video/{id}",
+        "start": "#t={start}s",
+        "ratio": "16 / 9",
+        "height": null
+    },
+    {
+        "name": "spotify",
+        "label": "Spotify",
+        "hosts": [
+            "open.spotify.com"
+        ],
+        "patterns": [
+            "^[^/]+/(?:intl-[a-z-]+/)?(?:embed/)?(?<id>(?:track|album|playlist|episode|show|artist)/[A-Za-z0-9]{22})"
+        ],
+        "id": "(?:track|album|playlist|episode|show|artist)/[A-Za-z0-9]{22}",
+        "src": "https://open.spotify.com/embed/{id}",
+        "start": null,
+        "ratio": "16 / 9",
+        "height": 352
+    },
+    {
+        "name": "loom",
+        "label": "Loom",
+        "hosts": [
+            "loom.com",
+            "www.loom.com"
+        ],
+        "patterns": [
+            "^[^/]+/(?:share|embed)/(?<id>[a-f0-9]{32})"
+        ],
+        "id": "[a-f0-9]{32}",
+        "src": "https://www.loom.com/embed/{id}",
+        "start": null,
+        "ratio": "16 / 9",
+        "height": null
+    },
+    {
+        "name": "codepen",
+        "label": "CodePen",
+        "hosts": [
+            "codepen.io"
+        ],
+        "patterns": [
+            "^codepen\\.io/(?<user>[A-Za-z0-9_-]+)/(?:pen|embed|full|details|debug)/(?:preview/)?(?<pen>[A-Za-z0-9]+)"
+        ],
+        "id": "[A-Za-z0-9_-]{1,50}/[A-Za-z0-9]{3,20}",
+        "src": "https://codepen.io/{id:0}/embed/{id:1}?default-tab=result",
+        "start": null,
+        "ratio": "16 / 9",
+        "height": null
+    },
+    {
+        "name": "tiktok",
+        "label": "TikTok",
+        "hosts": [
+            "tiktok.com",
+            "www.tiktok.com",
+            "m.tiktok.com"
+        ],
+        "patterns": [
+            "^[^/]+/@[^/]+/video/(?<id>[0-9]+)",
+            "^[^/]+/(?:player/v1|embed/v2|embed|v)/(?<id>[0-9]+)"
+        ],
+        "id": "[0-9]{15,25}",
+        "src": "https://www.tiktok.com/player/v1/{id}",
+        "start": null,
+        "ratio": "9 / 16",
+        "height": null
+    },
+    {
+        "name": "google_maps",
+        "label": "Google Maps",
+        "hosts": [
+            "google.com",
+            "www.google.com",
+            "maps.google.com"
+        ],
+        "patterns": [
+            "^[^/]+/maps/embed\\?(?:[^#]*&)?pb=(?<id>[^&#]+)"
+        ],
+        "id": "[A-Za-z0-9!._%-]{10,2000}",
+        "src": "https://www.google.com/maps/embed?pb={id}",
+        "start": null,
+        "ratio": "4 / 3",
+        "height": null
+    }
+]

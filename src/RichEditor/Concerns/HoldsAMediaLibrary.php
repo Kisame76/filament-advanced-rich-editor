@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\FindsCopies;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
@@ -15,6 +16,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\LibraryTypes;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaUsages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\StoredDocuments;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -45,6 +47,8 @@ trait HoldsAMediaLibrary
     protected bool|Closure|null $mediaLibraryDeletable = null;
 
     protected bool|Closure|null $mediaLibraryReplaceable = null;
+
+    protected bool|Closure|null $mediaLibraryDeduplicates = null;
 
     /**
      * @var array<mixed>|Closure|null
@@ -379,12 +383,39 @@ trait HoldsAMediaLibrary
     }
 
     /**
+     * Whether an upload the library already holds becomes the file that is there, rather than
+     * a second copy of it.
+     *
+     * On by default: a copy costs the disk, it doubles the grid, and a later replacement or
+     * description reaches one of the two and not the other. What it changes is the identity
+     * of the file - a document using the found one is replaced along with every other document
+     * using it - which is what picking it from the browser would have meant too. Off for a
+     * field whose documents must each hold their own file.
+     *
+     * Only for a pool that can tell - see `FindsCopies`.
+     */
+    public function mediaLibraryDeduplicates(bool|Closure $condition = true): static
+    {
+        $this->mediaLibraryDeduplicates = $condition;
+
+        return $this;
+    }
+
+    public function deduplicatesMediaLibraryUploads(): bool
+    {
+        return (bool) ($this->evaluate($this->mediaLibraryDeduplicates)
+            ?? config('filament-advanced-rich-editor.media_library.deduplicate')
+            ?? true)
+            && ($this->getMediaSource() instanceof FindsCopies);
+    }
+
+    /**
      * Where else the library's files are used.
      *
      * Deleting a file takes it out of every entry using it, and replacing one points them at
      * the new file - which needs to know where entries are, and a package cannot know which of
      * an application's tables hold rich content. This field's own column is known without
-     * being told; everything else is named here or in `media_library.documents`:
+     * being told; everything else is named here or in the `documents` key:
      *
      *     ->mediaLibraryDocuments([
      *         Page::class => ['body', 'sidebar'],
@@ -408,33 +439,13 @@ trait HoldsAMediaLibrary
      */
     public function getMediaLibraryDocuments(): array
     {
-        $documents = [];
-
         $own = $this->getOwnMediaLibraryDocument();
 
-        if ($own !== null) {
-            $documents[$own[0]] = [$own[1]];
-        }
-
-        $named = [
-            ...(array) (config('filament-advanced-rich-editor.media_library.documents') ?? []),
-            ...(array) ($this->evaluate($this->mediaLibraryDocuments) ?? []),
-        ];
-
-        foreach ($named as $key => $value) {
-            [$model, $columns] = is_int($key) ? [$value, []] : [$key, (array) $value];
-
-            if (! is_string($model) || ! is_subclass_of($model, Model::class)) {
-                continue;
-            }
-
-            $documents[$model] = array_values(array_unique([
-                ...($documents[$model] ?? []),
-                ...MediaUsages::columnsOf($model, array_values(array_filter($columns, 'is_string'))),
-            ]));
-        }
-
-        return array_filter($documents);
+        return StoredDocuments::merge(
+            ($own === null) ? [] : [$own[0] => [$own[1]]],
+            StoredDocuments::configured(),
+            StoredDocuments::from((array) ($this->evaluate($this->mediaLibraryDocuments) ?? [])),
+        );
     }
 
     public function getMediaUsages(): MediaUsages

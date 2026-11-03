@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'code, pre, snippet',
             'horizontalRule' => 'hr, divider, separator, rule',
             'details' => 'accordion, collapse, toggle',
-            'embed' => 'video, youtube, vimeo, iframe, media',
+            'embed' => 'video, youtube, vimeo, iframe, media, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'bookmark, card, preview, link, url, website',
             'video' => 'mp4, webm, movie, clip, player, media',
             'audio' => 'mp3, sound, music, podcast, player, media',
             'file' => 'document, pdf, attachment, download, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Link to a record',
                 'hint' => 'Picking one fills the URL below, which is what the link stores.',
             ],
+            'check' => [
+                'answers' => 'This address answers :status.',
+                'no_host' => 'There is no host called :host.',
+                'silent' => 'This address did not answer.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Plain text',
         ],
         'embed' => [
-            'label' => 'Video',
-            'heading' => 'Embed a video',
-            'url' => 'Video link',
-            'url_hint' => 'Paste the link from the address bar or the share button. A timestamp in it is kept.',
+            'label' => 'Embed',
+            'heading' => 'Embed from another site',
+            'url' => 'Link',
+            'url_hint' => 'Paste the link from the address bar or the share button — for a map, its embed code. A timestamp in a video link is kept.',
             'title' => 'Title',
-            'title_hint' => 'Read out instead of "video" by a screen reader.',
+            'title_hint' => 'Read out by a screen reader instead of "frame".',
             'ratio' => 'Aspect ratio',
-            'unsupported' => 'That link is not a video this editor can embed.',
+            'unsupported' => 'That link is not one this editor can embed.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Replace video',
+            'replace' => 'Replace embed',
+            'delete' => 'Remove',
+        ],
+        'link_preview' => [
+            'label' => 'Link card',
+            'heading' => 'Show a link as a card',
+            'url' => 'Link',
+            'url_hint' => 'The page is read once, as you leave this field: its title, a line about it and the site it is on. Everything below can be corrected.',
+            'title' => 'Title',
+            'description' => 'Description',
+            'site' => 'Site',
+            'unreadable' => 'This page could not be read. Fill in the card yourself.',
+            'not_a_page' => 'Only a web address starting with http:// or https:// can be a card.',
+            'edit' => 'Edit card',
             'delete' => 'Remove',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Leave fullscreen',
         ],
         'image_replace' => 'Replace image',
+        'image_edit' => [
+            'label' => 'Edit image',
+            'apply' => 'Apply',
+            'hint' => 'Use the pencil on the picture to crop, turn or flip it. The original file is kept.',
+        ],
         'image_download' => 'Download image',
         'image_delete' => 'Delete image',
         'image_float_left' => 'Float left',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'From a link',
             'from_url_heading' => 'Add from a link',
             'from_url_label' => 'Link',
-            'from_url_hint' => 'A YouTube or Vimeo link is added to your library and can be used again. Any other address — a file on somebody else\'s server — is inserted as it is, a document as a card, and not stored here.',
+            'from_url_hint' => 'A link from YouTube, Vimeo, Spotify or another service this editor embeds is added to your library and can be used again. Any other address — a file on somebody else\'s server — is inserted as it is, a document as a card, and not stored here.',
             'from_url_hint_files' => 'A file somebody else hosts. It is inserted as it is, a document as a card, and nothing is added to your library.',
-            'from_url_no_embeds' => 'Videos from YouTube and Vimeo are switched off for this field.',
+            'from_url_no_embeds' => 'Embeds from other sites are switched off for this field.',
             'all_types' => 'All types',
             'all_kinds' => 'All',
             'kinds' => [
@@ -343,6 +372,9 @@ return [
             'deleted_from_one' => 'Deleted, and taken out of one entry.',
             'replaced_in' => 'Replaced, and updated in :count entries.',
             'replaced_in_one' => 'Replaced, and updated in one entry.',
+            // An upload the library already held, let go of in favour of the file that is there.
+            // `:name` is what it was uploaded as, `:existing` what the library keeps it as.
+            'already_in_library' => '“:name” is already in the library as “:existing”, so that file is selected.',
             'copy_url' => 'Copy link',
             'copied' => 'Copied',
             'drop' => 'Drop to upload',
@@ -407,6 +439,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Show blocks',
+        ],
+        'snippets' => [
+            'label' => 'Snippets',
+        ],
+        'lock' => [
+            'label' => 'Lock',
+            'badge' => 'Locked',
+        ],
+        'focus_mode' => [
+            'label' => 'Focus mode',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -544,6 +586,7 @@ return [
         'min_words' => 'The :attribute must have at least :min words.',
         'max_words' => 'The :attribute must not have more than :max words.',
         'must_contain' => 'The :attribute must contain :content.',
+        'locked' => 'Locked parts of the :attribute cannot be changed.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -555,7 +598,8 @@ return [
             'bulletList' => 'a bulleted list',
             'callout' => 'a callout',
             'codeBlock' => 'a code block',
-            'embed' => 'an embedded video',
+            'embed' => 'an embed',
+            'linkPreview' => 'a link card',
             'heading' => 'a heading',
             'horizontalRule' => 'a horizontal rule',
             'image' => 'an image',
@@ -565,5 +609,9 @@ return [
             'taskList' => 'a task list',
             'descriptionList' => 'a definition list',
         ],
+    ],
+    // The box a picture opens in on the page, when the renderer is asked for one.
+    'lightbox' => [
+        'close' => 'Close',
     ],
 ];

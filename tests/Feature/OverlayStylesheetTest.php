@@ -81,6 +81,8 @@ const RENDERED_ONLY_IN_A_DIALOG = [
     'resources/views/media-picker.blade.php',
     // The media dialog's own form, around the browser: its two hidden upload fields.
     'src/RichEditor/Actions/MediaLibraryAction.php',
+    // The image editor's dialog, kept unseen until the editor covers it.
+    'src/RichEditor/Actions/EditImageAction.php',
     // HelpAction's modal.
     'src/RichEditor/ShortcutTable.php',
     // StatisticsAction's modal.
@@ -304,6 +306,8 @@ function interpolatedArteClassValues(): array
         'fi-arte-character-count-' => ['warning', 'danger'],
         // Nodes\Media: the element it renders.
         'fi-arte-media-' => MediaUrl::KINDS,
+        // Nodes\LinkPreview and link-preview.js: the parts of the card.
+        'fi-arte-link-preview-' => ['title', 'description', 'site', 'icon'],
         // TipTapExtensions\Mention: the trigger's name.
         'fi-arte-mention-' => array_values(Mention::TRIGGERS),
         // BuildsTheToolbar: where the groups sit, and which edge the pinned buttons keep.

@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'kod, code, fragment, snippet',
             'horizontalRule' => 'hr, linia, separator, kreska',
             'details' => 'akordeon, rozwiń, zwiń, rozwijane',
-            'embed' => 'wideo, video, youtube, vimeo, osadź, iframe',
+            'embed' => 'wideo, video, youtube, vimeo, osadź, iframe, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'zakładka, karta, podgląd, link, url, strona',
             'video' => 'mp4, webm, film, klip, odtwarzacz, media',
             'audio' => 'mp3, dźwięk, muzyka, podcast, odtwarzacz, media',
             'file' => 'plik, dokument, pdf, załącznik, zalacznik, pobierz, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Link do rekordu',
                 'hint' => 'Wybór wypełnia poniższy adres URL i to on jest zapisywany w linku.',
             ],
+            'check' => [
+                'answers' => 'Ten adres odpowiada :status.',
+                'no_host' => 'Host :host nie istnieje.',
+                'silent' => 'Ten adres nie odpowiedział.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Zwykły tekst',
         ],
         'embed' => [
-            'label' => 'Wideo',
-            'heading' => 'Osadź wideo',
-            'url' => 'Link do wideo',
-            'url_hint' => 'Wklej link z paska adresu lub z przycisku Udostępnij. Zawarty w nim znacznik czasu zostanie zachowany.',
+            'label' => 'Osadź',
+            'heading' => 'Osadź z innej strony',
+            'url' => 'Link',
+            'url_hint' => 'Wklej link z paska adresu lub przycisku Udostępnij, a dla mapy jej kod osadzania. Znacznik czasu w linku do wideo zostanie zachowany.',
             'title' => 'Tytuł',
-            'title_hint' => 'Odczytywany przez czytnik ekranu zamiast „wideo”.',
+            'title_hint' => 'Odczytywany przez czytnik ekranu zamiast „ramka”.',
             'ratio' => 'Proporcje',
-            'unsupported' => 'Ten link nie prowadzi do wideo, które ten edytor potrafi osadzić.',
+            'unsupported' => 'Tego linku nie można osadzić w tym edytorze.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Zastąp wideo',
+            'replace' => 'Zastąp osadzenie',
+            'delete' => 'Usuń',
+        ],
+        'link_preview' => [
+            'label' => 'Karta linku',
+            'heading' => 'Pokaż link jako kartę',
+            'url' => 'Link',
+            'url_hint' => 'Strona jest czytana raz, gdy opuścisz to pole: jej tytuł, linijka o niej i serwis, w którym się znajduje. Wszystko poniżej można poprawić.',
+            'title' => 'Tytuł',
+            'description' => 'Opis',
+            'site' => 'Serwis',
+            'unreadable' => 'Nie udało się odczytać tej strony. Wypełnij kartę samodzielnie.',
+            'not_a_page' => 'Kartą może być tylko adres internetowy zaczynający się od http:// lub https://.',
+            'edit' => 'Edytuj kartę',
             'delete' => 'Usuń',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Zamknij pełny ekran',
         ],
         'image_replace' => 'Zastąp obraz',
+        'image_edit' => [
+            'label' => 'Edytuj obraz',
+            'apply' => 'Zastosuj',
+            'hint' => 'Użyj ołówka na obrazie, aby go przyciąć, obrócić lub odbić. Oryginalny plik pozostaje bez zmian.',
+        ],
         'image_download' => 'Pobierz obraz',
         'image_delete' => 'Usuń obraz',
         'image_float_left' => 'Do lewej, tekst obok',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'Z linku',
             'from_url_heading' => 'Dodaj z linku',
             'from_url_label' => 'Link',
-            'from_url_hint' => 'Link z YouTube lub Vimeo trafia do twojej biblioteki i można go użyć ponownie. Każdy inny adres — plik na cudzym serwerze — jest wstawiany tak, jak jest, dokument jako karta, i nie jest tu przechowywany.',
+            'from_url_hint' => 'Link z YouTube, Vimeo, Spotify lub innej usługi, którą osadza ten edytor, trafia do biblioteki i można go użyć ponownie. Każdy inny adres — plik na cudzym serwerze — jest wstawiany bez zmian, dokument jako karta, i nie jest tu zapisywany.',
             'from_url_hint_files' => 'Plik na cudzym serwerze. Jest wstawiany tak, jak jest, dokument jako karta, a do twojej biblioteki nic nie trafia.',
-            'from_url_no_embeds' => 'Filmy z YouTube i Vimeo są wyłączone dla tego pola.',
+            'from_url_no_embeds' => 'Osadzanie z innych stron jest wyłączone dla tego pola.',
             'all_types' => 'Wszystkie typy',
             'all_kinds' => 'Wszystkie',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Usunięto, także z jednego wpisu.',
             'replaced_in' => 'Zastąpiono i zaktualizowano w :count wpisach.',
             'replaced_in_one' => 'Zastąpiono i zaktualizowano w jednym wpisie.',
+            'already_in_library' => '„:name” jest już w bibliotece jako „:existing”, więc zaznaczono ten plik.',
             'copy_url' => 'Kopiuj link',
             'copied' => 'Skopiowano',
             'drop' => 'Upuść, aby przesłać',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Pokaż bloki',
+        ],
+        'snippets' => [
+            'label' => 'Bloki tekstu',
+        ],
+        'lock' => [
+            'label' => 'Zablokuj',
+            'badge' => 'Zablokowane',
+        ],
+        'focus_mode' => [
+            'label' => 'Tryb skupienia',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -545,6 +585,7 @@ return [
         'min_words' => 'Liczba słów w polu :attribute musi wynosić co najmniej :min.',
         'max_words' => 'Liczba słów w polu :attribute nie może przekraczać :max.',
         'must_contain' => 'Pole :attribute musi zawierać :content.',
+        'locked' => 'Zablokowanych części pola :attribute nie można zmieniać.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -556,7 +597,8 @@ return [
             'bulletList' => 'listę punktowaną',
             'callout' => 'ramkę',
             'codeBlock' => 'blok kodu',
-            'embed' => 'osadzone wideo',
+            'embed' => 'osadzona treść',
+            'linkPreview' => 'kartę linku',
             'heading' => 'nagłówek',
             'horizontalRule' => 'linię poziomą',
             'image' => 'obraz',
@@ -566,5 +608,8 @@ return [
             'taskList' => 'listę zadań',
             'descriptionList' => 'listę definicji',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Zamknij',
     ],
 ];

@@ -16,9 +16,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 beforeEach(function (): void {
     // The package works without `spatie/laravel-medialibrary`, so the suite has to as well.
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
 

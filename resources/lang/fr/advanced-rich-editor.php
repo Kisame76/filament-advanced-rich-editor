@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'code, pre, snippet, extrait de code',
             'horizontalRule' => 'hr, séparateur, ligne, trait',
             'details' => 'accordéon, déplier, replier, dérouler',
-            'embed' => 'vidéo, youtube, vimeo, iframe, intégrer, média',
+            'embed' => 'vidéo, youtube, vimeo, iframe, intégrer, média, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'signet, carte, aperçu, lien, url, site web',
             'video' => 'mp4, webm, film, clip, lecteur, média',
             'audio' => 'mp3, son, musique, podcast, lecteur, média',
             'file' => 'fichier, document, pdf, pièce jointe, téléchargement, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Lien vers un enregistrement',
                 'hint' => 'En choisir un remplit l\'URL ci-dessous, et c\'est elle que le lien enregistre.',
             ],
+            'check' => [
+                'answers' => 'Cette adresse répond :status.',
+                'no_host' => 'L\'hôte :host n\'existe pas.',
+                'silent' => 'Cette adresse n\'a pas répondu.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Texte brut',
         ],
         'embed' => [
-            'label' => 'Vidéo',
-            'heading' => 'Intégrer une vidéo',
-            'url' => 'Lien de la vidéo',
-            'url_hint' => 'Collez le lien de la barre d\'adresse ou du bouton Partager. Le moment de départ qu\'il contient est conservé.',
+            'label' => 'Intégrer',
+            'heading' => 'Intégrer depuis un autre site',
+            'url' => 'Lien',
+            'url_hint' => 'Collez le lien de la barre d\'adresse ou du bouton Partager — pour une carte, son code d\'intégration. Un horodatage dans un lien vidéo est conservé.',
             'title' => 'Titre',
-            'title_hint' => 'Lu par un lecteur d\'écran à la place de « vidéo ».',
+            'title_hint' => 'Lu par un lecteur d\'écran à la place de « cadre ».',
             'ratio' => 'Proportions',
-            'unsupported' => 'Ce lien n\'est pas une vidéo que cet éditeur peut intégrer.',
+            'unsupported' => 'Cet éditeur ne peut pas intégrer ce lien.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Remplacer la vidéo',
+            'replace' => 'Remplacer l\'intégration',
+            'delete' => 'Retirer',
+        ],
+        'link_preview' => [
+            'label' => 'Carte de lien',
+            'heading' => 'Afficher un lien sous forme de carte',
+            'url' => 'Lien',
+            'url_hint' => 'La page est lue une fois, quand vous quittez ce champ : son titre, une ligne à son sujet et le site où elle se trouve. Tout ce qui suit peut être corrigé.',
+            'title' => 'Titre',
+            'description' => 'Description',
+            'site' => 'Site',
+            'unreadable' => 'Cette page n\'a pas pu être lue. Remplissez la carte vous-même.',
+            'not_a_page' => 'Seule une adresse web commençant par http:// ou https:// peut devenir une carte.',
+            'edit' => 'Modifier la carte',
             'delete' => 'Retirer',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Quitter le plein écran',
         ],
         'image_replace' => 'Remplacer l\'image',
+        'image_edit' => [
+            'label' => 'Modifier l\'image',
+            'apply' => 'Appliquer',
+            'hint' => 'Utilisez le crayon sur l\'image pour la recadrer, la faire pivoter ou la retourner. Le fichier d\'origine est conservé.',
+        ],
         'image_download' => 'Télécharger l\'image',
         'image_delete' => 'Supprimer l\'image',
         'image_float_left' => 'Flottante à gauche',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'Depuis un lien',
             'from_url_heading' => 'Ajouter depuis un lien',
             'from_url_label' => 'Lien',
-            'from_url_hint' => 'Un lien YouTube ou Vimeo est ajouté à votre médiathèque et peut être réutilisé. Toute autre adresse — un fichier sur le serveur de quelqu\'un d\'autre — est insérée telle quelle, un document sous forme de carte, et n\'est pas stockée ici.',
+            'from_url_hint' => 'Un lien YouTube, Vimeo, Spotify ou d\'un autre service que cet éditeur intègre est ajouté à votre médiathèque et peut être réutilisé. Toute autre adresse — un fichier sur le serveur de quelqu\'un d\'autre — est insérée telle quelle, un document sous forme de carte, et n\'est pas stockée ici.',
             'from_url_hint_files' => 'Un fichier hébergé ailleurs. Il est inséré tel quel, un document sous forme de carte, et rien n\'est ajouté à votre médiathèque.',
-            'from_url_no_embeds' => 'Les vidéos YouTube et Vimeo sont désactivées pour ce champ.',
+            'from_url_no_embeds' => 'Les intégrations d\'autres sites sont désactivées pour ce champ.',
             'all_types' => 'Tous les types',
             'all_kinds' => 'Tout',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Supprimé et retiré d\'une entrée.',
             'replaced_in' => 'Remplacé et mis à jour dans :count entrées.',
             'replaced_in_one' => 'Remplacé et mis à jour dans une entrée.',
+            'already_in_library' => '« :name » est déjà dans la médiathèque sous le nom « :existing » ; ce fichier est sélectionné.',
             'copy_url' => 'Copier le lien',
             'copied' => 'Copié',
             'drop' => 'Déposez pour téléverser',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Afficher les blocs',
+        ],
+        'snippets' => [
+            'label' => 'Blocs de texte',
+        ],
+        'lock' => [
+            'label' => 'Verrouiller',
+            'badge' => 'Verrouillé',
+        ],
+        'focus_mode' => [
+            'label' => 'Mode concentration',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -545,6 +585,7 @@ return [
         'min_words' => 'Le champ :attribute doit contenir au moins :min mots.',
         'max_words' => 'Le champ :attribute ne doit pas dépasser :max mots.',
         'must_contain' => 'Le champ :attribute doit contenir :content.',
+        'locked' => 'Les parties verrouillées du champ :attribute ne peuvent pas être modifiées.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -556,7 +597,8 @@ return [
             'bulletList' => 'une liste à puces',
             'callout' => 'un encadré',
             'codeBlock' => 'un bloc de code',
-            'embed' => 'une vidéo intégrée',
+            'embed' => 'une intégration',
+            'linkPreview' => 'une carte de lien',
             'heading' => 'un titre',
             'horizontalRule' => 'une ligne horizontale',
             'image' => 'une image',
@@ -566,5 +608,8 @@ return [
             'taskList' => 'une liste de tâches',
             'descriptionList' => 'une liste de définitions',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Fermer',
     ],
 ];

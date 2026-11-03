@@ -42,11 +42,22 @@ it('looks in its own column without being told', function (): void {
 });
 
 it('adds the places the configuration and the field name', function (): void {
-    config()->set('filament-advanced-rich-editor.media_library.documents', [RichPost::class]);
+    config()->set('filament-advanced-rich-editor.documents', [RichPost::class]);
 
     // A model named alone answers with the columns it registered as rich content itself.
     expect($this->editor->mediaLibraryDocuments([Post::class => 'title'])->getMediaLibraryDocuments())->toBe([
         Post::class => ['content', 'title'],
+        RichPost::class => ['content'],
+    ]);
+});
+
+it('still reads the key the list was kept under before, and every column either names', function (): void {
+    // A published config file keeps `media_library.documents` until somebody moves it.
+    config()->set('filament-advanced-rich-editor.documents', [Post::class => ['title']]);
+    config()->set('filament-advanced-rich-editor.media_library.documents', [Post::class => ['summary'], RichPost::class]);
+
+    expect($this->editor->getMediaLibraryDocuments())->toBe([
+        Post::class => ['content', 'title', 'summary'],
         RichPost::class => ['content'],
     ]);
 });

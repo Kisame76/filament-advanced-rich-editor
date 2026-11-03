@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\DiskMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaPost;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * What a library knows about a file besides the file: the one line of text a screen reader
@@ -82,9 +81,7 @@ it('survives a sidecar somebody hand-edited into nonsense', function (): void {
 });
 
 it('keeps a media row description in its custom properties', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     config()->set('media-library.disk_name', 'public');
 
@@ -106,9 +103,7 @@ it('keeps a media row description in its custom properties', function (): void {
 });
 
 it('refuses a media id outside the pool', function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     $post = MediaPost::create(['title' => 'Post', 'content' => '']);
 

@@ -186,6 +186,23 @@ class ToolbarDropdown extends ToolbarButtonGroup
     }
 
     /**
+     * The snippets this field offers, by name. Textual, with a trigger that keeps its own
+     * icon, like the dates: a snippet is picked by what it is called.
+     *
+     * @param  array<int, string>  $keys
+     */
+    public static function snippets(array $keys, ?string $label = null): static
+    {
+        return static::make(
+            $label ?? __('filament-advanced-rich-editor::advanced-rich-editor.tools.snippets.label'),
+            array_map(Snippets::toolName(...), $keys),
+        )
+            ->icon(Icons::get('snippets'))
+            ->staticIcon()
+            ->textualButtons();
+    }
+
+    /**
      * The overflow menu: the tools a toolbar would rather not spend a button on. It is
      * the one dropdown whose trigger stays put - the three dots are the way back to what
      * is inside, so they must not be traded for the icon of whatever the caret is in -
@@ -255,7 +272,46 @@ class ToolbarDropdown extends ToolbarButtonGroup
     {
         $html = parent::toEmbeddedHtml();
 
-        return $html === '' ? $html : $this->openingAwayFromTheEdge($html);
+        return $html === '' ? $html : $this->takingTheOneTriggerAtItsWord($this->openingAwayFromTheEdge($html));
+    }
+
+    /**
+     * Filament 5.10's dropdown, told that the one trigger it has is its trigger.
+     *
+     * `filamentDropdown()` hangs the menu and its ARIA on the first trigger that is visible,
+     * and finds it with `getComputedStyle()` and `getClientRects()` - when it starts, and
+     * again each time the panel's attributes change. Every such read makes the browser work
+     * out all the styles that changed since the last one, and under Filament's `:has()` rules
+     * on the repeater that is the whole page: measured at 28 ms a read, seven dropdowns an
+     * editor, 4.3 s of a page of twenty editors before its first frame - where stock, with no
+     * dropdown in its toolbar, pays nothing.
+     *
+     * A dropdown in this toolbar has a single trigger, and upstream takes the first trigger
+     * when none of them is visible, so with one the measuring cannot change the answer. With
+     * more than one, or a trigger that is not the one it already had, the measured way is
+     * taken as before - kept from a dropdown of its own, so this calls upstream's code rather
+     * than a copy of it.
+     *
+     * Threaded in like the anchors above: exactly one, or the markup is left as it came. A
+     * Filament before 5.10 has no `filamentDropdown()` in it, and needs none of this.
+     */
+    protected function takingTheOneTriggerAtItsWord(string $html): string
+    {
+        $anchor = e('{ ...filamentDropdown(), ');
+
+        if (substr_count($html, $anchor) !== 1) {
+            return $html;
+        }
+
+        return str_replace($anchor, $anchor.e(
+            'arteMeasuredTrigger: filamentDropdown().getTrigger, '
+            .'getTrigger() { '
+            .'const triggers = this.getTriggers(); '
+            .'return ((triggers.length === 1) && ((this.activeTrigger ?? triggers[0]) === triggers[0])) '
+            .'? (this.activeTrigger = triggers[0]) '
+            .': this.arteMeasuredTrigger(); '
+            .'}, ',
+        ), $html);
     }
 
     /**

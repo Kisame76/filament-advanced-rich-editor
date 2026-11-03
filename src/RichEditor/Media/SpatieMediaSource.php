@@ -10,15 +10,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\FindsCopies;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
 use RuntimeException;
 use Spatie\MediaLibrary\Conversions\FileManipulator;
+use Spatie\MediaLibrary\Conversions\ImageGenerators\Image as ImageGenerator;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
 use Spatie\MediaLibrary\MediaCollections\Filesystem as MediaFilesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\ResponsiveImages\Jobs\GenerateResponsiveImagesJob;
 use Spatie\MediaLibrary\Support\File as MediaFile;
 use Spatie\MediaLibrary\Support\PathGenerator\PathGeneratorFactory;
 use Throwable;
@@ -38,7 +41,7 @@ use Throwable;
  * Ids are media UUIDs, which is what the image node already carries in `attrs.id`. Picking an
  * existing item therefore stores nothing the upload path would not have stored.
  */
-class SpatieMediaSource implements MediaSource, ReplacesMedia
+class SpatieMediaSource implements FindsCopies, MediaSource, ReplacesMedia
 {
     /**
      * @param  Closure(Builder<Media>): mixed|null  $poolQuery  defined pool, overriding the scope
@@ -485,6 +488,9 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
     /** The flag the query tests. A JSON column comparison, so it has to be a scalar. */
     public const EMBED_PROPERTY = 'arte_embed';
 
+    /** What the file holds, as `ContentHash` puts it - stamped as it is written, or once compared. */
+    public const HASH_PROPERTY = 'arte_hash';
+
     /**
      * The payload, kept beside the flag rather than read out of the file.
      *
@@ -493,6 +499,48 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
      * that is already doing one query. The row is the fast copy; the file is the durable one.
      */
     public const EMBED_DATA_PROPERTY = 'arte_embed_data';
+
+    /**
+     * One query for the rows of the same size, which are almost always none; the hash decides
+     * among the rest. A row from before the hash was stamped is hashed here once and keeps it.
+     *
+     * A copy another field uploaded is as good as one this field did: the field that uploaded
+     * it does not sweep it away while another column of the record still shows it.
+     */
+    public function copyOf(int $size, string $hash): mixed
+    {
+        $candidates = $this->query()?->where('size', $size)->get() ?? [];
+
+        foreach ($candidates as $media) {
+            if ($this->kindOf($media) === MediaKinds::EMBED) {
+                continue;
+            }
+
+            if ($this->hashOf($media) === $hash) {
+                return (string) $media->getAttributeValue('uuid');
+            }
+        }
+
+        return null;
+    }
+
+    protected function hashOf(Media $media): ?string
+    {
+        $stored = $media->getCustomProperty(static::HASH_PROPERTY);
+
+        if (is_string($stored) && ($stored !== '')) {
+            return $stored;
+        }
+
+        $hash = ContentHash::ofStream($this->readStream($media));
+
+        if ($hash !== null) {
+            // Hashed is still hashed; a row that could not be written is hashed again next time.
+            rescue(static fn () => $media->setCustomProperty(static::HASH_PROPERTY, $hash)->save(), report: false);
+        }
+
+        return $hash;
+    }
 
     public function delete(mixed $id): bool
     {
@@ -571,7 +619,7 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
 
             $fileName = static::fileNameFor($file->getClientOriginalName());
             $filesystem = app(MediaFilesystem::class);
-            $responsive = $media->hasResponsiveImages();
+            $responsive = $this->wantsResponsiveImages($media);
 
             // Under the old name, before it changes: Spatie renames the conversions it knows
             // about, and the cover is one this package writes beside them.
@@ -586,6 +634,7 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
             $media->forgetCustomProperty('width');
             $media->forgetCustomProperty('height');
             $media->forgetCustomProperty(CoverGenerator::ATTEMPTED_PROPERTY);
+            $media->setCustomProperty(static::HASH_PROPERTY, ContentHash::ofPath($temporary));
             $media->setAttribute('generated_conversions', []);
 
             $dimensions = ($kind === MediaKinds::IMAGE) ? MediaDimensions::fromPath($temporary) : null;
@@ -611,7 +660,18 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
 
             $filesystem->copyToMediaLibrary($temporary, $media, null, $fileName);
 
-            app(FileManipulator::class)->createDerivedFiles($media, withResponsiveImages: $responsive);
+            app(FileManipulator::class)->createDerivedFiles($media);
+
+            // Not through the call above: Spatie's regeneration skips a row whose list is
+            // empty, and the list was emptied with the old files. The new file goes to the
+            // job the way the adder sends an upload to it.
+            if ($responsive && (new ImageGenerator)->canConvert($media)) {
+                $job = config('media-library.jobs.generate_responsive_images', GenerateResponsiveImagesJob::class);
+
+                dispatch((new $job($media))
+                    ->onConnection(config('media-library.queue_connection_name'))
+                    ->onQueue(config('media-library.queue_name')));
+            }
         } catch (Throwable $exception) {
             return false;
         } finally {
@@ -621,6 +681,23 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
         }
 
         return true;
+    }
+
+    /**
+     * Whether the new file gets responsive images: where the old one had them, and where the
+     * collection asks for them, which is what an upload would have been told. A picture put
+     * there before the project asked has none to lose, and is replaced by one that should.
+     */
+    protected function wantsResponsiveImages(Media $media): bool
+    {
+        if ($media->hasResponsiveImages()) {
+            return true;
+        }
+
+        $owner = $media->getAttribute('model');
+
+        return ($owner instanceof HasMedia)
+            && ($owner->getMediaCollection((string) $media->getAttributeValue('collection_name'))?->generateResponsiveImages === true);
     }
 
     /**

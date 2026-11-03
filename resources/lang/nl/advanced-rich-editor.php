@@ -29,7 +29,8 @@ return [
             'codeBlock' => 'code, broncode, snippet',
             'horizontalRule' => 'hr, lijn, scheidingslijn, scheiding',
             'details' => 'accordeon, uitklappen, inklappen, toggle',
-            'embed' => 'video, youtube, vimeo, insluiten, embedden, iframe',
+            'embed' => 'video, youtube, vimeo, insluiten, embedden, iframe, spotify, tiktok, loom, codepen, maps',
+            'linkPreview' => 'bladwijzer, kaart, voorbeeld, link, url, website',
             'video' => 'mp4, webm, film, clip, speler, media',
             'audio' => 'mp3, geluid, muziek, podcast, speler, media',
             'file' => 'bestand, document, pdf, bijlage, download, word, excel, zip',
@@ -81,25 +82,48 @@ return [
                 'label' => 'Linken naar een record',
                 'hint' => 'Een keuze vult de URL hieronder in, en die URL is wat de link opslaat.',
             ],
+            'check' => [
+                'answers' => 'Dit adres antwoordt :status.',
+                'no_host' => 'De host :host bestaat niet.',
+                'silent' => 'Dit adres gaf geen antwoord.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Platte tekst',
         ],
         'embed' => [
-            'label' => 'Video',
-            'heading' => 'Video insluiten',
-            'url' => 'Videolink',
-            'url_hint' => 'Plak de link uit de adresbalk of van de deelknop. Een tijdstip erin blijft behouden.',
+            'label' => 'Insluiten',
+            'heading' => 'Insluiten van een andere site',
+            'url' => 'Link',
+            'url_hint' => 'Plak de link uit de adresbalk of van de deelknop, of voor een kaart de insluitcode. Een tijdstip in een videolink blijft behouden.',
             'title' => 'Titel',
-            'title_hint' => 'Wordt door een schermlezer voorgelezen in plaats van ‘video’.',
+            'title_hint' => 'Wordt door een schermlezer voorgelezen in plaats van ‘frame’.',
             'ratio' => 'Beeldverhouding',
-            'unsupported' => 'Die link is geen video die deze editor kan insluiten.',
+            'unsupported' => 'Deze link kan deze editor niet insluiten.',
             'providers' => [
                 'youtube' => 'YouTube',
                 'vimeo' => 'Vimeo',
+                'spotify' => 'Spotify',
+                'loom' => 'Loom',
+                'codepen' => 'CodePen',
+                'tiktok' => 'TikTok',
+                'google_maps' => 'Google Maps',
             ],
             // The bar over a selected embed.
-            'replace' => 'Video vervangen',
+            'replace' => 'Insluiting vervangen',
+            'delete' => 'Verwijderen',
+        ],
+        'link_preview' => [
+            'label' => 'Linkkaart',
+            'heading' => 'Een link als kaart tonen',
+            'url' => 'Link',
+            'url_hint' => 'De pagina wordt één keer gelezen, zodra je dit veld verlaat: de titel, een regel erover en de site waarop ze staat. Alles hieronder kun je verbeteren.',
+            'title' => 'Titel',
+            'description' => 'Beschrijving',
+            'site' => 'Site',
+            'unreadable' => 'Deze pagina kon niet worden gelezen. Vul de kaart zelf in.',
+            'not_a_page' => 'Alleen een webadres dat met http:// of https:// begint, kan een kaart worden.',
+            'edit' => 'Kaart bewerken',
             'delete' => 'Verwijderen',
         ],
         /*
@@ -257,6 +281,11 @@ return [
             'exit' => 'Volledig scherm sluiten',
         ],
         'image_replace' => 'Afbeelding vervangen',
+        'image_edit' => [
+            'label' => 'Afbeelding bewerken',
+            'apply' => 'Toepassen',
+            'hint' => 'Gebruik het potlood op de afbeelding om bij te snijden, te draaien of te spiegelen. Het oorspronkelijke bestand blijft bewaard.',
+        ],
         'image_download' => 'Afbeelding downloaden',
         'image_delete' => 'Afbeelding verwijderen',
         'image_float_left' => 'Links met tekstomloop',
@@ -289,9 +318,9 @@ return [
             'from_url' => 'Via een link',
             'from_url_heading' => 'Toevoegen via een link',
             'from_url_label' => 'Link',
-            'from_url_hint' => 'Een YouTube- of Vimeo-link wordt aan je bibliotheek toegevoegd en is opnieuw te gebruiken. Elk ander adres — een bestand op de server van iemand anders — wordt ingevoegd zoals het is, een document als kaart, en niet hier opgeslagen.',
+            'from_url_hint' => 'Een link van YouTube, Vimeo, Spotify of een andere dienst die deze editor insluit, wordt aan je bibliotheek toegevoegd en kan opnieuw worden gebruikt. Elk ander adres — een bestand op de server van iemand anders — wordt ingevoegd zoals het is, een document als kaart, en niet hier opgeslagen.',
             'from_url_hint_files' => 'Een bestand dat iemand anders host. Het wordt ingevoegd zoals het is, een document als kaart, en er komt niets in je bibliotheek bij.',
-            'from_url_no_embeds' => 'Video\'s van YouTube en Vimeo zijn uitgeschakeld voor dit veld.',
+            'from_url_no_embeds' => 'Insluitingen van andere sites zijn voor dit veld uitgeschakeld.',
             'all_types' => 'Alle typen',
             'all_kinds' => 'Alles',
             'kinds' => [
@@ -343,6 +372,7 @@ return [
             'deleted_from_one' => 'Verwijderd en uit één item gehaald.',
             'replaced_in' => 'Vervangen en bijgewerkt in :count items.',
             'replaced_in_one' => 'Vervangen en bijgewerkt in één item.',
+            'already_in_library' => '‘:name’ staat al in de bibliotheek als ‘:existing’, dus dat bestand is geselecteerd.',
             'copy_url' => 'Link kopiëren',
             'copied' => 'Gekopieerd',
             'drop' => 'Loslaten om te uploaden',
@@ -407,6 +437,16 @@ return [
         ],
         'block_outlines' => [
             'label' => 'Blokken tonen',
+        ],
+        'snippets' => [
+            'label' => 'Tekstblokken',
+        ],
+        'lock' => [
+            'label' => 'Vergrendelen',
+            'badge' => 'Vergrendeld',
+        ],
+        'focus_mode' => [
+            'label' => 'Focusmodus',
         ],
         'emoji' => [
             'label' => 'Emoji',
@@ -545,6 +585,7 @@ return [
         'min_words' => ':attribute moet minstens :min woorden bevatten.',
         'max_words' => ':attribute mag niet meer dan :max woorden bevatten.',
         'must_contain' => ':attribute moet :content bevatten.',
+        'locked' => 'Vergrendelde delen van :attribute kunnen niet worden gewijzigd.',
 
         /*
          * What a node or a mark is called in that sentence. A type with no entry here falls
@@ -556,7 +597,8 @@ return [
             'bulletList' => 'een lijst met opsommingstekens',
             'callout' => 'een kader',
             'codeBlock' => 'een codeblok',
-            'embed' => 'een ingesloten video',
+            'embed' => 'een insluiting',
+            'linkPreview' => 'een linkkaart',
             'heading' => 'een kop',
             'horizontalRule' => 'een horizontale lijn',
             'image' => 'een afbeelding',
@@ -566,5 +608,8 @@ return [
             'taskList' => 'een takenlijst',
             'descriptionList' => 'een definitielijst',
         ],
+    ],
+    'lightbox' => [
+        'close' => 'Sluiten',
     ],
 ];

@@ -81,6 +81,24 @@ it('hands each picker to the component that writes its colour', function (): voi
         ->and($src)->toContain('/components/color-picker.js');
 });
 
+it('draws its swatches from the palette it already carries, rather than writing each one out', function (): void {
+    // The palette is in the component's data for the preview bar on the trigger. Writing every
+    // swatch out as a button besides - a label, a tooltip, a binding, a handler and a style
+    // each - was the same palette a second time: four pickers per editor, measured at 54 KB of
+    // every editor's markup together with their menus.
+    $palette = [
+        ['value' => 'ink', 'label' => 'Ink', 'color' => '#18181b', 'darkColor' => '#f4f4f5'],
+        ['value' => 'red', 'label' => 'Red', 'color' => '#f00', 'darkColor' => '#f66'],
+    ];
+    $html = ToolbarColorPicker::text($palette)->toEmbeddedHtml();
+
+    expect($html)->toContain('x-for="color in colors"')
+        ->and(substr_count($html, 'class="fi-arte-color-swatch"'))->toBe(1)
+        // Every value once, in the palette the component carries, and nowhere else.
+        ->and(substr_count($html, 'Ink'))->toBe(1)
+        ->and(substr_count($html, '#f66'))->toBe(1);
+});
+
 it('offers a way to clear the colour and to pick a free one', function (): void {
     $html = ToolbarColorPicker::text([['value' => 'red', 'label' => 'Red', 'color' => '#f00']])->toEmbeddedHtml();
 

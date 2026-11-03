@@ -255,21 +255,28 @@ export default () => {
                                 return
                             }
 
-                            const state =
-                                image.complete && image.naturalWidth === 0
-                                    ? 'error'
-                                    : 'loaded'
+                            const broken = image.complete && image.naturalWidth === 0
 
-                            // Written only on a real change: this attribute sits inside
-                            // the editable DOM, and rewriting it on every editor update
-                            // would feed ProseMirror a stream of mutations to inspect.
-                            if (wrapper.getAttribute('data-arte-image') !== state) {
-                                wrapper.setAttribute('data-arte-image', state)
+                            // Only a broken picture is marked, and a mark is taken away again
+                            // when the file arrives after all. This attribute sits inside the
+                            // editable DOM, and every write there makes ProseMirror read the
+                            // selection back - which makes the browser work out the page's
+                            // styles there and then. Marking every picture that loaded, as
+                            // this used to, was one of those per picture: 30 of them, 114 ms
+                            // of a page with one editor before it could draw.
+                            if (broken) {
+                                if (wrapper.getAttribute('data-arte-image') !== 'error') {
+                                    wrapper.setAttribute('data-arte-image', 'error')
+                                }
+
+                                return
                             }
 
-                            if (state === 'loaded') {
-                                pinTurnedSize(image)
+                            if (wrapper.hasAttribute('data-arte-image')) {
+                                wrapper.removeAttribute('data-arte-image')
                             }
+
+                            pinTurnedSize(image)
                         }
 
                         /*
@@ -328,6 +335,28 @@ export default () => {
                         const onImageEvent = (event) => {
                             if (event.target?.tagName === 'IMG') {
                                 markImage(event.target)
+                            }
+                        }
+
+                        /*
+                         * TipTap hides every picture it makes resizable until the file has
+                         * arrived, and shows it again from the image's own load handler: a
+                         * style written into the editable DOM per picture. Every write there
+                         * makes ProseMirror read the selection back, and the browser work out
+                         * the page's styles there and then to answer - 127 times on a page of
+                         * five editors with thirty pictures each, 2.5 s before it could draw,
+                         * where a stock editor without resizing does it not once.
+                         *
+                         * So the pictures in the document are shown here, as the view starts,
+                         * in one pass that ProseMirror reads once. Their load handlers then
+                         * find nothing left to take away, and write nothing. A picture added
+                         * later is held back and shown the way TipTap does it: one picture,
+                         * one read.
+                         */
+                        for (const container of editorView.dom.querySelectorAll('[data-resize-container]')) {
+                            if (container.style.visibility === 'hidden') {
+                                container.style.visibility = ''
+                                container.style.pointerEvents = ''
                             }
                         }
 

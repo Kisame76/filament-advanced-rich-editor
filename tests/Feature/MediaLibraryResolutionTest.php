@@ -7,7 +7,6 @@ use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibra
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaLibraryItem;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaPost;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * What a `data-id` in the content is allowed to become.
@@ -18,9 +17,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * cannot drift into a gap.
  */
 beforeEach(function (): void {
-    if (! class_exists(Media::class)) {
-        $this->markTestSkipped('spatie/laravel-medialibrary is not installed.');
-    }
+    requires('spatie/laravel-medialibrary');
 
     Storage::fake('public');
 

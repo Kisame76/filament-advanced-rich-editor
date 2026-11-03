@@ -9,7 +9,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarLayout;
 
 it('exposes the built-in tokens', function (): void {
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'dateTime', 'formatBrush', 'indent', 'outdent', 'textCase', 'embed', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'invisibleCharacters', 'blockOutlines', 'help', 'statistics', 'preview', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize']);
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'dateTime', 'snippets', 'formatBrush', 'indent', 'outdent', 'textCase', 'embed', 'linkPreview', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'lock', 'help', 'statistics', 'preview', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize']);
 });
 
 it('resolves tokens at any nesting depth', function (): void {
@@ -34,7 +34,7 @@ it('registers extra tokens from the config file', function (): void {
 
     $toolbar = editor('body')->toolbarButtons([['inline', 'link']])->getToolbarButtons();
 
-    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'dateTime', 'formatBrush', 'indent', 'outdent', 'textCase', 'embed', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'invisibleCharacters', 'blockOutlines', 'help', 'statistics', 'preview', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize', 'inline'])
+    expect(array_keys(ToolbarLayout::tokens()))->toBe(['divider', 'pin', 'headings', 'lists', 'alignment', 'callouts', 'language', 'characters', 'emoji', 'dateTime', 'snippets', 'formatBrush', 'indent', 'outdent', 'textCase', 'embed', 'linkPreview', 'lineHeight', 'more', 'tools', 'textColor', 'fullscreen', 'sourceCode', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'lock', 'help', 'statistics', 'preview', 'find', 'accessibility', 'textBackground', 'styles', 'fontFamily', 'fontSize', 'inline'])
         ->and($toolbar[0][0])->toBeInstanceOf(ToolbarDropdown::class)
         // The token closure is evaluated through the field, so it can read its configuration.
         ->and($toolbar[0][0]->getName())->toBe('body inline')
@@ -89,8 +89,8 @@ it('offers a second overflow that is named rather than a second set of dots', fu
     // different rooms behind them. This one says what is in it.
     $editor = editor()->accessibility()->sourceCode()->toolbarButtons([['tools', 'fullscreen']]);
 
-    expect(toolbarShape($editor))->toBe([['dropdown:find,accessibility,statistics,preview,invisibleCharacters,blockOutlines,sourceCode,help', 'fullscreen']])
-        ->and(toolbarItem($editor, 'dropdown:find,accessibility,statistics,preview,invisibleCharacters,blockOutlines,sourceCode,help')->getName())->toBe('Tools');
+    expect(toolbarShape($editor))->toBe([['dropdown:find,accessibility,statistics,preview,invisibleCharacters,blockOutlines,focusMode,sourceCode,help', 'fullscreen']])
+        ->and(toolbarItem($editor, 'dropdown:find,accessibility,statistics,preview,invisibleCharacters,blockOutlines,focusMode,sourceCode,help')->getName())->toBe('Tools');
 });
 
 it('is the shipped corner, so it keeps its shape as that family grows', function (): void {
@@ -100,7 +100,10 @@ it('is the shipped corner, so it keeps its shape as that family grows', function
     expect(array_slice(toolbarShape(editor()), -1))->toBe([[toolsShape(), 'fullscreen']])
         ->and(resolvedButtonNames(toolbarItem(editor(), toolsShape())))->toBe(['find', 'statistics', 'invisibleCharacters', 'blockOutlines', 'help'])
         ->and(resolvedButtonNames(toolbarItem(editor()->accessibility()->sourceCode(), toolsShape())))
-        ->toBe(['find', 'accessibility', 'statistics', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help']);
+        ->toBe(['find', 'accessibility', 'statistics', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help'])
+        // The focus mode the same way, beside the other ways of looking at the document.
+        ->and(resolvedButtonNames(toolbarItem(editor()->focusMode(), toolsShape())))
+        ->toBe(['find', 'statistics', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'help']);
 });
 
 it('goes away when every tool in it is switched off', function (): void {
