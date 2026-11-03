@@ -318,7 +318,10 @@ export default () => {
         addNodeView() {
             return ({ node }) => {
                 const card = document.createElement('div')
-                card.className = 'fi-arte-embed-card'
+                // Out of the typography, as the drag handle is: `.fi-prose` puts a top margin
+                // on the second of two adjacent elements, and the title, beside the badge
+                // rather than under it, sat that far below the middle of the card.
+                card.className = 'fi-arte-embed-card fi-not-prose'
                 card.dataset.type = 'embed'
                 card.contentEditable = 'false'
 

@@ -464,7 +464,8 @@ describe('the card drawn in the editor', () => {
     it('is a block that cannot be typed into, and names the provider and the video', () => {
         const card = draw({ provider: 'youtube', id: YOUTUBE, title: 'A talk' })
 
-        expect(card.className).toBe('fi-arte-embed-card')
+        // `fi-not-prose`, or the typography's top margin pushes the title below the badge.
+        expect(card.className).toBe('fi-arte-embed-card fi-not-prose')
         expect(card.dataset.type).toBe('embed')
         expect(card.contentEditable).toBe('false')
         expect(card.querySelector('.fi-arte-embed-card-provider').textContent).toBe('YouTube')
