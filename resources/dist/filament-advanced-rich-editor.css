@@ -81,7 +81,8 @@
  * z-index 10 is the value Filament already uses for its own sticky custom-block headers,
  * so the two never fight when both are pinned.
  */
-.fi-fo-rich-editor-toolbar.fi-arte-sticky {
+.fi-fo-rich-editor-toolbar.fi-arte-sticky,
+.fi-fo-rich-editor-toolbar.fi-arte-docked {
     position: sticky;
     top: var(--fi-arte-sticky-offset, 4rem);
     z-index: 10;
@@ -100,7 +101,8 @@
     border-start-end-radius: var(--fi-arte-toolbar-radius, 0.5rem);
 }
 
-.fi-fo-rich-editor-toolbar.fi-arte-sticky:where(.dark, .dark *) {
+.fi-fo-rich-editor-toolbar.fi-arte-sticky:where(.dark, .dark *),
+.fi-fo-rich-editor-toolbar.fi-arte-docked:where(.dark, .dark *) {
     background-color: var(
         --fi-arte-sticky-bg,
         var(--fi-arte-behind, color-mix(in oklab, var(--color-white, #fff) 10%, var(--gray-900, #18181b)))
@@ -124,6 +126,90 @@
     border-start-end-radius: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+}
+
+/*
+ * On a phone, while the field is written in, the bar sits on the keyboard - see
+ * `touch-toolbar.js`, which measures where that is and sets the class and the property. It
+ * takes the sticky bar's opaque background from the rule above, and the rest is its own: the
+ * width of the screen, square, and a line along the top, where the text now meets it.
+ *
+ * The field stops being a query container meanwhile. Filament makes it one, for a layout of
+ * its side panels a phone is too narrow for anyway, and a container is also the box a fixed
+ * bar is positioned in - the bar would land on the field rather than on the keyboard.
+ */
+.fi-arte.fi-arte-docking {
+    container-type: normal;
+}
+
+.fi-arte .fi-fo-rich-editor-toolbar.fi-arte-docked {
+    position: fixed;
+    top: var(--fi-arte-docked-top, auto);
+    inset-inline: 0;
+    z-index: 20;
+    border-radius: 0;
+    border-top: 1px solid var(--gray-200, #e4e4e7);
+    border-bottom-width: 0;
+    box-shadow: 0 -4px 12px -6px rgb(0 0 0 / 0.15);
+}
+
+.fi-arte .fi-fo-rich-editor-toolbar.fi-arte-docked:where(.dark, .dark *) {
+    border-top-color: color-mix(in oklab, var(--color-white, #fff) 10%, transparent);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Locked parts                                                               */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A part of the document nobody here may change, framed and labelled in the editor and only
+ * there: for a reader it is a plain `div` around the text, and nothing on a page styles it.
+ * The label is the node view's `data-label`, translated by the field, so the padlock reads in
+ * the language of whoever looks at it. See `locked.js`.
+ */
+.fi-arte .fi-fo-rich-editor-content .fi-arte-locked {
+    position: relative;
+    margin-block: 1.25rem;
+    padding: 0.75rem 1rem;
+    border: 1px dashed var(--gray-300, #d4d4d8);
+    border-radius: 0.5rem;
+    background-color: color-mix(in oklab, var(--gray-500, #71717a) 6%, transparent);
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-locked:where(.dark, .dark *) {
+    border-color: var(--gray-600, #52525b);
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-locked::before {
+    content: attr(data-label);
+    position: absolute;
+    inset-block-start: -0.6875rem;
+    inset-inline-end: 0.75rem;
+    padding-inline: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--gray-100, #f4f4f5);
+    color: var(--gray-600, #52525b);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-locked:where(.dark, .dark *)::before {
+    background-color: var(--gray-800, #27272a);
+    color: var(--gray-300, #d4d4d8);
+}
+
+/* Nothing here takes a caret, so nothing here invites one. */
+.fi-arte .fi-fo-rich-editor-content .fi-arte-locked[contenteditable='false'] {
+    cursor: default;
+}
+
+.fi-arte .fi-arte-locked-content > :first-child {
+    margin-block-start: 0;
+}
+
+.fi-arte .fi-arte-locked-content > :last-child {
+    margin-block-end: 0;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -788,6 +874,104 @@
     align-items: center;
     column-gap: 0.75rem;
     row-gap: 0.25rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Touch                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A finger rather than a mouse - a phone, a tablet - asked of the pointer rather than of the
+ * width, because a narrow window on a desktop is still worked with a mouse.
+ *
+ * Every button a finger can hit: 44 pixels square, the size Apple and WCAG 2.5.5 name.
+ * Filament's are 32, which a mouse hits and a thumb covers two of.
+ */
+@media (pointer: coarse) {
+    .fi-arte .fi-fo-rich-editor-tool,
+    .fi-arte .fi-fo-rich-editor-dropdown-tool-trigger {
+        min-inline-size: 2.75rem;
+        min-block-size: 2.75rem;
+    }
+
+    .fi-arte .fi-fo-rich-editor-dropdown-tool-option {
+        min-block-size: 2.75rem;
+    }
+
+    /* The chevron beside the font size's number: part of one control, so narrower. */
+    .fi-arte .fi-arte-font-size-toggle {
+        min-inline-size: 2rem;
+    }
+
+    /*
+     * Less room between the groups, which the bigger buttons need more: a short bar - the
+     * minimal preset's six buttons - stays one row on a phone instead of wrapping by a pixel.
+     */
+    .fi-arte .fi-fo-rich-editor-toolbar,
+    .fi-arte .fi-arte-toolbar-flow,
+    .fi-arte .fi-arte-toolbar-pinned {
+        column-gap: 0.5rem;
+    }
+
+    /*
+     * One row that scrolls sideways, rather than the five the shipped bar wraps into on a
+     * phone - two hundred pixels of a screen the keyboard takes half of. The pinned half
+     * stays where it is, beside the row, so the tools menu and fullscreen are always one
+     * tap away, and the flow is what a thumb swipes through. A bar with nothing pinned is
+     * short by nature and keeps wrapping: its groups sit straight in the bar, which is
+     * what the menus are positioned against and so cannot be what scrolls.
+     *
+     * One row means one column for each half, so a centred bar gives up the empty third
+     * column that centres the flow on the whole bar. The flow is still centred in its own
+     * column whenever it fits.
+     */
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split.fi-arte-toolbar-pin-end {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split.fi-arte-toolbar-pin-start {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split.fi-arte-toolbar-pin-end > .fi-arte-toolbar-flow,
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split.fi-arte-toolbar-pin-start > .fi-arte-toolbar-pinned {
+        grid-row: 1;
+        grid-column: 1;
+    }
+
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split.fi-arte-toolbar-pin-end > .fi-arte-toolbar-pinned,
+    .fi-arte .fi-fo-rich-editor-toolbar.fi-arte-toolbar-split.fi-arte-toolbar-pin-start > .fi-arte-toolbar-flow {
+        grid-row: 1;
+        grid-column: 2;
+    }
+
+    .fi-arte .fi-arte-toolbar-split > .fi-arte-toolbar-flow {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        /* A swipe that reaches the end of the row stops there instead of moving the page. */
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+
+    .fi-arte .fi-arte-toolbar-split > .fi-arte-toolbar-flow::-webkit-scrollbar {
+        display: none;
+    }
+
+    .fi-arte .fi-arte-toolbar-flow .fi-fo-rich-editor-toolbar-group {
+        flex: none;
+        flex-wrap: nowrap;
+    }
+
+    /*
+     * A menu positioned inside a scrolling row is cut off by it at the row's edge - every
+     * dropdown on the bar would open into a strip as tall as the bar. Taking the position off
+     * the dropdown's own box makes the bar the box its menu is placed against, and the bar
+     * does not scroll. Filament's floating menus measure themselves against whatever box
+     * that is; this package's own are lined up under their trigger by `menu-position.js`.
+     */
+    .fi-arte .fi-arte-toolbar-flow .fi-fo-rich-editor-dropdown-tool {
+        position: static;
+    }
 }
 
 /* -------------------------------------------------------------------------- */

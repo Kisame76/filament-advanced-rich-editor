@@ -142,6 +142,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                     ->loadedOnRequest(),
                 Js::make('advanced-rich-editor/sticky-toolbar', __DIR__.'/../resources/dist/js/sticky-toolbar.js')
                     ->loadedOnRequest(),
+                // The bar on a phone's keyboard. On every field; it stops at once on a mouse.
+                Js::make('advanced-rich-editor/touch-toolbar', __DIR__.'/../resources/dist/js/touch-toolbar.js')
+                    ->loadedOnRequest(),
 
                 // The language a passage is written in, and what a list is told about
                 // itself. Both are schema only - a mark and a set of global attributes -

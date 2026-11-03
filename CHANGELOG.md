@@ -75,6 +75,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   is taken from the tool that had it. The help dialog lists the keys as they are. A field that
   changes nothing loads nothing for it
 
+- The toolbar on a touch screen: the flowing part of the bar is one row that scrolls sideways
+  instead of wrapping into five on a phone, with the pinned buttons beside it; buttons and menu
+  rows are 44 pixels; and while the field is written in, the bar sits on the keyboard and a tap
+  on a button no longer folds the keyboard away. Menus in the scrolling row are placed against
+  the bar, so they are not cut off by it, and every menu of the package now measures against
+  the part of the page the keyboard leaves visible. Asked of the pointer, not of the width
+
 ### Fixed
 
 - A pinned toolbar in dark mode is the colour of its own field again wherever the field sits.

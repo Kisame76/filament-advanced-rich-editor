@@ -90,6 +90,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextBackgroundPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextCasePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextDirectionPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextToolbarPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TouchToolbarPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TypographyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
 use Tiptap\Editor;
@@ -432,6 +433,10 @@ class AdvancedRichEditor extends RichEditor
                 ? [StickyToolbarPlugin::make()]
                 : [],
         );
+
+        // Always: whether the field is worked with a finger is the browser's to know, and on a
+        // mouse the script stops before it does anything.
+        $this->plugins([TouchToolbarPlugin::make()]);
 
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasTextDirection()

@@ -36,7 +36,7 @@ on top of it, checked against the current Filament v5 release:
 | **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
 | **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [word counts and rules about what the document holds](#rules-about-the-content), [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
-| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
+| **Editor chrome** | — | [Fullscreen](#fullscreen), [a toolbar for touch screens](#on-a-touch-screen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
@@ -53,7 +53,8 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Custom tokens](#custom-tokens) · [Custom tools](#custom-tools) ·
 [Toolbar alignment](#toolbar-alignment) · [Pinned buttons](#pinned-buttons) ·
 [The tools menu](#the-tools-menu) · [The more menu](#the-more-menu) ·
-[Sticky toolbar](#sticky-toolbar) · [Toolbar over a selection](#toolbar-over-a-selection) ·
+[Sticky toolbar](#sticky-toolbar) · [On a touch screen](#on-a-touch-screen) ·
+[Toolbar over a selection](#toolbar-over-a-selection) ·
 [Floating toolbars](#floating-toolbars) · [Maximum height](#maximum-height) ·
 [Fullscreen](#fullscreen) · [A hard limit](#a-hard-limit) ·
 [Statistics](#statistics) · [Help](#help) · [Keyboard shortcuts](#keyboard-shortcuts)
@@ -650,6 +651,35 @@ While it rests at the top of its field the bar has the field's round corners; on
 under the page header it is square, since the top of the field has scrolled away by then. A
 small script watches for that and gives the bar `fi-arte-stuck` while it is pinned, which is
 also the class to hang anything else on that should only show while the bar is.
+
+### On a touch screen
+
+Held with a finger - a phone, a tablet - the toolbar changes in three ways. Nothing to switch
+on: it is asked of the pointer (`pointer: coarse`), not of the width, so a narrow desktop
+window keeps the mouse layout.
+
+**One row that scrolls sideways.** On a phone the shipped bar wraps into five rows, two
+hundred pixels of a screen the keyboard takes half of. On touch the flowing part of the bar is
+one row a thumb swipes through, and the [pinned buttons](#pinned-buttons) stay beside it - the
+tools menu and fullscreen are always one tap away. The dropdowns in the row open as they
+always do and are not cut off at its edge; their menus are placed against the bar, which does
+not scroll, and follow their button when the row is swiped. A bar with nothing pinned keeps
+wrapping: its groups sit in the bar itself, and those bars are short anyway - the `minimal`
+preset fits one row on a phone.
+
+**Buttons a finger can hit.** 44 pixels square, the size Apple and WCAG 2.5.5 name, where
+Filament's are 32; the rows in the toolbar's menus are as tall.
+
+**The bar on the keyboard.** While the field is written in and the keyboard is up, the bar
+sits on top of the keyboard, the full width of the screen, and goes back to the top of the
+field when the focus leaves it or the keyboard folds away. At the top of the field it would be
+out of a thumb's reach and often out of sight, since the browser scrolls the page within the
+window to keep the caret in view. A tap on one of the field's buttons also keeps the keyboard
+up rather than folding it away and opening it again. Not while the page is zoomed in, and not
+inside a container that would carry a fixed bar off with it - a modal or slide-over moves in
+with a transform - where the bar stays at the top of the field.
+
+The keyboard part is a small script on every field, which stops at once on a mouse.
 
 ### Toolbar over a selection
 
@@ -5454,7 +5484,7 @@ theme:
 
 .fi-arte-toolbar-divider { /* the vertical rule between clusters, --fi-arte-divider-color */ }
 .fi-arte-toolbar-flow { /* the aligned half of a toolbar carrying a 'pin' */ }
-.fi-arte-toolbar-pinned { /* the half pinned to an edge; on its own row below 24rem */ }
+.fi-arte-toolbar-pinned { /* the half pinned to an edge; on its own row below 24rem, beside the row on a touch screen */ }
 .fi-arte-stuck { /* a sticky toolbar while it is held under the page header */ }
 .fi-arte-task-list { /* <ul data-type="taskList"> */ }
 .fi-arte-task-item { /* a single checkbox item */ }
