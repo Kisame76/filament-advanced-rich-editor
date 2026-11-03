@@ -2232,6 +2232,15 @@ body.fi-arte-fullscreen-lock {
     position: relative;
 }
 
+/*
+ * A strip of its own above the first line for the picker, so a long line runs under it
+ * rather than behind it. The block is taller by that strip in the editor only; the page
+ * has no picker and keeps the plain padding.
+ */
+.fi-arte-code-block > pre {
+    padding-block-start: 2.125rem;
+}
+
 .fi-arte-code-block-language {
     position: absolute;
     inset-block-start: 0.375rem;

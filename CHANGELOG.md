@@ -112,6 +112,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- The language picker on a code block sat on top of a long first line. In the editor the
+  block keeps a narrow strip above the code for it; the rendered page is unchanged
+
 - A pinned toolbar in dark mode is the colour of its own field again wherever the field sits.
   Its background was written down for a field inside a section, so on a field straight on the
   page it was a lighter stripe across the top. It is now measured from what is behind the bar,
