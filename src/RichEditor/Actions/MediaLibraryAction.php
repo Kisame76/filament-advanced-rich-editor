@@ -38,10 +38,20 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\MediaUrl;
  * saved before this dialog existed and content saved through it are the same content.
  *
  * Size and rotation stay where they were: they are attributes of the image node, not of the
- * file. Reusing a picture at a different size cannot disturb the picture anywhere else.
+ * file. Reusing a picture at a different size cannot disturb the picture anywhere else. Only
+ * the height of a picture whose file is swapped for another follows the new file's shape.
  */
 class MediaLibraryAction
 {
+    /**
+     * What a button standing on a picture hands this dialog: the file the picture shows, its
+     * description, and the size it is drawn at, which another file put in its place keeps the
+     * width of.
+     */
+    public const PICTURE_ARGUMENTS = <<<'JS'
+        (({ id, src, alt, width, height }) => ({ id, src, alt, width, height }))($getEditor().getAttributes('image'))
+        JS;
+
     /**
      * The action a media button should mount.
      *
@@ -482,12 +492,25 @@ class MediaLibraryAction
                         $id ??= $arguments['id'] ?? null;
                         $src ??= $arguments['src'];
 
+                        $attributes = ['alt' => $alt, 'id' => $id, 'src' => $src];
+
+                        // Another file in the picture's place keeps the width the picture was
+                        // drawn at and takes the new file's shape. Filament draws the size as an
+                        // inline style, so a height kept from the old file presses the new one
+                        // into the old box. The same file, or none picked, keeps the size
+                        // somebody gave it.
+                        $isSameFile = filled($id) ? $id === ($arguments['id'] ?? null) : $src === $arguments['src'];
+
+                        if ($item !== null && ! $isSameFile) {
+                            $attributes = [...$attributes, ...ImageAttributes::afterEditing($item, [
+                                'width' => $arguments['width'] ?? null,
+                                'height' => $arguments['height'] ?? null,
+                            ])];
+                        }
+
                         $component->runCommands(
                             [
-                                EditorCommand::make('updateAttributes', arguments: [
-                                    'image',
-                                    ['alt' => $alt, 'id' => $id, 'src' => $src],
-                                ]),
+                                EditorCommand::make('updateAttributes', arguments: ['image', $attributes]),
                             ],
                             editorSelection: $arguments['editorSelection'],
                         );

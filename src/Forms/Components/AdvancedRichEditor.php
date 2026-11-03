@@ -153,13 +153,13 @@ class AdvancedRichEditor extends RichEditor
             RichEditorTool::make('mediaBrowser')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.media_browser'))
                 ->icon(Icons::get('media_browser'))
-                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: MediaLibraryAction::PICTURE_ARGUMENTS)
                 ->activeKey('image'),
 
             RichEditorTool::make('image')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image'))
                 ->icon(Icons::get('image'))
-                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: MediaLibraryAction::PICTURE_ARGUMENTS)
                 ->activeKey('image'),
 
             // Filament's alignment labels read "Align start" and so on, which is noise in a
@@ -251,7 +251,7 @@ class AdvancedRichEditor extends RichEditor
             // Both replace the selected picture when they are handed its address.
             RichEditorTool::make('imageReplace')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.image_replace'))
-                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: '{ kind: \'image\', id: $getEditor().getAttributes(\'image\')?.id, src: $getEditor().getAttributes(\'image\')?.src, alt: $getEditor().getAttributes(\'image\')?.alt }')
+                ->action(static fn (RichEditorTool $tool): string => MediaLibraryAction::nameFor($tool), arguments: "{ kind: 'image', ...".MediaLibraryAction::PICTURE_ARGUMENTS.' }')
                 ->activeStyling(false)
                 ->icon(Icons::get('image_replace')),
 

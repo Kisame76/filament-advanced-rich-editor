@@ -721,7 +721,10 @@ Download, Delete, wherever each applies — so a hand that learned one knows the
 embed has nothing to download, since the video is on somebody else's server, and its Replace
 is the embed dialog filled in with it. Replace on a card or a player needs a
 [media browser](#media-browser) to go back to and is left out without one; a picture's goes
-to Filament's own dialog then, which replaces the selected picture too. Download saves a
+to Filament's own dialog then, which replaces the selected picture too. A picture replaced from
+the media browser keeps the width it was drawn at and takes the new file's shape, so a tall
+picture in place of a wide one is not pressed into the old box; the same file picked again, or
+one whose shape is not known, keeps its size. Download saves a
 card under the card's own name, and everything else under the last part of its address.
 
 All of them assemble themselves from what the field has switched on: no

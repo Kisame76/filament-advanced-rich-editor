@@ -18,6 +18,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- A picture replaced by another one from the media browser takes the new file's shape. It kept
+  the old height, and Filament draws the width and the height as an inline style, so a tall
+  picture put in place of a wide one was pressed into the old box. The width stays as the
+  picture was drawn; the same file picked again, or one whose shape is not known, keeps its
+  size, as replacing a file in the library already did in the open editor
+
 - A page of editors on Filament 5.10 is drawn in half the time again. Filament's new dropdown
   looks for the visible one among its triggers when it starts and whenever its panel changes,
   asking the browser for styles each time - and under Filament's own `:has()` rules each of
