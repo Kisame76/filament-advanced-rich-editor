@@ -2836,6 +2836,58 @@ AdvancedRichEditor::make('content')->spatieMediaLibrary(),
 AdvancedRichEditor::make('summary')->spatieMediaLibrary(),   // same collection, separate images
 ```
 
+#### Responsive images
+
+A picture is rendered with the responsive images Spatie made of it — the same picture at a few
+smaller widths — as `srcset`, so a phone is not sent the file a wide screen needs. Spatie makes
+them only where the project asks, because each one is a file on the disk and a job on the
+queue; ask on the collection, and every picture the field uploads gets them, the image
+editor's included:
+
+```php
+public function registerMediaCollections(): void
+{
+    $this->addMediaCollection('rich-editor')->withResponsiveImages();
+}
+```
+
+There is nothing to switch on in the field, and a project that does not ask renders as before.
+Where the field embeds a conversion, the conversion's own responsive images are used —
+`->withResponsiveImages()` on the conversion — and never the original's, which are another
+picture.
+
+`sizes` comes from the width the picture is drawn at: `(max-width: 320px) 100vw, 320px` for one
+drawn 320 pixels wide, `100vw` where it has no width in pixels. A lazy picture with a width
+starts the list with `auto`, which lets a browser that can measure the laid-out picture do so.
+
+Worth knowing:
+
+- **The list is read from the media row on every render, never from the document.** Nothing
+  checks the addresses in a `srcset` — Symfony's sanitiser checks `src`, not this — so one the
+  stored content carried is dropped.
+- **Spatie's blurred placeholder is left out.** It is for Spatie's own component, which swaps
+  in the right size with a script; in a document it is markup no browser picks.
+- **None on a private disk.** Spatie addresses responsive images as public files, always.
+- **Pictures uploaded before you asked have none.** `media-library:regenerate
+  --with-responsive-images` only remakes the ones a picture already had. Send the rest to
+  Spatie's job once:
+
+  ```php
+  use Spatie\MediaLibrary\Conversions\ImageGenerators\Image;
+  use Spatie\MediaLibrary\MediaCollections\Models\Media;
+  use Spatie\MediaLibrary\ResponsiveImages\Jobs\GenerateResponsiveImagesJob;
+
+  Media::query()->where('collection_name', 'rich-editor')->each(function (Media $media): void {
+      if ((new Image)->canConvert($media) && ! $media->hasResponsiveImages()) {
+          dispatch(new GenerateResponsiveImagesJob($media));
+      }
+  });
+  ```
+
+- **They are made on the queue.** A page drawn before the job is done shows the picture
+  without the list — and keeps showing it that way while a [cached render](#caching-a-render)
+  lasts. Replacing a file in the library makes them again for the new file.
+
 #### Extending the provider
 
 The provider is the one place that turns a stored media UUID into a file, so anything that

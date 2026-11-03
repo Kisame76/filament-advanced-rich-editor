@@ -24,6 +24,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Language;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\DescriptionDetails;
@@ -40,6 +41,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageDecorat
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageFloat;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageLink;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageRotate;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ImageSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\LineHeight;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\ListProperties;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Mention;
@@ -561,6 +563,9 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             app(ImageDecorative::class),
             // And an address a picture points at is one it should still point at.
             app(ImageLink::class),
+            // Declared for the attribute's other half: it never reads a list out of the
+            // markup, so it is the only way one written by the attachment pass gets out.
+            app(ImageSrcset::class),
             // The same again, six times over. Every one of these used to arrive only with
             // the plugin that puts its button on the bar, so a plain render of a stored
             // document dropped it without a word: a task list came back as an ordinary
@@ -1097,6 +1102,13 @@ class AdvancedRichContentRenderer extends RichContentRenderer
                 return;
             }
 
+            // The list of sizes is only ever this pass's own answer. A document kept as JSON
+            // hands its attributes over as they were stored, past the parse that drops one,
+            // and nothing checks the addresses in it.
+            if (isset($node->attrs->srcset)) {
+                unset($node->attrs->srcset);
+            }
+
             if (blank($node->attrs->id ?? null)) {
                 return;
             }
@@ -1108,6 +1120,12 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             }
 
             $node->attrs->src = $url;
+
+            // Asked here, of the provider that just answered for the address, because nothing
+            // after this pass knows which file a picture is; `ImageSrcset` writes it out.
+            if ($node->type === 'image' && ($provider = $this->getFileAttachmentProvider()) instanceof ProvidesSrcset) {
+                $node->attrs->srcset = $provider->getFileAttachmentSrcset($node->attrs->id);
+            }
         });
     }
 

@@ -9,6 +9,7 @@ use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileA
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Illuminate\Database\Eloquent\Model;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
@@ -18,6 +19,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\ResponsiveImages\ResponsiveImage;
 
 /**
  * Stores rich editor image attachments as `spatie/laravel-medialibrary` media instead of
@@ -31,7 +33,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * project that never uses this provider is unaffected by its absence; only actually using the
  * feature raises an exception telling the developer to install the package.
  */
-class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
+class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider, ProvidesSrcset
 {
     /**
      * The custom property every attachment this package uploads is stamped with.
@@ -284,6 +286,38 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
         }
 
         return $this->getMediaUrl($media);
+    }
+
+    /**
+     * The responsive images Spatie made of the picture, where the project asked it for them -
+     * on the collection, or on the conversion the picture is shown as. Those of the conversion
+     * where there is one: the original's are another picture, perhaps cut differently.
+     *
+     * Built from the files rather than taken from `getSrcset()`, which ends the list with an
+     * inline placeholder 32 pixels wide. That is for Spatie's own component, which loads it
+     * first and swaps in the right size with a script; in a document it is a few kilobytes of
+     * markup per picture that no browser picks.
+     *
+     * None on a private disk. Spatie addresses them as public files, always, and there they
+     * lead nowhere.
+     */
+    public function getFileAttachmentSrcset(mixed $file): ?string
+    {
+        if ($this->getDefaultFileAttachmentVisibility() === 'private') {
+            return null;
+        }
+
+        $media = $this->resolveMedia($file);
+
+        if (! $media) {
+            return null;
+        }
+
+        $srcset = $media->responsiveImages($this->getConversion() ?? '')->files
+            ->map(fn (ResponsiveImage $image): string => $image->url().' '.$image->width().'w')
+            ->implode(', ');
+
+        return ($srcset === '') ? null : $srcset;
     }
 
     /**

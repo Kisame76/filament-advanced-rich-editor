@@ -16,6 +16,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   rather than having what is left stretched over the old box. Off by default, because every
   edit writes a file of its own: switch it on with `->imageEditor()` or the `images.editor` key
 
+- A picture from a media collection is rendered with the responsive images Spatie made of it,
+  as `srcset`, and a `sizes` worked out from the width the picture is drawn at. Spatie makes
+  them only where the project asks for them - `->withResponsiveImages()` on the collection, or
+  on the conversion the field embeds - so nothing changes for a project that does not, and
+  there is nothing to switch on in the field. The list is read from the media row each time
+  and never from the document, whose `srcset` nothing would check; Spatie's inline
+  placeholder is left out, and a private disk gets none, since Spatie addresses them as public
+  files
+
 ### Fixed
 
 - A picture replaced by another one from the media browser takes the new file's shape. It kept
