@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Zobrazit bloky',
         ],
+        'snippets' => [
+            'label' => 'Textové bloky',
+        ],
         'lock' => [
             'label' => 'Zamknout',
             'badge' => 'Zamčeno',

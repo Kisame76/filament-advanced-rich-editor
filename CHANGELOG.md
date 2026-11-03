@@ -88,6 +88,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   server against the record's stored value or the field's default, so a part changed, removed
   or added in the browser is refused. Off by default (`->lockedRegions()`, `locked_regions`)
 
+- Snippets: ready-made content to insert where the caret is - a signature, a disclaimer, a
+  report's skeleton - from `->snippets([...])` or `snippets` in the config, a closure for a list
+  kept in a table. Offered in a `'snippets'` dropdown in the shipped toolbar and in the slash
+  menu, and as one tool per snippet; the content is fetched when one is picked. A field with
+  none shows nothing
+
 ### Fixed
 
 - A pinned toolbar in dark mode is the colour of its own field again wherever the field sits.

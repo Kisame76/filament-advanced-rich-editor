@@ -418,6 +418,9 @@ return [
         'block_outlines' => [
             'label' => 'Blöcke anzeigen',
         ],
+        'snippets' => [
+            'label' => 'Textbausteine',
+        ],
         'lock' => [
             'label' => 'Sperren',
             'badge' => 'Gesperrt',

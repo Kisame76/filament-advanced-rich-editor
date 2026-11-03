@@ -28,6 +28,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\FloatsToolbars;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\FormatsBlocks;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\FormatsText;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\HoldsAMediaLibrary;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\InsertsSnippets;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\KeepsADraft;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\KeepsContentClean;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\LocksRegions;
@@ -83,6 +84,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ShortcutsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SnippetsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StatisticsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StickyToolbarPlugin;
@@ -119,6 +121,7 @@ class AdvancedRichEditor extends RichEditor
     use FormatsBlocks;
     use FormatsText;
     use HoldsAMediaLibrary;
+    use InsertsSnippets;
     use KeepsADraft;
     use KeepsContentClean;
     use LocksRegions;
@@ -563,6 +566,13 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasDateTime()
                 ? [DateTimePlugin::make($component->getDateTimeFormats())]
+                : [],
+        );
+
+        // One tool per snippet; a field with none registers nothing.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasSnippets()
+                ? [SnippetsPlugin::make(array_map(static fn (array $snippet): string => $snippet['label'], $component->getSnippets()))]
                 : [],
         );
 

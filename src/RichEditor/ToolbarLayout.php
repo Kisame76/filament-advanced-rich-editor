@@ -127,6 +127,12 @@ class ToolbarLayout
 
                 return $formats === [] ? [] : ToolbarDropdown::dateTime(array_keys($formats));
             },
+            // Nothing to pick from means no trigger: a field without snippets shows nothing.
+            'snippets' => static function (AdvancedRichEditor $editor): object|array {
+                $snippets = $editor->getSnippets();
+
+                return $snippets === [] ? [] : ToolbarDropdown::snippets(array_keys($snippets));
+            },
             // Nothing to offer means no button, the same rule the rest of the bar follows.
             'formatBrush' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFormatBrush()
                 ? 'formatBrush'

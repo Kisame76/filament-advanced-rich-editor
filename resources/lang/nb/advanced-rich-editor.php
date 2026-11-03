@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Vis blokker',
         ],
+        'snippets' => [
+            'label' => 'Tekstblokker',
+        ],
         'lock' => [
             'label' => 'Lås',
             'badge' => 'Låst',

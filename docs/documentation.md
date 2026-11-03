@@ -36,7 +36,7 @@ on top of it, checked against the current Filament v5 release:
 | **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
 | **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [word counts and rules about what the document holds](#rules-about-the-content), [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
-| **Editor chrome** | — | [Fullscreen](#fullscreen), [a toolbar for touch screens](#on-a-touch-screen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
+| **Editor chrome** | — | [Fullscreen](#fullscreen), [a toolbar for touch screens](#on-a-touch-screen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters), [snippets](#snippets-and-templates) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
@@ -69,7 +69,8 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Font size](#font-size) · [Colours](#colours) ·
 [Language of a passage](#language-of-a-passage) · [Emoji](#emoji) ·
 [Special characters](#special-characters) · [Format brush](#format-brush) ·
-[Changing the case](#changing-the-case) · [Date and time](#date-and-time)
+[Changing the case](#changing-the-case) · [Date and time](#date-and-time) ·
+[Snippets and templates](#snippets-and-templates)
 
 **[Media and links](#media-and-links)** — [Images](#images) ·
 [Where a picture sits](#where-a-picture-sits) ·
@@ -2034,6 +2035,48 @@ The dropdown labels the three shipped formats by name and anything else by drawi
 itself — a format a project added has no name anybody wrote down. That example is rendered
 with the page, which is worth knowing for a format that is only a clock: the menu then shows
 the hour the page was opened while the insert writes the hour it was clicked.
+
+
+### Snippets and templates
+
+Ready-made content to put where the caret is: a signature, a disclaimer, the skeleton of a
+report. Not the same thing as Filament's `customBlocks()`: a custom block is structure with
+fields to fill in, kept as one piece. A snippet is text, and once it is
+in, it is the document's like anything typed.
+
+```php
+AdvancedRichEditor::make('content')->snippets([
+    'signature' => '<p>Kind regards,<br>The editorial team</p>',
+    'report' => [
+        'label' => 'Report template',
+        'content' => '<h2>Situation</h2><p></p><h2>Findings</h2><p></p><h2>Next steps</h2>',
+    ],
+]);
+```
+
+The key names the snippet - a letter, then letters, digits and underscores - and its label is
+the key made readable unless one is given. Each snippet is a tool named after its key, so
+`legal_note` and `legalNote` would be the same one and are refused together. The content is markup, or a document as an array.
+`snippets` in the config is the list for every field; `->snippets()` replaces it, and takes a
+closure, which is where snippets kept in a table come in:
+
+```php
+->snippets(fn (): array => Snippet::query()->get()->mapWithKeys(
+    fn (Snippet $snippet): array => ["s{$snippet->id}" => ['label' => $snippet->title, 'content' => $snippet->body]],
+)->all())
+```
+
+A field with snippets offers them in the `'snippets'` dropdown, which is in the shipped
+toolbar beside the callouts and resolves to nothing on a field with none, and in the slash
+menu under what gets added. Each one is also a tool of its own, `snippet` plus the key in
+StudlyCase - `snippetSignature` - for a bar that wants one as a button. The content is asked of
+the server when one is picked, so a long list costs the page only its names, and a request
+for a key that is not on the field's list gets nothing.
+
+**Templates** are the same thing at another moment: a snippet put into an empty field, or a
+field's `default()` on a form that creates a record. A template with
+[locked regions](#locked-regions) comes in through `default()`: inserting locked parts is
+locking, which only somebody who may lock can do.
 
 ## Media and links
 

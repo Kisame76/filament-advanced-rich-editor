@@ -186,6 +186,23 @@ class ToolbarDropdown extends ToolbarButtonGroup
     }
 
     /**
+     * The snippets this field offers, by name. Textual, with a trigger that keeps its own
+     * icon, like the dates: a snippet is picked by what it is called.
+     *
+     * @param  array<int, string>  $keys
+     */
+    public static function snippets(array $keys, ?string $label = null): static
+    {
+        return static::make(
+            $label ?? __('filament-advanced-rich-editor::advanced-rich-editor.tools.snippets.label'),
+            array_map(Snippets::toolName(...), $keys),
+        )
+            ->icon(Icons::get('snippets'))
+            ->staticIcon()
+            ->textualButtons();
+    }
+
+    /**
      * The overflow menu: the tools a toolbar would rather not spend a button on. It is
      * the one dropdown whose trigger stays put - the three dots are the way back to what
      * is inside, so they must not be traded for the icon of whatever the caret is in -

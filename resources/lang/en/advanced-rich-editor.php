@@ -440,6 +440,9 @@ return [
         'block_outlines' => [
             'label' => 'Show blocks',
         ],
+        'snippets' => [
+            'label' => 'Snippets',
+        ],
         'lock' => [
             'label' => 'Lock',
             'badge' => 'Locked',

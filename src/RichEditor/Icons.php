@@ -98,6 +98,7 @@ class Icons
             'block_outlines' => 'arte-square-dashed',
             'focus_mode' => 'heroicon-o-viewfinder-circle',
             'lock' => 'heroicon-o-lock-closed',
+            'snippets' => 'heroicon-o-clipboard-document-list',
             'statistics' => 'heroicon-o-chart-bar',
             'preview' => 'heroicon-o-eye',
             // Searching. The magnifier is the button, and the three inside the bar are the

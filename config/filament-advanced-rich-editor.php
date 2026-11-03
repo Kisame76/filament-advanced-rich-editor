@@ -51,7 +51,7 @@ return [
         'divider',
         ['alignment', 'lineHeight'],
         'divider',
-        ['lists', 'mediaBrowser', 'table', 'callouts'],
+        ['lists', 'mediaBrowser', 'table', 'callouts', 'snippets'],
         'divider',
         ['more'],
         'pin',
@@ -537,7 +537,7 @@ return [
             'insert' => [
                 'image', 'attachFiles', 'embed', 'linkPreview', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
                 'emoji', 'characters',
-                'dateTime', 'customBlocks', 'mergeTags',
+                'dateTime', 'snippets', 'customBlocks', 'mergeTags',
             ],
         ],
     ],
@@ -791,6 +791,26 @@ return [
     | A field with this off unwraps any locked part it is handed. Per field: `->lockedRegions()`.
     */
     'locked_regions' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Snippets
+    |--------------------------------------------------------------------------
+    | Ready-made content to put where the caret is - a signature, a disclaimer, the skeleton
+    | of a report. Keyed by a name, with the content as markup or as a document array, and
+    | a label where the name is not one:
+    |
+    |   'snippets' => [
+    |       'signature' => '<p>Kind regards,<br>The editorial team</p>',
+    |       'disclaimer' => ['label' => 'Legal note', 'content' => '<p>...</p>'],
+    |   ],
+    |
+    | Offered through the 'snippets' dropdown (in the shipped toolbar, beside the callouts)
+    | and in the slash menu. With none, neither shows anything. The content is asked of the
+    | server when one is picked, so a long list costs the page only its names.
+    | Per field: `->snippets()`, which replaces this list and takes a closure.
+    */
+    'snippets' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -1706,6 +1726,7 @@ return [
         'block_outlines' => 'arte-square-dashed',
         'focus_mode' => 'heroicon-o-viewfinder-circle',
         'lock' => 'heroicon-o-lock-closed',
+        'snippets' => 'heroicon-o-clipboard-document-list',
         'statistics' => 'heroicon-o-chart-bar',
         'preview' => 'heroicon-o-eye',
         'find' => 'heroicon-o-magnifying-glass',

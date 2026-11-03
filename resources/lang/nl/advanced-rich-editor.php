@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Blokken tonen',
         ],
+        'snippets' => [
+            'label' => 'Tekstblokken',
+        ],
         'lock' => [
             'label' => 'Vergrendelen',
             'badge' => 'Vergrendeld',

@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Mostrar blocos',
         ],
+        'snippets' => [
+            'label' => 'Trechos',
+        ],
         'lock' => [
             'label' => 'Bloquear',
             'badge' => 'Bloqueado',

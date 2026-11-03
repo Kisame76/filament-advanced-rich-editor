@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Afficher les blocs',
         ],
+        'snippets' => [
+            'label' => 'Blocs de texte',
+        ],
         'lock' => [
             'label' => 'Verrouiller',
             'badge' => 'Verrouillé',
