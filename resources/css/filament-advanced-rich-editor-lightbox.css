@@ -1,0 +1,107 @@
+/*
+ * The box a picture on a rendered page opens in - see `resources/js/lightbox.js`.
+ *
+ * For the page a document is published on, not for the panel: it is loaded by
+ * `<x-arte-lightbox />` beside the script, and by nothing else. A file rather than styles the
+ * script writes, because a page with a strict Content-Security-Policy refuses an inline
+ * `<style>`, and because a project restyling the box should be able to do it the way it
+ * restyles everything else - with a rule of its own after this one.
+ */
+
+/* The picture on the page says it can be opened. */
+.fi-arte-lightbox {
+    cursor: zoom-in;
+}
+
+/*
+ * The whole screen, transparent: the dark is the backdrop's, and the box only centres the
+ * picture in it. Reset rather than trusted, because a browser draws a dialog as a small
+ * bordered card in the middle of the page.
+ */
+.fi-arte-lightbox-dialog {
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+.fi-arte-lightbox-dialog::backdrop {
+    background: rgb(0 0 0 / 0.85);
+}
+
+.fi-arte-lightbox-dialog figure {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    height: 100%;
+    margin: 0;
+    padding: 3rem 1rem 1.5rem;
+}
+
+/*
+ * As large as the screen allows and no larger than the file: `contain` keeps the shape, and
+ * the caption under it keeps its line.
+ */
+.fi-arte-lightbox-dialog img {
+    display: block;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    cursor: zoom-out;
+}
+
+.fi-arte-lightbox-dialog figcaption {
+    max-width: 60ch;
+    color: rgb(255 255 255 / 0.9);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.fi-arte-lightbox-dialog figcaption[hidden] {
+    display: none;
+}
+
+.fi-arte-lightbox-close {
+    position: fixed;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.15);
+    color: #fff;
+    cursor: pointer;
+}
+
+.fi-arte-lightbox-close svg {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.fi-arte-lightbox-close:hover,
+.fi-arte-lightbox-close:focus-visible {
+    background: rgb(255 255 255 / 0.3);
+}
+
+.fi-arte-lightbox-close:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}

@@ -548,4 +548,7 @@ return [
             'descriptionList' => 'eine Definitionsliste',
         ],
     ],
+    'lightbox' => [
+        'close' => 'Schließen',
+    ],
 ];

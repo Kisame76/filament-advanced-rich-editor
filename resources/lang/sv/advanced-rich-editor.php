@@ -573,4 +573,7 @@ return [
             'descriptionList' => 'en definitionslista',
         ],
     ],
+    'lightbox' => [
+        'close' => 'Stäng',
+    ],
 ];

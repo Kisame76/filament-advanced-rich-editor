@@ -34,6 +34,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   browser already makes. On by default; `->mediaLibraryDeduplicates(false)` or the
   `media_library.deduplicate` key turns it off
 
+- Pictures on a rendered page can open large: `->lightbox()` on the renderer, or `lightbox` on
+  `<x-arte-content>`, links every picture to its own address, and a small script opens the link
+  in the browser's own `<dialog>` over the page, with the caption under it. Without the script
+  the link simply opens the picture. What opens large is the picture as published, `srcset`
+  and all; a picture with a link of its own keeps it, and a decorative one gets none. Off by
+  default: `<x-arte-content lightbox>` brings the script and stylesheet along, and
+  `<x-arte-lightbox />` puts them on a page that renders by itself
+
 ### Fixed
 
 - **Two editors on one record no longer delete each other's pictures.** Each picture remembers

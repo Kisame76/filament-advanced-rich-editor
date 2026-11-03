@@ -91,6 +91,8 @@ class AdvancedRichContentRenderer extends RichContentRenderer
 
     protected bool $hasLinkAttributes = true;
 
+    protected bool $hasLightbox = false;
+
     protected ?CodeHighlighter $codeHighlighter = null;
 
     /**
@@ -283,6 +285,30 @@ class AdvancedRichContentRenderer extends RichContentRenderer
     }
 
     /**
+     * Opens a picture large over the page when it is clicked.
+     *
+     * Off by default, because it is a decision about the page rather than the document: a
+     * project may well have a lightbox of its own, and this one needs its script on the page.
+     * `<x-arte-content lightbox>` brings it along; a page rendering through this class itself
+     * puts `<x-arte-lightbox />` on it.
+     *
+     * Each picture gets a link to its own address, which is what makes it work without the
+     * script too: the link opens the picture. A picture that already points somewhere keeps
+     * its link, and one that says it carries nothing is left alone.
+     */
+    public function lightbox(bool $condition = true): static
+    {
+        $this->hasLightbox = $condition;
+
+        return $this;
+    }
+
+    public function hasLightbox(): bool
+    {
+        return $this->hasLightbox;
+    }
+
+    /**
      * Colours the code blocks.
      *
      * A single theme by default, because that needs no stylesheet of yours. Passing a pair
@@ -418,6 +444,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             'anchors' => [$this->anchorLevels, $this->anchorPosition->value, $this->anchorSymbol, $this->anchorClass],
             'styles' => $this->styles,
             'linkAttributes' => $this->hasLinkAttributes,
+            'lightbox' => $this->hasLightbox,
             'code' => $this->codeThemes,
             'disk' => $this->fileAttachmentsDiskName,
             'visibility' => $this->fileAttachmentsVisibility,
@@ -871,7 +898,10 @@ class AdvancedRichContentRenderer extends RichContentRenderer
         // After the captions, and that order is the point: the link belongs around the
         // picture inside a `<figure>` rather than around the figure, because a caption is
         // text about the picture rather than part of what is being linked.
-        $html = (new LinkedImages)->apply($html);
+        //
+        // The lightbox's link is written in the same pass, which is what keeps it off a
+        // picture that already has a link of its own.
+        $html = (new LinkedImages(lightbox: $this->hasLightbox))->apply($html);
 
         // Same again: the empty description that belongs beside `role="presentation"` is one
         // no schema can write, because a blank attribute value is dropped on the way out.

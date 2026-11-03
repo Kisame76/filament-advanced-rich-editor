@@ -32,6 +32,7 @@ class Content extends Component
      * @param  array<string, mixed>|null  $mergeTags
      * @param  array<int, mixed>|null  $mentions  mention providers, for documents that hold mentions
      * @param  bool|int  $cache  true for the configured lifetime, or a number of seconds
+     * @param  bool  $lightbox  pictures open large when clicked; brings the script along
      */
     public function __construct(
         public string|array|null $content = null,
@@ -46,19 +47,21 @@ class Content extends Component
         public ?string $disk = null,
         public ?string $visibility = null,
         public bool|int $cache = false,
+        public bool $lightbox = false,
     ) {}
 
     public function render(): View
     {
-        return view('filament-advanced-rich-editor::components.content', [
-            'html' => $this->toHtml(),
-            'element' => $this->element(),
-        ]);
-    }
+        $renderer = $this->buildRenderer();
 
-    protected function toHtml(): string
-    {
-        return $this->buildRenderer()->toHtml();
+        return view('filament-advanced-rich-editor::components.content', [
+            'html' => $renderer->toHtml(),
+            'element' => $this->element(),
+            // Asked of the renderer rather than of the prop, so one handed in already told
+            // brings its script along too. Named apart from the prop, which as a public
+            // property would be handed to the view under its own name and win.
+            'lightboxAssets' => $renderer->hasLightbox(),
+        ]);
     }
 
     protected function buildRenderer(): AdvancedRichContentRenderer
@@ -103,6 +106,10 @@ class Content extends Component
 
         if ($this->cache !== false) {
             $renderer->cached(is_int($this->cache) ? $this->cache : null);
+        }
+
+        if ($this->lightbox) {
+            $renderer->lightbox();
         }
 
         return $renderer;

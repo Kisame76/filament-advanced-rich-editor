@@ -14,6 +14,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\RenderLedger;
 use Kisame76\FilamentAdvancedRichEditor\View\Components\Content;
+use Kisame76\FilamentAdvancedRichEditor\View\Components\Lightbox;
 
 use function Livewire\on;
 
@@ -35,7 +36,7 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
             ->hasCommand(MediaCoversCommand::class)
             // `<x-arte-content :content="$post->body" />`. The prefix is the one the CSS
             // classes already use, so a project only ever learns the one abbreviation.
-            ->hasViewComponents('arte', Content::class);
+            ->hasViewComponents('arte', Content::class, Lightbox::class);
     }
 
     public function packageBooted(): void
@@ -52,6 +53,16 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 // editor and the media browser ask for it with `x-load-css` as they start, so a
                 // dashboard or a login page never downloads it.
                 Css::make('filament-advanced-rich-editor-overlays', __DIR__.'/../resources/dist/filament-advanced-rich-editor-overlays.css')
+                    ->loadedOnRequest(),
+
+                // The box a picture opens in on the page a document is published on. Never in
+                // the panel: `<x-arte-lightbox />` writes both tags, and only where a renderer
+                // was told to link its pictures. A module, because it is a script of its own
+                // with nothing of Filament's to wait for.
+                Css::make('filament-advanced-rich-editor-lightbox', __DIR__.'/../resources/dist/filament-advanced-rich-editor-lightbox.css')
+                    ->loadedOnRequest(),
+                Js::make('advanced-rich-editor/lightbox', __DIR__.'/../resources/dist/js/lightbox.js')
+                    ->module()
                     ->loadedOnRequest(),
 
                 // The media browser, as an Alpine component rather than a script: it is one

@@ -574,4 +574,8 @@ return [
             'descriptionList' => 'a definition list',
         ],
     ],
+    // The box a picture opens in on the page, when the renderer is asked for one.
+    'lightbox' => [
+        'close' => 'Close',
+    ],
 ];

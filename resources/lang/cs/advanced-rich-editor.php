@@ -573,4 +573,7 @@ return [
             'descriptionList' => 'seznam definic',
         ],
     ],
+    'lightbox' => [
+        'close' => 'Zavřít',
+    ],
 ];

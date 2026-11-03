@@ -72,8 +72,8 @@ function styleSheetDefines(string $css, string $class): bool
 }
 
 /**
- * Both stylesheets as one: the page sheet and the overlay sheet together are what the
- * package ships, and a class is styled when either of them has the rule.
+ * Every stylesheet as one: the page sheet, the overlay sheet and the lightbox's together are
+ * what the package ships, and a class is styled when any of them has the rule.
  */
 function shippedStylesheets(): string
 {
@@ -144,6 +144,8 @@ it('keeps the published assets identical to the source ones', function (): void 
     $stylesheets = glob($root.'/resources/css/*.css') ?: [];
 
     expect(array_map('basename', $stylesheets))->toBe([
+        // The page a document is published on, never the panel - see `<x-arte-lightbox />`.
+        'filament-advanced-rich-editor-lightbox.css',
         'filament-advanced-rich-editor-overlays.css',
         'filament-advanced-rich-editor.css',
     ]);

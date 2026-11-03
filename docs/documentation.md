@@ -4758,6 +4758,7 @@ The props follow the renderer:
     disk="s3"
     visibility="private"
     :cache="3600"
+    lightbox                      {{-- pictures open large; brings its script along --}}
 />
 ```
 
@@ -4767,6 +4768,44 @@ then applies its own props on top of:
 ```blade
 <x-arte-content :renderer="$renderer" :content="$article->content" />
 ```
+
+#### Pictures that open large
+
+`lightbox` on the component, or `->lightbox()` on the renderer, puts a link around every
+picture to its own address, and a small script opens that link in a box over the page — dark
+around it, the caption under it, a close button, Escape and a click anywhere to close.
+
+```blade
+<x-arte-content :content="$article->content" lightbox />
+```
+
+The component brings the script and its stylesheet along, once a page however many documents
+are on it. A page that renders through the renderer itself puts them there with one tag:
+
+```blade
+{!! AdvancedRichContentRenderer::make($article->content)->lightbox()->toHtml() !!}
+
+<x-arte-lightbox />
+```
+
+Both files are Filament assets, published by `php artisan filament:assets` like the rest.
+
+Off by default, because it is a decision about the page rather than the document: a site may
+well have a lightbox of its own. Worth knowing:
+
+- **It works without the script.** The link opens the picture; a click with Ctrl or Cmd opens
+  it in a new tab, as any link does. The script only turns the plain click into the box.
+- **The box is the browser's own `<dialog>`**, so it keeps focus inside, closes on Escape and
+  hands focus back to the picture.
+- **What opens large is the picture as published**: its `src`, and its `srcset` with
+  `sizes="100vw"`, so the browser picks a file for a screen-filling picture from the sizes it
+  already has — not the original upload. A conversion the field embeds stays the conversion.
+- **Left alone:** a picture that already points somewhere keeps its own link, a picture that
+  says it carries nothing gets none (an empty link is worse than one that does not open), and
+  an inline `data:` picture has no address to link to. A caption stays outside the link.
+- **Restyling** is a rule of your own after the package's: the box is
+  `.fi-arte-lightbox-dialog`, the link around a picture `.fi-arte-lightbox`. The stylesheet is
+  a file rather than styles the script writes, so a strict Content-Security-Policy is fine.
 
 ### On a view page
 

@@ -572,4 +572,7 @@ return [
             'descriptionList' => 'en definisjonsliste',
         ],
     ],
+    'lightbox' => [
+        'close' => 'Lukk',
+    ],
 ];
