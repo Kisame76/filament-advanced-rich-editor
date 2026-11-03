@@ -274,6 +274,10 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/focus-mode', __DIR__.'/../resources/dist/js/focus-mode.js')
                     ->loadedOnRequest(),
 
+                // The keys a project moved. Only a field that moved one loads it.
+                Js::make('advanced-rich-editor/shortcuts', __DIR__.'/../resources/dist/js/shortcuts.js')
+                    ->loadedOnRequest(),
+
                 // Where a dropdown opens: every menu of the package hands itself to this when
                 // it opens, instead of carrying the measuring in its own `x-data`. The editor
                 // loads it as it starts, so the first menu opened does not wait for it.

@@ -69,6 +69,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   caret was moved, and not at all for a reader who asked for less motion. Nothing about it is
   stored. Off by default (`->focusMode()`, `focus_mode`)
 
+- Keyboard shortcuts can be moved: `->shortcuts(['link' => 'Mod-K', 'highlight' => null])`, or
+  `shortcuts` in the config for every field. Any tool can be given a key, which runs what its
+  button runs; a shipped key can be moved to another or taken away, and a key given to one tool
+  is taken from the tool that had it. The help dialog lists the keys as they are. A field that
+  changes nothing loads nothing for it
+
 ### Fixed
 
 - **Two editors on one record no longer delete each other's pictures.** Each picture remembers

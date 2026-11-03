@@ -13,6 +13,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\DateTimeFormats;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\DragHandlePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Shortcuts;
 use Livewire\Attributes\Renderless;
 
 /**
@@ -42,6 +43,11 @@ trait OffersWritingAids
     protected string|Htmlable|Closure|null $helpMore = null;
 
     protected string|Closure|null $helpMoreLabel = null;
+
+    /**
+     * @var array<string, string|false|null>|Closure|null
+     */
+    protected array|Closure|null $shortcuts = null;
 
     protected bool|Closure|null $hasFullscreen = null;
 
@@ -217,6 +223,50 @@ trait OffersWritingAids
     {
         return $this->evaluate($this->helpMoreLabel)
             ?? __('filament-advanced-rich-editor::advanced-rich-editor.help.more');
+    }
+
+    /**
+     * Keys for this field's tools, by tool name: another key for a tool that has one, a
+     * first key for one that has none, or null to take a tool's key away. Laid over the
+     * `shortcuts` config tool by tool. See `Shortcuts` for how a key is written.
+     *
+     * A closure is how keys a person chose for themselves reach the field - this package
+     * keeps no keymaps of its own, because it has nowhere to keep them.
+     *
+     * @param  array<string, string|false|null>|Closure  $shortcuts
+     */
+    public function shortcuts(array|Closure $shortcuts): static
+    {
+        $this->shortcuts = $shortcuts;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getShortcuts(): array
+    {
+        $config = config('filament-advanced-rich-editor.shortcuts');
+        $field = $this->evaluate($this->shortcuts);
+
+        $config = is_array($config) ? $config : [];
+        $field = is_array($field) ? $field : [];
+
+        // The field's after the config's, so that a key the field gives one tool is taken
+        // from the tool the config gave it to, and not the other way round.
+        return [...array_diff_key($config, $field), ...$field];
+    }
+
+    /**
+     * What the script has to bind, for the view to hand to it. Null where no key was moved,
+     * which is also when the script is not loaded.
+     *
+     * @return array<int, array{keys: string, tool: string, handler: ?string}>|null
+     */
+    public function getShortcutSettingsForJs(): ?array
+    {
+        return Shortcuts::bindings($this) ?: null;
     }
 
     /**

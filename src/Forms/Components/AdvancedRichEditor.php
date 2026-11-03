@@ -79,6 +79,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ShortcutsPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SlashMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SourceCodePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\StatisticsPlugin;
@@ -678,6 +679,14 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasHelp()
                 ? [HelpPlugin::make()]
+                : [],
+        );
+
+        // Asked of what was written rather than of what it binds: working that out needs the
+        // field's tools, and the tools are what this list of plugins is building.
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->getShortcuts() !== []
+                ? [ShortcutsPlugin::make()]
                 : [],
         );
 

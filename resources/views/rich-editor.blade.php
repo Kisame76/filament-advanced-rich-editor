@@ -27,7 +27,8 @@
         off the element it is mounted on ($slashMenu, $mentionMenu, $embedSettings,
         $codeBlockSettings, $findSettings, $emojiSettings, $characterSettings,
         $pasteSettings, $dragHandleSettings, $autosaveSettings, $accessibilitySettings,
-        $typographySettings, $characterCountSettings, $indentSettings), resolved alongside them
+        $typographySettings, $characterCountSettings, $indentSettings, $shortcutSettings),
+        resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -128,6 +129,7 @@
     $characterCountSettings = $getCharacterCountSettingsForJs();
     $typographySettings = $getTypographySettingsForJs();
     $indentSettings = $getIndentSettingsForJs();
+    $shortcutSettings = $getShortcutSettingsForJs();
     // Filament v5.9. Each closure exists only where the installed release has the method.
     $hasUpstreamStickyToolbar = isset($hasStickyToolbar) && $hasStickyToolbar();
     $hasUpstreamStickyPanels = isset($hasStickyPanels) && $hasStickyPanels();
@@ -332,6 +334,7 @@
                     @if ($characterCountSettings) data-arte-character-count="{{ json_encode($characterCountSettings) }}" @endif
                     @if ($typographySettings) data-arte-typography="{{ json_encode($typographySettings) }}" @endif
                     @if ($indentSettings) data-arte-indent="{{ json_encode($indentSettings) }}" @endif
+                    @if ($shortcutSettings) data-arte-shortcuts="{{ json_encode($shortcutSettings) }}" @endif
                 >
                     @php ob_start(); @endphp
                     @foreach ($floatingToolbars as $nodeName => $buttons)

@@ -36,7 +36,7 @@ on top of it, checked against the current Filament v5 release:
 | **Seeing the page** | — | [A preview in an isolated frame](#preview) drawn with *your* stylesheet rather than the editor's — the panel's CSS cannot reach inside it, which is what makes it the page rather than a flattering copy of it |
 | **How long it is** | `minLength()` / `maxLength()` count characters, and an untouched field still stores one empty paragraph | [A visible counter](#character-count) in characters or words, [word counts and rules about what the document holds](#rules-about-the-content), [an empty document that fails `required`](#required-and-what-counts-as-empty) instead of passing it, and [`null` in the column](#storing-nothing-instead-of-pp) when you ask for it |
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
-| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
+| **Editor chrome** | — | [Fullscreen](#fullscreen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
@@ -56,7 +56,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [Sticky toolbar](#sticky-toolbar) · [Toolbar over a selection](#toolbar-over-a-selection) ·
 [Floating toolbars](#floating-toolbars) · [Maximum height](#maximum-height) ·
 [Fullscreen](#fullscreen) · [A hard limit](#a-hard-limit) ·
-[Statistics](#statistics) · [Help](#help)
+[Statistics](#statistics) · [Help](#help) · [Keyboard shortcuts](#keyboard-shortcuts)
 
 **[Blocks](#blocks)** — [Heading levels](#heading-levels) ·
 [Lists and task lists](#lists-and-task-lists) · [Definition lists](#definition-lists) ·
@@ -916,7 +916,8 @@ On Windows and Linux `Ctrl+Shift+J` (justify), `Ctrl+Shift+E` (centre) and `Ctrl
 (strikethrough) are developer-tools shortcuts in Chrome or Firefox and open a panel instead.
 On German, Polish and other AltGr layouts, `AltGr` is `Ctrl+Alt`, so the paragraph, heading
 and code block keys sit on top of `{`, `[`, `]`, `}`, `²` and `³`. Both are upstream
-defaults; the toolbar, the slash menu and the dropdowns are the way round them.
+defaults; the toolbar, the slash menu and the dropdowns are one way round them, and moving
+the key to another is the other - see [Keyboard shortcuts](#keyboard-shortcuts).
 
 Add a second tab with something to tell the people writing in the field:
 
@@ -929,6 +930,55 @@ Without a note the dialog stays one plain list - a tab bar over a single tab is 
 A plain string is escaped and keeps its line breaks; pass an `Htmlable` for markup, which is
 trusted, so build it in code rather than out of anything a user typed. The tab's own label
 is the second argument, and `help_more` in the config sets a note for every field at once.
+
+### Keyboard shortcuts
+
+Any tool can be given a key, by the name the toolbar takes: another key for a tool that has
+one, a first key for a tool that has none, or `null` to take a tool's key away.
+
+```php
+AdvancedRichEditor::make('content')->shortcuts([
+    'link' => 'Mod-K',             // the link dialog, which has no key out of the box
+    'strike' => 'Mod-Shift-X',     // off Ctrl+Shift+S, which a browser may take first
+    'highlight' => null,           // Mod+Shift+H does nothing in this field any more
+]);
+```
+
+`shortcuts` in the config does the same for every field, and `->shortcuts()` is laid over it
+tool by tool, so a field changes one key without restating the rest.
+
+**How a key is written.** Modifiers and a key joined by dashes, in any order and any case -
+`Mod-Shift-K`, `shift+mod+k`. `Mod` is ⌘ on a Mac and Ctrl everywhere else, which is almost
+always the one to write; the others are `Ctrl`, `Alt` and `Shift`. `Cmd` is refused, because
+a key written for a Mac would do nothing anywhere else. The key is a letter, a digit, a
+punctuation mark, `F1` to `F12`, or one of `Enter`, `Tab`, `Space`, `Backspace`, `Delete`,
+`Escape`, `Home`, `End`, `PageUp`, `PageDown` and the four arrows. One of `Mod`, `Ctrl` or
+`Alt` is required unless the key is a function key: anything else types a character, and
+binding it would take that character away from the field. A key that cannot be bound throws
+as the field renders, naming the tool - that is always a mistake. A tool the field does not
+have is skipped instead, so the config can name tools only some fields switch on.
+
+**What it does.** The key runs the tool's own handler - exactly what clicking its button does,
+dialog and all - whether or not the button is on the bar. A key given to one tool is taken
+from whichever tool had it, so `'bold' => 'Mod-Shift-B'` leaves the quote without a key; when
+the config and the field both claim one, the field wins. A key taken away does nothing in
+the editor. It does not fall back to the browser either, which in an editable page would
+apply its own bold behind the editor's back. The help dialog lists the keys as they now are.
+
+Fields that change nothing load nothing for this; only a field whose keys moved loads a small
+script, which binds those keys ahead of every other extension.
+
+The link has no key out of the box, although `Mod+K` is what most editors use. Panels often
+give `Mod+K` to the global search (`->globalSearchKeyBindings()`), and Filament binds those
+globally, so both would fire - the link dialog and the search field. Bind it where the panel
+does not.
+
+A closure works too, which is how keys somebody chose for themselves reach the field. This
+package keeps no keymap per person, because it has nowhere to keep one:
+
+```php
+->shortcuts(fn (): array => auth()->user()->editor_shortcuts ?? [])
+```
 
 ## Blocks
 

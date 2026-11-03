@@ -693,6 +693,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Keyboard shortcuts
+    |--------------------------------------------------------------------------
+    | Keys for the tools, by the names the toolbar takes: another key for a tool that has
+    | one, a first key for a tool that has none, or null to take a tool's key away.
+    |
+    |   'shortcuts' => [
+    |       'link' => 'Mod-K',
+    |       'highlight' => 'Mod-Shift-Y',
+    |       'underline' => null,
+    |   ],
+    |
+    | Mod is ⌘ on a Mac and Ctrl everywhere else; the other modifiers are Ctrl, Alt and
+    | Shift, and one of Mod, Ctrl or Alt is needed unless the key is F1 to F12. A key given
+    | to one tool is taken from whichever tool had it. A key taken away does nothing in the
+    | editor. Tools a field does not have are skipped, and the help dialog lists what is
+    | bound.
+    |
+    | Empty, the editor answers to the keys it ships with and loads nothing for this. The
+    | link has no key out of the box: panels often give Mod+K to the global search, and
+    | that would fire as well. Per field: `->shortcuts()`, laid over this list tool by tool.
+    */
+    'shortcuts' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Source code
     |--------------------------------------------------------------------------
     | The button that opens the document as HTML. Both directions run through the
