@@ -6,11 +6,13 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Throwable;
 
 /**
- * The still a video service publishes for a video.
+ * The still a service publishes for an embed - a video's poster, a song's cover.
  *
  * Fetched and kept rather than pointed at. A tile whose `src` is `i.ytimg.com` is a request
  * to Google from every editor that opens the dialog, on every opening - which is exactly the
@@ -27,11 +29,13 @@ class EmbedCover
      */
     public static function bytes(array $embed, int $timeout): ?string
     {
-        $url = match ($embed['provider']) {
-            // Always there, no lookup needed, and 480 wide - which is the tile's size rather
-            // than the poster's.
-            'youtube' => 'https://i.ytimg.com/vi/'.$embed['id'].'/hqdefault.jpg',
-            'vimeo' => static::vimeoUrl($embed['id'], $timeout),
+        $provider = EmbedProviders::get($embed['provider']);
+
+        // Built from the id where the service publishes one at an address of its own, asked
+        // for where it does not, and none for a service that has no still at all - a map.
+        $url = match (true) {
+            $provider?->cover() !== null => $provider->fill($provider->cover(), $embed['id']),
+            $provider?->oembed() !== null => static::askedFor($provider->oembed(), EmbedUrl::share($embed['provider'], $embed['id']), $timeout),
             default => null,
         };
 
@@ -46,13 +50,13 @@ class EmbedCover
         return (is_string($bytes) && MediaDimensions::fromString($bytes) !== null) ? $bytes : null;
     }
 
-    protected static function vimeoUrl(string $id, int $timeout): ?string
+    /**
+     * The still an oEmbed endpoint names. Two requests, which is the other reason the answer
+     * is kept.
+     */
+    protected static function askedFor(string $endpoint, string $link, int $timeout): ?string
     {
-        // Vimeo's still has no address that can be built from an id, so it has to be asked
-        // for. Two requests, which is the other reason the answer is kept.
-        $url = static::get('https://vimeo.com/api/oembed.json', $timeout, [
-            'url' => 'https://vimeo.com/'.$id,
-        ])?->json('thumbnail_url');
+        $url = static::get($endpoint, $timeout, ['url' => $link, 'format' => 'json'])?->json('thumbnail_url');
 
         return (is_string($url) && str_starts_with($url, 'https://')) ? $url : null;
     }

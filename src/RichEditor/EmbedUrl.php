@@ -4,60 +4,38 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor;
 
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
+
 /**
  * Reads the link somebody pasted and works out what to frame.
  *
- * A video link comes in whatever shape the share button produced: a watch URL, a shortened
- * one, a mobile one, a Shorts one, sometimes an embed URL already. None of those except the
- * last can go into an `iframe` - YouTube answers a framed watch page with "refused to
- * connect" - so the link is taken apart and the embed URL is built rather than guessed at.
+ * A link comes in whatever shape the share button produced: a watch URL, a shortened one, a
+ * mobile one, an embed URL already, or the whole embed code a share dialog hands out. None of
+ * those except the embed URL can go into an `iframe` - YouTube answers a framed watch page with
+ * "refused to connect" - so the link is taken apart and the embed URL is built rather than
+ * guessed at.
  *
- * The host is compared exactly, against a list. A substring test is the obvious way to do
- * this and is how the same feature is usually written; it also frames
- * `youtube.com.attacker.test`, which is a domain anybody can register.
+ * What a service's links look like is the service's own description, in `EmbedProviders`;
+ * this is the one reading of it on the PHP side, and `embed.js` is the same reading in the
+ * browser.
  */
 class EmbedUrl
 {
     /**
-     * Host => provider. Every host that may be recognised, spelled out, because what comes
-     * out of here decides what ends up in an `iframe`.
-     *
-     * @var array<string, string>
-     */
-    public const HOSTS = [
-        'youtube.com' => 'youtube',
-        'www.youtube.com' => 'youtube',
-        'm.youtube.com' => 'youtube',
-        'music.youtube.com' => 'youtube',
-        'youtube-nocookie.com' => 'youtube',
-        'www.youtube-nocookie.com' => 'youtube',
-        'youtu.be' => 'youtube',
-        'vimeo.com' => 'vimeo',
-        'www.vimeo.com' => 'vimeo',
-        'player.vimeo.com' => 'vimeo',
-    ];
-
-    /**
-     * What a video id may look like, per provider. Both are narrower than the id could
-     * theoretically be, and neither allows anything that would change the meaning of the
-     * URL it is written into.
-     *
-     * @var array<string, string>
-     */
-    public const IDS = [
-        'youtube' => '/^[A-Za-z0-9_-]{6,20}$/',
-        'vimeo' => '/^[0-9]{6,12}$/',
-    ];
-
-    /**
-     * The provider, the video and the timestamp - or null where the link is one this
-     * package has no business framing.
+     * The service, the id and the timestamp - or null where the link is one this package has
+     * no business framing.
      *
      * @return array{provider: string, id: string, start: int|null}|null
      */
     public static function parse(?string $url): ?array
     {
         $url = trim((string) $url);
+
+        // The whole embed code a share dialog hands out, for the services whose share button
+        // offers nothing else - a map, a pen. Its address is what is read.
+        if (preg_match('~<iframe\b[^>]*\bsrc\s*=\s*(["\'])(.*?)\1~is', $url, $matches) === 1) {
+            $url = trim(html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML5));
+        }
 
         if ($url === '') {
             return null;
@@ -69,56 +47,42 @@ class EmbedUrl
         }
 
         $parts = parse_url($url);
+
+        if (! is_array($parts)) {
+            return null;
+        }
+
         $host = strtolower($parts['host'] ?? '');
-        $provider = static::HOSTS[$host] ?? null;
+        $provider = EmbedProviders::forHost($host);
 
         if ($provider === null) {
             return null;
         }
 
-        parse_str($parts['query'] ?? '', $query);
+        $id = $provider->read($host.($parts['path'] ?? '').(isset($parts['query']) ? '?'.$parts['query'] : ''));
 
-        $id = $provider === 'youtube'
-            ? static::youtubeId($host, $parts['path'] ?? '', $query)
-            : static::vimeoId($parts['path'] ?? '');
-
-        if ($id === null || preg_match(static::IDS[$provider], $id) !== 1) {
+        if ($id === null) {
             return null;
         }
 
+        parse_str($parts['query'] ?? '', $query);
+
         return [
-            'provider' => $provider,
+            'provider' => $provider->name(),
             'id' => $id,
-            'start' => static::seconds($query['t'] ?? $query['start'] ?? $parts['fragment'] ?? null),
+            'start' => ($provider->start() !== null)
+                ? static::seconds($query['t'] ?? $query['start'] ?? $parts['fragment'] ?? null)
+                : null,
         ];
     }
 
     /**
-     * @param  array<string, mixed>  $query
+     * Whether an id is one this service could have - the check every stored embed goes
+     * through before anything is built from it.
      */
-    protected static function youtubeId(string $host, string $path, array $query): ?string
+    public static function accepts(mixed $provider, mixed $id): bool
     {
-        // `youtu.be/ID` puts the id where every other form puts a route.
-        if ($host === 'youtu.be') {
-            return trim($path, '/') ?: null;
-        }
-
-        foreach (['embed', 'shorts', 'v', 'live'] as $segment) {
-            if (preg_match('~^/'.$segment.'/([^/?\#]+)~', $path, $matches) === 1) {
-                return $matches[1];
-            }
-        }
-
-        $id = $query['v'] ?? null;
-
-        return is_string($id) && $id !== '' ? $id : null;
-    }
-
-    protected static function vimeoId(string $path): ?string
-    {
-        // `/video/ID` on the player host, a bare `/ID` on the site, and either may carry an
-        // unlisted hash after it that is not part of the id.
-        return preg_match('~/(?:video/)?([0-9]+)~', $path, $matches) === 1 ? $matches[1] : null;
+        return EmbedProviders::get($provider)?->accepts($id) ?? false;
     }
 
     /**
@@ -153,21 +117,24 @@ class EmbedUrl
     }
 
     /**
-     * The URL a browser will actually frame.
+     * The URL a browser will actually frame, or an empty string for a service that is not on
+     * the list.
      */
     public static function src(string $provider, string $id, ?int $start = null): string
     {
-        if ($provider === 'vimeo') {
-            // Vimeo reads the start time out of the fragment rather than the query.
-            return 'https://player.vimeo.com/video/'.$id.($start ? '#t='.$start.'s' : '');
-        }
+        $service = EmbedProviders::get($provider);
 
-        // The privacy-preserving host by default: embedding a video should not decide on
-        // its own to put a tracking cookie on the reader's machine.
-        $host = config('filament-advanced-rich-editor.embed.youtube_nocookie', true)
-            ? 'www.youtube-nocookie.com'
-            : 'www.youtube.com';
+        return $service ? $service->fill($service->src(), $id, $start, $service->start()) : '';
+    }
 
-        return 'https://'.$host.'/embed/'.$id.($start ? '?start='.$start : '');
+    /**
+     * The address a person opens - not the frame: nobody wants `player.vimeo.com/video/123`
+     * in a chat message.
+     */
+    public static function share(string $provider, string $id, ?int $start = null): string
+    {
+        $service = EmbedProviders::get($provider);
+
+        return $service ? $service->fill($service->share(), $id, $start, $service->shareStart()) : '';
     }
 }

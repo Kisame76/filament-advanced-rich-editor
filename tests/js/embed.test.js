@@ -1,17 +1,25 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import embedExtension, { embedSrc, parseEmbed } from '../../resources/js/embed.js'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import embedExtension, { embedBox, embedSrc, parseEmbed, useProviders } from '../../resources/js/embed.js'
+import PROVIDERS from './fixtures/embed-providers.json'
 
 /**
  * What a pasted link turns into, and the card the editor draws in place of the player.
  *
- * `parseEmbed` mirrors `EmbedUrl` in PHP, and the two have to agree: this half decides what
- * a paste becomes, that half decides what a save keeps. Every shape of link the two accept is
- * written out in both places, so this file is where a provider added on one side and not the
- * other shows up - and where the way an address becomes an iframe is pinned, since that is
- * the one place text from a stranger's link is put into an element's `src`.
+ * `parseEmbed` reads the same service descriptions `EmbedUrl` reads in PHP, and the two have to
+ * agree: this half decides what a paste becomes, that half decides what a save keeps. The
+ * descriptions are the file PHP hands out - `EmbedProvidersTest` asserts the fixture is exactly
+ * that - so this is where the reading of them is pinned, and where the way an address becomes
+ * an iframe is, since that is the one place text from a stranger's link is put into a `src`.
  */
 
 const YOUTUBE = 'dQw4w9WgXcQ'
+
+const withYouTube = (changes) =>
+    PROVIDERS.map((provider) => (provider.name === 'youtube' ? { ...provider, ...changes } : provider))
+
+beforeEach(() => {
+    useProviders(PROVIDERS)
+})
 
 describe('the links a share button writes', () => {
     it('reads a watch link, with or without the scheme and the www', () => {
@@ -120,14 +128,73 @@ describe('what is not a link to be embedded', () => {
     })
 })
 
+describe('the other services', () => {
+    const MAP =
+        '!1m18!1m12!1m3!1d2427.0!2d13.37!3d52.51!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47a851c655f20989%3A0x26bbfb4e84674c63!2sBrandenburg%20Gate!5e0!3m2!1sen!2sde!4v1690000000000!5m2!1sen!2sde'
+
+    it('reads a song, a recording, a pen, a TikTok and a map', () => {
+        expect(parseEmbed('https://open.spotify.com/intl-de/track/4uLU6hMCjMI75M1A2tKUQC?si=x')).toEqual({
+            provider: 'spotify',
+            id: 'track/4uLU6hMCjMI75M1A2tKUQC',
+            start: null,
+        })
+        expect(parseEmbed('https://www.loom.com/share/e5b8c04bca094dd8a5507925ab887002')?.id).toBe(
+            'e5b8c04bca094dd8a5507925ab887002',
+        )
+        // Two halves, the author and the pen, joined the way PHP joins them.
+        expect(parseEmbed('https://codepen.io/chriscoyier/pen/gfdDu')?.id).toBe('chriscoyier/gfdDu')
+        expect(parseEmbed('https://www.tiktok.com/@scout2015/video/6718335390845095173')?.id).toBe(
+            '6718335390845095173',
+        )
+        expect(parseEmbed(`https://www.google.com/maps/embed?pb=${MAP}`)?.id).toBe(MAP)
+    })
+
+    it('takes the embed code a share dialog hands out', () => {
+        expect(
+            parseEmbed(
+                `<iframe src="https://www.google.com/maps/embed?pb=${MAP}" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>`,
+            ),
+        ).toEqual({ provider: 'google_maps', id: MAP, start: null })
+        expect(parseEmbed('<iframe src="javascript:alert(1)"></iframe>')).toBeNull()
+        expect(parseEmbed('<iframe src="https://evil.example/embed/1"></iframe>')).toBeNull()
+    })
+
+    it('builds the addresses those are framed from, halves and all', () => {
+        expect(embedSrc('codepen', 'chriscoyier/gfdDu', null)).toBe(
+            'https://codepen.io/chriscoyier/embed/gfdDu?default-tab=result',
+        )
+        expect(embedSrc('spotify', 'track/4uLU6hMCjMI75M1A2tKUQC', 30)).toBe(
+            'https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC',
+        )
+        expect(embedSrc('google_maps', MAP, null)).toBe(`https://www.google.com/maps/embed?pb=${MAP}`)
+    })
+
+    it('refuses what only looks like one of them', () => {
+        expect(parseEmbed('https://open.spotify.com.attacker.test/track/4uLU6hMCjMI75M1A2tKUQC')).toBeNull()
+        expect(parseEmbed('https://vm.tiktok.com/ZMabcdef/')).toBeNull()
+        expect(parseEmbed('https://www.google.com/maps/place/Brandenburger+Tor')).toBeNull()
+        expect(parseEmbed('https://codepen.io/chriscoyier')).toBeNull()
+    })
+})
+
 describe('the address of the player', () => {
-    it('builds the privacy-friendly YouTube address unless told otherwise', () => {
+    it('builds the address PHP described, the cookie-free host included', () => {
         expect(embedSrc('youtube', YOUTUBE, null)).toBe(
             `https://www.youtube-nocookie.com/embed/${YOUTUBE}`,
         )
-        expect(embedSrc('youtube', YOUTUBE, null, false)).toBe(
-            `https://www.youtube.com/embed/${YOUTUBE}`,
-        )
+
+        useProviders(withYouTube({ src: 'https://www.youtube.com/embed/{id}' }))
+
+        expect(embedSrc('youtube', YOUTUBE, null)).toBe(`https://www.youtube.com/embed/${YOUTUBE}`)
+    })
+
+    it('builds nothing for a service it was not told about, or an id that is not one', () => {
+        expect(embedSrc('dailymotion', 'x8abc12', null)).toBeNull()
+        expect(embedSrc('youtube', 'not an id', null)).toBeNull()
+
+        useProviders([])
+
+        expect(embedSrc('youtube', YOUTUBE, null)).toBeNull()
     })
 
     it('starts a YouTube video where the link said to', () => {
@@ -277,12 +344,14 @@ describe('reading a document', () => {
         expect(attributes.ratio.parseHTML(element)).toBe('4 / 3')
     })
 
-    it('falls back to a widescreen picture and to nothing where the block says less', () => {
+    it('falls back to nothing where the block says less, the shape included', () => {
+        // No shape is the service's shape: a TikTok left at a widescreen default would be
+        // drawn on its side.
         const attributes = build().addAttributes()
         const element = parse('<div data-type="embed"></div>')
 
-        expect(attributes.ratio.default).toBe('16 / 9')
-        expect(attributes.ratio.parseHTML(element)).toBe('16 / 9')
+        expect(attributes.ratio.default).toBeNull()
+        expect(attributes.ratio.parseHTML(element)).toBeNull()
         expect(attributes.provider.parseHTML(element)).toBeNull()
         expect(attributes.id.parseHTML(element)).toBeNull()
         expect(attributes.start.parseHTML(element)).toBeNull()
@@ -343,23 +412,43 @@ describe('writing a document', () => {
         expect(wrapper.style).toContain('aspect-ratio: 16 / 9')
     })
 
-    it('follows the cookie setting the field was mounted with', () => {
-        const attrs = { provider: 'youtube', id: YOUTUBE }
+    it('reads the services off the element the field was mounted with, before the content', () => {
+        const definition = build()
 
-        expect(write(attrs, { nocookie: false })[2][1].src).toBe(
+        definition.onBeforeCreate.call({
+            editor: editorWith({ providers: withYouTube({ src: 'https://www.youtube.com/embed/{id}' }) }),
+        })
+
+        expect(write({ provider: 'youtube', id: YOUTUBE })[2][1].src).toBe(
             `https://www.youtube.com/embed/${YOUTUBE}`,
         )
-        expect(write(attrs, { nocookie: true })[2][1].src).toContain('youtube-nocookie.com')
     })
 
-    it('is privacy-friendly where nothing was passed, or what was passed cannot be read', () => {
+    it('knows no service where nothing was passed, and says so where it could not be read', () => {
         const complaint = vi.spyOn(console, 'error').mockImplementation(() => {})
-        const attrs = { provider: 'youtube', id: YOUTUBE }
+        const definition = build()
 
-        expect(write(attrs)[2][1].src).toContain('youtube-nocookie.com')
-        expect(write(attrs, '{not json')[2][1].src).toContain('youtube-nocookie.com')
+        definition.onBeforeCreate.call({ editor: editorWith(undefined) })
+
+        expect(write({ provider: 'youtube', id: YOUTUBE })).toEqual(['div', { 'data-type': 'embed' }])
+
+        definition.onBeforeCreate.call({ editor: editorWith('{not json') })
+
         // Said once, for the one that was broken, and not for the one that was missing.
         expect(complaint).toHaveBeenCalledTimes(1)
+    })
+
+    it('draws a player with a height of its own at that height, and an upright one narrow', () => {
+        const [, spotify] = write({ provider: 'spotify', id: 'track/4uLU6hMCjMI75M1A2tKUQC', ratio: '16 / 9' })
+        const [, tiktok] = write({ provider: 'tiktok', id: '6718335390845095173', ratio: '9 / 16' })
+
+        expect(spotify.style).toBe('width: 100%; height: 352px;')
+        expect(tiktok.style).toBe('aspect-ratio: 9 / 16; width: 100%; max-width: 22.5rem;')
+    })
+
+    it('writes nothing into the style that is not a ratio', () => {
+        expect(embedBox('youtube', '16 / 9; background: url(x)')).toBe('aspect-ratio: 16 / 9; width: 100%;')
+        expect(embedBox('google_maps', null)).toBe('aspect-ratio: 4 / 3; width: 100%;')
     })
 })
 
@@ -378,17 +467,19 @@ describe('the card drawn in the editor', () => {
         expect(card.className).toBe('fi-arte-embed-card')
         expect(card.dataset.type).toBe('embed')
         expect(card.contentEditable).toBe('false')
-        expect(card.querySelector('.fi-arte-embed-card-provider').textContent).toBe('youtube')
+        expect(card.querySelector('.fi-arte-embed-card-provider').textContent).toBe('YouTube')
         expect(card.querySelector('.fi-arte-embed-card-title').textContent).toBe('A talk')
     })
 
-    it('says the provider the way the panel is read in, where the field passed the words', () => {
-        const card = draw(
-            { provider: 'youtube', id: YOUTUBE },
-            { labels: { youtube: 'YouTube', vimeo: 'Vimeo' } },
-        )
+    it('says the service the way the panel is read in, and its key where it was not described', () => {
+        useProviders(withYouTube({ label: 'YouTube-Video' }))
 
-        expect(card.querySelector('.fi-arte-embed-card-provider').textContent).toBe('YouTube')
+        expect(draw({ provider: 'youtube', id: YOUTUBE }).querySelector('.fi-arte-embed-card-provider').textContent).toBe(
+            'YouTube-Video',
+        )
+        expect(draw({ provider: 'dailymotion', id: 'x8abc12' }).querySelector('.fi-arte-embed-card-provider').textContent).toBe(
+            'dailymotion',
+        )
     })
 
     it('names the video by its id where it has no title', () => {
@@ -484,6 +575,21 @@ describe('pasting a link', () => {
 
         expect(plugins).toHaveLength(1)
         expect(plugins[0].spec.key.name).toBe('arteEmbedPaste')
+    })
+
+    it('takes the embed code a map is shared as, spaces and all', () => {
+        const map =
+            '!1m18!1m12!1m3!1d2427.0!2d13.37!3d52.51!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sde!4v1690000000000!5m2!1sen!2sde'
+        const { handled } = paste(
+            `<iframe src="https://www.google.com/maps/embed?pb=${map}" width="600" height="450" style="border:0;" loading="lazy"></iframe>`,
+        )
+
+        expect(handled).toBe(true)
+        expect(type.create).toHaveBeenLastCalledWith({ provider: 'google_maps', id: map, start: null })
+    })
+
+    it('leaves a sentence with a link in it to be pasted as a sentence', () => {
+        expect(paste(`Watch https://youtu.be/${YOUTUBE} later`).handled).toBe(false)
     })
 
     it('turns a link alone on an empty line into a player', () => {

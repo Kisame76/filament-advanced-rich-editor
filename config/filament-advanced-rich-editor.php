@@ -1,6 +1,13 @@
 <?php
 
 declare(strict_types=1);
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\CodePen;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\GoogleMaps;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\Loom;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\Spotify;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\TikTok;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\Vimeo;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\YouTube;
 
 return [
     /*
@@ -430,18 +437,25 @@ return [
     |--------------------------------------------------------------------------
     | Embeds
     |--------------------------------------------------------------------------
-    | Video embeds. A pasted link is taken apart and the embed URL is built from it, so
-    | every shape a share button produces works - watch, youtu.be, shorts, embed, and the
-    | Vimeo equivalents - including the timestamp.
+    | Embeds from other sites: videos, songs, maps, pens. A pasted link is taken apart and
+    | the embed URL is built from it, so every shape a share button produces works - watch,
+    | youtu.be, shorts, embed - including the timestamp.
     |
+    |   'providers'         the services an embed may come from, by class. Taking one off
+    |                       refuses its links and renders its stored embeds as nothing;
+    |                       adding one is a class extending `EmbedProvider`. X and Instagram
+    |                       are not here: they embed through a script of their own, and a
+    |                       script is something no document should be able to put on a page.
     |   'sanitizer'         allows `<iframe>` back into rendered content, with `src`
-    |                       narrowed to 'allowed_hosts'. Filament's sanitiser drops iframes,
-    |                       so without this an embed is stored and never shown. It changes a
-    |                       configuration the whole application shares, which is why it is a
-    |                       switch rather than something the package just does.
-    |   'allowed_hosts'     hosts an embed may point at, subdomains included. Something else
-    |                       in the project embedding iframes has to be listed here too - see
-    |                       the README on why both cannot allowlist separately.
+    |                       narrowed to the hosts those services frame from. Filament's
+    |                       sanitiser drops iframes, so without this an embed is stored and
+    |                       never shown. It changes a configuration the whole application
+    |                       shares, which is why it is a switch rather than something the
+    |                       package just does.
+    |   'allowed_hosts'     further hosts an iframe may point at, subdomains included -
+    |                       something else in the project that embeds iframes has to be
+    |                       listed here too; see the README on why both cannot allowlist
+    |                       separately. The services' own hosts need not be.
     |   'youtube_nocookie'  embeds through youtube-nocookie.com, which is what keeps an
     |                       embedded video from setting a tracking cookie on the reader.
     |
@@ -455,11 +469,16 @@ return [
         'enabled' => true,
         'sanitizer' => true,
         'youtube_nocookie' => true,
-        'allowed_hosts' => [
-            'youtube-nocookie.com',
-            'youtube.com',
-            'vimeo.com',
+        'providers' => [
+            YouTube::class,
+            Vimeo::class,
+            Spotify::class,
+            Loom::class,
+            CodePen::class,
+            TikTok::class,
+            GoogleMaps::class,
         ],
+        'allowed_hosts' => [],
     ],
 
     /*

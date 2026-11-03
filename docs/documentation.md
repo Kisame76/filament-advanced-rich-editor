@@ -22,7 +22,7 @@ on top of it, checked against the current Filament v5 release:
 | **Images** | `attachFiles` uploads a file — every time, even the same one | [A browser over the pictures already on the server](#media-browser) on its own button, with Filament's dialog left untouched beside it, [a caption beside the alt text](#images), and [Spatie Media Library](#spatie-media-library) as an option |
 | **Sizing a picture** | `->resizableImages()`, off by default, and the drag always keeps the ratio | [On by default, with the pixel size beside the pointer](#images) — a ratio lock you can open, quarter turns, a panel to type the two numbers into, and a download |
 | **Links** | A URL and "open in a new tab" | + [`rel`, `referrerpolicy` and `hreflang`](#links), with `noopener noreferrer` added automatically to anything opening in a new window, and [a search over your own records](#linking-to-a-record-instead-of-typing-a-url) instead of a typed URL |
-| **Video** | — | [Paste a YouTube or Vimeo link](#video-embeds) and get a player, timestamp included, through the cookie-free host |
+| **Embeds** | — | [Paste a link from YouTube, Vimeo, Spotify, Loom, CodePen, TikTok or a Google Maps embed code](#embeds) and get the player, timestamp included, YouTube through the cookie-free host |
 | **Code** | A code block with no language | [A language picker on the block](#code-blocks), and syntax colours rendered in PHP |
 | **Callouts** | — | [Note, tip, warning and danger](#callouts) boxes that hold whole blocks, from the bar, the slash menu or by typing `:::warning` |
 | **Finding text** | The browser's `Ctrl+F` — which finds, and stops there | [Find and replace inside the field](#find-and-replace) — every hit marked at once, whole words and case optional, and replacing all of them is one undo |
@@ -76,7 +76,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 [A picture that carries nothing](#a-picture-that-carries-nothing) ·
 [A picture that points somewhere](#a-picture-that-points-somewhere) ·
 [Media browser](#media-browser) · [Spatie Media Library](#spatie-media-library) ·
-[Links](#links) · [Video embeds](#video-embeds) ·
+[Links](#links) · [Embeds](#embeds) ·
 [Video and audio you host](#video-and-audio-you-host) ·
 [Anchors in the editor](#anchors-in-the-editor)
 
@@ -713,7 +713,7 @@ one, over a table cell. This package ships the rest.
 | `image` | an image is selected | the aspect lock, the size panel, the two quarter turns, the alt and caption panel, replace, download, delete |
 | `file` | a [document card](#documents) is selected | replace, download, remove |
 | `media` | a [video or a sound](#video-and-audio-you-host) is selected | replace, download, remove |
-| `embed` | an [embed](#video-embeds) is selected | replace, remove |
+| `embed` | an [embed](#embeds) is selected | replace, remove |
 | `bulletList` / `orderedList` | the caret is in a list | [the marker, start number and reverse panel](#lists-markers-numbering-and-direction) |
 
 The four bars over something that came out of the library end the same way — Replace,
@@ -1063,7 +1063,7 @@ sanitiser's safe list:
 halves of this package parse and what a bare browser honours. The inline `list-style-type`
 is what survives a stylesheet that sets one — and Filament's own prose styles do, so a list
 marked `type="a"` would otherwise still be drawn with numbers. It is the same reasoning the
-[embed wrapper](#video-embeds) carries its aspect ratio inline for: the page a document ends
+[embed wrapper](#embeds) carries its aspect ratio inline for: the page a document ends
 up on is not this package's, and `style` is what travels there.
 
 The marker is also read back *out* of that CSS, which is what makes a list pasted from Word
@@ -2334,7 +2334,7 @@ Asking somebody to choose between two dialogs before they know which one their l
 in was the wrong question, so there is one door. What follows from the link is still two
 different things, and that difference is real rather than cosmetic.
 
-Picking an embed and pressing Submit runs exactly what the [embed dialog](#video-embeds)
+Picking an embed and pressing Submit runs exactly what the [embed dialog](#embeds)
 runs — same node, same attributes — so nothing about what a document stores has changed. That
 dialog keeps the aspect ratio; this one asks only for the link and a title, because a file
 address has no ratio to state.
@@ -3071,25 +3071,29 @@ that finds nothing is left out rather than drawn as an empty heading.
 Re-opening a link does not preselect the record it points at. Finding the record behind a URL
 means storing a reference next to it, which is exactly what the mark cannot carry.
 
-### Video embeds
+### Embeds
 
 **Registered and on, but not on the shipped bar.** The
 [media browser](#media-browser) covers video from your own server, and two video-shaped
 buttons beside each other is one door too many for a bar with a finite number of places. The
-way in is the slash menu — `/video`, `/youtube`, `/vimeo` — and a bar or
+way in is the slash menu — `/embed`, `/video`, `/youtube`, `/spotify`, `/maps` — and a bar or
 [`more`](#the-more-menu) that names `'embed'` gets the button back.
 
 An embed can also live in the [media browser](#media-browser), where `+ Add → Embed` puts it
 in the library and it is picked from a grid instead of pasted again. The same node either
 way: a library entry is a shortcut to this dialog, not a second way of storing a video.
 
-The `embed` tool takes a link and puts a video in the document. Paste the link from the
-address bar or the share button — every shape either of them produces is understood:
+The `embed` tool takes a link and puts the player in the document — a video, a song, a
+recording, a pen, a map. Paste the link from the address bar or the share button — every
+shape either of them produces is understood:
 
 ```
 https://www.youtube.com/watch?v=ID          https://vimeo.com/ID
 https://youtu.be/ID?t=90                    https://player.vimeo.com/video/ID
 https://www.youtube.com/shorts/ID           https://www.youtube.com/embed/ID?start=45
+https://open.spotify.com/track/ID           https://www.loom.com/share/ID
+https://codepen.io/USER/pen/ID              https://www.tiktok.com/@USER/video/ID
+<iframe src="https://www.google.com/maps/embed?pb=…"></iframe>
 ```
 
 The timestamp in a link shared "from 1:30" is kept, in all three spellings (`t=90`,
@@ -3098,8 +3102,9 @@ timestamp — and the embed URL is built from that on the way out. Storing the U
 would mean trusting whatever the document held: a watch link, which no browser will frame,
 or a host this package has no business pointing an iframe at.
 
-**Pasting a video link on an empty line turns it into a video.** The same link pasted into
-the middle of a sentence stays a link, because there it is a link somebody is writing.
+**Pasting a link on an empty line turns it into the player**, and so does pasting a map's
+embed code. The same link pasted into the middle of a sentence stays a link, because there it
+is a link somebody is writing.
 
 ```php
 AdvancedRichEditor::make('content')
@@ -3116,6 +3121,57 @@ own requests and its own cookie, in a screen where nobody is watching anything �
 iframe swallows every click, so the block could not be selected, dragged or deleted like
 the rest of the document.
 
+#### Services
+
+| Service | What is read | Drawn |
+| --- | --- | --- |
+| YouTube | watch, `youtu.be`, Shorts, live and embed links, with their timestamp | 16:9, through `youtube-nocookie.com` |
+| Vimeo | site and player links, with their timestamp | 16:9 |
+| Spotify | a track, album, playlist, episode, show or artist link, also `intl-…` | 352 px high, whatever the width |
+| Loom | share and embed links | 16:9 |
+| CodePen | pen, full, details and embed links — opened on the result | 16:9 |
+| TikTok | the video's own address, `tiktok.com/@user/video/ID` | 9:16, no wider than a phone |
+| Google Maps | the code from *Share → Embed a map*, or the address inside it | 4:3 |
+
+Each service is one class extending `EmbedProvider`, and `embed.providers` lists them. Take
+one off the list and its links are refused in the dialog and its stored embeds render as
+nothing; add your own and it works everywhere the built-in ones do — the dialog, pasting, the
+media library, the sanitiser:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProvider;
+
+class Dailymotion extends EmbedProvider
+{
+    public function name(): string { return 'dailymotion'; }
+    public function hosts(): array { return ['www.dailymotion.com', 'dai.ly']; }
+    // Over `host/path?query`; the id is the named groups, joined by `/`.
+    public function patterns(): array { return ['^dai\.ly/(?<id>[a-z0-9]+)', '^[^/]+/video/(?<id>[a-z0-9]+)']; }
+    public function id(): string { return '[a-z0-9]{5,10}'; }
+    public function src(): string { return 'https://www.dailymotion.com/embed/video/{id}'; }
+    public function share(): string { return 'https://www.dailymotion.com/video/{id}'; }
+}
+
+// config/filament-advanced-rich-editor.php
+'embed' => [
+    'providers' => [...EmbedProviders::BUILT_IN, Dailymotion::class],
+],
+```
+
+A provider is a description rather than code on purpose: the editor in the browser reads the
+same patterns and templates to decide what a paste becomes, so they are written once and
+cannot disagree. Write them as regular expressions both PHP and JavaScript read alike — named
+groups, classes, anchors — and without delimiters. `ratio()`, `height()`, `start()`, `cover()`
+and `oembed()` are there to override where the defaults do not fit.
+
+**Not here: X, Instagram, and short links.** X and Instagram hand out a `<blockquote>` and a
+script that turns it into the post, and no document should be able to put a script on a page —
+the sanitiser removes it, rightly. Their `iframe` addresses exist but are undocumented and
+size themselves by talking to that script, so a frame without it is a box of the wrong height.
+Short links — `vm.tiktok.com`, `maps.app.goo.gl` — only say what they point at when somebody
+follows them, which would be a request from your server for every paste; the long form in the
+address bar works.
+
 #### The sanitiser
 
 Filament renders rich content through `Str::sanitizeHtml()`, and Symfony's safe element
@@ -3126,21 +3182,19 @@ this package allows the element back — and only ever together with a restricti
 // config/filament-advanced-rich-editor.php
 'embed' => [
     'sanitizer' => true,                       // allow <iframe> back at all
-    'allowed_hosts' => [
-        'youtube-nocookie.com',
-        'youtube.com',
-        'vimeo.com',
-    ],
+    'allowed_hosts' => [],                     // beyond the services' own hosts
 ],
 ```
 
-An iframe whose host is not on the list loses its `src` on the way to the page. The node
+The list is the hosts the services above frame from, taken from their classes, plus whatever
+`allowed_hosts` adds. An iframe whose host is not on it loses its `src` on the way to the page. The node
 goes further and refuses to build the element at all, so what reaches the sanitiser is
 already an embed rather than an iframe — the sanitiser is the second line, for markup that
 arrived some other way. A database is not written only by this editor.
 
 Subdomains of a listed host count (`player.vimeo.com` for `vimeo.com`); a host that merely
-*ends* in one does not — `youtube.com.attacker.test` is a domain anybody can register.
+*ends* in one does not — `youtube.com.attacker.test` is a domain anybody can register. A link
+is read the same way, against each service's hosts spelled out.
 
 `'sanitizer' => false` leaves the application's sanitiser alone. Embeds are then still
 stored and edited, and stripped from every rendered page — which is a coherent choice only
@@ -3155,7 +3209,9 @@ if something else in the project renders them.
 #### Privacy
 
 YouTube is embedded through `youtube-nocookie.com` by default: embedding a video should not
-decide on its own to put a tracking cookie on the reader's machine. The frame is also given
+decide on its own to put a tracking cookie on the reader's machine. The other services have no
+such host, and their frames set what cookies they set once the frame loads — which, being
+lazy, is when the reader scrolls to it, and only where an author put one. The frame is also given
 `referrerpolicy="strict-origin-when-cross-origin"` and `loading="lazy"`, and its `allow`
 list is short — fullscreen and picture-in-picture, no camera and no microphone.
 
@@ -3166,9 +3222,17 @@ list is short — fullscreen and picture-in-picture, no camera and no microphone
 #### Shape and titles
 
 The wrapper carries the aspect ratio in its own `style`, and the frame fills it — so a
-video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in the dialog.
+video keeps its shape at any width. 16:9, 4:3, 1:1, 21:9 and 9:16 are offered in the dialog,
+and pasting a link picks the service's own: a TikTok is upright, a map 4:3. An embed nobody
+picked a shape for — a pasted one — is drawn in that shape too. An upright frame is held to
+the width of a phone (22.5rem); across a whole column, 9:16 is taller than the screen. A
+player with a height of its own — Spotify's — keeps it, and the dialog does not offer a ratio
+for it.
 
-A title is optional and worth setting: a screen reader announces it instead of "video".
+The ratio is checked before it is written into the style, wherever it came from: a document
+kept as JSON hands its attributes over unparsed, and the sanitiser does not read CSS.
+
+A title is optional and worth setting: a screen reader announces it instead of "frame".
 
 **The rendered embed needs no stylesheet of yours.** The aspect ratio and the frame's size
 are written into the markup as inline styles, because this package's stylesheet is loaded
@@ -3178,7 +3242,7 @@ still on the wrapper for styling beyond that.
 
 ### Video and audio you host
 
-The other half of the question [embeds](#video-embeds) answer. `'video'` and `'audio'`
+The other half of the question [embeds](#embeds) answer. `'video'` and `'audio'`
 place a `<video>` or an `<audio>` pointing at a file on your own server; one node draws
 both, and which of the two it is stays an attribute you can correct.
 
@@ -5078,7 +5142,7 @@ the whole project; the method sets it for one field and wins.
 | Drafts in the browser | `autosave.enabled` | `->autosave(false)` |
 | Drag handle | `drag_handle.enabled` | `->dragHandle(false)` |
 | Slash menu | `slash.enabled` | `->slashMenu(false)` |
-| Video embeds | `embed.enabled` | `->embeds(false)` |
+| Embeds *(on, but off the shipped bar — see [Embeds](#embeds))* | `embed.enabled` | `->embeds(false)` |
 | Callouts | `callouts.enabled` | `->callouts(false)` |
 | Language of a passage | `languages.enabled` | `->languages(false)` |
 | Task lists | `task_list` | `->taskList(false)` |

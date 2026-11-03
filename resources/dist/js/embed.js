@@ -1,36 +1,33 @@
 /*
- * Video embeds, on the editor's side.
+ * Embeds from other sites, on the editor's side: videos, songs, maps, pens.
  *
- * What is stored is what the video *is* - a provider, an id, a timestamp - and the embed
- * URL is built from that on the way out. The PHP half does the same, from the same parts,
- * which is what lets `youtube-nocookie` stay a setting instead of a decision frozen into
- * every record ever saved.
+ * What is stored is what the embed *is* - a service, an id, a timestamp - and the embed URL
+ * is built from that on the way out. The PHP half does the same, from the same parts, which
+ * is what lets `youtube-nocookie` stay a setting instead of a decision frozen into every
+ * record ever saved.
  *
- * The editor does not draw the video. A panel with ten embeds in it would load ten players
- * from YouTube, each with its own network traffic and its own cookie, in an admin screen
- * where nobody is watching anything. What is drawn instead is a card naming what will be
- * there - which is also selectable, draggable and deletable like any other block, and
- * which an iframe swallowing every click would not be.
+ * The editor does not draw the frame. A panel with ten embeds in it would load ten players,
+ * each with its own network traffic and its own cookie, in an admin screen where nobody is
+ * watching anything. What is drawn instead is a card naming what will be there - which is
+ * also selectable, draggable and deletable like any other block, and which an iframe
+ * swallowing every click would not be.
  *
- * The link parsing below mirrors `EmbedUrl` in PHP. The two must agree: this half decides
- * what a paste turns into, that half decides what a save keeps. The host list is not
- * duplicated - it comes from the config through the element the editor is mounted on -
- * but the shapes a share link comes in are written out in both places, so a provider added
- * to one has to be added to the other.
+ * No service is known here. Each one is described in PHP (`EmbedProvider`) and handed over
+ * through the element the editor is mounted on; what follows reads those descriptions the
+ * way `EmbedUrl` reads them, so the two halves cannot disagree about a link - this one
+ * decides what a paste turns into, that one what a save keeps.
  */
 
-const PATTERNS = {
-    youtube: {
-        hosts: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'],
-        id: /^[A-Za-z0-9_-]{6,20}$/,
-    },
-    vimeo: {
-        hosts: ['vimeo.com'],
-        id: /^[0-9]{6,12}$/,
-    },
+let providers = []
+
+/**
+ * The services links are read against, as PHP described them.
+ */
+export function useProviders(list) {
+    providers = Array.isArray(list) ? list : []
 }
 
-const hostMatches = (host, suffix) => host === suffix || host.endsWith(`.${suffix}`)
+const providerNamed = (name) => providers.find((provider) => provider.name === name) ?? null
 
 /**
  * Seconds out of `90`, `1m30s` or `2h5m`, which are the three shapes a share button writes.
@@ -58,67 +55,133 @@ function seconds(value) {
     return total > 0 ? total : null
 }
 
+function accepts(provider, id) {
+    return typeof id === 'string' && new RegExp(`^(?:${provider.id})$`).test(id)
+}
+
 /**
- * The provider, the video and the timestamp behind a pasted link, or null.
+ * The id in a link: the named groups of the first pattern that yields a valid one, joined
+ * by `/`.
+ */
+function read(provider, subject) {
+    for (const pattern of provider.patterns) {
+        const groups = new RegExp(pattern).exec(subject)?.groups
+
+        if (!groups) {
+            continue
+        }
+
+        const id = Object.values(groups)
+            .filter((part) => typeof part === 'string' && part !== '')
+            .join('/')
+
+        if (accepts(provider, id)) {
+            return id
+        }
+    }
+
+    return null
+}
+
+/**
+ * The service, the id and the timestamp behind a pasted link - or behind the embed code a
+ * share dialog hands out - or null.
  */
 export function parseEmbed(url) {
     if (!url) {
         return null
     }
 
+    let link = String(url).trim()
+
+    const code = /<iframe\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/is.exec(link)
+
+    if (code) {
+        const decoder = document.createElement('textarea')
+        decoder.innerHTML = code[2]
+        link = decoder.value.trim()
+    }
+
     let parsed
 
     try {
-        parsed = new URL(String(url).trim().includes('://') ? url : `https://${url}`)
+        parsed = new URL(link.includes('://') ? link : `https://${link}`)
     } catch {
         return null
     }
 
     const host = parsed.hostname.toLowerCase()
-    const provider = Object.keys(PATTERNS).find((name) =>
-        PATTERNS[name].hosts.some((suffix) => hostMatches(host, suffix)),
-    )
+    const provider = providers.find((candidate) => candidate.hosts.includes(host))
 
     if (!provider) {
         return null
     }
 
-    const path = parsed.pathname
-    let id = null
+    const id = read(provider, `${host}${parsed.pathname}${parsed.search}`)
 
-    if (provider === 'vimeo') {
-        id = /\/(?:video\/)?(\d+)/.exec(path)?.[1] ?? null
-    } else if (host === 'youtu.be') {
-        id = path.replace(/^\/+/, '').split('/')[0] || null
-    } else {
-        id =
-            /^\/(?:embed|shorts|v|live)\/([^/?#]+)/.exec(path)?.[1] ??
-            parsed.searchParams.get('v')
-    }
-
-    if (!id || !PATTERNS[provider].id.test(id)) {
+    if (!id) {
         return null
     }
 
     return {
-        provider,
+        provider: provider.name,
         id,
-        start: seconds(
-            parsed.searchParams.get('t') ??
-                parsed.searchParams.get('start') ??
-                parsed.hash.replace(/^#/, ''),
-        ),
+        start: provider.start
+            ? seconds(
+                  parsed.searchParams.get('t') ??
+                      parsed.searchParams.get('start') ??
+                      parsed.hash.replace(/^#/, ''),
+              )
+            : null,
     }
 }
 
-export function embedSrc(provider, id, start, nocookie = true) {
-    if (provider === 'vimeo') {
-        return `https://player.vimeo.com/video/${id}${start ? `#t=${start}s` : ''}`
+/**
+ * The address a browser frames, or null for a service that is not on the list.
+ */
+export function embedSrc(name, id, start) {
+    const provider = providerNamed(name)
+
+    if (!provider || !accepts(provider, id)) {
+        return null
     }
 
-    const host = nocookie ? 'www.youtube-nocookie.com' : 'www.youtube.com'
+    const parts = id.split('/')
+    const address = provider.src.replace(/\{id(?::(\d+))?\}/g, (_match, index) =>
+        index === undefined ? id : (parts[Number(index)] ?? ''),
+    )
 
-    return `https://${host}/embed/${id}${start ? `?start=${start}` : ''}`
+    return start > 0 && provider.start ? address + provider.start.replace('{start}', String(start)) : address
+}
+
+/**
+ * A ratio in the one spelling the wrapper writes, or null.
+ */
+function ratioOf(value) {
+    const match = /^\s*([0-9]+(?:\.[0-9]+)?)\s*\/\s*([0-9]+(?:\.[0-9]+)?)\s*$/.exec(String(value ?? ''))
+
+    return match && Number(match[1]) > 0 && Number(match[2]) > 0 ? `${match[1]} / ${match[2]}` : null
+}
+
+/**
+ * The wrapper's shape, as `Embed::box()` writes it: a player's own height, or a ratio - held
+ * to the width of a phone where it stands upright.
+ */
+export function embedBox(name, ratio) {
+    const provider = providerNamed(name)
+
+    if (provider?.height) {
+        return `width: 100%; height: ${provider.height}px;`
+    }
+
+    const shape = ratioOf(ratio) ?? ratioOf(provider?.ratio) ?? '16 / 9'
+    const [width, height] = shape.split('/').map(Number)
+
+    return `aspect-ratio: ${shape}; width: 100%;${width < height ? ' max-width: 22.5rem;' : ''}`
+}
+
+export function embedLabel(name) {
+    return providerNamed(name)?.label ?? name ?? ''
 }
 
 export default () => {
@@ -142,15 +205,15 @@ export default () => {
         const raw = editor?.options?.element?.dataset?.arteEmbed
 
         if (!raw) {
-            return { nocookie: true, labels: {} }
+            return { providers: [] }
         }
 
         try {
-            return { nocookie: true, labels: {}, ...JSON.parse(raw) }
+            return { providers: [], ...JSON.parse(raw) }
         } catch (error) {
             console.error('The advanced rich editor could not read its embed settings:', error)
 
-            return { nocookie: true, labels: {} }
+            return { providers: [] }
         }
     }
 
@@ -166,14 +229,12 @@ export default () => {
         selectable: true,
 
         /**
-         * The provider names and the cookie setting come from PHP, through the element the
-         * editor was mounted on - the one channel a TipTap extension has to the field it
-         * belongs to. Read lazily, because options are built before there is an editor.
+         * The services come from PHP, through the element the editor was mounted on - the one
+         * channel a TipTap extension has to the field it belongs to. Read before the content
+         * is, since reading the content is reading links.
          */
-        addOptions() {
-            return {
-                settings: null,
-            }
+        onBeforeCreate() {
+            useProviders(settingsOf(this.editor).providers)
         },
 
         addAttributes() {
@@ -198,12 +259,16 @@ export default () => {
                     parseHTML: (element) => readIframe(element)?.getAttribute('title') || null,
                     renderHTML: () => ({}),
                 },
+                // None until somebody picks one, as in PHP: the service's own shape is the
+                // default, and a TikTok left at widescreen would be drawn on its side.
                 ratio: {
-                    default: '16 / 9',
+                    default: null,
                     parseHTML: (element) =>
-                        /aspect-ratio:\s*([0-9.]+\s*\/\s*[0-9.]+)/i.exec(
-                            element.getAttribute('style') ?? '',
-                        )?.[1]?.trim() ?? '16 / 9',
+                        ratioOf(
+                            /aspect-ratio:\s*([0-9.]+\s*\/\s*[0-9.]+)/i.exec(
+                                element.getAttribute('style') ?? '',
+                            )?.[1],
+                        ),
                     renderHTML: () => ({}),
                 },
             }
@@ -224,7 +289,7 @@ export default () => {
         renderHTML({ node }) {
             const { provider, id, start, title, ratio } = node.attrs
 
-            if (!provider || !id) {
+            if (!provider || !id || !embedSrc(provider, id, start)) {
                 return ['div', { 'data-type': 'embed' }]
             }
 
@@ -233,12 +298,12 @@ export default () => {
                 {
                     class: 'fi-arte-embed',
                     'data-type': 'embed',
-                    style: `aspect-ratio: ${ratio ?? '16 / 9'}; width: 100%;`,
+                    style: embedBox(provider, ratio),
                 },
                 [
                     'iframe',
                     mergeAttributes({
-                        src: embedSrc(provider, id, start, settingsOf(this.editor).nocookie),
+                        src: embedSrc(provider, id, start),
                         ...(title ? { title } : {}),
                         loading: 'lazy',
                         allow: 'accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
@@ -252,7 +317,6 @@ export default () => {
 
         addNodeView() {
             return ({ node }) => {
-                const labels = settingsOf(this.editor).labels
                 const card = document.createElement('div')
                 card.className = 'fi-arte-embed-card'
                 card.dataset.type = 'embed'
@@ -260,7 +324,7 @@ export default () => {
 
                 const provider = document.createElement('span')
                 provider.className = 'fi-arte-embed-card-provider'
-                provider.textContent = labels[node.attrs.provider] ?? node.attrs.provider ?? ''
+                provider.textContent = embedLabel(node.attrs.provider)
 
                 const name = document.createElement('span')
                 name.className = 'fi-arte-embed-card-title'
@@ -300,7 +364,9 @@ export default () => {
                         handlePaste: (view, event) => {
                             const text = event.clipboardData?.getData('text/plain')?.trim()
 
-                            if (!text || /\s/.test(text)) {
+                            // A link is one word. The embed code a map or a pen is shared as
+                            // is not, and is read the same way.
+                            if (!text || (/\s/.test(text) && !/^<iframe\b/i.test(text))) {
                                 return false
                             }
 

@@ -11,6 +11,7 @@ use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Kisame76\FilamentAdvancedRichEditor\Console\MediaCoversCommand;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\RenderLedger;
 use Kisame76\FilamentAdvancedRichEditor\View\Components\Content;
@@ -329,8 +330,8 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
      * Symfony's safe element list has no `<iframe>` in it, which is the right default and
      * also removes every embed this package can insert. The element is allowed back only
      * where a project switched embeds on, and never on its own terms: `EmbedHostSanitizer`
-     * narrows `src` to the video hosts, so what is allowed back is an embed rather than an
-     * iframe.
+     * narrows `src` to the hosts the embed services frame from, so what is allowed back is an
+     * embed rather than an iframe.
      *
      * This changes a configuration the whole application shares, which is why it is a
      * config key rather than something installing the package does.
@@ -351,9 +352,7 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                     'src', 'title', 'loading', 'allow', 'allowfullscreen', 'referrerpolicy',
                     'style', 'width', 'height',
                 ])
-                ->withAttributeSanitizer(new EmbedHostSanitizer(
-                    (array) config('filament-advanced-rich-editor.embed.allowed_hosts', []),
-                )),
+                ->withAttributeSanitizer(new EmbedHostSanitizer(EmbedProviders::frameHosts())),
         );
     }
 

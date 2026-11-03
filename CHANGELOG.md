@@ -42,6 +42,20 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   default: `<x-arte-content lightbox>` brings the script and stylesheet along, and
   `<x-arte-lightbox />` puts them on a page that renders by itself
 
+- Embeds from more services than YouTube and Vimeo: Spotify, Loom, CodePen, TikTok and Google
+  Maps, read from the links their share buttons write - and for a map, from the embed code its
+  share dialog hands out, pasted whole. Each service is a class extending `EmbedProvider`,
+  listed in `embed.providers`: a project takes one off or adds its own, and the dialog, pasting,
+  the media library and the sanitiser follow. A service is described rather than programmed,
+  and the editor in the browser reads the same description PHP does, so a link cannot mean one
+  thing to the paste and another to the save. A player keeps its service's shape - a TikTok
+  upright and no wider than a phone, a Spotify player its own height - and the dialog picks it
+  as the link goes in. X and Instagram are not among them: both embed through a script of their
+  own, which no document should be able to put on a page. `embed.allowed_hosts` now only lists
+  hosts beyond the services' own; a published config still listing YouTube and Vimeo there
+  keeps working. The button and its dialog say "Embed" rather than "Video" now, in all twelve
+  languages
+
 ### Fixed
 
 - **Two editors on one record no longer delete each other's pictures.** Each picture remembers

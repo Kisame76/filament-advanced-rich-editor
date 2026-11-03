@@ -11,13 +11,17 @@ use Filament\Forms\Components\RichEditor\EditorCommand;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Enums\Width;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProvider;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Embeds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Embed;
 
 /**
- * The dialog behind the embed button: paste a link, get a video.
+ * The dialog behind the embed button: paste a link, get a video - or a song, a map, a pen.
  *
  * One field does the work. The link is taken apart here rather than being handed to an
  * iframe as it was found - a watch URL cannot be framed at all, and the timestamp somebody
@@ -93,6 +97,15 @@ class EmbedAction
                     if (EmbedUrl::parse(is_string($value) ? $value : null) === null) {
                         $fail(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.unsupported'));
                     }
+                })
+                // The service's own shape, the moment its link is in: a TikTok upright, a map
+                // a little taller than a film. Picked before anyone has to.
+                ->afterStateUpdated(static function (mixed $state, Set $set): void {
+                    $provider = static::providerOf($state);
+
+                    if (($provider !== null) && array_key_exists($provider->ratio(), static::RATIOS)) {
+                        $set('ratio', $provider->ratio());
+                    }
                 }),
             TextInput::make('title')
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.title'))
@@ -101,8 +114,15 @@ class EmbedAction
                 ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.embed.ratio'))
                 ->options(static::RATIOS)
                 ->selectablePlaceholder(false)
-                ->default(Embed::DEFAULT_RATIO),
+                ->default(Embed::DEFAULT_RATIO)
+                // Not offered for a player with a height of its own, which it would not change.
+                ->hidden(static fn (Get $get): bool => static::providerOf($get('url'))?->height() !== null),
         ];
+    }
+
+    protected static function providerOf(mixed $url): ?EmbedProvider
+    {
+        return EmbedProviders::get(EmbedUrl::parse(is_string($url) ? $url : null)['provider'] ?? null);
     }
 
     /**

@@ -59,12 +59,17 @@ it('still renders a stored video after the button is taken away', function (): v
     expect(AdvancedRichContentRenderer::make($stored)->toHtml())->toContain('<iframe');
 });
 
-it('tells the script the provider names and the cookie setting', function (): void {
-    $settings = editor()->getEmbedSettingsForJs();
+it('describes every service to the script, the cookie setting included', function (): void {
+    $providers = collect(editor()->getEmbedSettingsForJs()['providers'])->keyBy('name');
 
-    expect($settings['nocookie'])->toBeTrue()
-        ->and($settings['labels']['youtube'])->toBe('YouTube')
-        ->and($settings['labels']['vimeo'])->toBe('Vimeo');
+    expect($providers->keys()->all())->toBe(['youtube', 'vimeo', 'spotify', 'loom', 'codepen', 'tiktok', 'google_maps'])
+        ->and($providers['youtube']['label'])->toBe('YouTube')
+        ->and($providers['youtube']['src'])->toBe('https://www.youtube-nocookie.com/embed/{id}');
+
+    config()->set('filament-advanced-rich-editor.embed.youtube_nocookie', false);
+
+    expect(collect(editor()->getEmbedSettingsForJs()['providers'])->keyBy('name')['youtube']['src'])
+        ->toBe('https://www.youtube.com/embed/{id}');
 });
 
 it('tells the script nothing while embeds are off', function (): void {
