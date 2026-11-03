@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions;
 
 use DOMElement;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Concerns\ReadsAttributes;
 use Tiptap\Core\Extension;
 
 /**
@@ -37,6 +38,8 @@ use Tiptap\Core\Extension;
  */
 class Indent extends Extension
 {
+    use ReadsAttributes;
+
     /**
      * @var string
      */
@@ -305,18 +308,5 @@ class Indent extends Extension
     public static function format(float $value): string
     {
         return rtrim(rtrim(number_format($value, 4, '.', ''), '0'), '.') ?: '0';
-    }
-
-    protected static function read(mixed $attributes, string $key): mixed
-    {
-        if (is_array($attributes)) {
-            return $attributes[$key] ?? null;
-        }
-
-        if (is_object($attributes)) {
-            return $attributes->{$key} ?? null;
-        }
-
-        return null;
     }
 }

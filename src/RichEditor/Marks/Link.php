@@ -6,6 +6,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks;
 
 use DOMElement;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Concerns\ReadsAttributes;
 use Tiptap\Marks\Link as BaseLink;
 
 /**
@@ -23,6 +24,8 @@ use Tiptap\Marks\Link as BaseLink;
  */
 class Link extends BaseLink
 {
+    use ReadsAttributes;
+
     /**
      * The policies the HTML specification defines. Anything else is not a stricter policy,
      * it is no policy - the browser falls back to its default and the author is left
@@ -89,18 +92,5 @@ class Link extends BaseLink
         $policy = strtolower(trim($value));
 
         return in_array($policy, static::REFERRER_POLICIES, strict: true) ? $policy : null;
-    }
-
-    protected static function read(mixed $attributes, string $key): mixed
-    {
-        if (is_array($attributes)) {
-            return $attributes[$key] ?? null;
-        }
-
-        if (is_object($attributes)) {
-            return $attributes->{$key} ?? null;
-        }
-
-        return null;
     }
 }

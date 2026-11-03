@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions;
 
 use DOMElement;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Concerns\ReadsAttributes;
 use Tiptap\Core\Extension;
 
 /**
@@ -26,6 +27,8 @@ use Tiptap\Core\Extension;
  */
 class ImageLink extends Extension
 {
+    use ReadsAttributes;
+
     /**
      * @var string
      */
@@ -136,18 +139,5 @@ class ImageLink extends Extension
     protected static function withoutControlCharacters(string $href): string
     {
         return preg_replace('/[\x00-\x20\x7F]/', '', $href) ?? '';
-    }
-
-    protected static function read(mixed $attributes, string $key): mixed
-    {
-        if (is_array($attributes)) {
-            return $attributes[$key] ?? null;
-        }
-
-        if (is_object($attributes)) {
-            return $attributes->{$key} ?? null;
-        }
-
-        return null;
     }
 }

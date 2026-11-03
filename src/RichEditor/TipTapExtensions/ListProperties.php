@@ -6,6 +6,7 @@ namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions;
 
 use DOMElement;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ListProperties as Values;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Concerns\ReadsAttributes;
 use Tiptap\Core\Extension;
 
 /**
@@ -33,6 +34,8 @@ use Tiptap\Core\Extension;
  */
 class ListProperties extends Extension
 {
+    use ReadsAttributes;
+
     /**
      * @var string
      */
@@ -111,18 +114,5 @@ class ListProperties extends Extension
                 ];
             },
         ];
-    }
-
-    protected static function read(mixed $attributes, string $key): mixed
-    {
-        if (is_array($attributes)) {
-            return $attributes[$key] ?? null;
-        }
-
-        if (is_object($attributes)) {
-            return $attributes->{$key} ?? null;
-        }
-
-        return null;
     }
 }
