@@ -81,6 +81,11 @@ return [
                 'label' => 'Linken naar een record',
                 'hint' => 'Een keuze vult de URL hieronder in, en die URL is wat de link opslaat.',
             ],
+            'check' => [
+                'answers' => 'Dit adres antwoordt :status.',
+                'no_host' => 'De host :host bestaat niet.',
+                'silent' => 'Dit adres gaf geen antwoord.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Platte tekst',

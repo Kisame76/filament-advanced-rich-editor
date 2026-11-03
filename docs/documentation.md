@@ -3071,6 +3071,26 @@ that finds nothing is left out rather than drawn as an empty heading.
 Re-opening a link does not preselect the record it points at. Finding the record behind a URL
 means storing a reference next to it, which is exactly what the mark cannot carry.
 
+##### A warning in the link dialog
+
+```php
+AdvancedRichEditor::make('content')
+    ->linkCheck();   // default: config('filament-advanced-rich-editor.link.check.dialog'), false
+```
+
+asks a typed address once the URL field is left — not at every keystroke, since half an
+address is always broken — and warns beside the field where it is broken or does not answer.
+A warning and never a refusal: a page behind a login answers a checker with an error and a
+reader with the page.
+
+**Off unless asked for, because it is the server that asks.** Every address somebody types
+becomes a request leaving it, and a server that may not reach the internet would warn about
+every link written on it. Switched on, the dialog asks only the public internet: a host that
+resolves to a private, loopback or reserved address is not asked at all, the connection goes to
+the address that was checked rather than whatever the name resolves to a moment later, and no
+redirect is followed. Without that, the dialog would be a way for anybody who can edit a
+document to find out which machines answer on the server's own network.
+
 ### Embeds
 
 **Registered and on, but not on the shipped bar.** The
@@ -5136,6 +5156,7 @@ the whole project; the method sets it for one field and wins.
 | Marking a picture as carrying nothing | `images.decorative` | `->imageDecorative()` |
 | Cropping, turning and flipping a picture | `images.editor` | `->imageEditor()` |
 | A loading hint on an inserted picture (`null`) | `images.loading` | `->imageLoading('lazy')` |
+| A warning in the link dialog for an address that does not answer | `link.check.dialog` | `->linkCheck()` |
 
 | Ships **on** | Config key | Per field |
 | --- | --- | --- |

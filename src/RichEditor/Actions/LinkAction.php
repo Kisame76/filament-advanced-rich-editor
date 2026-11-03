@@ -11,9 +11,12 @@ use Filament\Forms\Components\RichEditor\EditorCommand;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Links\LinkCheck;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\LinkSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 
@@ -93,6 +96,7 @@ class LinkAction
                         ->afterStateUpdated(static function (mixed $state, Set $set): void {
                             if (filled($state)) {
                                 $set('href', $state);
+                                $set('hrefProblem', null);
                             }
                         })
                         ->columnSpanFull(),
@@ -101,6 +105,23 @@ class LinkAction
                 TextInput::make('href')
                     ->label(__('filament-forms::components.rich_editor.actions.link.modal.form.url.label'))
                     ->inputMode('url')
+                    // Asked as the field is left rather than as it is typed into: half an
+                    // address is always broken. The answer is kept beside the form rather
+                    // than worked out by the hint, which is drawn on every round trip and
+                    // would ask again each time.
+                    ->live(onBlur: true, condition: $component->hasLinkCheck())
+                    // Asked here as well as above: Filament runs this for a field that is not
+                    // live too, as soon as its value reaches the server - with the save. Unasked,
+                    // a field with the check off sent a request for every link it saved, and
+                    // made the dialog wait for the answer.
+                    ->afterStateUpdated(static function (mixed $state, Set $set) use ($component): void {
+                        if ($component->hasLinkCheck()) {
+                            $set('hrefProblem', static::problemWith($state));
+                        }
+                    })
+                    ->hint(static fn (Get $get): ?string => $get('hrefProblem'))
+                    ->hintIcon(static fn (Get $get): ?Heroicon => filled($get('hrefProblem')) ? Heroicon::ExclamationTriangle : null)
+                    ->hintColor('warning')
                     ->columnSpanFull(),
                 Grid::make(['md' => 2])->schema([
                     Select::make('target')
@@ -157,6 +178,18 @@ class LinkAction
                     editorSelection: $arguments['editorSelection'],
                 );
             });
+    }
+
+    /**
+     * What is wrong with a typed address, or null where nothing is - or nothing could be
+     * asked. A warning and never a refusal: a page behind a login answers a checker with an
+     * error and a reader with the page.
+     */
+    public static function problemWith(mixed $href): ?string
+    {
+        return (is_string($href) && filled($href))
+            ? LinkCheck::make()->guarded()->status($href)->problem()
+            : null;
     }
 
     /**

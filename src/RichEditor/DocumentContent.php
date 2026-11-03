@@ -189,12 +189,16 @@ final class DocumentContent
     }
 
     /**
-     * Every node in the tree, the document itself included.
+     * Every node in the tree, the document itself included, in document order.
+     *
+     * Text nodes too - which is the difference from `Tiptap\Editor::descendants()`, whose walk
+     * stops at a text node before handing it over, and with it at every mark a text node
+     * carries: a link is one of those.
      *
      * @param  array<string, mixed>  $node
      * @return iterable<array<string, mixed>>
      */
-    private static function nodes(array $node): iterable
+    public static function nodes(array $node): iterable
     {
         yield $node;
 

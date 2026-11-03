@@ -81,6 +81,11 @@ return [
                 'label' => 'Länk till en post',
                 'hint' => 'Ett val fyller i URL-adressen nedan, och det är den som länken sparar.',
             ],
+            'check' => [
+                'answers' => 'Den här adressen svarar :status.',
+                'no_host' => 'Värden :host finns inte.',
+                'silent' => 'Den här adressen svarade inte.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Ren text',

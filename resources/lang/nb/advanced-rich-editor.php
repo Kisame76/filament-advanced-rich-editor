@@ -81,6 +81,11 @@ return [
                 'label' => 'Lenke til en post',
                 'hint' => 'Et valg fyller ut URL-en nedenfor, og det er den lenken lagrer.',
             ],
+            'check' => [
+                'answers' => 'Denne adressen svarer :status.',
+                'no_host' => 'Verten :host finnes ikke.',
+                'silent' => 'Denne adressen svarte ikke.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Ren tekst',

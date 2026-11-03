@@ -81,6 +81,11 @@ return [
                 'label' => 'Lien vers un enregistrement',
                 'hint' => 'En choisir un remplit l\'URL ci-dessous, et c\'est elle que le lien enregistre.',
             ],
+            'check' => [
+                'answers' => 'Cette adresse répond :status.',
+                'no_host' => 'L\'hôte :host n\'existe pas.',
+                'silent' => 'Cette adresse n\'a pas répondu.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Texte brut',

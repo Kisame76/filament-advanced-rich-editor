@@ -11,10 +11,15 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Html;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Promise\Create;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Validator;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Callouts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Languages;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Links\PublicHosts;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarColorPicker;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDivider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarDropdown;
@@ -42,6 +47,31 @@ uses(TestCase::class)->in('Feature');
 function testSchema(): Schema
 {
     return Schema::make(new TestSchemaComponent)->operation('edit');
+}
+
+/**
+ * Host names that resolve to what the test says, so the guard on what the panel may ask can be
+ * tried against a private network without there being one. A name not listed resolves the way
+ * it always would - an address to itself.
+ *
+ * @param  array<string, array<int, string>>  $hosts
+ */
+function resolvingHosts(array $hosts): void
+{
+    $resolver = new class extends PublicHosts
+    {
+        /** @var array<string, array<int, string>> */
+        public static array $hosts = [];
+
+        protected function addresses(string $host): array
+        {
+            return self::$hosts[$host] ?? (filter_var($host, FILTER_VALIDATE_IP) !== false ? [$host] : []);
+        }
+    };
+
+    $resolver::$hosts = $hosts;
+
+    app()->bind(PublicHosts::class, $resolver::class);
 }
 
 /**
@@ -610,6 +640,7 @@ function splitAtTopLevel(string $selector, string $separator): array
 
     return [...$parts, $current];
 }
+
 /**
  * Skips the test where a package it needs is not installed.
  *
@@ -632,3 +663,15 @@ function requires(string $package): void
     }
 }
 
+/**
+ * A request that never reached a server, for `Http::fake()` - `Http::failedConnection()`,
+ * which Laravel 11 only gained partway through, written out so the suite runs on the first
+ * release of it too.
+ */
+function failedConnection(?string $message = null): Closure
+{
+    return static fn (Request $request): PromiseInterface => Create::rejectionFor(new ConnectException(
+        $message ?? "cURL error 6: Could not resolve host: {$request->toPsrRequest()->getUri()->getHost()}",
+        $request->toPsrRequest(),
+    ));
+}

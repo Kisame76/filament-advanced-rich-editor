@@ -2,7 +2,13 @@
 
 declare(strict_types=1);
 
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Http;
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\Post;
 
 it('turns the form into the attributes the link carries', function (): void {
     expect(LinkAction::attributesFrom([
@@ -96,4 +102,71 @@ it('still registers one link dialog with the attributes turned off', function ()
     );
 
     expect($link)->toHaveCount(1);
+});
+
+/**
+ * The address field of the link dialog, as a field set up this way draws it.
+ */
+function linkDialogHref(AdvancedRichEditor $editor): ?TextInput
+{
+    $editor->container(Schema::make(new TestSchemaComponent)->operation('edit')->record(Post::create(['title' => 'Post'])));
+
+    $schema = $editor->getAction('link')?->schemaComponent($editor)->getSchema(testSchema());
+
+    return collect($schema?->getFlatComponents() ?? [])
+        ->first(static fn (object $component): bool => $component instanceof TextInput && ($component->getName() === 'href'));
+}
+
+it('asks nothing about a typed address unless the field says so', function (): void {
+    // It is the server that asks, so every address somebody types is a request leaving it -
+    // and a server that may not reach the internet would warn about every link.
+    expect(editor()->hasLinkCheck())->toBeFalse()
+        ->and(linkDialogHref(editor())?->isLive())->toBeFalse();
+
+    config()->set('filament-advanced-rich-editor.link.check.dialog', true);
+
+    expect(editor()->hasLinkCheck())->toBeTrue()
+        ->and(editor()->linkCheck(false)->hasLinkCheck())->toBeFalse();
+});
+
+it('asks nothing when a link is saved with the check off either', function (): void {
+    // Filament runs the hook for a field that is not live too, as soon as its value reaches
+    // the server - with the save. Unguarded, every link saved sent a request and waited for it.
+    Http::preventStrayRequests();
+    Http::fake();
+    resolvingHosts(['example.com' => ['93.184.215.14']]);
+
+    $href = linkDialogHref(editor());
+    $href?->state('https://example.com/')->callAfterStateUpdated();
+
+    Http::assertNothingSent();
+
+    $checked = linkDialogHref(editor()->linkCheck());
+    $checked?->state('https://example.com/')->callAfterStateUpdated();
+
+    Http::assertSentCount(1);
+});
+
+it('asks once the address field is left, rather than at every keystroke', function (): void {
+    // Half an address is always broken.
+    $href = linkDialogHref(editor()->linkCheck());
+
+    expect($href?->isLive())->toBeTrue()
+        ->and($href?->isLiveOnBlur())->toBeTrue();
+});
+
+it('warns about a typed address that is gone, and only one on the public internet', function (): void {
+    Http::preventStrayRequests();
+    Http::fake(['*' => Http::response('', 404)]);
+
+    resolvingHosts(['example.com' => ['93.184.215.14'], 'intranet.test' => ['10.0.0.8']]);
+
+    expect(LinkAction::problemWith('https://example.com/gone'))->toBe('This address answers 404 Not Found.')
+        ->and(LinkAction::problemWith('http://intranet.test/gone'))->toBeNull()
+        ->and(LinkAction::problemWith('mailto:a@example.com'))->toBeNull()
+        ->and(LinkAction::problemWith(''))->toBeNull()
+        ->and(LinkAction::problemWith(null))->toBeNull();
+
+    // The intranet address was never asked.
+    Http::assertSentCount(2);
 });

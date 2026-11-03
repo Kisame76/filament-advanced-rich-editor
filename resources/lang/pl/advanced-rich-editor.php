@@ -81,6 +81,11 @@ return [
                 'label' => 'Link do rekordu',
                 'hint' => 'Wybór wypełnia poniższy adres URL i to on jest zapisywany w linku.',
             ],
+            'check' => [
+                'answers' => 'Ten adres odpowiada :status.',
+                'no_host' => 'Host :host nie istnieje.',
+                'silent' => 'Ten adres nie odpowiedział.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Zwykły tekst',

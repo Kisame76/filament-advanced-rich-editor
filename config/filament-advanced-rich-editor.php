@@ -568,9 +568,33 @@ return [
     | Turning this off falls back to Filament's own dialog and its own link mark, and the
     | extra attributes are stripped from content that already carries them on the next
     | save. Per field: `->linkAttributes()`.
+    |
+    | 'check' is whether links still lead anywhere. `php artisan arte:diagnose` asks every
+    | link in every stored document and fails where one is broken, which makes it something
+    | to schedule. 'dialog' asks a typed address as the link dialog's field is left, and
+    | warns where it does not answer; per field: `->linkCheck()`.
     */
     'link' => [
         'attributes' => true,
+
+        'check' => [
+            /*
+             * Off, because it is the server that asks: every address somebody types becomes
+             * a request leaving it, and a server that may not reach the internet would warn
+             * about every link written on it. Only public addresses are asked.
+             */
+            'dialog' => false,
+
+            // Seconds per request. The dialog waits this long at most for its answer.
+            'timeout' => 5,
+
+            // How many addresses the command asks at once.
+            'concurrency' => 10,
+
+            // What the requests call themselves. Null sends "Mozilla/5.0 (compatible; link
+            // check; <app.name>)" - some sites turn away anything that does not say Mozilla.
+            'user_agent' => null,
+        ],
     ],
 
     /*

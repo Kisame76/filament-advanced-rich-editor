@@ -79,6 +79,11 @@ return [
                 'label' => 'Auf einen Datensatz verlinken',
                 'hint' => 'Die Auswahl füllt die URL darunter - das ist, was der Link speichert.',
             ],
+            'check' => [
+                'answers' => 'Diese Adresse antwortet mit :status.',
+                'no_host' => 'Einen Host :host gibt es nicht.',
+                'silent' => 'Diese Adresse hat nicht geantwortet.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Reiner Text',

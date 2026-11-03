@@ -81,6 +81,11 @@ return [
                 'label' => 'Collega a un record',
                 'hint' => 'La scelta compila l\'URL qui sotto, che è ciò che il link memorizza.',
             ],
+            'check' => [
+                'answers' => 'Questo indirizzo risponde :status.',
+                'no_host' => 'L\'host :host non esiste.',
+                'silent' => 'Questo indirizzo non ha risposto.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Testo semplice',

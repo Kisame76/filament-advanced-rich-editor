@@ -81,6 +81,11 @@ return [
                 'label' => 'Link to a record',
                 'hint' => 'Picking one fills the URL below, which is what the link stores.',
             ],
+            'check' => [
+                'answers' => 'This address answers :status.',
+                'no_host' => 'There is no host called :host.',
+                'silent' => 'This address did not answer.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Plain text',

@@ -81,6 +81,11 @@ return [
                 'label' => 'Link para um registro',
                 'hint' => 'Escolher um preenche a URL abaixo, que é o que o link armazena.',
             ],
+            'check' => [
+                'answers' => 'Este endereço responde :status.',
+                'no_host' => 'O host :host não existe.',
+                'silent' => 'Este endereço não respondeu.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Texto simples',

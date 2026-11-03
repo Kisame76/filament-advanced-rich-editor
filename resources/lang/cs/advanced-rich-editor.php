@@ -81,6 +81,11 @@ return [
                 'label' => 'Odkaz na záznam',
                 'hint' => 'Výběrem se vyplní URL níže, kterou odkaz ukládá.',
             ],
+            'check' => [
+                'answers' => 'Tato adresa odpovídá :status.',
+                'no_host' => 'Hostitel :host neexistuje.',
+                'silent' => 'Tato adresa neodpověděla.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Prostý text',

@@ -81,6 +81,11 @@ return [
                 'label' => 'Enlazar a un registro',
                 'hint' => 'Al elegir uno se rellena la URL de abajo, que es lo que guarda el enlace.',
             ],
+            'check' => [
+                'answers' => 'Esta dirección responde :status.',
+                'no_host' => 'El host :host no existe.',
+                'silent' => 'Esta dirección no respondió.',
+            ],
         ],
         'code_block' => [
             'plain' => 'Texto sin formato',
