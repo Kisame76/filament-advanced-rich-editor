@@ -27,6 +27,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- Replacing a picture in the media library lost its responsive images for good: they were
+  deleted with the old file, and Spatie's own regeneration skips a row whose list is empty.
+  The new file gets them again, and gets them too where its collection asks for them
+
 - A picture replaced by another one from the media browser takes the new file's shape. It kept
   the old height, and Filament draws the width and the height as an inline style, so a tall
   picture put in place of a wide one was pressed into the old box. The width stays as the

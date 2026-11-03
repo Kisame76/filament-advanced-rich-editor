@@ -9,7 +9,9 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\SpatieMediaSource;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\MediaPost;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\ResponsivePost;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\ThumbnailPost;
+use Spatie\MediaLibrary\MediaCollections\Filesystem as MediaFilesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -171,6 +173,55 @@ it('makes the conversions again from the new file', function (): void {
         ->and(Storage::disk('public')->exists($old))->toBeFalse()
         // Drawn from the new picture, whose shape is nothing like the old one's square.
         ->and(array_slice((array) getimagesizefromstring((string) Storage::disk('public')->get($thumbnail)), 0, 2))->toBe([64, 16]);
+});
+
+it('makes the responsive images again from the new file', function (): void {
+    // Spatie's own regeneration skips a row whose list is empty, and the list is emptied on the
+    // way in - so they used to be deleted with the old file and never made again.
+    $media = $this->post->addMediaFromString(UploadedFile::fake()->image('sunset.png', 640, 360)->get())
+        ->usingFileName('sunset.png')
+        ->usingName('sunset')
+        ->withResponsiveImages()
+        ->toMediaCollection('rich-editor');
+
+    // Read off `files` rather than through `getFilenames()`, which the oldest media library
+    // this package supports does not have yet.
+    $old = $media->refresh()->responsiveImages()->files->pluck('fileName')->all();
+
+    expect($old)->not->toBeEmpty()
+        ->and($this->source->replace($media->uuid, UploadedFile::fake()->image('dawn.png', 480, 270)))->toBeTrue();
+
+    $fresh = Media::query()->sole();
+    $directory = dirname($fresh->getPathRelativeToRoot()).'/responsive-images/';
+
+    expect($fresh->responsiveImages()->files->pluck('fileName')->all())->not->toBeEmpty()
+        ->each->toStartWith('dawn___media_library_original_480_270')
+        ->and(collect($old)->filter(fn (string $file): bool => Storage::disk('public')->exists($directory.$file)))->toBeEmpty();
+});
+
+it('gives the new file responsive images where its collection asks for them', function (): void {
+    // A picture put there before the project asked for them has none, and replacing it is an
+    // upload in all but the row: it is made what an upload would have been.
+    $post = ResponsivePost::create(['title' => 'Post', 'content' => '']);
+
+    $media = $post->addMediaFromString(UploadedFile::fake()->image('sunset.png', 640, 360)->get())
+        ->usingFileName('sunset.png')
+        ->toMediaCollection('rich-editor');
+
+    app(MediaFilesystem::class)->removeResponsiveImages($media);
+    $media->setAttribute('responsive_images', [])->save();
+
+    $source = SpatieMediaSource::make(collection: 'rich-editor', visibility: 'public', getRecordUsing: fn (): ResponsivePost => $post);
+
+    expect($source->replace($media->uuid, UploadedFile::fake()->image('dawn.png', 480, 270)))->toBeTrue()
+        ->and(Media::query()->sole()->hasResponsiveImages())->toBeTrue();
+});
+
+it('makes none for a new file nobody asked them of', function (): void {
+    $media = ($this->attach)('sunset.png', UploadedFile::fake()->image('sunset.png', 640, 360)->get());
+
+    expect($this->source->replace($media->uuid, UploadedFile::fake()->image('dawn.png', 480, 270)))->toBeTrue()
+        ->and(Media::query()->sole()->hasResponsiveImages())->toBeFalse();
 });
 
 it('tells the picker what may take the place of each kind of file', function (): void {

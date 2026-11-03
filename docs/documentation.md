@@ -2367,7 +2367,7 @@ file it turns away is named in the panel with what would have been taken:
 | | With Spatie Media Library | On a plain disk |
 | --- | --- | --- |
 | What stays | the row: uuid, key, owner, order, description | the path — which is the id, and the file's name — and the description beside it |
-| What changes | the file, and its names: the file name and the name in the library both come from the upload, as they would have on upload; type and size; conversions are made again | the file's bytes |
+| What changes | the file, and its names: the file name and the name in the library both come from the upload, as they would have on upload; type and size; conversions and responsive images are made again | the file's bytes |
 | A picture, a film, a sound | may change format within its family — a png for a webp | keeps its ending, because the path is the id |
 | A document | keeps its ending, because every card using it downloads under that name | keeps its ending |
 
