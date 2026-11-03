@@ -440,6 +440,9 @@ return [
         'block_outlines' => [
             'label' => 'Show blocks',
         ],
+        'focus_mode' => [
+            'label' => 'Focus mode',
+        ],
         'emoji' => [
             'label' => 'Emoji',
             'search' => 'Search emoji',

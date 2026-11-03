@@ -64,6 +64,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   The page is read from the public internet only, every redirect checked again. Off by default
   (`->linkPreviews()`, `link.previews`) and off the shipped bar; the slash menu finds it
 
+- A focus mode in the tools menu: every block but the one being written in is dimmed, and the
+  line being written stays in the middle of the view - at once while typing, smoothly when the
+  caret was moved, and not at all for a reader who asked for less motion. Nothing about it is
+  stored. Off by default (`->focusMode()`, `focus_mode`)
+
 ### Fixed
 
 - **Two editors on one record no longer delete each other's pictures.** Each picture remembers

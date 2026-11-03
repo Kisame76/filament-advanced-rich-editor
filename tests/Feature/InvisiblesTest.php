@@ -56,7 +56,7 @@ it('resolves its tokens away where it is switched off', function (): void {
 it('sits in the tools menu with the other ways of looking at the document', function (): void {
     // After the preview and before the source view: three ways of seeing the same document,
     // and the source view last because it is the one that edits.
-    $expected = ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help'];
+    $expected = ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'sourceCode', 'help'];
 
     expect(config('filament-advanced-rich-editor.tools_menu'))->toBe($expected)
         ->and(editor()->getToolsMenu())->toBe($expected)

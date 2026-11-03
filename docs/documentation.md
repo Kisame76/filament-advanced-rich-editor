@@ -83,7 +83,7 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 **[Typing instead of aiming](#typing-instead-of-aiming)** — [Slash menu](#slash-menu) ·
 [Typography while typing](#typography-while-typing) · [Drag handle](#drag-handle) ·
 [Find and replace](#find-and-replace) ·
-[Invisible characters and block outlines](#invisible-characters-and-block-outlines) ·
+[Invisible characters and block outlines](#invisible-characters-and-block-outlines) · [Focus mode](#focus-mode) ·
 [Pasting from Word and Google Docs](#pasting-from-word-and-google-docs)
 
 **[Getting it right](#getting-it-right)** — [Accessibility check](#accessibility-check) ·
@@ -3685,6 +3685,37 @@ What a keystroke costs while the characters are shown grows with the paragraph b
 not with the document: an edit redraws only the paragraphs it touched. Measured on 3,000
 paragraphs (55,000 words), typing went from 4.5 to 13 ms a keystroke with the view on.
 
+### Focus mode
+
+```php
+AdvancedRichEditor::make('content')
+    ->focusMode();   // default: config('filament-advanced-rich-editor.focus_mode'), false
+```
+
+A button in the [tools menu](#the-tools-menu): every block but the one being written in is
+dimmed, and the line being written stays in the middle of the view — the focus and the
+typewriter modes of the writing apps, as one switch. It goes well with [fullscreen](#fullscreen)
+and works without it.
+
+What stays bright is every paragraph the selection reaches into — one for a caret, each of them
+for a selection across several, the item in a list rather than the whole list — or the picture,
+embed or card that is selected. Paragraphs, headings and code are dimmed wherever they sit, and
+so are the pictures, embeds and cards at the top; the frames around text — a quote's bar, a
+table's lines, a callout's box — stay as they are, the way the page around a paragraph does.
+
+The line moves to the middle at once while typing — a page that glides after every letter lags
+behind it — and smoothly when the caret was put somewhere else, unless the reader asked for less
+motion. In fullscreen there is half a screen of room under the last line, so that it too reaches
+the middle; on the page the room below is the page's own.
+
+**Off unless asked for.** Some people write like this every day and most never reach for it, and
+in a form a page that scrolls to keep a line in the middle surprises anybody who did not ask.
+`'focusMode'` already sits in the shipped tools menu and resolves to nothing, so switching it on
+is all a project does. Nothing about it is stored, and it starts off on every page load.
+
+The dimming is `--fi-arte-focus-dim` (0.3) on `.fi-arte-focus-mode`, and the block in focus
+carries `.fi-arte-focus-current`.
+
 ### Pasting from Word and Google Docs
 
 A paste is cleaned on the way in. Nothing is stored about it, there is no button for it and
@@ -5203,6 +5234,7 @@ the whole project; the method sets it for one field and wins.
 | A loading hint on an inserted picture (`null`) | `images.loading` | `->imageLoading('lazy')` |
 | A warning in the link dialog for an address that does not answer | `link.check.dialog` | `->linkCheck()` |
 | Link cards | `link.previews` | `->linkPreviews()` |
+| Focus mode | `focus_mode` | `->focusMode()` |
 
 | Ships **on** | Config key | Per field |
 | --- | --- | --- |

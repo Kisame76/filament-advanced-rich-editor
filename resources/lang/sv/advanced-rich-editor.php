@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Visa block',
         ],
+        'focus_mode' => [
+            'label' => 'Fokusläge',
+        ],
         'emoji' => [
             'label' => 'Emoji',
             'search' => 'Sök emoji',

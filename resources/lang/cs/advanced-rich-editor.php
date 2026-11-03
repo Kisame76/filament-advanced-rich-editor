@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Zobrazit bloky',
         ],
+        'focus_mode' => [
+            'label' => 'Režim soustředění',
+        ],
         'emoji' => [
             'label' => 'Emoji',
             'search' => 'Hledat emoji',

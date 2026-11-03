@@ -204,6 +204,9 @@ class ToolbarLayout
             'blockOutlines' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasInvisibles()
                 ? 'blockOutlines'
                 : [],
+            'focusMode' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasFocusMode()
+                ? 'focusMode'
+                : [],
             'help' => static fn (AdvancedRichEditor $editor): string|array => $editor->hasHelp()
                 ? 'help'
                 : [],

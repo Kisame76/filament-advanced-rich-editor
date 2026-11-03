@@ -56,6 +56,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmbedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\EmojiPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FileCardPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FindReplacePlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FocusModePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontFamilyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FontSizePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\FormatBrushPlugin;
@@ -665,6 +666,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasInvisibles()
                 ? [InvisiblesPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasFocusMode()
+                ? [FocusModePlugin::make()]
                 : [],
         );
 

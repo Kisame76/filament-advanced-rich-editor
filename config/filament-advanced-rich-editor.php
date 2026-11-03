@@ -224,7 +224,7 @@ return [
     |
     | An empty menu is dropped rather than drawn. Per field: `->toolsMenu()`.
     */
-    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'sourceCode', 'help'],
+    'tools_menu' => ['find', 'accessibility', 'statistics', 'preview', 'invisibleCharacters', 'blockOutlines', 'focusMode', 'sourceCode', 'help'],
 
     /*
     |--------------------------------------------------------------------------
@@ -732,6 +732,21 @@ return [
     | the browser's Fullscreen API, so Filament's modals still appear above it.
     */
     'fullscreen' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Focus mode
+    |--------------------------------------------------------------------------
+    | A button in the tools menu: every block but the one being written in is dimmed, and
+    | the line being written stays in the middle of the view - in fullscreen, or on the page.
+    | Nothing about it is stored, and it starts off on every page load.
+    |
+    | Off: some people write like this every day and most never reach for it, and in a form
+    | a page that scrolls to keep a line in the middle surprises anybody who did not ask.
+    | 'focusMode' already sits in the shipped tools menu and resolves to nothing, so turning
+    | this on is all it takes. Per field: `->focusMode()`.
+    */
+    'focus_mode' => false,
 
     /*
     |--------------------------------------------------------------------------
@@ -1645,6 +1660,7 @@ return [
         'source_code' => 'heroicon-o-code-bracket',
         'invisible_characters' => 'arte-pilcrow',
         'block_outlines' => 'arte-square-dashed',
+        'focus_mode' => 'heroicon-o-viewfinder-circle',
         'statistics' => 'heroicon-o-chart-bar',
         'preview' => 'heroicon-o-eye',
         'find' => 'heroicon-o-magnifying-glass',

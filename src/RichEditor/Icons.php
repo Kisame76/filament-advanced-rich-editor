@@ -96,6 +96,7 @@ class Icons
             // the outline drawn round every block.
             'invisible_characters' => 'arte-pilcrow',
             'block_outlines' => 'arte-square-dashed',
+            'focus_mode' => 'heroicon-o-viewfinder-circle',
             'statistics' => 'heroicon-o-chart-bar',
             'preview' => 'heroicon-o-eye',
             // Searching. The magnifier is the button, and the three inside the bar are the

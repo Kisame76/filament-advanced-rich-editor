@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import invisiblesExtension, { INVISIBLE_CHARACTERS, invisiblesIn, touchedTextblocks } from '../../resources/js/invisibles.js'
+import { documentOf as doc, leafNode as leaf, blockNode as node, textNode as text } from './helpers.js'
 
 /**
  * Showing what a document holds and does not draw.
@@ -10,78 +11,11 @@ import invisiblesExtension, { INVISIBLE_CHARACTERS, invisiblesIn, touchedTextblo
  * those positions right is the whole job - a mark one position off sits on the wrong letter.
  */
 
-const text = (value) => ({ isText: true, isTextblock: false, text: value, nodeSize: value.length, type: { name: 'text', spec: {} } })
-
-const leaf = (name) => ({ isText: false, isTextblock: false, nodeSize: 1, type: { name, spec: {} }, children: [] })
-
-const node = (name, children = [], { textblock = false, code = false } = {}) => ({
-    isText: false,
-    isTextblock: textblock,
-    type: { name, spec: code ? { code: true } : {} },
-    children,
-    nodeSize: children.reduce((size, child) => size + child.nodeSize, 0) + 2,
-})
-
 const paragraph = (...children) => node('paragraph', children, { textblock: true })
 const heading = (...children) => node('heading', children, { textblock: true })
 const codeBlock = (...children) => node('codeBlock', children, { textblock: true, code: true })
 const hardBreak = () => leaf('hardBreak')
 
-/**
- * `descendants()`, `nodesBetween()` and `forEach()` as ProseMirror defines them, over the
- * nodes above. `walked` counts how often a node's inline content was read, which is how a
- * test sees that a paragraph nobody touched was left alone.
- */
-function walkable(target) {
-    const children = (target.children ?? []).map(walkable)
-
-    return {
-        ...target,
-        children,
-        walked: 0,
-        content: { size: children.reduce((size, child) => size + child.nodeSize, 0) },
-        nodesBetween(from, to, callback, start = 0) {
-            let pos = start
-
-            for (const child of children) {
-                const end = pos + child.nodeSize
-
-                if (end > from && pos < to && callback(child, pos) !== false && child.children.length > 0) {
-                    child.nodesBetween(from, to, callback, pos + 1)
-                }
-
-                pos = end
-            }
-        },
-        forEach(callback) {
-            this.walked++
-
-            let offset = 0
-
-            for (const child of children) {
-                callback(child, offset)
-                offset += child.nodeSize
-            }
-        },
-        descendants(callback) {
-            const visit = (parent, start) => {
-                let pos = start
-
-                for (const child of parent.children) {
-                    if (callback(child, pos, parent) !== false && child.children.length > 0) {
-                        visit(child, pos + 1)
-                    }
-
-                    pos += child.nodeSize
-                }
-            }
-
-            visit(this, 0)
-        },
-    }
-}
-
-const doc = (...children) => walkable({ ...node('doc', children), nodeSize: undefined })
 
 describe('what counts as invisible', () => {
     it('knows the spaces that may not break, the soft hyphen and the characters with no width', () => {

@@ -1959,3 +1959,69 @@
     block-size: 100%;
     border: 0;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Focus mode                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * A class on the editor and one on the block in focus - see `focus-mode.js`. Everything a
+ * writer types into is dimmed, and the block in focus is not.
+ *
+ * The blocks that hold text are dimmed one by one rather than the document as a whole, because
+ * a child cannot be brighter than its parent: a list or a quote dimmed as a whole would take the
+ * item in focus down with it. So what is dimmed is every paragraph, heading and code block
+ * wherever it sits, and every block at the top that is not a container of those - a picture, an
+ * embed, a card, a rule. The frames around text - a quote's bar, a table's lines, a callout's
+ * box - stay as they are, the way the page around a paragraph does. Written out element by
+ * element, as the outlines above are.
+ */
+.fi-arte-focus-mode p,
+.fi-arte-focus-mode h1,
+.fi-arte-focus-mode h2,
+.fi-arte-focus-mode h3,
+.fi-arte-focus-mode h4,
+.fi-arte-focus-mode h5,
+.fi-arte-focus-mode h6,
+.fi-arte-focus-mode pre,
+.fi-arte-focus-mode dt,
+.fi-arte-focus-mode dd,
+.fi-arte-focus-mode
+    > :not(ul, ol, blockquote, dl, .tableWrapper, .fi-arte-callout, [data-type='details'], [data-type='grid']) {
+    opacity: var(--fi-arte-focus-dim, 0.3);
+}
+
+/*
+ * The block in focus, and everything in it: a code block's decoration lands on the frame its
+ * node view draws round the `<pre>`, which the rule above would otherwise dim on its own.
+ */
+.fi-arte-focus-mode .fi-arte-focus-current,
+.fi-arte-focus-mode .fi-arte-focus-current * {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .fi-arte-focus-mode p,
+    .fi-arte-focus-mode h1,
+    .fi-arte-focus-mode h2,
+    .fi-arte-focus-mode h3,
+    .fi-arte-focus-mode h4,
+    .fi-arte-focus-mode h5,
+    .fi-arte-focus-mode h6,
+    .fi-arte-focus-mode pre,
+    .fi-arte-focus-mode dt,
+    .fi-arte-focus-mode dd,
+    .fi-arte-focus-mode > * {
+        transition: opacity 150ms ease;
+    }
+}
+
+/*
+ * Room under the last line in fullscreen, so that it too can be brought to the middle - without
+ * it the line being written sinks to the bottom edge as the document ends. On the page the room
+ * below is the page's own, and a form with half a screen of nothing under one field would be
+ * stranger than a last line that stays low.
+ */
+.fi-arte-fullscreen .fi-arte-focus-mode {
+    padding-block-end: 50vh;
+}

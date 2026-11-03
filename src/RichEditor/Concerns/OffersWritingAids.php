@@ -45,6 +45,8 @@ trait OffersWritingAids
 
     protected bool|Closure|null $hasFullscreen = null;
 
+    protected bool|Closure|null $hasFocusMode = null;
+
     protected bool|Closure|null $hasDateTime = null;
 
     /**
@@ -274,6 +276,28 @@ trait OffersWritingAids
     {
         return (bool) ($this->evaluate($this->hasFullscreen)
             ?? config('filament-advanced-rich-editor.fullscreen', true));
+    }
+
+    /**
+     * The focus mode in the tools menu: every block but the one being written in dimmed, and
+     * the line being written kept in the middle of the view. Nothing about it is stored.
+     *
+     * Off unless asked for. It is a way of writing long text without looking up, which some
+     * people want every day and most never reach for - and in a form, where an editor shares
+     * the page with other fields, the page scrolling to keep a line in the middle is a surprise
+     * to anybody who did not ask for it.
+     */
+    public function focusMode(bool|Closure $condition = true): static
+    {
+        $this->hasFocusMode = $condition;
+
+        return $this;
+    }
+
+    public function hasFocusMode(): bool
+    {
+        return (bool) ($this->evaluate($this->hasFocusMode)
+            ?? config('filament-advanced-rich-editor.focus_mode') ?? false);
     }
 
     /**

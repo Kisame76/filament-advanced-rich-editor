@@ -271,6 +271,9 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/invisibles', __DIR__.'/../resources/dist/js/invisibles.js')
                     ->loadedOnRequest(),
 
+                Js::make('advanced-rich-editor/focus-mode', __DIR__.'/../resources/dist/js/focus-mode.js')
+                    ->loadedOnRequest(),
+
                 // Where a dropdown opens: every menu of the package hands itself to this when
                 // it opens, instead of carrying the measuring in its own `x-data`. The editor
                 // loads it as it starts, so the first menu opened does not wait for it.

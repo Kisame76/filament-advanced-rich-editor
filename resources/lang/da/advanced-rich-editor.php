@@ -438,6 +438,9 @@ return [
         'block_outlines' => [
             'label' => 'Vis blokke',
         ],
+        'focus_mode' => [
+            'label' => 'Fokustilstand',
+        ],
         'emoji' => [
             'label' => 'Emoji',
             'search' => 'Søg efter emoji',
