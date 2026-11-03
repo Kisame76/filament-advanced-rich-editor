@@ -348,6 +348,9 @@ return [
             'deleted_from_one' => 'Deleted, and taken out of one entry.',
             'replaced_in' => 'Replaced, and updated in :count entries.',
             'replaced_in_one' => 'Replaced, and updated in one entry.',
+            // An upload the library already held, let go of in favour of the file that is there.
+            // `:name` is what it was uploaded as, `:existing` what the library keeps it as.
+            'already_in_library' => '“:name” is already in the library as “:existing”, so that file is selected.',
             'copy_url' => 'Copy link',
             'copied' => 'Copied',
             'drop' => 'Drop to upload',

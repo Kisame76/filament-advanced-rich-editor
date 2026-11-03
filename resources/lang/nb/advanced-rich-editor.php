@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Slettet og fjernet fra én oppføring.',
             'replaced_in' => 'Erstattet og oppdatert i :count oppføringer.',
             'replaced_in_one' => 'Erstattet og oppdatert i én oppføring.',
+            'already_in_library' => '«:name» finnes allerede i biblioteket som «:existing», så den filen er valgt.',
             'copy_url' => 'Kopier lenke',
             'copied' => 'Kopiert',
             'drop' => 'Slipp for å laste opp',

@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Supprimé et retiré d\'une entrée.',
             'replaced_in' => 'Remplacé et mis à jour dans :count entrées.',
             'replaced_in_one' => 'Remplacé et mis à jour dans une entrée.',
+            'already_in_library' => '« :name » est déjà dans la médiathèque sous le nom « :existing » ; ce fichier est sélectionné.',
             'copy_url' => 'Copier le lien',
             'copied' => 'Copié',
             'drop' => 'Déposez pour téléverser',

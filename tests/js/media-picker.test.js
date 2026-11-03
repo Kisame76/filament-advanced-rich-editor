@@ -617,6 +617,54 @@ describe('uploads', () => {
         expect(component.picked).toBe('new')
     })
 
+    it('selects the file the library already had, and says why', async () => {
+        // The upload was let go of on the server, so there is no new tile: the one that was
+        // there is put in front instead, and it is the one to select - not an older upload
+        // still waiting further along.
+        const handlers = {}
+        const pond = {
+            browse: vi.fn(),
+            addFiles: vi.fn(),
+            on: (event, callback) => {
+                handlers[event] = callback
+            },
+        }
+
+        const component = mount(mediaPicker, {
+            labels: { alreadyInLibrary: ':name is already in the library as :existing.' },
+            fetchPage: async () => page({
+                items: [item({ id: 'library/harbour.png' }), item({ id: 'waiting', pending: true })],
+                copies: [{ name: 'IMG_0412.png', id: 'library/harbour.png', existing: 'harbour.png' }],
+            }),
+        }, { root: withUploader(pond) })
+
+        component.watchUploads()
+
+        await handlers.processfile()
+
+        expect(component.picked).toBe('library/harbour.png')
+        expect(component.notice).toBe('IMG_0412.png is already in the library as harbour.png.')
+    })
+
+    it('forgets a copy once it has selected it', async () => {
+        const component = mount(mediaPicker, {
+            labels: { alreadyInLibrary: ':name' },
+            fetchPage: vi.fn()
+                .mockResolvedValueOnce(page({ items: [item({ id: 'harbour' })], copies: [{ name: 'a.png', id: 'harbour', existing: 'harbour.png' }] }))
+                .mockResolvedValueOnce(page({ items: [item({ id: 'harbour' }), item({ id: 'new', pending: true })] })),
+        })
+
+        await component.load()
+        component.selectNewest()
+
+        expect(component.picked).toBe('harbour')
+
+        await component.load()
+        component.selectNewest()
+
+        expect(component.picked).toBe('new')
+    })
+
     it('opens the file dialog through the upload field itself', () => {
         const pond = { browse: vi.fn(), on: vi.fn() }
         const component = mount(mediaPicker, {}, { root: withUploader(pond) })

@@ -2735,6 +2735,39 @@ a reason worth reading: see [Sharing a library safely](#sharing-a-library-safely
 
 This also works on create pages, where there is no record for a media row to belong to yet.
 
+#### A file that is already there
+
+**An upload the library already holds becomes the file that is there.** What decides is the
+bytes, not the name: `IMG_0412.png` is the same picture as `harbour.png` if it holds the same
+bytes, and two files called `logo.png` may well be two logos.
+
+- **In the browser** the upload is let go of, the file that was there is put at the front and
+  selected, and the dialog says so: *“IMG_0412.png” is already in the library as
+  “harbour.png”, so that file is selected.*
+- **Dropped or pasted into the text**, or saved from the image editor, the picture points at
+  the file that is there once the form is saved, and nothing is written. Nobody is asked,
+  because nobody is in a dialog.
+
+Only the pool the browser lists is searched, so finding a copy is exactly what picking it from
+the browser would have been — no wider. A description typed against the upload stays with the
+upload; the file it turned out to be keeps its own.
+
+How it compares: by size first, which costs nothing, then by a SHA-256 of what is in the file,
+for the few of the same size. A media collection keeps the hash on the row as it is written
+(`arte_hash`), and a row from before is hashed the first time it is compared. A disk keeps no
+index — one listing of the library, which the browser reads for every page anyway, and only
+files of the same size are opened.
+
+On by default. A field whose documents must each own their own file turns it off:
+
+```php
+AdvancedRichEditor::make('content')
+    ->mediaLibraryDeduplicates(false);   // default: config('...media_library.deduplicate')
+```
+
+The catch is the one picking from the browser has always had: a file two documents share is
+one file, and replacing it in the library replaces it in both.
+
 #### One rule
 
 **A stored `data-id` resolves only inside the pool the browser draws from.** The pool is the

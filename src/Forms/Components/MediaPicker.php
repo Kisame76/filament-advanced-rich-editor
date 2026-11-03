@@ -208,6 +208,8 @@ class MediaPicker extends Field
             'delete' => (string) __($key.'delete'),
             'deleting' => (string) __($key.'deleting'),
             'rejected' => (string) __($key.'rejected'),
+            // `:name` and `:existing` are filled in the browser.
+            'alreadyInLibrary' => (string) __($key.'already_in_library'),
             'dismiss' => (string) __($key.'dismiss'),
             // The two dialogs are Filament's own confirmation, so what it calls its cancel
             // button is what they call it: the word every other confirmation in the panel

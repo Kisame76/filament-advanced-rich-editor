@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Raderad och borttagen från en post.',
             'replaced_in' => 'Ersatt och uppdaterad i :count poster.',
             'replaced_in_one' => 'Ersatt och uppdaterad i en post.',
+            'already_in_library' => '”:name” finns redan i biblioteket som ”:existing”, så den filen är vald.',
             'copy_url' => 'Kopiera länk',
             'copied' => 'Kopierat',
             'drop' => 'Släpp för att ladda upp',

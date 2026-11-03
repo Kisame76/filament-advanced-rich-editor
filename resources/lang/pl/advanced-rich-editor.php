@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Usunięto, także z jednego wpisu.',
             'replaced_in' => 'Zastąpiono i zaktualizowano w :count wpisach.',
             'replaced_in_one' => 'Zastąpiono i zaktualizowano w jednym wpisie.',
+            'already_in_library' => '„:name” jest już w bibliotece jako „:existing”, więc zaznaczono ten plik.',
             'copy_url' => 'Kopiuj link',
             'copied' => 'Skopiowano',
             'drop' => 'Upuść, aby przesłać',

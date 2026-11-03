@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Smazáno a odstraněno z jednoho záznamu.',
             'replaced_in' => 'Nahrazeno a aktualizováno v :count záznamech.',
             'replaced_in_one' => 'Nahrazeno a aktualizováno v jednom záznamu.',
+            'already_in_library' => '„:name“ už v knihovně je jako „:existing“, proto je vybrán tento soubor.',
             'copy_url' => 'Kopírovat odkaz',
             'copied' => 'Zkopírováno',
             'drop' => 'Pusťte pro nahrání',

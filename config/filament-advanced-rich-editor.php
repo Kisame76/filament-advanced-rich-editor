@@ -1449,6 +1449,14 @@ return [
          */
         'documents' => [],
 
+        /*
+         * Whether an upload the library already holds - the same bytes, under whatever name -
+         * becomes the file that is there instead of a second copy. The browser selects the
+         * file it found and says so; a picture dropped into the text points at it once the
+         * form is saved. Per field: `->mediaLibraryDeduplicates(false)`.
+         */
+        'deduplicate' => true,
+
         'page_size' => 40,
 
         /*

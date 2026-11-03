@@ -87,6 +87,8 @@ export default ({
     // until somebody dismisses it. After a delete nothing is selected, so the panel is not
     // where this can be said.
     notice: null,
+    // The file the library already had in place of the last upload, until it is selected.
+    _arrivedCopy: null,
     // What the confirmation dialog says. Kept after it closes: it fades out over a moment, and
     // words that vanish first leave an empty box on screen.
     question: { kind: 'delete', heading: '', description: '', confirm: '' },
@@ -319,6 +321,13 @@ export default ({
             for (const name of result?.rejected ?? []) {
                 this.reject(name)
             }
+
+            // An upload the library already held was let go of in favour of the file that is
+            // there. Said here for the same reason: the server says it once.
+            for (const copy of result?.copies ?? []) {
+                this._arrivedCopy = copy.id
+                this.notice = this.fill(this.labels.alreadyInLibrary, { name: copy.name, existing: copy.existing })
+            }
         } catch (error) {
             console.error('The advanced rich editor could not read the media library:', error)
         } finally {
@@ -543,10 +552,14 @@ export default ({
      *
      * Uploads that are not saved yet sort to the front, newest first, so the first of
      * them is the one somebody just went and fetched - and selecting it is what they
-     * expect after dropping a file.
+     * expect after dropping a file. Unless it was a file the library already had: then
+     * that file is what arrived, and an older upload waiting beside it is not.
      */
     selectNewest() {
-        const arrived = this.items.find((item) => item.pending)
+        const copy = this._arrivedCopy
+        this._arrivedCopy = null
+
+        const arrived = this.items.find((item) => (copy === null ? item.pending : item.id === copy))
 
         if (arrived) {
             this.picked = arrived.id

@@ -330,6 +330,7 @@ return [
             'deleted_from_one' => 'Gelöscht und aus einem Eintrag entfernt.',
             'replaced_in' => 'Ersetzt und in :count Einträgen aktualisiert.',
             'replaced_in_one' => 'Ersetzt und in einem Eintrag aktualisiert.',
+            'already_in_library' => '„:name“ ist schon in der Mediathek, als „:existing“ – diese Datei ist ausgewählt.',
             'copy_url' => 'Link kopieren',
             'copied' => 'Kopiert',
             'drop' => 'Zum Hochladen loslassen',

@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Eliminato e rimosso da una voce.',
             'replaced_in' => 'Sostituito e aggiornato in :count voci.',
             'replaced_in_one' => 'Sostituito e aggiornato in una voce.',
+            'already_in_library' => '“:name” è già nella libreria come “:existing”, quindi è selezionato quel file.',
             'copy_url' => 'Copia link',
             'copied' => 'Copiato',
             'drop' => 'Rilascia per caricare',

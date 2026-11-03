@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Slettet og fjernet fra én post.',
             'replaced_in' => 'Erstattet og opdateret i :count poster.',
             'replaced_in_one' => 'Erstattet og opdateret i én post.',
+            'already_in_library' => '»:name« findes allerede i biblioteket som »:existing«, så den fil er valgt.',
             'copy_url' => 'Kopiér link',
             'copied' => 'Kopieret',
             'drop' => 'Slip for at uploade',

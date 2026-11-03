@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\FindsCopies;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
@@ -31,7 +32,7 @@ use Throwable;
  * directory: without that, a saved `data-id` of `../../.env` would be a file read, and the
  * grid would be the thing that taught someone the shape of the disk.
  */
-class DiskMediaSource implements MediaSource, ReplacesMedia
+class DiskMediaSource implements FindsCopies, MediaSource, ReplacesMedia
 {
     /**
      * @param  LibraryTypes|null  $types  what the pool holds; null is every family at its default
@@ -465,6 +466,33 @@ class DiskMediaSource implements MediaSource, ReplacesMedia
     protected function mimeOf(string $path): string
     {
         return $this->library()->mimeOf($path);
+    }
+
+    /**
+     * A copy anywhere in the library, folders included.
+     *
+     * One listing of the pool, which is what the browser reads for every page it draws anyway,
+     * and it carries every file's size: only the few of the same size are opened to be hashed.
+     * Nothing is remembered between uploads. An index would have to survive files deleted past
+     * it, and the listing already is the truth about what is there.
+     */
+    public function copyOf(int $size, string $hash): mixed
+    {
+        [$files] = $this->read($this->getRoot(), deep: true);
+
+        foreach ($files as $file) {
+            if (($file['size'] !== $size) || ($file['kind'] === MediaKinds::EMBED)) {
+                continue;
+            }
+
+            $stream = rescue(fn (): mixed => $this->disk()->readStream($file['path']), report: false);
+
+            if (ContentHash::ofStream($stream) === $hash) {
+                return $file['path'];
+            }
+        }
+
+        return null;
     }
 
     public function has(mixed $id): bool

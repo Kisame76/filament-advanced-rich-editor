@@ -8,6 +8,7 @@ use Closure;
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Illuminate\Database\Eloquent\Model;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ContentHash;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
@@ -253,6 +254,14 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
 
             if ($dimensions !== null) {
                 $properties += $dimensions;
+            }
+
+            // And for the same reason what it holds, which is what tells the next upload of
+            // the same file that it is one - see `FindsCopies`.
+            $hash = ContentHash::ofPath($temporaryPath);
+
+            if ($hash !== null) {
+                $properties[SpatieMediaSource::HASH_PROPERTY] = $hash;
             }
 
             if ($properties !== []) {

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns;
 
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ByteSize;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ContentHash;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\FindsCopies;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileTypes;
@@ -57,7 +60,7 @@ trait ServesTheMediaBrowser
         //
         // Doing it when the browser asks for a page keeps every upload request untouched, and
         // the browser asks as soon as an upload finishes.
-        $rejected = $this->adoptMountedUploads();
+        ['rejected' => $rejected, 'copies' => $copies] = $this->adoptMountedUploads();
 
         $search = trim($search);
         $page = max(1, $page);
@@ -90,6 +93,15 @@ trait ServesTheMediaBrowser
         // that simply never turned up in the grid reads as the dialog having lost it.
         $result['rejected'] = $rejected;
 
+        // And an upload the library already had, by the name it was uploaded under and the one
+        // it is kept under: the dialog selects the file that is there, and says why the one
+        // somebody just chose is not on the page.
+        $result['copies'] = array_map(static fn (array $copy): array => [
+            'name' => $copy['name'],
+            'id' => $copy['item']['id'],
+            'existing' => $copy['item']['name'],
+        ], $copies);
+
         // A picture uploaded a moment ago is not in the library yet - Filament holds it as a
         // pending attachment and only writes it on save - so a browser that listed the library
         // alone would answer "no such picture" about the file somebody just chose. It goes at
@@ -99,7 +111,16 @@ trait ServesTheMediaBrowser
         // folder to sit in, and repeating it under every folder would be worse than not
         // showing it at all.
         if ($page === 1 && blank($folder)) {
-            $pending = $this->getPendingMediaItems($search);
+            // A copy that was found goes in front of them, where the upload it stands for
+            // would have been, so the file the dialog selects is one the grid shows.
+            $found = array_column($copies, 'item');
+
+            $result['items'] = array_values(array_filter(
+                $result['items'],
+                static fn (array $item): bool => ! in_array($item['id'] ?? null, array_column($found, 'id'), strict: true),
+            ));
+
+            $pending = [...$found, ...$this->getPendingMediaItems($search)];
 
             if (in_array($kind, MediaKinds::all(), strict: true)) {
                 $pending = array_values(array_filter(
@@ -116,7 +137,11 @@ trait ServesTheMediaBrowser
             }
 
             $result['items'] = [...$pending, ...$result['items']];
-            $result['total'] = ((int) $result['total']) + count($pending);
+            // A copy that was found is in the library, and counted there already.
+            $result['total'] = ((int) $result['total']) + count(array_filter(
+                $pending,
+                static fn (array $item): bool => (bool) ($item['pending'] ?? false),
+            ));
 
             // The tabs are drawn from the families on the page, and a file uploaded a
             // moment ago is on the page: without this a library holding nothing but two
@@ -514,14 +539,37 @@ trait ServesTheMediaBrowser
         // Filament's business - a plain list one moment, keyed by id the next - so trusting
         // them would queue the same upload twice under two different names.
         //
-        // Hashed, because the temporary file name carries dots and `data_set()` reads a dot as
-        // a level of nesting: one attachment would quietly become a tree that nothing can find
-        // again.
-        $id = FileAttachments::PENDING_PREFIX.md5($file->getFilename());
+        $id = static::pendingIdFor($file);
 
         data_set($livewire, "componentFileAttachments.{$this->getStatePath()}.{$id}", $file);
 
         return $id;
+    }
+
+    /**
+     * Hashed, because the temporary file name carries dots and `data_set()` reads a dot as a
+     * level of nesting: one attachment would quietly become a tree that nothing can find again.
+     */
+    protected static function pendingIdFor(TemporaryUploadedFile $file): string
+    {
+        return FileAttachments::PENDING_PREFIX.md5($file->getFilename());
+    }
+
+    /**
+     * The item the library already holds with this upload's bytes, or null - see
+     * `mediaLibraryDeduplicates()`.
+     */
+    public function findMediaLibraryCopy(UploadedFile $file): mixed
+    {
+        $source = $this->getMediaSource();
+
+        if (! ($source instanceof FindsCopies) || ! $this->deduplicatesMediaLibraryUploads()) {
+            return null;
+        }
+
+        $hash = ContentHash::ofUpload($file);
+
+        return ($hash === null) ? null : $source->copyOf((int) $file->getSize(), $hash);
     }
 
     /**
@@ -537,20 +585,23 @@ trait ServesTheMediaBrowser
      *
      * An upload the browser does not take is let go of on the way, out of the dialog's own
      * field as well - left there, the dialog's Submit would validate a file nobody can see and
-     * refuse to insert anything. Answers with the names of the ones it let go of.
+     * refuse to insert anything. So is one the library already holds: the file that is there
+     * is what it becomes. Answers with the names of the ones it let go of, and the items the
+     * copies are, each beside the name it was uploaded under.
      *
-     * @return array<int, string>
+     * @return array{rejected: array<int, string>, copies: array<int, array{name: string, item: array<string, mixed>}>}
      */
     public function adoptMountedUploads(): array
     {
         $livewire = $this->getLivewire();
         $mounted = data_get($livewire, 'mountedActions');
 
-        if (! is_array($mounted)) {
-            return [];
-        }
-
         $rejected = [];
+        $copies = [];
+
+        if (! is_array($mounted)) {
+            return ['rejected' => $rejected, 'copies' => $copies];
+        }
 
         foreach ($mounted as $index => $action) {
             // Somebody else's dialog, left alone. Every mounted action keeps its form state
@@ -581,6 +632,25 @@ trait ServesTheMediaBrowser
                 $rejected[] = (string) $file->getClientOriginalName();
             }
 
+            foreach ($kept as $key => $file) {
+                // Asked once, as it arrives. The dialog keeps holding an upload it took, and
+                // the browser asks for a page far more often than anything is uploaded.
+                if (! ($file instanceof TemporaryUploadedFile) || $this->holdsUpload($file)) {
+                    continue;
+                }
+
+                $copy = $this->findMediaLibraryCopy($file);
+                $item = ($copy === null) ? null : $this->getMediaSource()?->find($copy);
+
+                if ($item === null) {
+                    continue;
+                }
+
+                $copies[] = ['name' => (string) $file->getClientOriginalName(), 'item' => $item];
+
+                unset($kept[$key]);
+            }
+
             if (count($kept) !== count($files)) {
                 data_set($livewire, "mountedActions.{$index}.data.file", $kept);
             }
@@ -588,7 +658,12 @@ trait ServesTheMediaBrowser
             $this->registerPendingUploads($kept);
         }
 
-        return $rejected;
+        return ['rejected' => $rejected, 'copies' => $copies];
+    }
+
+    protected function holdsUpload(TemporaryUploadedFile $file): bool
+    {
+        return data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}.".static::pendingIdFor($file)) !== null;
     }
 
     /**

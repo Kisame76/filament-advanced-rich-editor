@@ -242,10 +242,19 @@ trait AttachesFiles
                         // pending one.
                         $pendingId = $node->attrs->id;
 
-                        $node->attrs->id = $this->saveUploadedFileAttachment($attachment);
+                        // A file the library already holds is the file it becomes, and nothing
+                        // is written - see `mediaLibraryDeduplicates()`.
+                        $copy = $this->findMediaLibraryCopy($attachment);
+
+                        $node->attrs->id = $copy ?? $this->saveUploadedFileAttachment($attachment);
                         $node->attrs->src = $this->getFileAttachmentUrl($node->attrs->id);
 
-                        $this->applyPendingMediaMetadata($pendingId, $node->attrs->id);
+                        // A description typed against the upload belongs to it. The file it
+                        // turned out to be already has its own, perhaps written for every other
+                        // document using it.
+                        if ($copy === null) {
+                            $this->applyPendingMediaMetadata($pendingId, $node->attrs->id);
+                        }
 
                         $fileAttachmentIds[] = $node->attrs->id;
 

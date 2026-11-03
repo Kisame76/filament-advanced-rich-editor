@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedUrl;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\FindsCopies;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ReplacesMedia;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Covers\CoverGenerator;
@@ -40,7 +41,7 @@ use Throwable;
  * Ids are media UUIDs, which is what the image node already carries in `attrs.id`. Picking an
  * existing item therefore stores nothing the upload path would not have stored.
  */
-class SpatieMediaSource implements MediaSource, ReplacesMedia
+class SpatieMediaSource implements FindsCopies, MediaSource, ReplacesMedia
 {
     /**
      * @param  Closure(Builder<Media>): mixed|null  $poolQuery  defined pool, overriding the scope
@@ -487,6 +488,9 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
     /** The flag the query tests. A JSON column comparison, so it has to be a scalar. */
     public const EMBED_PROPERTY = 'arte_embed';
 
+    /** What the file holds, as `ContentHash` puts it - stamped as it is written, or once compared. */
+    public const HASH_PROPERTY = 'arte_hash';
+
     /**
      * The payload, kept beside the flag rather than read out of the file.
      *
@@ -495,6 +499,48 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
      * that is already doing one query. The row is the fast copy; the file is the durable one.
      */
     public const EMBED_DATA_PROPERTY = 'arte_embed_data';
+
+    /**
+     * One query for the rows of the same size, which are almost always none; the hash decides
+     * among the rest. A row from before the hash was stamped is hashed here once and keeps it.
+     *
+     * A copy another field uploaded is as good as one this field did: the field that uploaded
+     * it does not sweep it away while another column of the record still shows it.
+     */
+    public function copyOf(int $size, string $hash): mixed
+    {
+        $candidates = $this->query()?->where('size', $size)->get() ?? [];
+
+        foreach ($candidates as $media) {
+            if ($this->kindOf($media) === MediaKinds::EMBED) {
+                continue;
+            }
+
+            if ($this->hashOf($media) === $hash) {
+                return (string) $media->getAttributeValue('uuid');
+            }
+        }
+
+        return null;
+    }
+
+    protected function hashOf(Media $media): ?string
+    {
+        $stored = $media->getCustomProperty(static::HASH_PROPERTY);
+
+        if (is_string($stored) && ($stored !== '')) {
+            return $stored;
+        }
+
+        $hash = ContentHash::ofStream($this->readStream($media));
+
+        if ($hash !== null) {
+            // Hashed is still hashed; a row that could not be written is hashed again next time.
+            rescue(static fn () => $media->setCustomProperty(static::HASH_PROPERTY, $hash)->save(), report: false);
+        }
+
+        return $hash;
+    }
 
     public function delete(mixed $id): bool
     {
@@ -588,6 +634,7 @@ class SpatieMediaSource implements MediaSource, ReplacesMedia
             $media->forgetCustomProperty('width');
             $media->forgetCustomProperty('height');
             $media->forgetCustomProperty(CoverGenerator::ATTEMPTED_PROPERTY);
+            $media->setCustomProperty(static::HASH_PROPERTY, ContentHash::ofPath($temporary));
             $media->setAttribute('generated_conversions', []);
 
             $dimensions = ($kind === MediaKinds::IMAGE) ? MediaDimensions::fromPath($temporary) : null;

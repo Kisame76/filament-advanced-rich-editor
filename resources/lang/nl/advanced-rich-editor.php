@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Verwijderd en uit één item gehaald.',
             'replaced_in' => 'Vervangen en bijgewerkt in :count items.',
             'replaced_in_one' => 'Vervangen en bijgewerkt in één item.',
+            'already_in_library' => '‘:name’ staat al in de bibliotheek als ‘:existing’, dus dat bestand is geselecteerd.',
             'copy_url' => 'Link kopiëren',
             'copied' => 'Gekopieerd',
             'drop' => 'Loslaten om te uploaden',

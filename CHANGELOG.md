@@ -25,6 +25,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   placeholder is left out, and a private disk gets none, since Spatie addresses them as public
   files
 
+- An upload the media library already holds becomes the file that is there instead of a second
+  copy. The bytes decide, not the name: by size first, then by a SHA-256 of the few of the same
+  size. The browser selects the file it found and says so; a picture dropped or pasted into the
+  text, or saved from the image editor, points at it once the form is saved. Only the pool the
+  browser lists is searched, so finding a copy is what picking it would have been. A media
+  collection keeps the hash on the row (`arte_hash`), a disk is read from the listing the
+  browser already makes. On by default; `->mediaLibraryDeduplicates(false)` or the
+  `media_library.deduplicate` key turns it off
+
 ### Fixed
 
 - Replacing a picture in the media library lost its responsive images for good: they were

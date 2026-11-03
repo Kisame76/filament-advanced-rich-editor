@@ -348,6 +348,7 @@ return [
             'deleted_from_one' => 'Eliminado y quitado de una entrada.',
             'replaced_in' => 'Reemplazado y actualizado en :count entradas.',
             'replaced_in_one' => 'Reemplazado y actualizado en una entrada.',
+            'already_in_library' => '«:name» ya está en la biblioteca como «:existing», así que se ha seleccionado ese archivo.',
             'copy_url' => 'Copiar enlace',
             'copied' => 'Copiado',
             'drop' => 'Suelte para subir',
