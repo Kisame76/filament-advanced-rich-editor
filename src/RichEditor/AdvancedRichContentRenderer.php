@@ -13,6 +13,7 @@ use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\DescriptionListConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\FileCardConverter;
@@ -418,8 +419,9 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      * Capped where the markup can hold a temporary URL, which is what Filament hands back
      * for an attachment on a private disk. Those expire - half an hour by default - and a
      * page cached for a day would spend the rest of it showing broken pictures. A render
-     * with an attachment provider is exempt: the provider decides what a URL is, and
-     * Spatie's are ordinary ones.
+     * with an attachment provider is exempt, because the provider decides what a URL is -
+     * except this package's own Spatie provider on a private disk, which signs its URLs
+     * the same way Filament does.
      */
     public function getRenderCacheTtl(): int|DateInterval|null
     {
@@ -491,8 +493,13 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      */
     protected function hasTemporaryAttachmentUrls(): bool
     {
-        if ($this->getFileAttachmentProvider() !== null) {
-            return false;
+        if (($provider = $this->getFileAttachmentProvider()) !== null) {
+            // Asked of the provider rather than of this render's visibility: the provider
+            // writes the URL, whatever the render was told. Another provider's `private` says
+            // where its files are, not that its URLs run out, so only the one this package
+            // knows is believed.
+            return ($provider instanceof SpatieMediaLibraryFileAttachmentProvider)
+                && ($provider->getDefaultFileAttachmentVisibility() === 'private');
         }
 
         $disk = $this->fileAttachmentsDiskName ?? config('filament.default_filesystem_disk');

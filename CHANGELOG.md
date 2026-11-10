@@ -24,6 +24,11 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   pictures by their id alone from now on, so a view page needs the provider as well - see the
   entry's `->spatieMediaLibrary()`
 
+- A cached render of private media library pictures is kept no longer than their signed
+  addresses last. A render with an attachment provider was exempt from the cap, on the grounds
+  that Spatie's URLs are ordinary ones - which this package's own provider stopped being true
+  of on a private disk
+
 ## 1.8.0 - 2026-11-03
 
 ### Added
