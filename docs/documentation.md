@@ -2808,6 +2808,18 @@ AdvancedRichEditor::make('content')
     ->mediaLibraryDirectory('library');
 ```
 
+The closure is evaluated like any closure Filament takes: the query arrives as `$query` or
+typed as `Builder`, and `$record`, `$livewire`, `$get` and the rest can be asked for beside it.
+A pool is often a question about the page rather than about the media table:
+
+```php
+AdvancedRichEditor::make('description')
+    ->spatieMediaLibrary('board-images')
+    ->mediaLibraryQuery(fn (Builder $query, Ticket $record) => $query
+        ->where('model_type', $record->board->getMorphClass())
+        ->where('model_id', $record->board_id));
+```
+
 `->mediaLibraryPageSize(60)` changes how many pictures one request fetches; the footer counts
 the library and the arrows beside it turn the pages.
 

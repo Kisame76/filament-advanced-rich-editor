@@ -249,6 +249,31 @@ it('lists across records once a pool query says so', function (): void {
         ->and($source->isRecordScoped())->toBeFalse();
 });
 
+it('hands the pool query the record, the way Filament hands any closure what it asks for', function (): void {
+    // A pool is as often a question about the page as about the media table - the pictures
+    // of the board this ticket is on - and a closure handed nothing but the query had to
+    // reach the page some other way.
+    $mine = ($this->attach)($this->post, collection: 'library', name: 'mine');
+    ($this->attach)($this->other, collection: 'library', name: 'theirs');
+
+    $source = ($this->field)(fn (Builder $query, MediaPost $record): Builder => $query
+        ->where('collection_name', 'library')
+        ->where('model_id', $record->getKey()))
+        ->getMediaSource();
+
+    expect(array_column($source->page()['items'], 'id'))->toBe([(string) $mine->uuid]);
+});
+
+it('still hands the query over by its name or by its type alone', function (Closure $poolQuery): void {
+    $shared = ($this->attach)($this->other, collection: 'library');
+
+    expect(array_column(($this->field)($poolQuery)->getMediaSource()->page()['items'], 'id'))
+        ->toBe([(string) $shared->uuid]);
+})->with([
+    'untyped, by its name' => [fn ($query) => $query->where('collection_name', 'library')],
+    'typed, under another name' => [fn (Builder $pool): Builder => $pool->where('collection_name', 'library')],
+]);
+
 it('resolves a picture from the pool that the record does not own', function (): void {
     // The whole point of the shared library: an image uploaded on one article, shown on
     // another, with one file behind both.

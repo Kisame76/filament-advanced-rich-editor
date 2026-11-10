@@ -40,6 +40,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   way Filament does; it had left it out along with `--max-height`, whose rule caps the box the
   floating toolbars are positioned in, though a minimum clips nothing
 
+- The closure given to `mediaLibraryQuery()` is evaluated like any closure Filament takes, so it
+  can ask for `$record`, `$livewire`, `$get` and the rest beside the query, which it still gets
+  as `$query` or by its type. It used to be handed the query and nothing else
+
 ## 1.8.0 - 2026-11-03
 
 ### Added
