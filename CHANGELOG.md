@@ -2,6 +2,19 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Mentions work on Filament 5.11.2, which renamed the mention character from `char` to
+  `triggerCharacter` in what it sends its script and in what the browser sends back. This
+  package's menu read the old key and offered no trigger at all; a search through Filament's own
+  menu, where this one is switched off, was an error, because the browser passes the name it was
+  given; and the names looked up for mentions saved without one were read from a shape 5.11.2
+  no longer answers with. Both names are read now, and a name is looked up by its character as
+  well as its id, so an `@` and a `#` that share an id each get their own. What is stored is
+  untouched: a mention node still carries `char`
+
 ## 1.8.0 - 2026-11-03
 
 ### Added
