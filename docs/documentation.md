@@ -3800,6 +3800,11 @@ live inside a list, so dropping one into a paragraph is a question ProseMirror a
 "nowhere" - the honest version of that feature is a drag that refuses more often than it
 works.
 
+In a field that scrolls inside itself — [`maxHeight()`](#maximum-height), or fullscreen — the
+handle follows what is in view rather than the block's first line. A block whose start has
+scrolled up out of the field keeps its handle at the top of the text, below the toolbar, and
+loses it once less of the block shows than the handle is tall.
+
 **A field with a handle has a wider left margin.** The controls sit in the editor's own
 padding, and Filament leaves twenty pixels there where two of them need fifty, so the
 stylesheet widens it for fields carrying the handle and for no others. That is the price of

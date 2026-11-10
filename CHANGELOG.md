@@ -44,6 +44,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   can ask for `$record`, `$livewire`, `$get` and the rest beside the query, which it still gets
   as `$query` or by its type. It used to be handed the query and nothing else
 
+- The grip and the plus no longer sit over the toolbar in a field that scrolls inside itself. A
+  block whose first line had scrolled up out of the text still counted as in view, because the
+  box measured was the one around the text rather than the text that scrolls, and its handle
+  followed that line up across the bar. It now stays at the top of the text while the rest of
+  the block shows, and goes once too little of it is left
+
 ## 1.8.0 - 2026-11-03
 
 ### Added

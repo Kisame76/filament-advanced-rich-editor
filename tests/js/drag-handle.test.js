@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { handlePosition, reusesBlock } from '../../resources/js/drag-handle.js'
+import { handlePosition, reusesBlock, visibleWindow } from '../../resources/js/drag-handle.js'
 
 /**
  * The grip in the margin.
@@ -81,6 +81,46 @@ describe('where the handle goes', () => {
 
     it('keeps a block that is only half in view', () => {
         expect(handlePosition(rect({ top: 390, height: 24 }), editor)).not.toBeNull()
+    })
+
+    it('holds the handle at the top of the field once the start of a block has scrolled out', () => {
+        // A tall block - a table, a long quotation - can be mostly in view with its first
+        // line already above the top of the field. Following that line up would draw the
+        // handle over the toolbar; holding it at the top keeps it beside the block.
+        const tall = rect({ top: -100, height: 300 })
+
+        expect(handlePosition(tall, editor, { height: 24, lineHeight: 24 }).top).toBe(0)
+    })
+
+    it('lets go of a block that shows less of itself than the handle is tall', () => {
+        // Held at the top any longer, the handle would sit beside the block after it.
+        expect(handlePosition(rect({ top: -100, height: 110 }), editor, { height: 24 })).toBeNull()
+        expect(handlePosition(rect({ top: -100, height: 124 }), editor, { height: 24 })).not.toBeNull()
+    })
+})
+
+describe('the window the document is seen through', () => {
+    it('is the document where the document scrolls inside its box', () => {
+        // `maxHeight()` caps the document, not the box around it - and the top of that box
+        // is right under the toolbar. The case that was measured: the box began where the
+        // toolbar ended, at 278, and the document twelve pixels lower.
+        const box = rect({ top: 278, height: 520, left: 80, width: 640 })
+        const page = rect({ top: 290, height: 496, left: 100, width: 600 })
+
+        expect(visibleWindow(box, page)).toEqual({ left: 80, right: 720, top: 290, bottom: 786 })
+
+        // A block whose first line had scrolled up to 258 drew the handle across the bar.
+        const block = rect({ top: 246, height: 200 })
+
+        expect(handlePosition(block, visibleWindow(box, page), { height: 24, lineHeight: 48 }).top).toBe(290)
+    })
+
+    it('is the box where the box scrolls and the document runs past it', () => {
+        // Fullscreen: the overlay's box scrolls, and the document is as long as it is.
+        const box = rect({ top: 0, height: 900, left: 80, width: 640 })
+        const page = rect({ top: -500, height: 3000, left: 100, width: 600 })
+
+        expect(visibleWindow(box, page)).toEqual({ left: 80, right: 720, top: 0, bottom: 900 })
     })
 })
 
