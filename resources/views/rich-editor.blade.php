@@ -71,11 +71,12 @@
 
     Deliberately NOT changed: x-load-src still points at Filament's own compiled
     'rich-editor' Alpine component, because this package extends the upstream editor
-    rather than shipping a second TipTap bundle. Nor are v5.9's --min-height and
-    --max-height written onto the wrapper: Filament's stylesheet turns --max-height into a
-    cap on .fi-fo-rich-editor-content, which is the box the floating toolbars are
-    positioned in and clips them at its edge - this package caps the document one element
-    in, through --fi-arte-max-height, for exactly that reason.
+    rather than shipping a second TipTap bundle. Nor is v5.9's --max-height written onto
+    the wrapper: Filament's stylesheet turns it into a cap on .fi-fo-rich-editor-content,
+    which is the box the floating toolbars are positioned in and clips them at its edge -
+    this package caps the document one element in, through --fi-arte-max-height, for
+    exactly that reason. --min-height is written, as upstream writes it: a minimum on that
+    box clips nothing, and without it minHeight() reached no page at all.
 --}}
 
 @php
@@ -105,6 +106,7 @@
     $toolbarPinSide = $getToolbarPinSide();
     $stickyToolbarOffset = $getStickyToolbarOffset();
     $maxHeight = $getMaxHeight();
+    $minHeight = isset($getMinHeight) ? $getMinHeight() : null;
     // Read here so both halves write the same number: PHP puts the gap into the stored
     // markup, and the JS extension reads this property off the element it is inside.
     $imageFloatGap = $hasImageFloat() ? $getImageFloatGap() : null;
@@ -166,6 +168,7 @@
                 ->class(['fi-fo-rich-editor', 'fi-arte', 'fi-arte-max-height' => filled($maxHeight)])
                 ->style([
                     '--fi-arte-max-height: ' . $maxHeight => filled($maxHeight),
+                    '--min-height: ' . $minHeight => filled($minHeight),
                     '--fi-arte-image-float-gap: ' . $imageFloatGap => filled($imageFloatGap),
                     '--fi-fo-rich-editor-sticky-offset: ' . $upstreamStickyOffset => filled($upstreamStickyOffset),
                 ])

@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use Filament\Forms\Components\RichEditor;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\SizedEditorFormComponent;
+use Livewire\Livewire;
+
 it('lets the editor grow with its content until a height is set', function (): void {
     expect(editor()->getMaxHeight())->toBeNull();
 });
@@ -39,3 +43,15 @@ it('stops pinning the toolbar to the page once the field scrolls inside itself',
     expect(editor()->isStickyToolbar())->toBeTrue()
         ->and(editor()->maxHeight('400px')->isStickyToolbar())->toBeFalse();
 });
+
+it('hands Filament the minimum height for its stylesheet to keep', function (): void {
+    // Filament's own rule reads `--min-height` off the wrapper and holds the content box to
+    // it, which clips nothing. The maximum stays off the wrapper: Filament's rule for that
+    // one caps the box the floating toolbars are positioned in, and this package caps the
+    // document inside it instead.
+    $html = Livewire::test(SizedEditorFormComponent::class)->html();
+
+    expect($html)->toContain('--min-height: 12rem')
+        ->toContain('--fi-arte-max-height: 32rem')
+        ->not->toMatch('/(?<![\\w-])--max-height:/');
+})->skip(! method_exists(RichEditor::class, 'minHeight'), 'Filament\'s rich editor has no minHeight() before 5.9');

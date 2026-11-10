@@ -824,6 +824,16 @@ it to the viewport as well would peel it off the field as the page scrolls past.
 wins over both — the overlay already fills the window, and a 400px box inside it would
 leave most of the screen empty.
 
+The cap sits on the text itself rather than on Filament's content box, which is why the field
+does not write Filament's own `--max-height`: that box is the one the floating toolbars are
+positioned in, and capping it would clip them at its edge. A minimum clips nothing, so
+Filament's `->minHeight()` (Filament 5.9 and later) is written the way Filament writes it, and
+Filament's stylesheet holds the content box to it:
+
+```php
+AdvancedRichEditor::make('content')->minHeight('12rem')->maxHeight('32rem');
+```
+
 ### Fullscreen
 
 The last button expands the editor over the window, and Escape leaves again.

@@ -36,6 +36,10 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   that Spatie's URLs are ordinary ones - which this package's own provider stopped being true
   of on a private disk
 
+- `->minHeight()` reaches the page. The view writes Filament's `--min-height` onto the field the
+  way Filament does; it had left it out along with `--max-height`, whose rule caps the box the
+  floating toolbars are positioned in, though a minimum clips nothing
+
 ## 1.8.0 - 2026-11-03
 
 ### Added
