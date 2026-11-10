@@ -5319,8 +5319,26 @@ describes the field, the entry describes one place it is shown.
 > ```
 >
 > Where that is not possible — a document rendered outside its model, or one attribute shown
-> two different ways — the entry, the column and the renderer each take
+> two different ways — the entry and the column take the field's own `->spatieMediaLibrary()`,
+> with the same arguments and the same defaults from the `spatie` config section:
+>
+> ```php
+> AdvancedRichEditor::make('content')->spatieMediaLibrary('rich-editor', visibility: 'private');
+>
+> AdvancedRichEntry::make('content')->spatieMediaLibrary('rich-editor', visibility: 'private');
+> ```
+>
+> The entry looks an id up as a Spatie UUID across the media table, the way any renderer
+> handed the provider directly does: there is no field on a view page to scope the lookup
+> against, and the document came out of the database. That is also what finds a picture the
+> field took from a shared library, which the record's own collection does not hold. For any
+> other provider, the entry, the column and the renderer each take
 > `->fileAttachmentProvider(...)`.
+>
+> On a private disk the reading side is not optional. A private field saves a picture by its
+> id alone — the address the editor showed it with is signed and runs out within the hour, so
+> Filament drops it on the way into the column — and a view page without a provider has
+> nothing left to draw.
 >
 > Since 1.5.0 a source that cannot be resolved is left as it was found rather than erased, so
 > a document written with a working URL still draws. That is a safety net and not the

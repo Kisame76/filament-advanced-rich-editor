@@ -4,6 +4,13 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- `AdvancedRichEntry` and `AdvancedRichColumn` take `->spatieMediaLibrary()`, with the field's
+  arguments and defaults, and find a picture by the Spatie UUID it was saved under - one the
+  field took from a shared library included. Until now only a provider declared on the model,
+  or one built by hand for `->fileAttachmentProvider()`, reached them
+
 ### Fixed
 
 - Mentions work on Filament 5.11.2, which renamed the mention character from `char` to
