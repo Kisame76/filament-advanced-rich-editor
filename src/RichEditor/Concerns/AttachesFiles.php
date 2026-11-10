@@ -57,10 +57,37 @@ trait AttachesFiles
 
     public function getFileAttachmentProvider(): ?FileAttachmentProvider
     {
-        // Field level configuration wins over plugins, which in turn win over
-        // the provider declared on the model's rich content attribute.
+        return $this->withMediaSource($this->getConfiguredFileAttachmentProvider() ?? parent::getFileAttachmentProvider());
+    }
+
+    /**
+     * Private where the provider stores privately, which Filament only asks of the model.
+     *
+     * Filament reads the visibility off the rich content attribute, and the attribute asks
+     * its provider - so a provider declared on the model is heard and one named on the
+     * field is not. `spatieMediaLibrary(visibility: 'private')` then left the field on
+     * `public`: the save kept the signed address `MediaUrl` handed out in the stored markup,
+     * where it ran out within the hour, and the renderer was told the pictures were public.
+     * `fileAttachmentsVisibility()` on the field still wins over this.
+     */
+    public function getDefaultFileAttachmentsVisibility(): ?string
+    {
+        return $this->getConfiguredFileAttachmentProvider()?->getDefaultFileAttachmentVisibility()
+            ?? parent::getDefaultFileAttachmentsVisibility();
+    }
+
+    /**
+     * The provider named on the field or carried by one of its plugins, without the model's.
+     *
+     * Field level configuration wins over plugins, which in turn win over the provider
+     * declared on the model's rich content attribute - which is Filament's to find. Bare,
+     * without the media source: attaching one reads the visibility, and the visibility
+     * reads this.
+     */
+    protected function getConfiguredFileAttachmentProvider(): ?FileAttachmentProvider
+    {
         if ($provider = $this->getSpatieMediaLibraryPlugin()?->getFileAttachmentProvider()) {
-            return $this->withMediaSource($provider);
+            return $provider;
         }
 
         foreach ($this->getPlugins() as $plugin) {
@@ -69,11 +96,11 @@ trait AttachesFiles
             }
 
             if ($provider = $plugin->getFileAttachmentProvider()) {
-                return $this->withMediaSource($provider);
+                return $provider;
             }
         }
 
-        return $this->withMediaSource(parent::getFileAttachmentProvider());
+        return null;
     }
 
     /**

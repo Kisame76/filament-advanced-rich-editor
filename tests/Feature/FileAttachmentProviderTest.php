@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Filament\Forms\Components\RichEditor\StateCasts\RichEditorStateCast;
+use Filament\Schemas\Components\StateCasts\Contracts\StateCast;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\Post;
@@ -88,6 +90,43 @@ it('prefers the field level provider over a plugin level one', function (): void
         ->spatieMediaLibrary('from-field');
 
     expect($editor->getFileAttachmentProvider()->getCollection())->toBe('from-field');
+});
+
+it('tells the field the visibility its media library stores with', function (): void {
+    // Filament asks the visibility of the model's rich content attribute, which asks its
+    // provider. A field that names the provider itself has no such attribute behind it.
+    expect(editor()->spatieMediaLibrary(visibility: 'private')->getFileAttachmentsVisibility())->toBe('private')
+        ->and(editor()->spatieMediaLibrary()->getFileAttachmentsVisibility())->toBe('public');
+});
+
+it('hears the visibility of a provider a plugin carries as well', function (): void {
+    $editor = editor()->plugins([SpatieMediaLibraryPlugin::make('attachments', visibility: 'private')]);
+
+    expect($editor->getFileAttachmentsVisibility())->toBe('private');
+});
+
+it('lets a visibility named on the field win over its provider', function (): void {
+    expect(editor()->spatieMediaLibrary(visibility: 'private')->fileAttachmentsVisibility('public')->getFileAttachmentsVisibility())
+        ->toBe('public');
+});
+
+it('keeps Filament\'s default for a field nothing stores for', function (): void {
+    expect(editor()->getFileAttachmentsVisibility())->toBe('public');
+});
+
+it('saves a private picture by its id alone, without the address that runs out', function (): void {
+    // The address in the editor is a signed one, good until the end of the hour. Filament
+    // drops it on the way into the column - but only for a field it knows is private.
+    $editor = editor()->spatieMediaLibrary(visibility: 'private');
+
+    $cast = collect($editor->getStateCasts())->first(fn (StateCast $cast): bool => $cast instanceof RichEditorStateCast);
+
+    $html = $cast->get(documentOf([paragraphOf([
+        ['type' => 'image', 'attrs' => ['id' => 'a-media-uuid', 'src' => 'https://files.test/hafen.png?signature=abc']],
+    ])]));
+
+    expect($html)->toContain('a-media-uuid')
+        ->not->toContain('signature');
 });
 
 it('leaves the editor itself untouched when the media library is opted into', function (): void {

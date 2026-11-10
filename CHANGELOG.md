@@ -15,6 +15,15 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   well as its id, so an `@` and a `#` that share an id each get their own. What is stored is
   untouched: a mention node still carries `char`
 
+- `spatieMediaLibrary(visibility: 'private')` makes the field private too. The visibility only
+  reached the provider, and Filament asks the visibility of a field of the model's rich content
+  attribute alone, so the field stayed `public`: a save kept the signed address `MediaUrl` had
+  handed out in the stored markup, where it ran out within the hour, and the renderer was told
+  the pictures were public. A provider on the field or on one of its plugins now answers for
+  the field, and `->fileAttachmentsVisibility()` still wins over it. A private field saves its
+  pictures by their id alone from now on, so a view page needs the provider as well - see the
+  entry's `->spatieMediaLibrary()`
+
 ## 1.8.0 - 2026-11-03
 
 ### Added

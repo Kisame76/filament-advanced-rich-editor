@@ -3029,6 +3029,12 @@ The record is resolved from the field at runtime, so this works on create pages 
 attachment is associated once the record exists. Defaults come from the `spatie` section of
 the config, and the whole feature is inert until you call the method.
 
+The visibility is the field's too, not only the provider's: `getFileAttachmentsVisibility()`
+answers with it unless `->fileAttachmentsVisibility()` says otherwise, the way Filament
+answers with the visibility of a provider declared on the model. On `private` the field shows
+a picture by a signed address that runs out within the hour, and saves it by its id alone — so
+a page showing the document needs the provider too. See [On a view page](#on-a-view-page).
+
 Every upload is stamped with the name of the field that made it, and removing an image from
 the text only ever deletes that field's own attachment. Two editors on one record can share
 a collection — the default one — without cleaning up after each other, and anything else the
