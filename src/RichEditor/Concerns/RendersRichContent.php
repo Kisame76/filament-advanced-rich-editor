@@ -11,6 +11,7 @@ use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileA
 use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
 use Filament\Forms\Components\RichEditor\Plugins\Contracts\RichContentPlugin;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
+use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AnchorPosition;
 
@@ -179,6 +180,36 @@ trait RendersRichContent
         return $this->configureRenderer(
             fn (AdvancedRichContentRenderer $renderer) => $renderer->fileAttachmentProvider($provider),
         );
+    }
+
+    /**
+     * Pictures a media library field saved, found again by the id they were saved under.
+     *
+     * The field's own `spatieMediaLibrary()`, with the same arguments and the same defaults
+     * from the `spatie` section of the config - name what the field names. A field that
+     * stores privately saves a picture without its address, since the signed one it was
+     * shown with runs out within the hour, so the page showing the document has the id and
+     * nothing else. Without this, that page draws no pictures at all.
+     *
+     * The id is looked up as a Spatie UUID across the media table, the way any renderer
+     * handed the provider directly looks it up: there is no field here to scope against, and
+     * the document came out of the database. That is also what finds a picture the field took
+     * from a shared library, which the record's own collection does not hold.
+     */
+    public function spatieMediaLibrary(?string $collection = null, ?string $conversion = null, ?string $disk = null, ?string $visibility = null): static
+    {
+        return $this->configureRenderer(function (AdvancedRichContentRenderer $renderer) use ($collection, $conversion, $disk, $visibility): void {
+            $provider = SpatieMediaLibraryFileAttachmentProvider::make(
+                $collection ?? config('filament-advanced-rich-editor.spatie.collection'),
+                $conversion ?? config('filament-advanced-rich-editor.spatie.conversion'),
+                $disk ?? config('filament-advanced-rich-editor.spatie.disk'),
+                $visibility ?? config('filament-advanced-rich-editor.spatie.visibility'),
+            );
+
+            $renderer
+                ->fileAttachmentProvider($provider)
+                ->fileAttachmentsVisibility($provider->getDefaultFileAttachmentVisibility());
+        });
     }
 
     /**

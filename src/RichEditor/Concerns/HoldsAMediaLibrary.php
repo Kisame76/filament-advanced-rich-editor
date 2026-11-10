@@ -144,7 +144,9 @@ trait HoldsAMediaLibrary
      * Opens the browser onto a library shared across records, rather than onto this record's
      * own attachments.
      *
-     * The closure receives the media query and returns the pool. It is the whole definition:
+     * The closure is handed the media query - as `$query`, or typed as `Builder` - and returns
+     * the pool. It is evaluated like any closure Filament takes, so it may ask for `$record`,
+     * `$livewire`, `$get` and the rest as well. It is the whole definition:
      * whatever it returns is what the grid lists, and - because the file attachment provider
      * authorises through the same object - what a saved `data-id` is allowed to resolve to.
      * Widening the browser and widening the lookup is deliberately one act, so the two cannot
@@ -531,6 +533,27 @@ trait HoldsAMediaLibrary
     }
 
     /**
+     * The pool closure, called the way Filament calls every closure a field is handed.
+     *
+     * The source would call it with the query and nothing else, and a pool is as often a
+     * question about the page as about the media table - the pictures of the board a ticket
+     * is on. Through `evaluate()` it may ask for the record, the Livewire component, `$get`
+     * and the rest by name; the query keeps its old name and is found by its type as well.
+     *
+     * @return (Closure(Builder<Media>): mixed)|null
+     */
+    protected function getMediaLibraryQueryUsing(): ?Closure
+    {
+        $callback = $this->mediaLibraryQuery;
+
+        if (! $callback instanceof Closure) {
+            return null;
+        }
+
+        return fn (Builder $query): mixed => $this->evaluate($callback, ['query' => $query], [Builder::class => $query]);
+    }
+
+    /**
      * The Spatie pool, for the provider to authorise through.
      *
      * Kept apart from `getMediaSource()` so the two cannot call each other: the provider is
@@ -547,7 +570,7 @@ trait HoldsAMediaLibrary
             collection: $provider->getCollection(),
             conversion: $provider->getConversion(),
             visibility: $provider->getDefaultFileAttachmentVisibility(),
-            poolQuery: $this->mediaLibraryQuery,
+            poolQuery: $this->getMediaLibraryQueryUsing(),
             getRecordUsing: fn (): mixed => $owner ?? $this->getRecord(),
             types: $this->getMediaLibraryTypes(),
             thumbnailConversion: $this->getMediaLibraryThumbnail(),

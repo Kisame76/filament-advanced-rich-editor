@@ -51,7 +51,8 @@ const MARGIN = 2
  * edge, and in a right-to-left field those are opposite ends of the field.
  *
  * @param {{top: number, bottom: number, left: number, right: number, height: number}} block
- * @param {{top: number, bottom: number, left: number, right: number}} editor
+ * @param {{top: number, bottom: number, left: number, right: number}} editor the window the
+ *     document is seen through - see `visibleWindow()`
  * @param {{width?: number, height?: number, gap?: number, margin?: number, lineHeight?: number, rtl?: boolean}} options
  * @returns {{left: number, top: number}|null}
  */
@@ -73,12 +74,49 @@ export function handlePosition(block, editor, options = {}) {
     }
 
     const first = Math.min(lineHeight || block.height, block.height)
+    let top = block.top + (first - height) / 2
+
+    // Its start scrolled up out of the window, with the rest of it still in view. The handle
+    // stays with the block, held at the top of the window, rather than following the first
+    // line up over the toolbar - and goes once less of the block shows than the handle is
+    // tall, since held there any longer it would sit beside the block after it.
+    if (block.top < editor.top) {
+        if (block.bottom - editor.top < height) {
+            return null
+        }
+
+        top = Math.max(top, editor.top)
+    }
 
     return {
         left: rtl
             ? Math.min(editor.right - margin - width, block.right + gap)
             : Math.max(editor.left + margin, block.left - gap - width),
-        top: block.top + (first - height) / 2,
+        top,
+    }
+}
+
+/**
+ * The part of the field the document is seen through.
+ *
+ * Not always the box around the document. `maxHeight()` makes the document scroll inside
+ * that box - this package caps the editable rather than the box, so that the floating
+ * toolbars beside it are not clipped - and a block whose start has scrolled up out of the
+ * document is still well inside the box, whose top is right under the toolbar. Fullscreen
+ * is the other way round: the box scrolls and the document runs past it. The window is
+ * where the two overlap. Sideways it is the box, whose padding is the gutter the handle
+ * sits in.
+ *
+ * @param {{top: number, bottom: number, left: number, right: number}} box
+ * @param {{top: number, bottom: number}} page
+ * @returns {{top: number, bottom: number, left: number, right: number}}
+ */
+export function visibleWindow(box, page) {
+    return {
+        left: box.left,
+        right: box.right,
+        top: Math.max(box.top, page.top),
+        bottom: Math.min(box.bottom, page.bottom),
     }
 }
 
@@ -342,9 +380,10 @@ export default () => {
                 return this.hide()
             }
 
-            // The box around the editable rather than the editable itself: the gutter the
-            // handle sits in is that box's padding, so the editable's own left edge is
-            // where the text starts and would clamp the handle on top of it.
+            // Sideways, the box around the editable rather than the editable itself: the
+            // gutter the handle sits in is that box's padding, so the editable's own left
+            // edge is where the text starts and would clamp the handle on top of it. Up and
+            // down, whichever of the two is the one that scrolls - see `visibleWindow()`.
             const container = this.view.dom.parentElement ?? this.view.dom
 
             // Measured rather than assumed: how big the two controls are is the
@@ -355,7 +394,7 @@ export default () => {
 
             const where = handlePosition(
                 this.block.getBoundingClientRect(),
-                container.getBoundingClientRect(),
+                visibleWindow(container.getBoundingClientRect(), this.view.dom.getBoundingClientRect()),
                 {
                     width: this.element.offsetWidth || WIDTH,
                     height: this.element.offsetHeight || HEIGHT,

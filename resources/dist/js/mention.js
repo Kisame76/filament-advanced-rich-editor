@@ -103,6 +103,36 @@ export function normalizeItems(raw) {
 }
 
 /**
+ * The mentions a document holds without their names, as the server is asked for them.
+ *
+ * Filament groups the ids by their character before asking each provider, under `char` up to
+ * 5.11.1 and under `triggerCharacter` from 5.11.2 on. Saying it both ways is what lets one
+ * script ask every version: the key a version does not read is one it never looks at.
+ *
+ * @param {Array<{id: string, char: string}>} pending
+ */
+export function labelRequest(pending) {
+    return pending.map(({ id, char }) => ({ id, char, triggerCharacter: char }))
+}
+
+/**
+ * The name the server found for one mention, in either shape it answers with.
+ *
+ * Up to 5.11.1 the answer is a single `id => name` map, so two providers sharing an id
+ * overwrote each other. From 5.11.2 it is grouped by character first. A group is an object
+ * and a name is a string, which is how the two are told apart.
+ */
+export function mentionLabel(labels, char, id) {
+    const group = labels?.[char]
+
+    const label = group !== null && typeof group === 'object'
+        ? group[id]
+        : labels?.[id]
+
+    return typeof label === 'string' && label !== '' ? label : null
+}
+
+/**
  * The rows matching what has been typed, in the order they should be read.
  *
  * A name that starts with the query comes before one that merely contains it, and the
@@ -770,11 +800,11 @@ export default () => {
 
                 try {
                     const labels = await wire.callSchemaComponentMethod(key, 'getMentionLabelsForJs', {
-                        mentions: pending.map(({ id, char }) => ({ id, char })),
+                        mentions: labelRequest(pending),
                     })
 
-                    pending.forEach(({ id, pos }) => {
-                        const label = labels?.[id]
+                    pending.forEach(({ id, char, pos }) => {
+                        const label = mentionLabel(labels, char, id)
                         const current = view.state.doc.nodeAt(pos)
 
                         if (!label || current?.type.name !== name) {

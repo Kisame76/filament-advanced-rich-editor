@@ -2,6 +2,54 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.9.0 - 2026-11-10
+
+### Added
+
+- `AdvancedRichEntry` and `AdvancedRichColumn` take `->spatieMediaLibrary()`, with the field's
+  arguments and defaults, and find a picture by the Spatie UUID it was saved under - one the
+  field took from a shared library included. Until now only a provider declared on the model,
+  or one built by hand for `->fileAttachmentProvider()`, reached them
+
+### Fixed
+
+- Mentions work on Filament 5.11.2, which renamed the mention character from `char` to
+  `triggerCharacter` in what it sends its script and in what the browser sends back. This
+  package's menu read the old key and offered no trigger at all; a search through Filament's own
+  menu, where this one is switched off, was an error, because the browser passes the name it was
+  given; and the names looked up for mentions saved without one were read from a shape 5.11.2
+  no longer answers with. Both names are read now, and a name is looked up by its character as
+  well as its id, so an `@` and a `#` that share an id each get their own. What is stored is
+  untouched: a mention node still carries `char`
+
+- `spatieMediaLibrary(visibility: 'private')` makes the field private too. The visibility only
+  reached the provider, and Filament asks the visibility of a field of the model's rich content
+  attribute alone, so the field stayed `public`: a save kept the signed address `MediaUrl` had
+  handed out in the stored markup, where it ran out within the hour, and the renderer was told
+  the pictures were public. A provider on the field or on one of its plugins now answers for
+  the field, and `->fileAttachmentsVisibility()` still wins over it. A private field saves its
+  pictures by their id alone from now on, so a view page needs the provider as well - see the
+  entry's `->spatieMediaLibrary()`
+
+- A cached render of private media library pictures is kept no longer than their signed
+  addresses last. A render with an attachment provider was exempt from the cap, on the grounds
+  that Spatie's URLs are ordinary ones - which this package's own provider stopped being true
+  of on a private disk
+
+- `->minHeight()` reaches the page. The view writes Filament's `--min-height` onto the field the
+  way Filament does; it had left it out along with `--max-height`, whose rule caps the box the
+  floating toolbars are positioned in, though a minimum clips nothing
+
+- The closure given to `mediaLibraryQuery()` is evaluated like any closure Filament takes, so it
+  can ask for `$record`, `$livewire`, `$get` and the rest beside the query, which it still gets
+  as `$query` or by its type. It used to be handed the query and nothing else
+
+- The grip and the plus no longer sit over the toolbar in a field that scrolls inside itself. A
+  block whose first line had scrolled up out of the text still counted as in view, because the
+  box measured was the one around the text rather than the text that scrolls, and its handle
+  followed that line up across the bar. It now stays at the top of the text while the rest of
+  the block shows, and goes once too little of it is left
+
 ## 1.8.0 - 2026-11-03
 
 ### Added

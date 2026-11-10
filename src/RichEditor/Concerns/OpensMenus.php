@@ -78,8 +78,10 @@ trait OpensMenus
      * asked for mentions.
      *
      * The triggers are Filament's own description of them - the same array its extension is
-     * configured with - so a provider written against Filament works here untouched. The key
-     * is what lets the script call back for a search, the same way the media browser does.
+     * configured with - so a provider written against Filament works here untouched. Each
+     * carries its character as `char` as well, which is what the script reads: Filament
+     * renamed the key to `triggerCharacter` in 5.11.2. The key is what lets the script call
+     * back for a search, the same way the media browser does.
      *
      * @return array<string, mixed>|null
      */
@@ -103,6 +105,7 @@ trait OpensMenus
         foreach ($triggers as $index => $trigger) {
             $provider = $providers[$index] ?? null;
 
+            $triggers[$index]['char'] = static::triggerCharacterOf($trigger);
             $triggers[$index]['items'] = $provider instanceof MentionProvider && $provider->hasRows()
                 ? $provider->getRows()
                 : static::mentionRowsFrom($trigger['items']);
@@ -128,23 +131,45 @@ trait OpensMenus
      * Filament's own menu, wherever this one is switched off, is left to Filament: it gets
      * whatever the installed version's script expects.
      *
+     * The character is taken under both of its names. The browser reaches this through
+     * `callSchemaComponentMethod()`, which passes arguments by name, and Filament's script
+     * sends `char` up to 5.11.1 and `triggerCharacter` from 5.11.2 on - a name this method
+     * did not declare would be an error on every search, not a fallback to the default.
+     *
      * @return array<mixed>
      */
     #[ExposedLivewireMethod]
     #[Renderless]
-    public function getMentionSearchResultsForJs(?string $search = null, ?string $char = '@'): array
+    public function getMentionSearchResultsForJs(?string $search = null, ?string $char = null, ?string $triggerCharacter = null): array
     {
+        $character = $triggerCharacter ?? $char ?? '@';
+
         if (! $this->hasMentionMenu()) {
-            return parent::getMentionSearchResultsForJs($search, $char);
+            return parent::getMentionSearchResultsForJs($search, $character);
         }
 
-        $provider = $this->getMentionProviderFor($char ?? '@');
+        $provider = $this->getMentionProviderFor($character);
 
         if ($provider === null) {
             return [];
         }
 
         return static::mentionRowsFrom($provider->getSearchResults($search ?? ''));
+    }
+
+    /**
+     * The character of one of Filament's trigger descriptions, under either name it has had.
+     *
+     * Typed as any array on purpose: the shape is the installed Filament's, which calls the
+     * key `char` up to 5.11.1 and `triggerCharacter` from 5.11.2 on.
+     *
+     * @param  array<string, mixed>  $trigger
+     */
+    protected static function triggerCharacterOf(array $trigger): string
+    {
+        $character = $trigger['triggerCharacter'] ?? $trigger['char'] ?? null;
+
+        return is_string($character) ? $character : '@';
     }
 
     /**

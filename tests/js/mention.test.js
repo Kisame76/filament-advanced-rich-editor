@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MentionMenu, SEARCH_DEBOUNCE, filterItems, normalizeItems, queryInText, renderRow } from '../../resources/js/mention.js'
+import {
+    MentionMenu,
+    SEARCH_DEBOUNCE,
+    filterItems,
+    labelRequest,
+    mentionLabel,
+    normalizeItems,
+    queryInText,
+    renderRow,
+} from '../../resources/js/mention.js'
 
 /**
  * The mention menu.
@@ -88,6 +97,32 @@ describe('reading what the server sent', () => {
     it('has nothing to read in nothing', () => {
         expect(normalizeItems(null)).toEqual([])
         expect(normalizeItems(undefined)).toEqual([])
+    })
+})
+
+describe('asking for the names a document only has ids for', () => {
+    it('names the character both ways, so every Filament groups the ids by it', () => {
+        // Filament groups the request by `char` up to 5.11.1 and by `triggerCharacter` from
+        // 5.11.2 on; a request carrying only one of them reaches the wrong provider on the other.
+        expect(labelRequest([{ id: 7, char: '#', pos: 12 }])).toEqual([
+            { id: 7, char: '#', triggerCharacter: '#' },
+        ])
+    })
+
+    it('reads the one map every Filament before 5.11.2 answers with', () => {
+        expect(mentionLabel({ 2: 'Ada Lovelace' }, '@', 2)).toBe('Ada Lovelace')
+    })
+
+    it('reads the answer 5.11.2 groups by trigger, where two providers may share an id', () => {
+        const labels = { '@': { 7: 'Ada Lovelace' }, '#': { 7: 'Backend' } }
+
+        expect(mentionLabel(labels, '#', 7)).toBe('Backend')
+        expect(mentionLabel(labels, '@', 7)).toBe('Ada Lovelace')
+    })
+
+    it('has no name for what nobody answered', () => {
+        expect(mentionLabel({ '@': {} }, '@', 7)).toBeNull()
+        expect(mentionLabel(null, '@', 7)).toBeNull()
     })
 })
 

@@ -99,6 +99,28 @@ it('asks the provider the character belongs to, and the first one where none cla
         ->and(editor()->getMentionSearchResultsForJs('', '@'))->toBe([]);
 });
 
+it('answers a search by whichever name the character arrives under', function (bool $menu): void {
+    // The browser calls this through `callSchemaComponentMethod()`, which passes its arguments
+    // by name: Filament's own script says `char` up to 5.11.1 and `triggerCharacter` from
+    // 5.11.2 on, and a name the method does not declare is an error rather than a default.
+    $editor = editor()->mentionMenu($menu)->mentions([
+        MentionProvider::make('@')->getSearchResultsUsing(fn (): array => ['2' => 'Ada Lovelace']),
+        MentionProvider::make('#')->getSearchResultsUsing(fn (): array => ['7' => 'Backend']),
+    ]);
+
+    // Rows from this package's menu; from Filament's, a map or a list of pairs by version.
+    $labels = fn (array $results): array => array_map(
+        fn (mixed $result): string => is_array($result) ? $result['label'] : $result,
+        array_values($results),
+    );
+
+    expect($labels($editor->getMentionSearchResultsForJs(search: '', triggerCharacter: '#')))->toBe(['Backend'])
+        ->and($labels($editor->getMentionSearchResultsForJs(search: '', char: '#')))->toBe(['Backend']);
+})->with([
+    'with this package\'s menu' => [true],
+    'with Filament\'s own' => [false],
+]);
+
 it('leaves the search to Filament where its own menu is drawn', function (): void {
     // Its script reads the shape its own version sends - a map before 5.8.3, pairs since - so
     // whatever the installed Filament answers is the only right answer.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileAttachmentProvider;
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Illuminate\Support\Facades\Cache;
+use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Fingerprint;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -186,6 +187,19 @@ it('leaves the lifetime alone where an attachment provider hands out ordinary UR
 
     expect(cachedRenderer()->fileAttachmentsVisibility('private')->fileAttachmentProvider(permanentAttachmentProvider())->getRenderCacheTtl())
         ->toBe(86400);
+});
+
+it('will not keep a page of private media library pictures longer than their URLs last', function (): void {
+    // This package's own provider is the one it knows does not hand out ordinary URLs: on a
+    // private disk `MediaUrl` signs them, until the end of the hour.
+    config()->set('filament-advanced-rich-editor.render_cache.ttl', 86400);
+    config()->set('filament.temporary_file_url_expiry_minutes', 30);
+
+    $renderer = fn (string $visibility) => cachedRenderer()
+        ->fileAttachmentProvider(SpatieMediaLibraryFileAttachmentProvider::make(visibility: $visibility));
+
+    expect($renderer('private')->getRenderCacheTtl())->toBe(1800)
+        ->and($renderer('public')->getRenderCacheTtl())->toBe(86400);
 });
 
 it('keeps a render for ever where the config names no lifetime', function (): void {

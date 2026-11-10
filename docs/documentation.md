@@ -824,6 +824,16 @@ it to the viewport as well would peel it off the field as the page scrolls past.
 wins over both — the overlay already fills the window, and a 400px box inside it would
 leave most of the screen empty.
 
+The cap sits on the text itself rather than on Filament's content box, which is why the field
+does not write Filament's own `--max-height`: that box is the one the floating toolbars are
+positioned in, and capping it would clip them at its edge. A minimum clips nothing, so
+Filament's `->minHeight()` (Filament 5.9 and later) is written the way Filament writes it, and
+Filament's stylesheet holds the content box to it:
+
+```php
+AdvancedRichEditor::make('content')->minHeight('12rem')->maxHeight('32rem');
+```
+
 ### Fullscreen
 
 The last button expands the editor over the window, and Escape leaves again.
@@ -2798,6 +2808,18 @@ AdvancedRichEditor::make('content')
     ->mediaLibraryDirectory('library');
 ```
 
+The closure is evaluated like any closure Filament takes: the query arrives as `$query` or
+typed as `Builder`, and `$record`, `$livewire`, `$get` and the rest can be asked for beside it.
+A pool is often a question about the page rather than about the media table:
+
+```php
+AdvancedRichEditor::make('description')
+    ->spatieMediaLibrary('board-images')
+    ->mediaLibraryQuery(fn (Builder $query, Ticket $record) => $query
+        ->where('model_type', $record->board->getMorphClass())
+        ->where('model_id', $record->board_id));
+```
+
 `->mediaLibraryPageSize(60)` changes how many pictures one request fetches; the footer counts
 the library and the arrows beside it turn the pages.
 
@@ -3028,6 +3050,12 @@ AdvancedRichEditor::make('content')
 The record is resolved from the field at runtime, so this works on create pages too: the
 attachment is associated once the record exists. Defaults come from the `spatie` section of
 the config, and the whole feature is inert until you call the method.
+
+The visibility is the field's too, not only the provider's: `getFileAttachmentsVisibility()`
+answers with it unless `->fileAttachmentsVisibility()` says otherwise, the way Filament
+answers with the visibility of a provider declared on the model. On `private` the field shows
+a picture by a signed address that runs out within the hour, and saves it by its id alone — so
+a page showing the document needs the provider too. See [On a view page](#on-a-view-page).
 
 Every upload is stamped with the name of the field that made it, and removing an image from
 the text only ever deletes that field's own attachment. Two editors on one record can share
@@ -3771,6 +3799,11 @@ people ask for next and it is deliberately not here: a list item is a node that 
 live inside a list, so dropping one into a paragraph is a question ProseMirror answers with
 "nowhere" - the honest version of that feature is a drag that refuses more often than it
 works.
+
+In a field that scrolls inside itself — [`maxHeight()`](#maximum-height), or fullscreen — the
+handle follows what is in view rather than the block's first line. A block whose start has
+scrolled up out of the field keeps its handle at the top of the text, below the toolbar, and
+loses it once less of the block shows than the handle is tall.
 
 **A field with a handle has a wider left margin.** The controls sit in the editor's own
 padding, and Filament leaves twenty pixels there where two of them need fifty, so the
@@ -5313,8 +5346,26 @@ describes the field, the entry describes one place it is shown.
 > ```
 >
 > Where that is not possible — a document rendered outside its model, or one attribute shown
-> two different ways — the entry, the column and the renderer each take
+> two different ways — the entry and the column take the field's own `->spatieMediaLibrary()`,
+> with the same arguments and the same defaults from the `spatie` config section:
+>
+> ```php
+> AdvancedRichEditor::make('content')->spatieMediaLibrary('rich-editor', visibility: 'private');
+>
+> AdvancedRichEntry::make('content')->spatieMediaLibrary('rich-editor', visibility: 'private');
+> ```
+>
+> The entry looks an id up as a Spatie UUID across the media table, the way any renderer
+> handed the provider directly does: there is no field on a view page to scope the lookup
+> against, and the document came out of the database. That is also what finds a picture the
+> field took from a shared library, which the record's own collection does not hold. For any
+> other provider, the entry, the column and the renderer each take
 > `->fileAttachmentProvider(...)`.
+>
+> On a private disk the reading side is not optional. A private field saves a picture by its
+> id alone — the address the editor showed it with is signed and runs out within the hour, so
+> Filament drops it on the way into the column — and a view page without a provider has
+> nothing left to draw.
 >
 > Since 1.5.0 a source that cannot be resolved is left as it was found rather than erased, so
 > a document written with a working URL still draws. That is a safety net and not the
