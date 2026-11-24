@@ -169,7 +169,9 @@ describe('on a touch screen', () => {
                 const { toolbar, pinned, flow, flowing } = bar({ narrow: true, touch: true, pin, align })
                 const label = `${align}, pinned to the ${pin}`
 
-                expect(getComputedStyle(toolbar).gridTemplateColumns, label).toBe(
+                // A unitless zero comes back as `0px` from jsdom 31 on, as it does from a
+                // browser, and as `0` before - the track is the same either way.
+                expect(getComputedStyle(toolbar).gridTemplateColumns.replace(/\b0px\b/g, '0'), label).toBe(
                     pin === 'end' ? 'minmax(0, 1fr) auto' : 'auto minmax(0, 1fr)',
                 )
                 expect(getComputedStyle(flow).gridRow, label).toBe('1')
