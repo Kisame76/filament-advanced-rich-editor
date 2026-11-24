@@ -119,6 +119,8 @@ describe('a stored break', function (): void {
     });
 
     it('leaves nothing in Markdown, which has no pages', function (): void {
+        requires('league/html-to-markdown');
+
         expect(AdvancedRichContentRenderer::make('<p>One</p>'.PAGE_BREAK.'<p>Two</p>')->toMarkdown())->toBe("One\n\nTwo");
     });
 });
