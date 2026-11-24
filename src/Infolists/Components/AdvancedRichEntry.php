@@ -121,7 +121,7 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
      * checkbox has no business touching the paragraph beside it.
      */
     #[ExposedLivewireMethod]
-    public function toggleTask(int $index): void
+    public function toggleTask(int $index, ?bool $checked = null): void
     {
         if (! $this->canTickTasks()) {
             return;
@@ -140,16 +140,30 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
             return;
         }
 
-        $toggled = DocumentTasks::toggle($content, $index);
-
         // Null is an index that names no task item, which is a document that changed
         // between being drawn and being clicked. Writing anything then would be writing a
         // guess.
-        if ($toggled === null) {
+        $current = DocumentTasks::isChecked($content, $index);
+
+        if ($current === null) {
             return;
         }
 
-        $record->setAttribute($attribute, $toggled);
+        // The button asks for a state rather than for a turn, so a click arriving twice
+        // writes once. Without one - a caller from before the button said - it is a turn.
+        $checked ??= ! $current;
+
+        if ($checked === $current) {
+            return;
+        }
+
+        $updated = DocumentTasks::set($content, $index, $checked);
+
+        if ($updated === null) {
+            return;
+        }
+
+        $record->setAttribute($attribute, $updated);
         $record->save();
     }
 }

@@ -10,6 +10,21 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   The button that replaces the label there was missed by the rule that centres the label, and
   the box dropped to the text's baseline
 
+- A double click on a view page's checkbox no longer ticks and unticks it. The button's loading
+  target named the method behind the request, which never matched the request Livewire sends, so
+  it was never disabled. It now targets its own call, arguments included, and asks for the state
+  it wants rather than for a turn, so a second click that arrives anyway writes nothing
+
+- A view page's checkbox has a name a screen reader can say: the first line of its item, rather
+  than nothing but "toggle button" for every item in the list
+
+- Ticking a box on the view page keeps the class the editor stores beside `data-checked` in step
+  with it. The attribute was turned over and the class left behind, which nothing that renders
+  the document again notices and anything reading the column as it lies - a search index, an
+  export - got wrong. Markup without the class gets none. An item stored without `data-checked`
+  is read as unticked, as the parser reads it, where the first click used to write "unticked"
+  over it
+
 ## 1.9.0 - 2026-11-10
 
 ### Added

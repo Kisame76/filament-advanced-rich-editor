@@ -5402,6 +5402,14 @@ The item is addressed by its position in document order, which is the order it w
 An index naming no item — a document that changed between the drawing and the click — writes
 nothing rather than a guess.
 
+A click asks for the state it wants rather than for a turn, and the button is disabled while
+its own request runs — only that button, not every checkbox on the page. So a double click
+ticks once: the second click either finds the button disabled or asks for what the first one
+already wrote, and writes nothing.
+
+Each button is named after the first line of its item, so a screen reader says which task it
+is about rather than only "toggle button, not pressed".
+
 Two mechanics worth knowing:
 
 - **The buttons are added after the sanitiser**, which is the opposite of every other pass in

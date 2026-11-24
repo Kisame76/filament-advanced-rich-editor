@@ -193,11 +193,126 @@ it('numbers the buttons off the attribute the parser keys on', function (): void
         ->toContain('index: 1');
 });
 
-it('scopes the loading state to its own call', function (): void {
-    // Without a target, any Livewire request anywhere on the page greys out every checkbox.
+it('scopes the loading state to the call its own button makes', function (): void {
+    // The request Livewire sends is `callSchemaComponentMethod`, so a target naming the
+    // method behind it never matched and the button was never disabled: a double click
+    // ticked and unticked. The bare request name would match every checkbox at once, and
+    // anything else on the page calling into a schema component. Livewire compares a
+    // target's arguments with the call's, so the target is the call itself.
     $html = tickableEntry(new Post(['content' => taskDocument()]))->toEmbeddedHtml();
 
-    expect($html)->toContain('wire:target="toggleTask"');
+    preg_match_all('/wire:click="([^"]+)"/', $html, $clicks);
+    preg_match_all('/wire:target="([^"]+)"/', $html, $targets);
+
+    expect($targets[1])->toHaveCount(3)
+        ->and($targets[1])->toBe($clicks[1])
+        ->and($html)->not->toContain('wire:target="toggleTask"');
+});
+
+it('asks for the state a click wants rather than for a turn', function (): void {
+    // So a second click that arrives before the first one's answer asks for what the first
+    // already wrote, instead of undoing it.
+    $html = tickableEntry(new Post(['content' => taskDocument()]))->toEmbeddedHtml();
+
+    expect($html)->toContain('{ index: 0, checked: false }')
+        ->toContain('{ index: 1, checked: true }')
+        ->toContain('{ index: 2, checked: true }');
+});
+
+it('names every button after the first line of its item', function (): void {
+    $html = tickableEntry(new Post(['content' => taskDocument()]))->toEmbeddedHtml();
+
+    $document = new DOMDocument;
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
+
+    $names = [];
+
+    foreach ($document->getElementsByTagName('button') as $button) {
+        $names[] = trim((string) $document->getElementById($button->getAttribute('aria-labelledby'))?->textContent);
+    }
+
+    expect($names)->toBe(['Eins', 'Zwei', 'Drei']);
+});
+
+it('names a button after its own line and not after the items beneath it', function (): void {
+    $stored = '<ul data-type="taskList" class="fi-arte-task-list">'
+        .'<li data-type="taskItem" data-checked="false"><p>Oben</p>'
+        .'<ul data-type="taskList" class="fi-arte-task-list">'
+        .'<li data-type="taskItem" data-checked="false"><p>Unten</p></li>'
+        .'</ul></li></ul>';
+
+    $html = tickableEntry(new Post(['content' => $stored]))->toEmbeddedHtml();
+
+    $document = new DOMDocument;
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
+
+    $names = [];
+
+    foreach ($document->getElementsByTagName('button') as $button) {
+        $names[] = trim((string) $document->getElementById($button->getAttribute('aria-labelledby'))?->textContent);
+    }
+
+    expect($names)->toBe(['Oben', 'Unten']);
+});
+
+it('keeps the ids it hands out apart between two entries on one page', function (): void {
+    $record = new Post(['content' => taskDocument()]);
+
+    $first = AdvancedRichEntry::make('content')->tickableTasks()
+        ->container(Schema::make(new TestSchemaComponent)->record($record))->toEmbeddedHtml();
+    $second = AdvancedRichEntry::make('summary')->statePath('summary')->tickableTasks()
+        ->state(taskDocument())
+        ->container(Schema::make(new TestSchemaComponent)->record($record))->toEmbeddedHtml();
+
+    preg_match_all('/aria-labelledby="([^"]+)"/', $first, $a);
+    preg_match_all('/aria-labelledby="([^"]+)"/', $second, $b);
+
+    expect($a[1])->toHaveCount(3)
+        ->and(array_intersect($a[1], $b[1]))->toBe([]);
+});
+
+it('sets a tick, and setting it again changes nothing', function (): void {
+    $once = DocumentTasks::set(taskDocument(), 1, true);
+
+    expect($once)->toContain('<li data-type="taskItem" data-checked="true"><p>Zwei</p></li>')
+        ->and(DocumentTasks::set($once, 1, true))->toBe($once)
+        ->and(DocumentTasks::set(taskDocument(), 9, true))->toBeNull();
+});
+
+it('reads the state of one item', function (): void {
+    expect(DocumentTasks::isChecked(taskDocument(), 0))->toBeTrue()
+        ->and(DocumentTasks::isChecked(taskDocument(), 1))->toBeFalse()
+        ->and(DocumentTasks::isChecked(taskDocument(), 9))->toBeNull()
+        ->and(DocumentTasks::isChecked(null, 0))->toBeNull();
+});
+
+it('reads an item without the attribute as unticked, as the parser does', function (): void {
+    // An empty string is what `getAttribute()` answers for a missing attribute, and also how
+    // a bare `data-checked` reads - so the first click on such an item used to write
+    // "unticked" over an item that already was.
+    $stored = '<ul data-type="taskList"><li data-type="taskItem"><p>Ohne</p></li></ul>';
+
+    expect(DocumentTasks::isChecked($stored, 0))->toBeFalse()
+        ->and(DocumentTasks::toggle($stored, 0))->toContain('data-checked="true"');
+});
+
+it('keeps the class the editor writes in step with the attribute', function (): void {
+    // The editor stores the state twice, because the sanitiser keeps only the class. Anything
+    // reading the column as it lies - a search index, an export - reads the class.
+    $stored = '<ul data-type="taskList" class="fi-arte-task-list">'
+        .'<li data-type="taskItem" data-checked="true" class="fi-arte-task-item fi-arte-task-item-checked"><p>Eins</p></li>'
+        .'<li data-type="taskItem" data-checked="false" class="fi-arte-task-item"><p>Zwei</p></li>'
+        .'</ul>';
+
+    expect(DocumentTasks::toggle($stored, 0))
+        ->toContain('<li data-type="taskItem" data-checked="false" class="fi-arte-task-item"><p>Eins</p></li>')
+        ->and(DocumentTasks::toggle($stored, 1))
+        ->toContain('<li data-type="taskItem" data-checked="true" class="fi-arte-task-item fi-arte-task-item-checked"><p>Zwei</p></li>');
+});
+
+it('gives hand-written markup no class it never had', function (): void {
+    expect(DocumentTasks::toggle(taskDocument(), 1))
+        ->toContain('<li data-type="taskItem" data-checked="true"><p>Zwei</p></li>');
 });
 
 it('centres the button the way it centres the label', function (): void {
