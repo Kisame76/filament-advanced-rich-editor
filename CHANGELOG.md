@@ -2,6 +2,51 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## 1.10.0 - 2026-11-24
+
+### Added
+
+- `AdvancedRichEntry::afterTaskToggled()` runs once a tick on the view page has been written,
+  with the record, the item's position and the state it now has - for an activity feed or a
+  counter beside the document. The page's Livewire component also dispatches
+  `arte-task-toggled` with the attribute, the record key, the index and the state, for a
+  component that listens rather than being called. A click that changed nothing calls neither
+
+- A document uploaded the plain way becomes a download card. Filament's upload dialog and its
+  drop and paste handler insert a picture for whatever arrives, so a field without a media
+  browser that accepted a pdf stored `<img src="….pdf">` - or, on a local disk, nothing at all,
+  since Livewire hands out no preview address for one. Both ways in now ask the field which node
+  an upload becomes: a picture stays Filament's picture, a film or a recording becomes a player
+  where the field has them, and anything else becomes a card. The upload, the accepted types, the
+  size limit and the save are Filament's as before
+
+### Fixed
+
+- On Filament 5.12 the editor waits behind Filament's loading placeholder until its script is
+  ready, the way every other field there does. The view this package draws is a copy of
+  Filament's, and 5.12 added the wrapper to Filament's alone, so the editor showed half-built
+  while its script loaded. The wrapper is Filament's own and is drawn only where the installed
+  release has it
+
+- The checkbox on a view page with `->tickableTasks()` sits on the first line of its item again.
+  The button that replaces the label there was missed by the rule that centres the label, and
+  the box dropped to the text's baseline
+
+- A double click on a view page's checkbox no longer ticks and unticks it. The button's loading
+  target named the method behind the request, which never matched the request Livewire sends, so
+  it was never disabled. It now targets its own call, arguments included, and asks for the state
+  it wants rather than for a turn, so a second click that arrives anyway writes nothing
+
+- A view page's checkbox has a name a screen reader can say: the first line of its item, rather
+  than nothing but "toggle button" for every item in the list
+
+- Ticking a box on the view page keeps the class the editor stores beside `data-checked` in step
+  with it. The attribute was turned over and the class left behind, which nothing that renders
+  the document again notices and anything reading the column as it lies - a search index, an
+  export - got wrong. Markup without the class gets none. An item stored without `data-checked`
+  is read as unticked, as the parser reads it, where the first click used to write "unticked"
+  over it
+
 ## 1.9.0 - 2026-11-10
 
 ### Added

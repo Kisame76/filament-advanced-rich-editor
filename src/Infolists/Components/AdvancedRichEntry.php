@@ -31,6 +31,8 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
 
     protected bool|Closure $isTickable = false;
 
+    protected ?Closure $afterTaskToggled = null;
+
     public function toEmbeddedHtml(): string
     {
         $state = $this->getState();
@@ -94,6 +96,28 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
         return $this;
     }
 
+    /**
+     * Runs once a tick has been written, with the record, the item's position in the
+     * document and the state it now has.
+     *
+     * For whatever else on the page should know: an activity feed that lists the change, a
+     * counter of open tasks. A click that changed nothing - the second half of a double
+     * click - does not call it.
+     *
+     *     AdvancedRichEntry::make('content')
+     *         ->tickableTasks()
+     *         ->afterTaskToggled(fn (Ticket $record, int $index, bool $checked) => $record->touch())
+     *
+     * The page's Livewire component also dispatches `arte-task-toggled` either way, for a
+     * component elsewhere on the page that listens rather than being called.
+     */
+    public function afterTaskToggled(?Closure $callback): static
+    {
+        $this->afterTaskToggled = $callback;
+
+        return $this;
+    }
+
     public function canTickTasks(): bool
     {
         $record = $this->getRecord();
@@ -121,7 +145,7 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
      * checkbox has no business touching the paragraph beside it.
      */
     #[ExposedLivewireMethod]
-    public function toggleTask(int $index): void
+    public function toggleTask(int $index, ?bool $checked = null): void
     {
         if (! $this->canTickTasks()) {
             return;
@@ -140,16 +164,43 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
             return;
         }
 
-        $toggled = DocumentTasks::toggle($content, $index);
-
         // Null is an index that names no task item, which is a document that changed
         // between being drawn and being clicked. Writing anything then would be writing a
         // guess.
-        if ($toggled === null) {
+        $current = DocumentTasks::isChecked($content, $index);
+
+        if ($current === null) {
             return;
         }
 
-        $record->setAttribute($attribute, $toggled);
+        // The button asks for a state rather than for a turn, so a click arriving twice
+        // writes once. Without one - a caller from before the button said - it is a turn.
+        $checked ??= ! $current;
+
+        if ($checked === $current) {
+            return;
+        }
+
+        $updated = DocumentTasks::set($content, $index, $checked);
+
+        if ($updated === null) {
+            return;
+        }
+
+        $record->setAttribute($attribute, $updated);
         $record->save();
+
+        $this->evaluate($this->afterTaskToggled, [
+            'index' => $index,
+            'checked' => $checked,
+        ]);
+
+        $this->getLivewire()->dispatch(
+            'arte-task-toggled',
+            attribute: $attribute,
+            recordKey: $record->getKey(),
+            index: $index,
+            checked: $checked,
+        );
     }
 }

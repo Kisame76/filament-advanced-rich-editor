@@ -12,6 +12,7 @@ use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\AttachFilesAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\EditImageAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
@@ -38,6 +39,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PreviewsContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\RemembersWithinARender;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ServesTheMediaBrowser;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\UploadsDocuments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolbar;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\LivewireNesting;
@@ -97,6 +99,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TextToolbarPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TouchToolbarPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\TypographyPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Styles;
+use ReflectionClass;
 use Tiptap\Editor;
 
 /**
@@ -131,6 +134,7 @@ class AdvancedRichEditor extends RichEditor
     use PreviewsContent;
     use RemembersWithinARender;
     use ServesTheMediaBrowser;
+    use UploadsDocuments;
     use WritesWithoutAToolbar;
 
     protected string $view = 'filament-advanced-rich-editor::rich-editor';
@@ -827,6 +831,10 @@ class AdvancedRichEditor extends RichEditor
             $replacements['link'] = LinkAction::make();
         }
 
+        // Filament's upload dialog, with one branch more: a document becomes a card rather
+        // than a picture of nothing. Pictures still go the way Filament sends them.
+        $replacements['attachFiles'] = AttachFilesAction::make();
+
         $additions = [];
 
         // Asked for the pool rather than for the setting: the browser is switched on by
@@ -849,10 +857,6 @@ class AdvancedRichEditor extends RichEditor
 
         if ($this->hasImageEditor()) {
             $additions[] = EditImageAction::make();
-        }
-
-        if ($replacements === [] && $additions === []) {
-            return parent::getDefaultActions();
         }
 
         // Replaced by name rather than appended: two actions called `link` would leave
@@ -1026,6 +1030,47 @@ class AdvancedRichEditor extends RichEditor
         }
 
         return $value === true ? LivewireNesting::REQUIRED : max(1, (int) $value);
+    }
+
+    /**
+     * Filament's loading placeholder for the editor, as the markup before it and the markup
+     * after it - or null on a Filament that has none.
+     *
+     * Filament 5.12 draws a placeholder over a field until the field's script reports it is
+     * ready, and keeps the field inert and hidden from assistive technology until then. This
+     * field's view is a copy of Filament's, so it draws the same wrapper. It asks Filament for
+     * the wrapper itself, with a marker where the editor goes, so the markup, the placeholder
+     * a panel configured and the translations stay Filament's rather than a second copy of
+     * them.
+     *
+     * Through reflection because the method is protected and exists only from 5.12 on. That
+     * is also the release whose script ends the loading state, which is why its presence is
+     * the whole test: a wrapper drawn around a script that never says it is ready would keep
+     * the editor inert for good.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    public function getAsyncComponentWrapper(): ?array
+    {
+        $class = new ReflectionClass($this);
+
+        if (! $class->hasMethod('wrapAsyncComponentHtml')) {
+            return null;
+        }
+
+        $marker = '<!--arte-async-component-content-->';
+
+        $html = $class->getMethod('wrapAsyncComponentHtml')->invoke(
+            $this,
+            $marker,
+            // The key Filament gives it, so the wrapper is replaced when the field is
+            // disabled or enabled again rather than morphed into the other state.
+            $this->getLivewireKey().'.'.md5(serialize([$this->isDisabled()])),
+        );
+
+        $parts = explode($marker, is_string($html) ? $html : '', 2);
+
+        return count($parts) === 2 ? [$parts[0], $parts[1]] : null;
     }
 
     /**

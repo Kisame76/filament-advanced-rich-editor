@@ -28,7 +28,7 @@
         $codeBlockSettings, $findSettings, $emojiSettings, $characterSettings,
         $pasteSettings, $dragHandleSettings, $autosaveSettings, $accessibilitySettings,
         $typographySettings, $characterCountSettings, $indentSettings, $shortcutSettings,
-        $lockedSettings), resolved alongside them
+        $lockedSettings, $documentUploadSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -69,6 +69,13 @@
     behaves where it is not there. The close buttons' label is the same question asked of
     the translation.
 
+    Carried over from Filament v5.12, which wraps the field in a loading placeholder until
+    its script reports it is ready: the wrapper around the .fi-fo-rich-editor root and the
+    inert / aria-hidden / fi-async-component-content attributes on it. The wrapper is
+    Filament's own, asked for through getAsyncComponentWrapper(), and both are drawn only
+    where the installed release has it - an older script never reports ready, and an editor
+    waiting for it would stay inert for good.
+
     Deliberately NOT changed: x-load-src still points at Filament's own compiled
     'rich-editor' Alpine component, because this package extends the upstream editor
     rather than shipping a second TipTap bundle. Nor is v5.9's --max-height written onto
@@ -88,6 +95,7 @@
     $isDisabled = $isDisabled();
     $label = $getLabel();
     $livewireKey = $getLivewireKey();
+    $asyncWrapper = $getAsyncComponentWrapper();
     $key = $getKey();
     $mergeTags = $getMergeTags();
     $statePath = $getStatePath();
@@ -133,6 +141,7 @@
     $indentSettings = $getIndentSettingsForJs();
     $shortcutSettings = $getShortcutSettingsForJs();
     $lockedSettings = $getLockedRegionSettingsForJs();
+    $documentUploadSettings = $getDocumentUploadSettingsForJs();
     // Filament v5.9. Each closure exists only where the installed release has the method.
     $hasUpstreamStickyToolbar = isset($hasStickyToolbar) && $hasStickyToolbar();
     $hasUpstreamStickyPanels = isset($hasStickyPanels) && $hasStickyPanels();
@@ -174,7 +183,18 @@
                 ])
         "
     >
+        @if ($asyncWrapper)
+            {!! $asyncWrapper[0] !!}
+        @endif
+
         <div
+            @if ($asyncWrapper)
+                x-bind:inert="isLoading"
+                x-bind:aria-hidden="isLoading"
+                inert
+                aria-hidden="true"
+                class="fi-async-component-content"
+            @endif
             x-load
             x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('rich-editor', 'filament/forms') }}"
             x-data="richEditorFormComponent({
@@ -340,6 +360,7 @@
                     @if ($indentSettings) data-arte-indent="{{ json_encode($indentSettings) }}" @endif
                     @if ($shortcutSettings) data-arte-shortcuts="{{ json_encode($shortcutSettings) }}" @endif
                     @if ($lockedSettings) data-arte-locked="{{ json_encode($lockedSettings) }}" @endif
+                    @if ($documentUploadSettings) data-arte-document-upload="{{ json_encode($documentUploadSettings) }}" @endif
                 >
                     @php ob_start(); @endphp
                     @foreach ($floatingToolbars as $nodeName => $buttons)
@@ -542,5 +563,9 @@
                 @endif
             </div>
         </div>
+
+        @if ($asyncWrapper)
+            {!! $asyncWrapper[1] !!}
+        @endif
     </x-filament::input.wrapper>
 </x-dynamic-component>

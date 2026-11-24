@@ -33,13 +33,70 @@ class DocumentTasks
      */
     public static function toggle(string|array|null $content, int $index): string|array|null
     {
+        $checked = static::isChecked($content, $index);
+
+        return $checked === null ? null : static::set($content, $index, ! $checked);
+    }
+
+    /**
+     * The document with the nth task item ticked or unticked, or null where there is no such
+     * item.
+     *
+     * Setting rather than turning over is what makes a click safe to repeat: a second click
+     * that arrives before the first one's answer asks for the state the first one already
+     * wrote, instead of undoing it.
+     *
+     * @param  string|array<string, mixed>|null  $content
+     * @return string|array<string, mixed>|null
+     */
+    public static function set(string|array|null $content, int $index, bool $checked): string|array|null
+    {
         if ($index < 0) {
             return null;
         }
 
         return is_array($content)
-            ? static::toggleInDocument($content, $index)
-            : static::toggleInMarkup($content, $index);
+            ? static::setInDocument($content, $index, $checked)
+            : static::setInMarkup($content, $index, $checked);
+    }
+
+    /**
+     * Whether the nth task item is ticked, or null where there is no such item.
+     *
+     * @param  string|array<string, mixed>|null  $content
+     */
+    public static function isChecked(string|array|null $content, int $index): ?bool
+    {
+        if ($index < 0) {
+            return null;
+        }
+
+        if (is_array($content)) {
+            $seen = 0;
+            $checked = null;
+
+            static::walk($content, function (array &$node) use ($index, &$seen, &$checked): void {
+                if ($seen++ === $index) {
+                    $checked = (bool) ($node['attrs']['checked'] ?? false);
+                }
+            });
+
+            return $checked;
+        }
+
+        if (blank($content)) {
+            return null;
+        }
+
+        $document = static::parse($content);
+
+        if ($document === null) {
+            return null;
+        }
+
+        $item = static::items($document)->item($index);
+
+        return $item instanceof DOMElement ? static::markedChecked($item) : null;
     }
 
     /**
@@ -68,7 +125,7 @@ class DocumentTasks
         return $document === null ? 0 : static::items($document)->count();
     }
 
-    protected static function toggleInMarkup(?string $html, int $index): ?string
+    protected static function setInMarkup(?string $html, int $index, bool $checked): ?string
     {
         if (blank($html)) {
             return null;
@@ -86,15 +143,28 @@ class DocumentTasks
             return null;
         }
 
-        // The two spellings this package's own parser accepts, so what is written back is
-        // what a re-parse reads. `false` rather than removing the attribute: an item that
-        // says it is unticked is clearer in a diff than one that says nothing.
-        $item->setAttribute(
-            'data-checked',
-            in_array($item->getAttribute('data-checked'), ['', 'true', 'checked', 'data-checked'], strict: true)
-                ? 'false'
-                : 'true',
-        );
+        // Written the way this package's own parser reads it back. `false` rather than
+        // removing the attribute: an item that says it is unticked is clearer in a diff than
+        // one that says nothing.
+        $item->setAttribute('data-checked', $checked ? 'true' : 'false');
+
+        // The editor writes the state twice, as the attribute and as a class, because the
+        // sanitiser keeps only the class. Turning the attribute over alone left markup that
+        // contradicted itself - harmless wherever it is rendered again, since the renderer
+        // reads the attribute, and wrong wherever the column is read as it lies: a search
+        // index, an export, a page printing it raw. Only where the editor's class is there
+        // at all: hand-written markup gets no class it never had.
+        $classes = preg_split('/\s+/', trim($item->getAttribute('class'))) ?: [];
+
+        if (in_array('fi-arte-task-item', $classes, strict: true)) {
+            $classes = array_values(array_diff($classes, ['fi-arte-task-item-checked']));
+
+            if ($checked) {
+                $classes[] = 'fi-arte-task-item-checked';
+            }
+
+            $item->setAttribute('class', implode(' ', $classes));
+        }
 
         $root = $document->getElementById('arte-task-root');
 
@@ -115,21 +185,33 @@ class DocumentTasks
      * @param  array<string, mixed>  $document
      * @return array<string, mixed>|null
      */
-    protected static function toggleInDocument(array $document, int $index): ?array
+    protected static function setInDocument(array $document, int $index, bool $checked): ?array
     {
         $seen = 0;
         $found = false;
 
-        static::walk($document, function (array &$node) use ($index, &$seen, &$found): void {
+        static::walk($document, function (array &$node) use ($index, $checked, &$seen, &$found): void {
             if ($seen++ !== $index) {
                 return;
             }
 
-            $node['attrs']['checked'] = ! ($node['attrs']['checked'] ?? false);
+            $node['attrs']['checked'] = $checked;
             $found = true;
         });
 
         return $found ? $document : null;
+    }
+
+    /**
+     * The spellings of "ticked" this package's own parser accepts, so a state read here is
+     * the state a re-parse would read. A missing attribute is unticked, as it is to the
+     * parser - `getAttribute()` answers an empty string for it, which is also how a bare
+     * `data-checked` reads, so the two have to be told apart first.
+     */
+    protected static function markedChecked(DOMElement $item): bool
+    {
+        return $item->hasAttribute('data-checked')
+            && in_array($item->getAttribute('data-checked'), ['', 'true', 'checked', 'data-checked'], strict: true);
     }
 
     /**

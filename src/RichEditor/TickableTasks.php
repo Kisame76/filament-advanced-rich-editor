@@ -99,26 +99,77 @@ class TickableTasks
             return;
         }
 
+        $checked = static::isChecked($item);
+
+        // The state the click asks for rather than "turn it over": a second click that lands
+        // before the first one's answer asks for what the first already wrote, and changes
+        // nothing - instead of undoing it.
+        $call = 'callSchemaComponentMethod('.Js::from($componentKey)->toHtml().', '.Js::from($method)->toHtml()
+            .', { index: '.$index.', checked: '.($checked ? 'false' : 'true').' })';
+
         $button = $document->createElement('button');
         $button->setAttribute('type', 'button');
         $button->setAttribute('class', trim($control->getAttribute('class').' fi-arte-task-item-tickable'));
-        $button->setAttribute(
-            'wire:click',
-            'callSchemaComponentMethod('.Js::from($componentKey)->toHtml().', '.Js::from($method)->toHtml().', { index: '.$index.' })',
-        );
+        $button->setAttribute('wire:click', $call);
         // Nothing is written until the round trip comes back, so the button says so rather
-        // than accepting a second click that would undo the first.
+        // than accepting a second click.
         $button->setAttribute('wire:loading.attr', 'disabled');
-        // Scoped to this call, so an unrelated Livewire request elsewhere on the page - a
-        // poll, a header action - does not grey out every checkbox while it runs.
-        $button->setAttribute('wire:target', $method);
-        $button->setAttribute('aria-pressed', static::isChecked($item) ? 'true' : 'false');
+        // The whole call, arguments included. The request Livewire sends is
+        // `callSchemaComponentMethod`, so the name of the method behind it never matched and
+        // the button was never disabled; the bare name would match, and grey out every
+        // checkbox - and anything else on the page calling into a schema component - while
+        // one of them saves. Livewire compares a target's arguments with the call's, so
+        // this one disables exactly the button that was pressed.
+        $button->setAttribute('wire:target', $call);
+        $button->setAttribute('aria-pressed', $checked ? 'true' : 'false');
+
+        // A button with nothing in it but a drawn box has no name, and a screen reader then
+        // announces "toggle button, not pressed" for every item in the list. Its name is the
+        // item's first line - not the item's whole content, which holds its sub-items too.
+        $label = static::labelOf($document, $item);
+
+        if ($label instanceof DOMElement) {
+            if (! $label->hasAttribute('id')) {
+                $label->setAttribute('id', 'arte-task-'.substr(md5($componentKey), 0, 8).'-'.$index);
+            }
+
+            $button->setAttribute('aria-labelledby', $label->getAttribute('id'));
+        }
 
         foreach (iterator_to_array($control->childNodes) as $child) {
             $button->appendChild($child);
         }
 
         $control->parentNode?->replaceChild($button, $control);
+    }
+
+    /**
+     * The element that names an item: the first thing in its content that is not a nested
+     * list, or the content itself where there is nothing else.
+     */
+    protected static function labelOf(DOMDocument $document, DOMElement $item): ?DOMElement
+    {
+        $content = null;
+
+        foreach ((new DOMXPath($document))->query('./*[contains(concat(" ", normalize-space(@class), " "), " fi-arte-task-item-content ")]', $item) ?: [] as $node) {
+            if ($node instanceof DOMElement) {
+                $content = $node;
+
+                break;
+            }
+        }
+
+        if (! $content instanceof DOMElement) {
+            return null;
+        }
+
+        foreach ($content->childNodes as $child) {
+            if ($child instanceof DOMElement && ! in_array(strtolower($child->tagName), ['ul', 'ol'], strict: true)) {
+                return $child;
+            }
+        }
+
+        return $content;
     }
 
     protected static function isChecked(DOMElement $item): bool

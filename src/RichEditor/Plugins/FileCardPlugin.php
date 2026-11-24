@@ -52,6 +52,10 @@ class FileCardPlugin implements RichContentPlugin
     {
         return [
             FilamentAsset::getScriptSrc('advanced-rich-editor/file-card', 'kisame76/filament-advanced-rich-editor'),
+            // The way in for a document on a field without a browser: dropped or pasted, it
+            // becomes a card instead of the picture Filament's handler would insert. Inert
+            // where the field hands it no settings - see `UploadsDocuments`.
+            FilamentAsset::getScriptSrc('advanced-rich-editor/document-upload', 'kisame76/filament-advanced-rich-editor'),
         ];
     }
 
