@@ -38,6 +38,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   and its ids are prefixed so two parts with the same heading or footnote do not share an
   anchor
 
+- A page break, `->pageBreak()`, off by default: beside the horizontal rule in "More" and in
+  the slash menu, drawn in the editor as a labelled dashed line, stored as an empty block
+  that asks for the break in its own style - so a browser printing the page, DomPDF and
+  Chromium all break there without the package's stylesheet. A break another editor wrote is
+  read as one, Markdown leaves it out, and a PDF drops one with nothing after it
+
 - PDF exports on the queue: a project defines an export once as a `PdfExport` that carries
   data and builds the PDF from it, and runs it now with `->download()` or `->save()`, or on
   a worker with `->queue('exports/articles.pdf', 's3', notify: $user)`. The job runs on the

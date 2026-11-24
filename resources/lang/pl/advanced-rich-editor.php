@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, numerowana, numeracja, numery',
             'taskList' => 'todo, zadania, zadanie, checklista, checkbox',
             'descriptionList' => 'dl, słowniczek, slowniczek, definicje, pojęcia, glosariusz',
+            'pageBreak' => 'podział strony, nowa strona, podział, drukuj, pdf, page break',
             'blockquote' => 'cytat, cytowanie',
             'calloutNote' => 'uwaga, notatka, info, ramka, callout',
             'calloutTip' => 'wskazówka, porada, rada, ramka, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Lista zadań',
 
         'description_list' => 'Lista definicji',
+
+        'page_break' => 'Podział strony',
+
         'callouts' => 'Ramka',
         'language' => 'Język',
         'language_none' => 'Język strony',

@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, nummeriert, nummerierung',
             'taskList' => 'todo, aufgaben, checkliste, haken',
             'descriptionList' => 'dl, glossar, definitionen, begriffe, lexikon',
+            'pageBreak' => 'seitenumbruch, neue seite, umbruch, drucken, pdf, page break',
             'blockquote' => 'zitat',
             'calloutNote' => 'hinweis, info, infobox, kasten, callout',
             'calloutTip' => 'tipp, ratschlag, kasten, callout',
@@ -165,6 +166,9 @@ return [
         'task_list' => 'Aufgabenliste',
 
         'description_list' => 'Definitionsliste',
+
+        'page_break' => 'Seitenumbruch',
+
         'callouts' => 'Infobox',
         'language' => 'Sprache',
         'language_none' => 'Sprache der Seite',

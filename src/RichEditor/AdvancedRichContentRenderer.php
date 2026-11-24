@@ -20,6 +20,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\DescriptionListConve
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\FileCardConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\ImportedMarkup;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\LooseText;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\PageBreakConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Markdown\TaskItemConverter;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontFamily;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\FontSize;
@@ -39,6 +40,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\FileCard;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\LinkPreview;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Locked;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Media;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\PageBreak;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\TaskItem;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\Anchor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\TipTapExtensions\BlockStyle;
@@ -677,6 +679,9 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             app(DescriptionList::class),
             app(DescriptionTerm::class),
             app(DescriptionDetails::class),
+            // A page break, on the same rule: without its node a stored break is dropped, and
+            // the printed page runs on where somebody asked for a new one.
+            app(PageBreak::class),
             app(FontSize::class),
             app(FontFamily::class),
             app(LineHeight::class),
@@ -796,6 +801,7 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             $converter->getEnvironment()->addConverter(new TaskItemConverter);
             $converter->getEnvironment()->addConverter(new FileCardConverter);
             $converter->getEnvironment()->addConverter(new DescriptionListConverter);
+            $converter->getEnvironment()->addConverter(new PageBreakConverter);
 
             return trim($converter->convert($this->toUnsafeHtml()));
         });
@@ -1013,6 +1019,31 @@ class AdvancedRichContentRenderer extends RichContentRenderer
      * on its way out of HTML rather than into it. See `joinAdjacentText()` and the return
      * below.
      */
+    /**
+     * The document, loaded - with every page break a leaf, the way ProseMirror reads one.
+     *
+     * The PHP parser reads the children of every element it maps, so a break another editor
+     * wrote would arrive with text inside it: CKEditor's holds a hidden `&nbsp;`. Done here,
+     * where `toHtml()`, `toText()` and `toArray()` all start, rather than in one of them.
+     */
+    public function getEditor(): Editor
+    {
+        $editor = parent::getEditor();
+
+        // Without content Filament never loads a document, and there is nothing to walk.
+        if (blank($this->content)) {
+            return $editor;
+        }
+
+        $editor->descendants(function (object &$node): void {
+            if (($node->type === PageBreak::$name) && property_exists($node, 'content')) {
+                unset($node->content);
+            }
+        });
+
+        return $editor;
+    }
+
     public function toText(): string
     {
         // The same reasoning as `toUnsafeHtml()`: the serialiser reads the document before

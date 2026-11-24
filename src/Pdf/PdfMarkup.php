@@ -68,6 +68,7 @@ class PdfMarkup
         $this->absoluteLinks();
         $this->reduceStyles();
         $this->centreAutoMargins();
+        $this->dropTrailingPageBreaks();
 
         $root = $this->document->getElementById('arte-pdf-root');
 
@@ -451,6 +452,48 @@ class PdfMarkup
         $paragraph->appendChild($link);
 
         return $paragraph;
+    }
+
+    /**
+     * A page break with nothing after it. It would break to an empty sheet - and in a combined
+     * PDF to a second one, since the next part starts on a page of its own anyway. A break
+     * between two others is somebody asking for a blank page, and stays.
+     */
+    protected function dropTrailingPageBreaks(): void
+    {
+        $breaks = $this->query('//div[@data-type="pageBreak"]');
+
+        foreach (array_reverse($breaks) as $break) {
+            if (! $this->hasContentAfter($break)) {
+                $break->parentNode?->removeChild($break);
+            }
+        }
+    }
+
+    /**
+     * Whether anything printable follows a node anywhere in the document: text that is more
+     * than white space, or an element that is not a page break - an empty paragraph counts,
+     * since it still takes a line.
+     */
+    protected function hasContentAfter(DOMNode $node): bool
+    {
+        for ($current = $node; ($current !== null) && ! (($current instanceof DOMElement) && ($current->getAttribute('id') === 'arte-pdf-root')); $current = $current->parentNode) {
+            for ($sibling = $current->nextSibling; $sibling !== null; $sibling = $sibling->nextSibling) {
+                if ($sibling instanceof DOMElement) {
+                    if ($sibling->getAttribute('data-type') !== 'pageBreak') {
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                if (trim((string) $sibling->textContent) !== '') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     protected function unwrap(DOMElement $element): void

@@ -28,7 +28,7 @@
         $codeBlockSettings, $findSettings, $emojiSettings, $characterSettings,
         $pasteSettings, $dragHandleSettings, $autosaveSettings, $accessibilitySettings,
         $typographySettings, $characterCountSettings, $indentSettings, $shortcutSettings,
-        $lockedSettings, $documentUploadSettings), resolved alongside them
+        $lockedSettings, $documentUploadSettings, $pageBreakSettings), resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
         Filament RichEditor rendered on the same page
@@ -142,6 +142,7 @@
     $shortcutSettings = $getShortcutSettingsForJs();
     $lockedSettings = $getLockedRegionSettingsForJs();
     $documentUploadSettings = $getDocumentUploadSettingsForJs();
+    $pageBreakSettings = $getPageBreakSettingsForJs();
     // Filament v5.9. Each closure exists only where the installed release has the method.
     $hasUpstreamStickyToolbar = isset($hasStickyToolbar) && $hasStickyToolbar();
     $hasUpstreamStickyPanels = isset($hasStickyPanels) && $hasStickyPanels();
@@ -361,6 +362,7 @@
                     @if ($shortcutSettings) data-arte-shortcuts="{{ json_encode($shortcutSettings) }}" @endif
                     @if ($lockedSettings) data-arte-locked="{{ json_encode($lockedSettings) }}" @endif
                     @if ($documentUploadSettings) data-arte-document-upload="{{ json_encode($documentUploadSettings) }}" @endif
+                    @if ($pageBreakSettings) data-arte-page-break="{{ json_encode($pageBreakSettings) }}" @endif
                 >
                     @php ob_start(); @endphp
                     @foreach ($floatingToolbars as $nodeName => $buttons)

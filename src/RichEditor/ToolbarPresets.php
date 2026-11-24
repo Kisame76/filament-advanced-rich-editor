@@ -190,7 +190,7 @@ class ToolbarPresets
                 ],
                 'more' => [
                     'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
-                    'details',
+                    'pageBreak', 'details',
                     'emoji', 'characters',
                     'lock',
                 ],
@@ -232,7 +232,7 @@ class ToolbarPresets
                 'more' => [
                     'subscript', 'superscript', 'strike', 'code', 'codeBlock', 'blockquote', 'clearFormatting',
                     'horizontalRule',
-                    'details',
+                    'pageBreak', 'details',
                     'emoji', 'characters',
                     'lock',
                 ],

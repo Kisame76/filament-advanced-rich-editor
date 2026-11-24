@@ -82,6 +82,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\LockedPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PageBreakPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ShortcutsPlugin;
@@ -329,6 +330,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasDescriptionList()
                 ? [DescriptionListPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasPageBreak()
+                ? [PageBreakPlugin::make()]
                 : [],
         );
 

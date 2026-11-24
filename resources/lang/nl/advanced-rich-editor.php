@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, genummerd, nummering, nummers',
             'taskList' => 'todo, taken, takenlijst, checklist, afvinken',
             'descriptionList' => 'dl, woordenlijst, definities, begrippen, glossarium',
+            'pageBreak' => 'pagina-einde, nieuwe pagina, einde, afdrukken, pdf, page break',
             'blockquote' => 'citaat, quote',
             'calloutNote' => 'notitie, info, opmerking, kader, callout',
             'calloutTip' => 'tip, hint, suggestie, kader, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Takenlijst',
 
         'description_list' => 'Definitielijst',
+
+        'page_break' => 'Pagina-einde',
+
         'callouts' => 'Kader',
         'language' => 'Taal',
         'language_none' => 'Taal van de pagina',

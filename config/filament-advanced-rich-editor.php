@@ -197,7 +197,7 @@ return [
     */
     'more' => [
         'subscript', 'superscript', 'code', 'codeBlock', 'blockquote', 'clearFormatting', 'horizontalRule',
-        'details',
+        'pageBreak', 'details',
         'emoji', 'characters',
         'lock',
     ],
@@ -539,7 +539,7 @@ return [
                 'blockquote', 'codeBlock', 'callouts',
             ],
             'insert' => [
-                'image', 'attachFiles', 'embed', 'linkPreview', 'video', 'audio', 'file', 'table', 'horizontalRule', 'details',
+                'image', 'attachFiles', 'embed', 'linkPreview', 'video', 'audio', 'file', 'table', 'horizontalRule', 'pageBreak', 'details',
                 'emoji', 'characters',
                 'dateTime', 'snippets', 'customBlocks', 'mergeTags',
             ],
@@ -1131,6 +1131,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Page break
+    |--------------------------------------------------------------------------
+    | Where a printed page, or a PDF from `RichEditorPdf`, starts a new one. Stored as an
+    | empty block that asks for the break in its own style, so a browser printing the
+    | page breaks there too; on a screen it takes no room. The editor draws it as a
+    | dashed line with its name on it.
+    |
+    | Off, because most fields never reach paper. 'pageBreak' stays in 'more' and in
+    | the slash menu and resolves to nothing while this is off. A break already stored
+    | renders either way. Per field: `->pageBreak()`.
+    */
+    'page_break' => false,
+
+    /*
+    |--------------------------------------------------------------------------
     | Callouts
     |--------------------------------------------------------------------------
     | The note, tip, warning and danger boxes: a paragraph pulled out of the flow and
@@ -1707,6 +1722,7 @@ return [
         'outdent' => 'arte-indent-decrease',
         'task_list' => 'arte-task-list',
         'description_list' => 'arte-description-list',
+        'page_break' => 'arte-page-break',
         'blockquote' => 'arte-message-square-quote',
 
         // The callouts: the circled i for the whole family, then what each kind is.

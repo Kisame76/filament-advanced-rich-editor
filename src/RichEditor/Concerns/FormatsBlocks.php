@@ -56,6 +56,8 @@ trait FormatsBlocks
 
     protected bool|Closure|null $hasDescriptionList = null;
 
+    protected bool|Closure|null $hasPageBreak = null;
+
     protected bool|Closure|null $hasCallouts = null;
 
     protected bool|Closure|null $hasListProperties = null;
@@ -440,6 +442,38 @@ trait FormatsBlocks
     public function hasDescriptionList(): bool
     {
         return (bool) ($this->evaluate($this->hasDescriptionList) ?? config('filament-advanced-rich-editor.description_list') ?? false);
+    }
+
+    /**
+     * The page break - where a printed document, or a PDF, starts a new page.
+     *
+     * Off unless asked for, for the reason the definition list is: most fields never reach
+     * paper. Off takes the button and the node away from the field; a break already stored
+     * still renders, because the renderer declares its node whatever the field says.
+     */
+    public function pageBreak(bool|Closure $condition = true): static
+    {
+        $this->hasPageBreak = $condition;
+
+        return $this;
+    }
+
+    public function hasPageBreak(): bool
+    {
+        return (bool) ($this->evaluate($this->hasPageBreak) ?? config('filament-advanced-rich-editor.page_break') ?? false);
+    }
+
+    /**
+     * What `page-break.js` reads off the editor: the name on the line it draws, in the
+     * language of whoever looks at it.
+     *
+     * @return array{label: string}|null
+     */
+    public function getPageBreakSettingsForJs(): ?array
+    {
+        return $this->hasPageBreak()
+            ? ['label' => (string) __('filament-advanced-rich-editor::advanced-rich-editor.tools.page_break')]
+            : null;
     }
 
     public function callouts(bool|Closure $condition = true): static

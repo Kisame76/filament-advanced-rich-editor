@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, numbered',
             'taskList' => 'todo, checkbox, checklist',
             'descriptionList' => 'dl, glossary, definitions, terms, dictionary',
+            'pageBreak' => 'pagebreak, new page, break, print, pdf',
             'blockquote' => 'quote, citation',
             'calloutNote' => 'note, info, infobox, callout, admonition',
             'calloutTip' => 'tip, hint, suggestion, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Task list',
 
         'description_list' => 'Definition list',
+
+        'page_break' => 'Page break',
+
         'callouts' => 'Callout',
         'language' => 'Language',
         'language_none' => 'Page language',

@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, numerato, numeri, numerazione',
             'taskList' => 'todo, attività, checklist, spunta, compiti',
             'descriptionList' => 'dl, glossario, definizioni, termini, dizionario',
+            'pageBreak' => 'interruzione di pagina, nuova pagina, interruzione, stampa, pdf, page break',
             'blockquote' => 'citazione, cita',
             'calloutNote' => 'nota, info, riquadro, callout',
             'calloutTip' => 'suggerimento, consiglio, riquadro, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Elenco attività',
 
         'description_list' => 'Elenco di definizioni',
+
+        'page_break' => 'Interruzione di pagina',
+
         'callouts' => 'Riquadro',
         'language' => 'Lingua',
         'language_none' => 'Lingua della pagina',

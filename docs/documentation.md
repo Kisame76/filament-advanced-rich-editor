@@ -1124,6 +1124,39 @@ list carries its classes: the stylesheet sets the term in bold and indents the d
 the editor, in a text entry and on your own front end. Filament's prose has no rules for `dl`.
 A stored list renders whether or not the field that renders it has the feature switched on.
 
+### Page breaks
+
+Where a printed page - or a PDF from [`RichEditorPdf`](#pdf-export) - starts a new one: Word's
+page break, TinyMCE's `pagebreak`. There is no keyboard shortcut for it; Ctrl+Enter is the
+editor's line break. **Off by default:** most fields never reach
+paper. Switched on, it sits beside the horizontal rule in the "More" dropdown and in the slash
+menu as `/page` or `/break`; the names are already in both lists and resolve to nothing while
+it is off.
+
+```php
+AdvancedRichEditor::make('content')->pageBreak();   // default: config('...page_break'), false
+```
+
+The editor draws it as a dashed line with "Page break" on it, in the language of whoever is
+looking. It is a block of its own: it can be selected, dragged and deleted like a picture, and
+inserting one splits the paragraph the caret stands in.
+
+What is stored is an empty element that asks for the break in its own style:
+
+```html
+<div class="fi-arte-page-break" data-type="pageBreak" style="break-after: page; page-break-after: always;"></div>
+```
+
+So it holds without this package's stylesheet - a browser printing your own front end breaks
+there, and so do DomPDF and Chromium. On a screen it takes no room. A break written by another
+editor - CKEditor's empty `div` with `page-break-after: always` - is read as one too, on paste
+and when stored HTML is loaded. Markdown has no pages, so `toMarkdown()` leaves it out.
+
+In a PDF two breaks in a row print a blank page between them, as a word processor would. A
+break with nothing after it is dropped, since it would only print an empty sheet - and in a
+[combined PDF](#pdf-export) each part starts on a page of its own anyway. A stored break
+renders whether or not the field that renders it has the feature switched on.
+
 ### Lists: markers, numbering and direction
 
 ```php
@@ -5910,6 +5943,7 @@ the whole project; the method sets it for one field and wins.
 | Accessibility check | `accessibility.enabled` | `->accessibility()` |
 | Source view | `source_code` | `->sourceCode()` |
 | Definition lists | `description_list` | `->descriptionList()` |
+| Page breaks | `page_break` | `->pageBreak()` |
 | Marking styled text in the editor | `style_preview` | `->stylePreview()` |
 | `null` in the column for an empty document | `null_when_empty` | `->nullWhenEmpty()` |
 | Named styles (the list ships empty, so the dropdown is absent) | `styles` | `->styles([...])` |

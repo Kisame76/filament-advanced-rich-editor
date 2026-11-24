@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, numerada, numeração, ordenada',
             'taskList' => 'todo, tarefas, checklist, caixa de seleção',
             'descriptionList' => 'dl, glossário, definições, termos, dicionário',
+            'pageBreak' => 'quebra de página, nova página, quebra, imprimir, pdf, page break',
             'blockquote' => 'citação, aspas',
             'calloutNote' => 'nota, info, observação, destaque, callout',
             'calloutTip' => 'dica, sugestão, conselho, destaque, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Lista de tarefas',
 
         'description_list' => 'Lista de definições',
+
+        'page_break' => 'Quebra de página',
+
         'callouts' => 'Caixa de destaque',
         'language' => 'Idioma',
         'language_none' => 'Idioma da página',

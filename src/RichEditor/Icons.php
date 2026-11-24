@@ -47,6 +47,9 @@ class Icons
             // A term flush with the margin and its description indented under it, twice -
             // which is all a definition list is, drawn.
             'description_list' => 'arte-description-list',
+            // Two halves of a sheet with a dashed cut between them: where one page ends and
+            // the next begins, which is all the button does.
+            'page_break' => 'arte-page-break',
             'blockquote' => 'arte-message-square-quote',
             // The callouts. The dropdown's own trigger is the circled i - the sign for the
             // whole family, and the one a reader already reads as "something set apart" -

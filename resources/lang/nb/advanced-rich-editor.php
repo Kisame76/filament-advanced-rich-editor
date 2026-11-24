@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, nummerert, nummerering, tall',
             'taskList' => 'todo, oppgaver, sjekkliste, gjøremål, avkrysning',
             'descriptionList' => 'dl, ordliste, definisjoner, begreper, leksikon',
+            'pageBreak' => 'sideskift, ny side, skift, skriv ut, pdf, page break',
             'blockquote' => 'sitat',
             'calloutNote' => 'merknad, notat, info, infoboks, boks, callout',
             'calloutTip' => 'tips, råd, forslag, boks, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Oppgaveliste',
 
         'description_list' => 'Definisjonsliste',
+
+        'page_break' => 'Sideskift',
+
         'callouts' => 'Infoboks',
         'language' => 'Språk',
         'language_none' => 'Sidens språk',

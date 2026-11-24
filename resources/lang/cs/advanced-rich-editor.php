@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, číslovaný, číslování, čísla',
             'taskList' => 'todo, úkoly, checklist, zaškrtávání',
             'descriptionList' => 'dl, glosář, definice, pojmy, slovník',
+            'pageBreak' => 'zalomení stránky, nová stránka, tisk, pdf, page break',
             'blockquote' => 'citace, citát',
             'calloutNote' => 'poznámka, info, infobox, box, callout',
             'calloutTip' => 'tip, rada, doporučení, box, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Seznam úkolů',
 
         'description_list' => 'Seznam definic',
+
+        'page_break' => 'Konec stránky',
+
         'callouts' => 'Infobox',
         'language' => 'Jazyk',
         'language_none' => 'Jazyk stránky',

@@ -9,7 +9,7 @@ it('parks the rarely used tools in a dropdown at the end of the toolbar', functi
     // The end of the aligned groups, not of the whole bar: what the menu holds are tools
     // for the text, so it travels with them rather than with the pinned corner.
     expect(array_slice(toolbarGroupsShape(editor()->getFlowToolbarButtons()), -1))->toBe([
-        ['dropdown:subscript,superscript,code,codeBlock,blockquote,clearFormatting,horizontalRule,details,emoji,characters,lock'],
+        ['dropdown:subscript,superscript,code,codeBlock,blockquote,clearFormatting,horizontalRule,pageBreak,details,emoji,characters,lock'],
     ]);
 });
 
@@ -24,6 +24,15 @@ it('fills the dropdown with the tools most documents never need', function (): v
         // registered but left out; see TextDirectionTest.
         'emoji', 'characters',
     ]);
+});
+
+it('offers the page break beside the horizontal rule once a field has it', function (): void {
+    // Listed whether or not the field has it, like `lock`, and resolved away while it is
+    // off - which is the test above.
+    expect(resolvedButtonNames(toolbarDropdown(editor()->pageBreak(), 'subscript')))
+        ->toContain('horizontalRule', 'pageBreak')
+        ->and(array_search('pageBreak', resolvedButtonNames(toolbarDropdown(editor()->pageBreak(), 'subscript')), strict: true))
+        ->toBe(array_search('horizontalRule', resolvedButtonNames(toolbarDropdown(editor()->pageBreak(), 'subscript')), strict: true) + 1);
 });
 
 it('lets a field and the config file say what goes in there', function (): void {

@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, numerada, numeración, ordenada',
             'taskList' => 'todo, tareas, casillas, checklist, pendientes',
             'descriptionList' => 'dl, glosario, definiciones, términos, diccionario',
+            'pageBreak' => 'salto de página, nueva página, salto, imprimir, pdf, page break',
             'blockquote' => 'cita, comillas',
             'calloutNote' => 'nota, info, observación, recuadro, callout',
             'calloutTip' => 'consejo, sugerencia, truco, recuadro, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Lista de tareas',
 
         'description_list' => 'Lista de definiciones',
+
+        'page_break' => 'Salto de página',
+
         'callouts' => 'Recuadro',
         'language' => 'Idioma',
         'language_none' => 'Idioma de la página',

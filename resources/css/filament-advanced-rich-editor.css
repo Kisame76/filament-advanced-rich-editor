@@ -158,6 +158,64 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Page breaks                                                                */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Where a printed page ends, drawn in the editor and only there: on a page it is an empty
+ * block with no height, and the break itself is the element's own inline style, which holds
+ * without this sheet. The label is the node view's `data-label`, translated by the field. See
+ * `page-break.js`.
+ */
+.fi-arte .fi-fo-rich-editor-content .fi-arte-page-break {
+    position: relative;
+    margin-block: 1.75rem;
+    border-block-start: 1px dashed var(--gray-300, #d4d4d8);
+    cursor: default;
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-page-break:where(.dark, .dark *) {
+    border-color: var(--gray-600, #52525b);
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-page-break::after {
+    content: attr(data-label);
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    inline-size: max-content;
+    margin-inline: auto;
+    transform: translateY(-50%);
+    padding-inline: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--gray-100, #f4f4f5);
+    color: var(--gray-600, #52525b);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    white-space: nowrap;
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-page-break:where(.dark, .dark *)::after {
+    background-color: var(--gray-800, #27272a);
+    color: var(--gray-300, #d4d4d8);
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-page-break[data-label=""]::after {
+    display: none;
+}
+
+/* Selected, to be dragged or deleted: the line and its label in the panel's colour. */
+.fi-arte .fi-fo-rich-editor-content .fi-arte-page-break.ProseMirror-selectednode {
+    border-color: var(--primary-500, #f59e0b);
+}
+
+.fi-arte .fi-fo-rich-editor-content .fi-arte-page-break.ProseMirror-selectednode::after {
+    background-color: var(--primary-500, #f59e0b);
+    color: #ffffff;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Locked parts                                                               */
 /* -------------------------------------------------------------------------- */
 

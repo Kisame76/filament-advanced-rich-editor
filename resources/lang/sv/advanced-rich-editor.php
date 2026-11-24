@@ -21,6 +21,7 @@ return [
             'orderedList' => 'ol, numrerad, numrering, nummerlista',
             'taskList' => 'todo, uppgifter, checklista, kryssruta, att göra',
             'descriptionList' => 'dl, ordlista, definitioner, begrepp, lexikon',
+            'pageBreak' => 'sidbrytning, ny sida, brytning, skriv ut, pdf, page break',
             'blockquote' => 'citat',
             'calloutNote' => 'notera, anteckning, info, infobox, ruta, callout',
             'calloutTip' => 'tips, råd, förslag, ruta, callout',
@@ -177,6 +178,9 @@ return [
         'task_list' => 'Uppgiftslista',
 
         'description_list' => 'Definitionslista',
+
+        'page_break' => 'Sidbrytning',
+
         'callouts' => 'Inforuta',
         'language' => 'Språk',
         'language_none' => 'Sidans språk',
