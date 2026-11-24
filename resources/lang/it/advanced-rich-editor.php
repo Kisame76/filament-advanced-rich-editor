@@ -614,5 +614,10 @@ return [
     ],
     'pdf' => [
         'table_of_contents' => 'Indice',
+        'export' => [
+            'ready' => 'Il PDF è pronto',
+            'download' => 'Scarica',
+            'failed' => 'Non è stato possibile creare il PDF',
+        ],
     ],
 ];

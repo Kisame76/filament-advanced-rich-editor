@@ -614,5 +614,10 @@ return [
     ],
     'pdf' => [
         'table_of_contents' => 'Table des matières',
+        'export' => [
+            'ready' => 'Le PDF est prêt',
+            'download' => 'Télécharger',
+            'failed' => 'Le PDF n’a pas pu être créé',
+        ],
     ],
 ];

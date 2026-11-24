@@ -5411,6 +5411,61 @@ not read.
   package prefixes them per part - `#introduction` in the second part becomes
   `#part-2-introduction`, the link to it as well.
 
+**On the queue.** A collection of two hundred pages does not belong in a web request. Define
+the export once, as a class that carries data and builds the PDF from it, and run it either
+way:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfExport;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\RichEditorPdf;
+
+class ArticlesPdf extends PdfExport
+{
+    public function __construct(public array $ids) {}
+
+    public function pdf(): RichEditorPdf
+    {
+        return RichEditorPdf::combine(Article::findMany($this->ids)->map(
+            fn (Article $article) => RichEditorPdf::forRecord($article, 'content')->title($article->title),
+        ))->cover()->tableOfContents()->pageNumbers();
+    }
+}
+
+(new ArticlesPdf($ids))->download('articles.pdf');                      // now, in the request
+(new ArticlesPdf($ids))->queue('exports/articles.pdf', 's3', notify: auth()->user()); // on a worker
+```
+
+Why a class and not the `RichEditorPdf` itself: the renderer holds closures and objects -
+node processors, merge tags that are closures, mention providers - and none of that survives
+the queue. The export carries data instead, and builds the PDF on the worker. Models among
+its properties travel as their ids and are read afresh there, as a mailable's do.
+
+- **Which queue.** The one the application is configured with: `QUEUE_CONNECTION` - redis,
+  database, SQS or sync, whatever the environment says - and that connection's default queue.
+  Nothing is hardwired. `pdf.queue.connection` and `pdf.queue.queue` in the config send PDF
+  exports elsewhere, a queue of their own for long jobs, say; `queue()` returns Laravel's
+  pending dispatch, so `->onQueue()`, `->onConnection()` and `->delay()` work for one export.
+- **How long.** `pdf.queue.timeout` is the seconds a worker may spend on one export, the
+  worker's own `--timeout` where it is null. Keep it below the connection's `retry_after`,
+  or Laravel hands a long export to a second worker while the first is still printing.
+- **Where to.** The disk named in `queue()`, else `pdf.queue.disk`, else the application's
+  default disk.
+- **In which language.** The request's. A worker runs in the application's default locale; the
+  job takes the locale it was queued in along, so the export's dates, its table of contents
+  and the notification come out as they would have in the request.
+- **Telling somebody.** `notify:` takes a notifiable model - your `User` - and sends it a
+  Filament database notification when the file is written, with a download link, and another
+  when the export has failed for good. The panel needs `->databaseNotifications()` and the
+  `notifications` table - with `data` as a `json` column on PostgreSQL, not the `text` of
+  Laravel's stub. Filament queues the notification itself, on the application's default
+  queue, so a worker has to listen there as well, not only on a queue of the exports' own.
+  The link is a signed one where the disk signs its links (S3, or a
+  local disk with `serve`), valid for `pdf.queue.link_lifetime` minutes; a plain URL on a disk
+  with an address of its own, such as `public`; and none on any other. Override
+  `downloadUrl()` on the export to point at a route of your own instead.
+- **Anything else.** The job dispatches `Pdf\Events\PdfExported` with the export, the path
+  and the disk, for a mail with the file attached, a webhook or a cleanup.
+
 **What changes on paper.** The document is not changed - the export works on a copy of the
 markup - but a few things on a page mean nothing on a sheet, and each becomes the nearest
 thing paper has:

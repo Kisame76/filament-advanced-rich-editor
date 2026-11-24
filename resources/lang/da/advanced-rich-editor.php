@@ -613,5 +613,10 @@ return [
     ],
     'pdf' => [
         'table_of_contents' => 'Indhold',
+        'export' => [
+            'ready' => 'Din PDF er klar',
+            'download' => 'Download',
+            'failed' => 'Din PDF kunne ikke oprettes',
+        ],
     ],
 ];

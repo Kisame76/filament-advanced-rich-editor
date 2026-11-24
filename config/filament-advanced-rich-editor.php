@@ -1955,6 +1955,16 @@ return [
     |                  'hosts' are further hosts whose pictures may be fetched over the
     |                  network - none by default, since that is a request the server
     |                  makes because a document says so. Per export: `->imageHosts()`.
+    |   'queue'        for `PdfExport::queue()`, which prints on a worker. It runs on the
+    |                  queue the application is configured with - `QUEUE_CONNECTION`, so
+    |                  redis, database, SQS or sync, as the environment says - unless
+    |                  'connection' and 'queue' send exports elsewhere, such as a queue of
+    |                  their own with a longer timeout. 'disk' is where the file is written,
+    |                  the default disk where null; 'timeout' the seconds a worker may spend
+    |                  on one, the worker's own `--timeout` where null - keep it below the
+    |                  connection's `retry_after`, or a long export is started twice.
+    |                  'link_lifetime' is how many minutes the link in the notification
+    |                  works, on a disk that signs its links.
     */
     'pdf' => [
         'driver' => 'dompdf',
@@ -1982,6 +1992,13 @@ return [
             'node' => null,
             'npm' => null,
             'chrome' => null,
+        ],
+        'queue' => [
+            'connection' => null,
+            'queue' => null,
+            'disk' => null,
+            'timeout' => null,
+            'link_lifetime' => 60 * 24,
         ],
     ],
 ];

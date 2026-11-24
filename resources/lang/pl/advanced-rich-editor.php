@@ -614,5 +614,10 @@ return [
     ],
     'pdf' => [
         'table_of_contents' => 'Spis treści',
+        'export' => [
+            'ready' => 'Plik PDF jest gotowy',
+            'download' => 'Pobierz',
+            'failed' => 'Nie udało się utworzyć pliku PDF',
+        ],
     ],
 ];

@@ -617,5 +617,11 @@ return [
     // The heading over the list of parts in a combined PDF.
     'pdf' => [
         'table_of_contents' => 'Contents',
+        // The notification a queued export sends when it is done, or could not be.
+        'export' => [
+            'ready' => 'Your PDF is ready',
+            'download' => 'Download',
+            'failed' => 'Your PDF could not be created',
+        ],
     ],
 ];

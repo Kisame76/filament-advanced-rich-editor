@@ -589,5 +589,10 @@ return [
     ],
     'pdf' => [
         'table_of_contents' => 'Inhalt',
+        'export' => [
+            'ready' => 'Deine PDF ist fertig',
+            'download' => 'Herunterladen',
+            'failed' => 'Deine PDF konnte nicht erstellt werden',
+        ],
     ],
 ];

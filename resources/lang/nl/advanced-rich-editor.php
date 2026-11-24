@@ -614,5 +614,10 @@ return [
     ],
     'pdf' => [
         'table_of_contents' => 'Inhoud',
+        'export' => [
+            'ready' => 'Je pdf is klaar',
+            'download' => 'Downloaden',
+            'failed' => 'Je pdf kon niet worden gemaakt',
+        ],
     ],
 ];

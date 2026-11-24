@@ -38,6 +38,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   and its ids are prefixed so two parts with the same heading or footnote do not share an
   anchor
 
+- PDF exports on the queue: a project defines an export once as a `PdfExport` that carries
+  data and builds the PDF from it, and runs it now with `->download()` or `->save()`, or on
+  a worker with `->queue('exports/articles.pdf', 's3', notify: $user)`. The job runs on the
+  queue the application is configured with - `QUEUE_CONNECTION`, unless
+  `pdf.queue.connection` and `pdf.queue.queue` name others - in the locale of the request it
+  came from, and sends a Filament database notification with a download link when the file
+  is written, or one saying it failed. `PdfExported` is dispatched for anything else
+
 - What means nothing on paper becomes the nearest thing that does: an embed is a link to the
   page the service shares, a video a link to its file under its still, a checkbox ☑ or ☐, a
   collapsible section opens, a grid becomes a table, the `#` a heading links itself with goes

@@ -614,5 +614,10 @@ return [
     ],
     'pdf' => [
         'table_of_contents' => 'Obsah',
+        'export' => [
+            'ready' => 'PDF je připraveno',
+            'download' => 'Stáhnout',
+            'failed' => 'PDF se nepodařilo vytvořit',
+        ],
     ],
 ];
