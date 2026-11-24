@@ -2,6 +2,15 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- The PHPDoc of `headingLevels()`, `backgroundColors()` and the colour pickers' `text()`,
+  `background()` and `colors()` says what they take: numeric strings and gaps for the levels,
+  a plain list for the colours, a colour without a label or a swatch of its own. A project
+  running PHPStan was told off for input the field was built to accept
+
 ## 1.10.0 - 2026-11-24
 
 ### Added

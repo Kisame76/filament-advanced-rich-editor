@@ -69,7 +69,7 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
     }
 
     /**
-     * @param  array<int, array{value: string, label: string, color: string, darkColor?: string}>  $colors
+     * @param  array<int, array{value: string, label?: string, color?: string, darkColor?: string}>  $colors
      */
     public static function text(array $colors, bool $withCustomColor = true): static
     {
@@ -81,7 +81,7 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
     }
 
     /**
-     * @param  array<int, array{value: string, label: string, color: string, darkColor?: string}>  $colors
+     * @param  array<int, array{value: string, label?: string, color?: string, darkColor?: string}>  $colors
      */
     public static function background(array $colors, bool $withCustomColor = true): static
     {
@@ -93,7 +93,7 @@ class ToolbarColorPicker extends ViewComponent implements HasEmbeddedView
     }
 
     /**
-     * @param  array<int, array{value: string, label: string, color: string, darkColor?: string}> | Closure  $colors
+     * @param  array<int, array{value: string, label?: string, color?: string, darkColor?: string}> | Closure  $colors
      */
     public function colors(array|Closure $colors): static
     {

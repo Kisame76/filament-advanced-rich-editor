@@ -65,7 +65,7 @@ trait ColoursText
     }
 
     /**
-     * @param  array<string, string> | Closure  $colors  label keyed by CSS colour
+     * @param  array<string, string> | array<int, string> | Closure  $colors  label keyed by CSS colour, or a list of colours that are their own label
      */
     public function backgroundColors(array|Closure $colors): static
     {

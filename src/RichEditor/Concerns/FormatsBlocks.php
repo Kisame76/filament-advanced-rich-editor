@@ -187,7 +187,10 @@ trait FormatsBlocks
     }
 
     /**
-     * @param  array<int, int> | Closure  $levels
+     * Numeric strings are taken too, and the keys are thrown away: a published config file
+     * is plain data and may well hold `'2'`, or gaps where a level was deleted.
+     *
+     * @param  array<int|string, int|string> | Closure  $levels
      */
     public function headingLevels(array|Closure $levels): static
     {
