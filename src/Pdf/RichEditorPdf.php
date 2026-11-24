@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\Pdf;
 
+use Carbon\Carbon;
 use Closure;
+use DateTimeInterface;
 use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\PdfDriver;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\TakesHeaderAndFooter;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\BrowsershotDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\DomPdfDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\GotenbergDriver;
@@ -68,6 +74,14 @@ class RichEditorPdf
     protected array $stylesheets = [];
 
     protected PdfDriver|string|null $driver = null;
+
+    protected string|Htmlable|View|bool $cover = false;
+
+    protected string|Htmlable|View|null $header = null;
+
+    protected string|Htmlable|View|null $footer = null;
+
+    protected DateTimeInterface|string|null $date = null;
 
     final public function __construct(AdvancedRichContentRenderer $renderer)
     {
@@ -243,6 +257,67 @@ class RichEditorPdf
     }
 
     /**
+     * A first page of its own, in front of the content: the package's - the title and the
+     * date - where none is given, or markup of the project's. Neither the header nor the
+     * footer is printed on it.
+     *
+     * Markup may be a string, a view or anything `Htmlable`, and may use the same
+     * `{title}` and `{date}` the header and the footer do.
+     */
+    public function cover(string|Htmlable|View|bool $cover = true): static
+    {
+        $this->cover = $cover;
+
+        return $this;
+    }
+
+    /**
+     * Markup printed at the top of every page but the cover, in the top margin.
+     *
+     * A string, a view or anything `Htmlable`. `{page}` and `{pages}` become the
+     * page's number and the number of pages, `{title}` and `{date}` the document's - write
+     * them literally, in a Blade view as well. The margin has to be deep enough to hold it.
+     */
+    public function header(string|Htmlable|View|null $header): static
+    {
+        $this->header = $header;
+
+        return $this;
+    }
+
+    /**
+     * Markup printed at the bottom of every page but the cover, in the bottom margin. See
+     * `header()` for what it may hold.
+     */
+    public function footer(string|Htmlable|View|null $footer): static
+    {
+        $this->footer = $footer;
+
+        return $this;
+    }
+
+    /**
+     * The page numbers as the footer, centred: `2 / 7` unless the format says otherwise -
+     * `->pageNumbers('Seite {page} von {pages}')`. Pages are counted from the first sheet,
+     * the cover included.
+     */
+    public function pageNumbers(string $format = '{page} / {pages}'): static
+    {
+        return $this->footer(new HtmlString('<p class="fi-arte-pdf-page-numbers">'.e($format).'</p>'));
+    }
+
+    /**
+     * The date `{date}` stands for: a date, written the long way in the document's language,
+     * or text taken as it is. Today where none is given.
+     */
+    public function date(DateTimeInterface|string|null $date): static
+    {
+        $this->date = $date;
+
+        return $this;
+    }
+
+    /**
      * The engine that prints: `dompdf`, `gotenberg`, `browsershot`, the class name of a
      * driver, or a driver itself.
      */
@@ -313,16 +388,53 @@ class RichEditorPdf
     }
 
     /**
-     * The whole HTML document the engine prints: the sheet, the stylesheet and the content.
+     * The whole HTML document the engine prints: the sheet, the stylesheet, the cover, the
+     * header, the footer and the content - as DomPDF receives it.
      */
     public function toHtml(): string
     {
-        return view('filament-advanced-rich-editor::pdf.document', [
+        return $this->toDocument()->html;
+    }
+
+    /**
+     * What a driver is handed. A driver that prints the header and the footer itself gets
+     * them apart from the document; any other finds them in it.
+     */
+    public function toDocument(?PdfDriver $driver = null): PdfDocument
+    {
+        $page = $this->getPage();
+        $apart = $driver instanceof TakesHeaderAndFooter;
+
+        $header = $this->runningElement($this->header);
+        $footer = $this->runningElement($this->footer);
+        $cover = $this->coverHtml();
+
+        $stylesheet = [$page->toCss()];
+
+        if ($cover !== null) {
+            $stylesheet[] = $page->coverCss();
+        }
+
+        if ((! $apart) && (($header !== null) || ($footer !== null))) {
+            $stylesheet[] = $page->runningElementsCss();
+        }
+
+        $html = view('filament-advanced-rich-editor::pdf.document', [
             'body' => $this->toBodyHtml(),
-            'language' => $this->language ?? str_replace('_', '-', app()->getLocale()),
-            'stylesheet' => $this->getPage()->toCss()."\n".static::packageStylesheet()."\n".implode("\n", $this->stylesheets),
+            'cover' => $cover,
+            'header' => $apart ? null : $header,
+            'footer' => $apart ? null : $footer,
+            'language' => $this->getLanguage(),
+            'stylesheet' => implode("\n", [...$stylesheet, static::packageStylesheet(), ...$this->stylesheets]),
             'title' => $this->title,
         ])->render();
+
+        return new PdfDocument(
+            html: $html,
+            page: $page,
+            header: $apart ? $header : null,
+            footer: $apart ? $footer : null,
+        );
     }
 
     /**
@@ -330,7 +442,73 @@ class RichEditorPdf
      */
     public function toString(): string
     {
-        return $this->getDriver()->render($this->toHtml(), $this->getPage());
+        $driver = $this->getDriver();
+
+        return $driver->render($this->toDocument($driver));
+    }
+
+    public function getLanguage(): string
+    {
+        return $this->language ?? str_replace('_', '-', app()->getLocale());
+    }
+
+    /**
+     * The text `{date}` stands for.
+     */
+    public function getDate(): string
+    {
+        if (is_string($this->date)) {
+            return $this->date;
+        }
+
+        return Carbon::instance($this->date ?? now())
+            ->locale(str_replace('-', '_', $this->getLanguage()))
+            ->isoFormat('LL');
+    }
+
+    protected function coverHtml(): ?string
+    {
+        if ($this->cover === false) {
+            return null;
+        }
+
+        $cover = ($this->cover === true)
+            ? view('filament-advanced-rich-editor::pdf.cover', ['title' => $this->title, 'date' => $this->getDate()])
+            : $this->cover;
+
+        return $this->resolveTokens(static::markup($cover));
+    }
+
+    protected function runningElement(string|Htmlable|View|null $markup): ?string
+    {
+        if ($markup === null) {
+            return null;
+        }
+
+        return $this->resolveTokens(static::markup($markup));
+    }
+
+    protected static function markup(string|Htmlable|View $markup): string
+    {
+        return match (true) {
+            $markup instanceof View => $markup->render(),
+            $markup instanceof Htmlable => $markup->toHtml(),
+            default => $markup,
+        };
+    }
+
+    /**
+     * The four words a cover, a header and a footer may use. The title and the date are
+     * escaped: they come from the record, not from the project's markup.
+     */
+    protected function resolveTokens(string $markup): string
+    {
+        return strtr($markup, [
+            '{page}' => PdfDocument::PAGE_NUMBER,
+            '{pages}' => PdfDocument::PAGE_COUNT,
+            '{title}' => e((string) $this->title),
+            '{date}' => e($this->getDate()),
+        ]);
     }
 
     /**

@@ -8,6 +8,7 @@ use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\BrowsershotDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\DomPdfDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\GotenbergDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\PageFormat;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfDocument;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfPage;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\RichEditorPdf;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
@@ -24,10 +25,13 @@ class RecordingPdfDriver implements PdfDriver
 
     public ?PdfPage $page = null;
 
-    public function render(string $html, PdfPage $page): string
+    public ?PdfDocument $document = null;
+
+    public function render(PdfDocument $document): string
     {
-        $this->html = $html;
-        $this->page = $page;
+        $this->html = $document->html;
+        $this->page = $document->page;
+        $this->document = $document;
 
         return '%PDF-1.7 recorded';
     }

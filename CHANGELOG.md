@@ -22,6 +22,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   only CSS DomPDF reads, and reduces the inline styles the renderer writes the same way, so
   all three engines print one document
 
+- A cover, a header, a footer and page numbers for the PDF: `->cover()` prints the title and
+  the date on a page of their own, `->header()` and `->footer()` take a string, a view or
+  anything `Htmlable` with `{page}`, `{pages}`, `{title}` and `{date}` in it, and
+  `->pageNumbers('Page {page} of {pages}')` is the footer in one call. Neither is printed on
+  the cover. DomPDF prints them as part of the document and counts the pages in a second pass
+  where `{pages}` is asked for; Gotenberg and Browsershot hand them to Chromium as its own
+  header and footer templates
+
 - What means nothing on paper becomes the nearest thing that does: an embed is a link to the
   page the service shares, a video a link to its file under its still, a checkbox ☑ or ☐, a
   collapsible section opens, a grid becomes a table, the `#` a heading links itself with goes

@@ -6,8 +6,9 @@ namespace Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers;
 
 use Closure;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\PdfDriver;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\TakesHeaderAndFooter;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\MissingPdfLibrary;
-use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfPage;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfDocument;
 use Spatie\Browsershot\Browsershot;
 
 /**
@@ -17,7 +18,7 @@ use Spatie\Browsershot\Browsershot;
  * a Chromium on the application server. The paths to them are read from the configuration;
  * anything else Browsershot can be told goes through the closure.
  */
-class BrowsershotDriver implements PdfDriver
+class BrowsershotDriver implements PdfDriver, TakesHeaderAndFooter
 {
     /**
      * @param  (Closure(Browsershot): mixed) | null  $configure
@@ -26,25 +27,34 @@ class BrowsershotDriver implements PdfDriver
         protected ?Closure $configure = null,
     ) {}
 
-    public function render(string $html, PdfPage $page): string
+    public function render(PdfDocument $document): string
     {
-        return $this->browsershot($html, $page)->pdf();
+        return $this->browsershot($document)->pdf();
     }
 
     /**
      * The Browsershot that will print, configured but not yet run.
      */
-    public function browsershot(string $html, PdfPage $page): Browsershot
+    public function browsershot(PdfDocument $document): Browsershot
     {
         if (! static::isInstalled()) {
             throw MissingPdfLibrary::for('browsershot', 'spatie/browsershot');
         }
 
-        $browsershot = Browsershot::html($html)
+        $page = $document->page;
+
+        $browsershot = Browsershot::html($document->html)
             ->paperSize($page->width, $page->height, 'mm')
             ->margins($page->marginTop, $page->marginRight, $page->marginBottom, $page->marginLeft, 'mm')
             // As for Gotenberg: a callout's wash or a table header's fill is content.
             ->showBackground();
+
+        if (($document->header !== null) || ($document->footer !== null)) {
+            $browsershot
+                ->showBrowserHeaderAndFooter()
+                ->headerHtml($document->headerTemplate())
+                ->footerHtml($document->footerTemplate());
+        }
 
         $config = (array) config('filament-advanced-rich-editor.pdf.browsershot', []);
 

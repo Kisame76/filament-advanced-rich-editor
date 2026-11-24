@@ -9,6 +9,7 @@ use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\BrowsershotDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\DomPdfDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\GotenbergDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\MissingPdfLibrary;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfDocument;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfPage;
 use Smalot\PdfParser\Parser;
 
@@ -22,6 +23,11 @@ function a4(float $margin = 20): PdfPage
     return new PdfPage(210, 297, $margin, $margin, $margin, $margin);
 }
 
+function printable(string $html, ?PdfPage $page = null, ?string $header = null, ?string $footer = null): PdfDocument
+{
+    return new PdfDocument($html, $page ?? a4(), $header, $footer);
+}
+
 describe('DomPDF', function (): void {
     beforeEach(function (): void {
         requires('dompdf/dompdf');
@@ -31,7 +37,7 @@ describe('DomPDF', function (): void {
     });
 
     it('prints a PDF on the sheet it is given', function (PdfPage $page, array $points): void {
-        $pdf = (new DomPdfDriver)->render('<p>Hello</p>', $page);
+        $pdf = (new DomPdfDriver)->render(printable('<p>Hello</p>', $page));
 
         $details = (new Parser)->parseContent($pdf)->getPages()[0]->getDetails();
 
@@ -58,12 +64,12 @@ describe('DomPDF', function (): void {
 
         // 20mm is 56.7pt, 40mm is 113.4pt: the line starts at the margin, give or take the
         // glyph's own side bearing.
-        expect($x((new DomPdfDriver)->render($html(20), a4(20))))->toBeGreaterThan(56.0)->toBeLessThan(58.0)
-            ->and($x((new DomPdfDriver)->render($html(40), a4(40))))->toBeGreaterThan(112.5)->toBeLessThan(114.5);
+        expect($x((new DomPdfDriver)->render(printable($html(20), a4(20)))))->toBeGreaterThan(56.0)->toBeLessThan(58.0)
+            ->and($x((new DomPdfDriver)->render(printable($html(40), a4(40)))))->toBeGreaterThan(112.5)->toBeLessThan(114.5);
     });
 
     it('prints letters beyond Latin-1 rather than question marks', function (): void {
-        $pdf = (new DomPdfDriver)->render('<p>Zażółć gęślą jaźń, Ağaç, 5 €, ☑ ☐</p>', a4());
+        $pdf = (new DomPdfDriver)->render(printable('<p>Zażółć gęślą jaźń, Ağaç, 5 €, ☑ ☐</p>'));
 
         expect((new Parser)->parseContent($pdf)->getText())->toContain('Zażółć gęślą jaźń, Ağaç, 5 €, ☑ ☐');
     });
@@ -72,14 +78,14 @@ describe('DomPDF', function (): void {
         // Remote fetching is off: the picture is not drawn, and the attempt is not made.
         Http::preventStrayRequests();
 
-        $pdf = (new DomPdfDriver)->render('<p><img src="http://127.0.0.1:1/probe.png" alt="x"></p><p>After</p>', a4());
+        $pdf = (new DomPdfDriver)->render(printable('<p><img src="http://127.0.0.1:1/probe.png" alt="x"></p><p>After</p>'));
 
         expect((new Parser)->parseContent($pdf)->getText())->toContain('After');
     });
 
     it('passes DomPDF options through', function (): void {
         $text = static fn (array $options): string => trim((string) preg_replace('/\s+/', ' ', (new Parser)->parseContent(
-            (new DomPdfDriver($options))->render('<style>@media print { .screen-only { display: none; } }</style><p class="screen-only">Screen</p><p>After</p>', a4()),
+            (new DomPdfDriver($options))->render(printable('<style>@media print { .screen-only { display: none; } }</style><p class="screen-only">Screen</p><p>After</p>')),
         )->getText()));
 
         // DomPDF reads a document as a screen unless told otherwise.
@@ -96,7 +102,7 @@ describe('DomPDF', function (): void {
             }
         };
 
-        $driver->render('<p>x</p>', a4());
+        $driver->render(printable('<p>x</p>'));
     })->throws(MissingPdfLibrary::class, 'The [dompdf] PDF driver needs [dompdf/dompdf]. Install it with `composer require dompdf/dompdf`.');
 });
 
@@ -108,7 +114,7 @@ describe('Gotenberg', function (): void {
     it('uploads the document with the sheet in inches', function (): void {
         Http::fake(['gotenberg:3000/*' => Http::response('%PDF-1.7 gotenberg')]);
 
-        $pdf = (new GotenbergDriver('http://gotenberg:3000/'))->render('<p>Hello</p>', new PdfPage(210, 297, 25.4, 12.7, 25.4, 12.7));
+        $pdf = (new GotenbergDriver('http://gotenberg:3000/'))->render(printable('<p>Hello</p>', new PdfPage(210, 297, 25.4, 12.7, 25.4, 12.7)));
 
         expect($pdf)->toBe('%PDF-1.7 gotenberg');
 
@@ -132,7 +138,7 @@ describe('Gotenberg', function (): void {
 
         Http::fake(['pdf.internal/*' => Http::response('%PDF')]);
 
-        (new GotenbergDriver(fields: ['emulatedMediaType' => 'screen']))->render('<p>x</p>', a4());
+        (new GotenbergDriver(fields: ['emulatedMediaType' => 'screen']))->render(printable('<p>x</p>'));
 
         Http::assertSent(fn (Request $request): bool => str_starts_with($request->url(), 'https://pdf.internal/forms/')
             && collect($request->data())->contains(fn (array $part): bool => ($part['name'] === 'emulatedMediaType') && ($part['contents'] === 'screen')));
@@ -141,13 +147,13 @@ describe('Gotenberg', function (): void {
     it('fails loudly where the service refuses', function (): void {
         Http::fake(['gotenberg:3000/*' => Http::response('Invalid form data', 400)]);
 
-        (new GotenbergDriver('http://gotenberg:3000'))->render('<p>x</p>', a4());
+        (new GotenbergDriver('http://gotenberg:3000'))->render(printable('<p>x</p>'));
     })->throws(RequestException::class);
 
     it('says what is missing where no address was given', function (): void {
         config()->set('filament-advanced-rich-editor.pdf.gotenberg.url', null);
 
-        (new GotenbergDriver)->render('<p>x</p>', a4());
+        (new GotenbergDriver)->render(printable('<p>x</p>'));
     })->throws(InvalidArgumentException::class, 'The Gotenberg PDF driver needs the address of a Gotenberg service.');
 });
 
@@ -157,7 +163,7 @@ describe('Browsershot', function (): void {
     });
 
     it('asks Chromium for the sheet and the margins in millimetres, backgrounds included', function (): void {
-        $command = (new BrowsershotDriver)->browsershot('<p>x</p>', new PdfPage(297, 210, 10, 12, 14, 16))->createPdfCommand();
+        $command = (new BrowsershotDriver)->browsershot(printable('<p>x</p>', new PdfPage(297, 210, 10, 12, 14, 16)))->createPdfCommand();
 
         expect($command['action'])->toBe('pdf')
             ->and($command['options']['width'])->toBe('297mm')
@@ -173,7 +179,7 @@ describe('Browsershot', function (): void {
             'chrome' => '/opt/chrome/chrome',
         ]);
 
-        $browsershot = (new BrowsershotDriver(fn ($browsershot) => $browsershot->noSandbox()))->browsershot('<p>x</p>', a4());
+        $browsershot = (new BrowsershotDriver(fn ($browsershot) => $browsershot->noSandbox()))->browsershot(printable('<p>x</p>'));
 
         $command = $browsershot->createPdfCommand();
 
@@ -191,6 +197,6 @@ describe('Browsershot', function (): void {
             }
         };
 
-        $driver->render('<p>x</p>', a4());
+        $driver->render(printable('<p>x</p>'));
     })->throws(MissingPdfLibrary::class, 'composer require spatie/browsershot');
 });

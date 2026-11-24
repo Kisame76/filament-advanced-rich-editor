@@ -26,6 +26,61 @@ body {
     color: #18181b;
 }
 
+/* -- Cover, header and footer --------------------------------------------- */
+
+/* The cover's padding stands in for the margins its page does not have; see `@page :first`
+   in front of this file. */
+.fi-arte-pdf-cover {
+    page-break-after: always;
+}
+
+.fi-arte-pdf-cover-default {
+    padding-top: 70mm;
+}
+
+.fi-arte-pdf-cover-title {
+    margin: 0 0 8mm 0;
+    font-size: 28pt;
+    line-height: 1.2;
+}
+
+.fi-arte-pdf-cover-date {
+    font-size: 12pt;
+    color: #52525b;
+}
+
+/* Fixed to every page, in the margins; where exactly comes in front of this file with the
+   sheet's own measurements. */
+.fi-arte-pdf-header,
+.fi-arte-pdf-footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    font-size: 8pt;
+    line-height: 1.4;
+    color: #52525b;
+}
+
+.fi-arte-pdf-header p,
+.fi-arte-pdf-footer p {
+    margin: 0;
+}
+
+.fi-arte-pdf-page-numbers {
+    text-align: center;
+}
+
+/* DomPDF counts the pages as it lays them out; the number of them is written in after a
+   first pass, since CSS's `counter(pages)` comes out as nought there. */
+.fi-arte-pdf-page-number::after {
+    content: counter(page);
+}
+
+.fi-arte-pdf-page-number,
+.fi-arte-pdf-page-count {
+    white-space: nowrap;
+}
+
 /* -- Text ----------------------------------------------------------------- */
 
 p {

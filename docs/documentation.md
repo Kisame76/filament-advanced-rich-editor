@@ -38,7 +38,7 @@ on top of it, checked against the current Filament v5 release:
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
 | **Editor chrome** | — | [Fullscreen](#fullscreen), [a toolbar for touch screens](#on-a-touch-screen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters), [snippets](#snippets-and-templates) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
-| **Printing it** | — | [A PDF from stored content](#pdf-export), without an editor or a panel — `RichEditorPdf::forRecord($article, 'content')->download()` from an action, `->save()` from a job — on A3 to Legal, upright or turned, with every picture embedded rather than fetched. DomPDF by default, or Chromium through Gotenberg or Browsershot when the paper has to match the screen |
+| **Printing it** | — | [A PDF from stored content](#pdf-export), without an editor or a panel — `RichEditorPdf::forRecord($article, 'content')->download()` from an action, `->save()` from a job — on A3 to Legal, upright or turned, with a cover, a header, a footer and page numbers, and every picture embedded rather than fetched. DomPDF by default, or Chromium through Gotenberg or Browsershot when the paper has to match the screen |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
 Everything is off, on or replaceable per field, and the defaults live in one config file.
@@ -5338,6 +5338,40 @@ Action::make('pdf')
         ->download());
 ```
 
+**Cover, header and footer.** What turns text on paper into a document:
+
+```php
+RichEditorPdf::forRecord($article, 'content')
+    ->title($article->title)
+    ->cover()                                            // the title and the date, on a page of their own
+    ->header('<p>{title}<span style="float: right">{date}</span></p>')
+    ->pageNumbers('Page {page} of {pages}');            // the footer, centred
+```
+
+`header()`, `footer()` and `cover()` take a string, a view or anything `Htmlable`, and four
+words in it are filled in: `{page}`, `{pages}`, `{title}` and `{date}` - write them literally,
+in a Blade view as well. The title and the date are escaped; the rest is your markup.
+`cover()` with nothing prints the package's cover, the view
+`filament-advanced-rich-editor::pdf.cover`; `->date()` sets what `{date}` says, written the
+long way in the document's language, and is today where nothing sets it.
+
+```php
+->cover(view('pdf.cover', ['article' => $article]))
+->footer(view('pdf.footer'))
+->date($article->published_at)
+```
+
+The header and the footer stand in the margins, so the margins have to be deep enough to hold
+them - the 20 mm default holds a line of each. Neither is printed on the cover. Pages are
+counted from the first sheet, the cover included. Asking for `{pages}` makes DomPDF print
+twice - the number is only known once the document has been laid out, and CSS's own
+`counter(pages)` comes out as nought there - so leave it out of long documents that do not
+need it.
+
+With a Chromium driver Chromium prints the header and the footer itself, from templates: they
+read none of the document's stylesheets - only the package's small one for them and the
+`style` attributes in your markup - and Chromium may print them on the cover as well.
+
 **What changes on paper.** The document is not changed - the export works on a copy of the
 markup - but a few things on a page mean nothing on a sheet, and each becomes the nearest
 thing paper has:
@@ -5371,7 +5405,10 @@ RichEditorPdf::forRecord($article, 'content')->imageHosts(['images.example.com']
 PNG, JPEG, GIF, WebP, BMP and SVG are embedded, up to 10 MB each by default; the hosts, the
 limit and the timeout live under `pdf.images` in the config.
 
-**Engines.** Three ship, and a class implementing `Pdf\Contracts\PdfDriver` is a fourth:
+**Engines.** Three ship, and a class implementing `Pdf\Contracts\PdfDriver` is a fourth - its
+`render(PdfDocument $document)` gets the document and the sheet, and returns the bytes; one
+that prints headers and footers from templates of its own, as Chromium does, also implements
+`Pdf\Contracts\TakesHeaderAndFooter` and receives them apart from the document:
 
 | Driver | Needs | Good for |
 | --- | --- | --- |
@@ -5401,8 +5438,7 @@ Two limits of DomPDF are worth knowing before choosing it:
   default. A face of your own goes in with `@font-face` through `->stylesheet()`; DomPDF
   converts it once and keeps it with its font cache under `storage/framework/cache/dompdf-fonts`.
 
-Headers, footers, page numbers, page breaks and several documents in one PDF are not part of
-the export yet.
+Page breaks of your own and several documents in one PDF are not part of the export yet.
 
 ### Blade component
 

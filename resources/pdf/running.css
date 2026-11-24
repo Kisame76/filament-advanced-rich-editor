@@ -1,0 +1,23 @@
+/*
+ * The header and the footer as Chromium prints them: each one a page of its own, drawn in a
+ * margin, which reads none of the document's stylesheets. Only what this file says applies,
+ * and the side margins come inline as padding so the line stands where the text does.
+ */
+.fi-arte-pdf-running {
+    box-sizing: border-box;
+    width: 100%;
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 8pt;
+    line-height: 1.4;
+    color: #52525b;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.fi-arte-pdf-running p {
+    margin: 0;
+}
+
+.fi-arte-pdf-running .fi-arte-pdf-page-numbers {
+    text-align: center;
+}

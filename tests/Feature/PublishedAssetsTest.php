@@ -146,7 +146,11 @@ it('styles every class it writes into the markup', function (): void {
 });
 
 it('styles every class the PDF export writes in the stylesheet it prints with', function (): void {
-    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/pdf/document.css');
+    // The document's sheet, and the one Chromium prints the header and the footer with.
+    $css = implode("\n", array_map(
+        static fn (string $sheet): string => (string) file_get_contents($sheet),
+        glob(dirname(__DIR__, 2).'/resources/pdf/*.css') ?: [],
+    ));
 
     $missing = array_values(array_filter(
         emittedArteClasses(pdf: true),

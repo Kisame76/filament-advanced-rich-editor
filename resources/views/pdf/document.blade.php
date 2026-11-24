@@ -15,6 +15,22 @@
     </style>
 </head>
 <body>
+    {{--
+        The header and the footer are children of <body> on purpose: DomPDF repeats a fixed
+        element on every page only from there. The cover keeps them off its own page by having
+        no margins for them to stand in - see `PdfPage::coverCss()`.
+    --}}
+    @if (filled($cover))
+        <section class="fi-arte-pdf-cover">
+{!! $cover !!}
+        </section>
+    @endif
+    @if (filled($header))
+        <div class="fi-arte-pdf-header">{!! $header !!}</div>
+    @endif
+    @if (filled($footer))
+        <div class="fi-arte-pdf-footer">{!! $footer !!}</div>
+    @endif
     <main class="fi-arte-pdf">
 {!! $body !!}
     </main>

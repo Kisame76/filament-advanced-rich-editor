@@ -7,6 +7,8 @@ namespace Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\PdfDriver;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\TakesHeaderAndFooter;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfDocument;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfPage;
 
 /**
@@ -19,7 +21,7 @@ use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfPage;
  *
  * Sizes are sent in inches, the unit every Gotenberg release reads without a suffix.
  */
-class GotenbergDriver implements PdfDriver
+class GotenbergDriver implements PdfDriver, TakesHeaderAndFooter
 {
     public const ROUTE = '/forms/chromium/convert/html';
 
@@ -32,13 +34,28 @@ class GotenbergDriver implements PdfDriver
         protected array $fields = [],
     ) {}
 
-    public function render(string $html, PdfPage $page): string
+    public function render(PdfDocument $document): string
     {
-        return Http::timeout($this->timeout ?? (int) config('filament-advanced-rich-editor.pdf.gotenberg.timeout', 60))
-            ->attach('files', $html, 'index.html', ['Content-Type' => 'text/html; charset=UTF-8'])
-            ->post($this->endpoint(), [...$this->pageFields($page), ...$this->fields])
+        $request = Http::timeout($this->timeout ?? (int) config('filament-advanced-rich-editor.pdf.gotenberg.timeout', 60))
+            ->attach('files', $document->html, 'index.html', ['Content-Type' => 'text/html; charset=UTF-8']);
+
+        // Gotenberg reads a header and a footer as two more files of the upload, each a page of
+        // its own, and fills Chromium's `pageNumber` and `totalPages` in them.
+        if (($document->header !== null) || ($document->footer !== null)) {
+            $request = $request
+                ->attach('files', static::page($document->headerTemplate()), 'header.html', ['Content-Type' => 'text/html; charset=UTF-8'])
+                ->attach('files', static::page($document->footerTemplate()), 'footer.html', ['Content-Type' => 'text/html; charset=UTF-8']);
+        }
+
+        return $request
+            ->post($this->endpoint(), [...$this->pageFields($document->page), ...$this->fields])
             ->throw()
             ->body();
+    }
+
+    protected static function page(string $template): string
+    {
+        return '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>'.$template.'</body></html>';
     }
 
     public function endpoint(): string

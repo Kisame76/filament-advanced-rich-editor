@@ -59,6 +59,40 @@ final readonly class PdfPage
     }
 
     /**
+     * The cover's sheet: no margin on the first page, and the margins as the cover's own
+     * padding instead.
+     *
+     * The margin is what keeps the header and the footer off the cover. DomPDF repeats a
+     * fixed element on every page from the first, whatever stands before it, and places it
+     * against the page's content box - so they hang into the margins on every page, and on
+     * one without margins they hang off the sheet.
+     */
+    public function coverCss(): string
+    {
+        return sprintf(
+            '@page :first { margin: 0; } .fi-arte-pdf-cover { padding: %smm %smm %smm %smm; }',
+            self::number($this->marginTop),
+            self::number($this->marginRight),
+            self::number($this->marginBottom),
+            self::number($this->marginLeft),
+        );
+    }
+
+    /**
+     * Where the header and the footer stand: in the margins, two fifths of the way in from
+     * the edge of the sheet, which leaves them clear of the text at any margin that holds
+     * them at all.
+     */
+    public function runningElementsCss(): string
+    {
+        return sprintf(
+            '.fi-arte-pdf-header { top: -%smm; } .fi-arte-pdf-footer { bottom: -%smm; }',
+            self::number($this->marginTop * 0.6),
+            self::number($this->marginBottom * 0.6),
+        );
+    }
+
+    /**
      * A length as CSS writes it: no trailing zeros, and never in the locale's own notation -
      * `sprintf('%F')` rather than a cast, because a cast under `de_DE` writes a comma.
      */

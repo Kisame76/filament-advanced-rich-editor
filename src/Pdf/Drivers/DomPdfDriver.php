@@ -8,7 +8,7 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\PdfDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\MissingPdfLibrary;
-use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfPage;
+use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfDocument;
 
 /**
  * Prints with DomPDF: plain PHP, nothing to install on the server, so an export runs on
@@ -29,19 +29,34 @@ class DomPdfDriver implements PdfDriver
         protected array $options = [],
     ) {}
 
-    public function render(string $html, PdfPage $page): string
+    public function render(PdfDocument $document): string
     {
         if (! static::isInstalled()) {
             throw MissingPdfLibrary::for('dompdf', 'dompdf/dompdf');
         }
 
-        $dompdf = new Dompdf(new Options([...$this->defaultOptions(), ...$this->options]));
+        $dompdf = $this->print($document);
 
-        $dompdf->setPaper([0.0, 0.0, ...$page->sizeInPoints()]);
-        $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->render();
+        // The number of pages, where a header or a footer shows it. DomPDF knows it only once
+        // it has laid the document out, and CSS's `counter(pages)` comes out as nought - so it
+        // prints once to count and again with the number written in. The header and the footer
+        // stand in the margins and move nothing in the text, so the count holds.
+        if ($document->countsPages()) {
+            $dompdf = $this->print($document->withPageCount($dompdf->getCanvas()->get_page_count()));
+        }
 
         return (string) $dompdf->output();
+    }
+
+    protected function print(PdfDocument $document): Dompdf
+    {
+        $dompdf = new Dompdf(new Options([...$this->defaultOptions(), ...$this->options]));
+
+        $dompdf->setPaper([0.0, 0.0, ...$document->page->sizeInPoints()]);
+        $dompdf->loadHtml($document->html, 'UTF-8');
+        $dompdf->render();
+
+        return $dompdf;
     }
 
     public static function isInstalled(): bool
