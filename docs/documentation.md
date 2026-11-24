@@ -2702,11 +2702,13 @@ Switching it off leaves both buttons naming Filament's own dialog, which is what
 before any of this existed. Everything that opens a dialog — the toolbar button, the slash
 menu entry, clicking an image that is already in the text — keeps working either way.
 
-**Filament's `attachFiles` is left alone.** The browser used to be registered *as*
+**Filament's `attachFiles` is still Filament's.** The browser used to be registered *as*
 `attachFiles`, replacing Filament's action by name, which meant a project that wanted the
 plain upload dialog could not have it on any field: the name it answers to was taken. The
 browser is its own action now, so both exist side by side — put `'attachFiles'` on a bar or
-in [`more`](#the-more-menu) and you get Filament's dialog, unchanged, next to the browser.
+in [`more`](#the-more-menu) and you get Filament's dialog next to the browser. It is Filament's
+dialog with one branch more: a document uploaded through it becomes a card rather than a
+picture of nothing — see [Documents without a browser](#documents-without-a-browser).
 
 A field with nothing browsable behind it registers no browser at all — a foreign attachment
 provider, or a disk field with no directory of its own to tell its pictures apart. There both
@@ -2758,6 +2760,35 @@ they have.
 
 **A link to somebody else's document** — typed into **From a link** — becomes a card too, with
 no size line, since nobody on this side knows how big the file is.
+
+#### Documents without a browser
+
+A field with no browser — `->mediaLibrary(false)`, or nothing browsable behind it — still takes
+documents, as long as Filament is told to accept them:
+
+```php
+AdvancedRichEditor::make('content')
+    ->mediaLibrary(false)
+    ->fileAttachmentsAcceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'application/pdf'])
+```
+
+Filament's upload dialog and its drop and paste handler insert a picture for whatever arrives,
+so a pdf used to be stored as `<img src="….pdf">` — or, on a local disk, not inserted at all,
+because Livewire hands out no preview address for a pdf. Both ways in now ask the field which
+node an upload becomes:
+
+- a picture stays the picture Filament makes, alt text and all;
+- a film or a recording becomes a player, where the field has players (`->media()`, on by
+  default) — and a card where it has not;
+- anything else becomes a [download card](#documents), named and sized like one the browser
+  inserts.
+
+Everything else is Filament's: the same temporary storage, the same accepted types and size
+limit, the same save, which writes the stored file's address over the temporary one. A drop or
+a paste of pictures alone, or of a file the field refuses, is left to Filament's handler
+entirely, so its message about a refused file is the one people see. With a browser on the
+field, a document goes through the browser instead, measured against the browser's own list,
+`mediaLibraryTypes()`.
 
 With a media collection, a card always points at the **file**, never at a conversion: a
 conversion is a picture made from the file, and a card pointing at one would hand out a JPEG of

@@ -12,6 +12,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   `arte-task-toggled` with the attribute, the record key, the index and the state, for a
   component that listens rather than being called. A click that changed nothing calls neither
 
+- A document uploaded the plain way becomes a download card. Filament's upload dialog and its
+  drop and paste handler insert a picture for whatever arrives, so a field without a media
+  browser that accepted a pdf stored `<img src="….pdf">` - or, on a local disk, nothing at all,
+  since Livewire hands out no preview address for one. Both ways in now ask the field which node
+  an upload becomes: a picture stays Filament's picture, a film or a recording becomes a player
+  where the field has them, and anything else becomes a card. The upload, the accepted types, the
+  size limit and the save are Filament's as before
+
 ### Fixed
 
 - The checkbox on a view page with `->tickableTasks()` sits on the first line of its item again.

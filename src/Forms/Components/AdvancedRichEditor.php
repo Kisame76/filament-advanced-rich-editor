@@ -12,6 +12,7 @@ use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Js;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\AttachFilesAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\EditImageAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\LinkAction;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Actions\MediaLibraryAction;
@@ -38,6 +39,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PreviewsContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\RemembersWithinARender;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ServesTheMediaBrowser;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\UploadsDocuments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolbar;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\LivewireNesting;
@@ -131,6 +133,7 @@ class AdvancedRichEditor extends RichEditor
     use PreviewsContent;
     use RemembersWithinARender;
     use ServesTheMediaBrowser;
+    use UploadsDocuments;
     use WritesWithoutAToolbar;
 
     protected string $view = 'filament-advanced-rich-editor::rich-editor';
@@ -827,6 +830,10 @@ class AdvancedRichEditor extends RichEditor
             $replacements['link'] = LinkAction::make();
         }
 
+        // Filament's upload dialog, with one branch more: a document becomes a card rather
+        // than a picture of nothing. Pictures still go the way Filament sends them.
+        $replacements['attachFiles'] = AttachFilesAction::make();
+
         $additions = [];
 
         // Asked for the pool rather than for the setting: the browser is switched on by
@@ -849,10 +856,6 @@ class AdvancedRichEditor extends RichEditor
 
         if ($this->hasImageEditor()) {
             $additions[] = EditImageAction::make();
-        }
-
-        if ($replacements === [] && $additions === []) {
-            return parent::getDefaultActions();
         }
 
         // Replaced by name rather than appended: two actions called `link` would leave
