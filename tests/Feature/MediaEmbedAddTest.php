@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -146,7 +147,7 @@ it('refuses a YouTube link where the field has no frame to put it in', function 
 
     $failed = null;
 
-    foreach ($url?->getValidationRules() ?? [] as $rule) {
+    foreach (($url instanceof Field ? $url->getValidationRules() : []) as $rule) {
         if ($rule instanceof Closure) {
             $rule('url', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', function (string $message) use (&$failed): void {
                 $failed = $message;

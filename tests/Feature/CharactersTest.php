@@ -44,6 +44,8 @@ it('writes them once, on the element the editor is mounted on', function (): voi
     $document->loadHTML('<?xml encoding="utf-8"?>'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
     $element = (new DOMXPath($document))->query('//*[@data-arte-characters]')->item(0);
 
+    assert($element instanceof DOMElement);
+
     expect($element)->toBeInstanceOf(DOMElement::class)
         ->and($element->getAttribute('x-ref'))->toBe('editor')
         ->and(json_decode($element->getAttribute('data-arte-characters'), true))->toBe(CharactersPlugin::getLabels())

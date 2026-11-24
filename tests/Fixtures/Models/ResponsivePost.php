@@ -33,7 +33,9 @@ class ResponsivePost extends Model implements HasMedia
 
     public function registerMediaConversions(?Media $media = null): void
     {
-        $this->addMediaConversion('arte-wide')->width(800)->withResponsiveImages();
+        // Responsive first: `width()` answers with the image driver, which knows nothing of
+        // the conversion it was reached through.
+        $this->addMediaConversion('arte-wide')->withResponsiveImages()->width(800);
         $this->addMediaConversion('arte-thumb')->fit(Fit::Contain, 64, 64);
     }
 }

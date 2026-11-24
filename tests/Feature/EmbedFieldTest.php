@@ -6,7 +6,11 @@ use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\SlashMenu;
 
-/** Every name the slash menu offers, flattened out of its groups. */
+/**
+ * Every name the slash menu offers, flattened out of its groups.
+ *
+ * @return array<int, string>
+ */
 function slashNamesOf(AdvancedRichEditor $editor): array
 {
     return array_merge(...array_map(

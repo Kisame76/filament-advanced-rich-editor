@@ -5,15 +5,30 @@ declare(strict_types=1);
 use Filament\Forms\Components\RichEditor\StateCasts\RichEditorStateCast;
 use Filament\Schemas\Components\StateCasts\Contracts\StateCast;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
+use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\SpatieMediaLibraryPlugin;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Models\Post;
+
+/**
+ * The field's provider, as the media library provider these tests are about. Asserted
+ * rather than assumed: a field that handed back another provider fails here, not on the
+ * first method only the media library one has.
+ */
+function mediaLibraryProviderOf(AdvancedRichEditor $editor): SpatieMediaLibraryFileAttachmentProvider
+{
+    $provider = $editor->getFileAttachmentProvider();
+
+    assert($provider instanceof SpatieMediaLibraryFileAttachmentProvider);
+
+    return $provider;
+}
 
 it('has no file attachment provider until the field opts in', function (): void {
     expect(editor()->getFileAttachmentProvider())->toBeNull();
 });
 
 it('hands out a media library provider once the field opts in', function (): void {
-    $provider = editor()->spatieMediaLibrary()->getFileAttachmentProvider();
+    $provider = mediaLibraryProviderOf(editor()->spatieMediaLibrary());
 
     expect($provider)->toBeInstanceOf(SpatieMediaLibraryFileAttachmentProvider::class)
         ->and($provider->getCollection())->toBe('rich-editor')
@@ -32,7 +47,7 @@ it('takes the media library defaults from the config file', function (): void {
         'visibility' => 'private',
     ]);
 
-    $provider = editor()->spatieMediaLibrary()->getFileAttachmentProvider();
+    $provider = mediaLibraryProviderOf(editor()->spatieMediaLibrary());
 
     expect($provider->getCollection())->toBe('editor-images')
         ->and($provider->getConversion())->toBe('preview')
@@ -41,9 +56,7 @@ it('takes the media library defaults from the config file', function (): void {
 });
 
 it('lets the field override every media library default', function (): void {
-    $provider = editor()
-        ->spatieMediaLibrary('gallery', 'thumb', 's3', 'private')
-        ->getFileAttachmentProvider();
+    $provider = mediaLibraryProviderOf(editor()->spatieMediaLibrary('gallery', 'thumb', 's3', 'private'));
 
     expect($provider->getCollection())->toBe('gallery')
         ->and($provider->getConversion())->toBe('thumb')
@@ -54,13 +67,13 @@ it('lets the field override every media library default', function (): void {
 it('binds the provider to the record of the field', function (): void {
     $post = Post::create(['title' => 'A post']);
 
-    $provider = editor()->model($post)->spatieMediaLibrary()->getFileAttachmentProvider();
+    $provider = mediaLibraryProviderOf(editor()->model($post)->spatieMediaLibrary());
 
     expect($provider->getRecord())->toBe($post);
 });
 
 it('resolves no record while the field has none', function (): void {
-    expect(editor()->spatieMediaLibrary()->getFileAttachmentProvider()->getRecord())->toBeNull();
+    expect(mediaLibraryProviderOf(editor()->spatieMediaLibrary())->getRecord())->toBeNull();
 });
 
 it('registers exactly one media library plugin however often the field opts in', function (): void {
@@ -73,7 +86,7 @@ it('registers exactly one media library plugin however often the field opts in',
 
     expect($mediaLibraryPlugins)->toHaveCount(1)
         // The last call wins, rather than the first one being stuck in the plugin list.
-        ->and($editor->getFileAttachmentProvider()->getCollection())->toBe('two');
+        ->and(mediaLibraryProviderOf($editor)->getCollection())->toBe('two');
 });
 
 it('discovers a media library provider registered as a plugin', function (): void {
@@ -81,7 +94,7 @@ it('discovers a media library provider registered as a plugin', function (): voi
 
     expect($editor->getFileAttachmentProvider())
         ->toBeInstanceOf(SpatieMediaLibraryFileAttachmentProvider::class)
-        ->and($editor->getFileAttachmentProvider()->getCollection())->toBe('attachments');
+        ->and(mediaLibraryProviderOf($editor)->getCollection())->toBe('attachments');
 });
 
 it('prefers the field level provider over a plugin level one', function (): void {
@@ -89,7 +102,7 @@ it('prefers the field level provider over a plugin level one', function (): void
         ->plugins([SpatieMediaLibraryPlugin::make('from-plugin')])
         ->spatieMediaLibrary('from-field');
 
-    expect($editor->getFileAttachmentProvider()->getCollection())->toBe('from-field');
+    expect(mediaLibraryProviderOf($editor)->getCollection())->toBe('from-field');
 });
 
 it('tells the field the visibility its media library stores with', function (): void {

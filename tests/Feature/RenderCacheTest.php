@@ -27,7 +27,7 @@ function permanentAttachmentProvider(): FileAttachmentProvider
             return $this;
         }
 
-        public function getFileAttachmentUrl(mixed $file): ?string
+        public function getFileAttachmentUrl(mixed $file): string
         {
             return '/storage/'.$file;
         }
@@ -37,7 +37,7 @@ function permanentAttachmentProvider(): FileAttachmentProvider
             return null;
         }
 
-        public function getDefaultFileAttachmentVisibility(): ?string
+        public function getDefaultFileAttachmentVisibility(): string
         {
             return 'private';
         }

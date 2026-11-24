@@ -18,7 +18,7 @@ function editorFor(?int $id, string $name = 'content'): AdvancedRichEditor
     $schema = Schema::make(new TestSchemaComponent)->operation('edit');
 
     if ($id !== null) {
-        $schema->record(Post::make(['id' => $id]));
+        $schema->record(new Post(['id' => $id]));
     }
 
     return AdvancedRichEditor::make($name)->container($schema);

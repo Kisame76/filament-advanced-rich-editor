@@ -67,7 +67,11 @@ beforeEach(function (): void {
 it('stamps an upload with what is in it', function (): void {
     $uuid = ($this->saved)(($this->editor)(), ($this->hold)('hafen.png', $this->bytes));
 
-    expect(Media::findByUuid($uuid)->getCustomProperty(SpatieMediaSource::HASH_PROPERTY))->toBe(hash('sha256', $this->bytes));
+    $media = Media::findByUuid($uuid);
+
+    assert($media instanceof Media);
+
+    expect($media->getCustomProperty(SpatieMediaSource::HASH_PROPERTY))->toBe(hash('sha256', $this->bytes));
 });
 
 it('points a picture at the media the library already holds', function (): void {

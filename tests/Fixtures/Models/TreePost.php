@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * A record that keeps its document as a tree in a JSON column, cast to the array the editor
  * hands out - the way a field with `->json()` is stored.
+ *
+ * @property array<string, mixed>|null $content the cast, which an analyser reading the
+ *                                              migration alone sees as the column's string
  */
 class TreePost extends Model
 {

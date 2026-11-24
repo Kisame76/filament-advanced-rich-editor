@@ -166,10 +166,9 @@ it('reaches the upload dialog, which inserts a card for a document', function ()
         'data' => ['file' => $file, 'alt' => null],
     ]);
 
-    $commands = collect(Livewire\store($this->livewire)->get('dispatched') ?? [])
-        ->map(fn (object $event): array => (fn (): array => [$this->name, $this->params])->call($event))
-        ->filter(fn (array $event): bool => $event[0] === 'run-rich-editor-commands')
-        ->flatMap(fn (array $event): array => $event[1]['commands']);
+    $commands = collect(dispatchedEvents($this->livewire))
+        ->filter(fn (array $event): bool => $event['name'] === 'run-rich-editor-commands')
+        ->flatMap(fn (array $event): array => $event['params']['commands']);
 
     expect($commands)->toHaveCount(1)
         ->and($commands->first()['name'])->toBe('insertContent')
@@ -186,10 +185,9 @@ it('leaves a picture in the upload dialog to Filament', function (): void {
         'data' => ['file' => $file, 'alt' => 'Ein Punkt'],
     ]);
 
-    $commands = collect(Livewire\store($this->livewire)->get('dispatched') ?? [])
-        ->map(fn (object $event): array => (fn (): array => [$this->name, $this->params])->call($event))
-        ->filter(fn (array $event): bool => $event[0] === 'run-rich-editor-commands')
-        ->flatMap(fn (array $event): array => $event[1]['commands']);
+    $commands = collect(dispatchedEvents($this->livewire))
+        ->filter(fn (array $event): bool => $event['name'] === 'run-rich-editor-commands')
+        ->flatMap(fn (array $event): array => $event['params']['commands']);
 
     expect($commands)->toHaveCount(1)
         ->and($commands->first()['arguments'][0]['type'])->toBe('image')

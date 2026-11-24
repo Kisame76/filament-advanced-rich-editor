@@ -14,10 +14,10 @@ function embeds(string $html): array
     $document = new DOMDocument;
     $document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR);
 
-    $read = static function (?DOMElement $element): array {
+    $read = static function (mixed $element): array {
         $attributes = [];
 
-        foreach ($element?->attributes ?? [] as $attribute) {
+        foreach (($element instanceof DOMElement ? $element->attributes : null) ?? [] as $attribute) {
             $attributes[$attribute->nodeName] = $attribute->nodeValue;
         }
 

@@ -19,7 +19,11 @@ function languages(string $html): array
 
     $found = [];
 
-    foreach ((new DOMXPath($document))->query('//span[@lang]') as $span) {
+    foreach ((new DOMXPath($document))->query('//span[@lang]') ?: [] as $span) {
+        if (! $span instanceof DOMElement) {
+            continue;
+        }
+
         $found[] = $span->getAttribute('lang');
     }
 

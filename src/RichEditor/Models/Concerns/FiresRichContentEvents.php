@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\RichEditor\Models\Concerns;
 
-use Illuminate\Database\Eloquent\Model;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\DocumentContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Events\RichContentSaved;
+use ReflectionObject;
 
 /**
  * Announces that this record's rich content was written.
@@ -27,10 +27,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Events\RichContentSaved;
  * is what the model already says about itself, and a second list beside it would be a second
  * place to be wrong.
  */
-// The ignore is Filament's own on `InteractsWithRichContent`, for the same reason: a trait
-// meant for a project's models is used nowhere inside the package, and the fixture that does
-// use it lives in the tests, which this configuration does not analyse.
-trait FiresRichContentEvents /** @phpstan-ignore trait.unused */
+trait FiresRichContentEvents
 {
     public static function bootFiresRichContentEvents(): void
     {
@@ -44,7 +41,7 @@ trait FiresRichContentEvents /** @phpstan-ignore trait.unused */
         // replaced. `updated` fires only where something was actually dirty, and after
         // `syncChanges()` - which is what makes `wasChanged()` answerable there and not on an
         // insert, where nothing was synced.
-        static::created(static function (Model $record): void {
+        static::created(static function (self $record): void {
             foreach ($record->richContentEventAttributes() as $attribute) {
                 $content = $record->getAttribute($attribute);
 
@@ -72,7 +69,7 @@ trait FiresRichContentEvents /** @phpstan-ignore trait.unused */
             }
         });
 
-        static::updated(static function (Model $record): void {
+        static::updated(static function (self $record): void {
             foreach ($record->richContentEventAttributes() as $attribute) {
                 if (! $record->wasChanged($attribute)) {
                     continue;
@@ -98,7 +95,10 @@ trait FiresRichContentEvents /** @phpstan-ignore trait.unused */
      */
     public function richContentEventAttributes(): array
     {
-        return method_exists($this, 'getRichContentAttributes')
+        // Asked of the class rather than with `method_exists()`, which an analyser reads as
+        // settled for every model it sees the trait on - and is not, for one that never
+        // registered rich content.
+        return (new ReflectionObject($this))->hasMethod('getRichContentAttributes')
             ? array_keys($this->getRichContentAttributes())
             : [];
     }

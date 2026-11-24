@@ -97,7 +97,7 @@ it('lets an entry and a column be handed a provider of their own', function (): 
     // The trait passes the disk and the visibility through, and until now not the provider -
     // so the one thing that actually resolves an upload was the one thing a view page could
     // not be given. Reaching for `->plugins()` works but says nothing about what it is for.
-    expect(method_exists(AdvancedRichEntry::class, 'fileAttachmentProvider'))->toBeTrue();
+    expect((new ReflectionClass(AdvancedRichEntry::class))->hasMethod('fileAttachmentProvider'))->toBeTrue();
 
     $entry = AdvancedRichEntry::make('content')->fileAttachmentProvider(null);
 

@@ -114,6 +114,8 @@ it('lets a render keep its own copy of a plugin', function (): void {
         ->plugins([new MarkingPlugin('handed')])
         ->getPlugins();
 
+    assert($plugins[0] instanceof MarkingPlugin);
+
     expect($plugins[0]->marker)->toBe('handed');
 });
 
@@ -174,13 +176,24 @@ it('runs the pass after this package has finished with the markup', function ():
  */
 class AsideNode extends Node
 {
+    /**
+     * @var string
+     */
     public static $name = 'arteTestAside';
 
+    /**
+     * @return array<int, array<string, string>>
+     */
     public function parseHTML(): array
     {
         return [['tag' => 'div[data-type="aside"]']];
     }
 
+    /**
+     * @param  object  $node
+     * @param  array<string, mixed>  $HTMLAttributes
+     * @return array<int, mixed>
+     */
     public function renderHTML($node, $HTMLAttributes = []): array
     {
         return ['div', ['data-type' => 'aside'], 0];

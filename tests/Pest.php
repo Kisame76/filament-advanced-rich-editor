@@ -31,6 +31,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\ToolbarStylePicker;
 use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\TestSchemaComponent;
 use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
 use League\HTMLToMarkdown\HtmlConverter;
+use Livewire\Component as LivewireComponent;
 use Phiki\Phiki;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tiptap\Core\Extension;
@@ -75,9 +76,28 @@ function resolvingHosts(array $hosts): void
 }
 
 /**
+ * The events a Livewire component dispatched during the test, as Livewire hands them to
+ * the browser: a name and the named parameters.
+ *
+ * @return array<int, array{name: string, params: array<string, mixed>}>
+ */
+function dispatchedEvents(LivewireComponent $livewire): array
+{
+    $events = [];
+
+    foreach (Livewire\store($livewire)->get('dispatched') ?? [] as $event) {
+        $serialized = $event->serialize();
+
+        $events[] = ['name' => (string) $serialized['name'], 'params' => (array) $serialized['params']];
+    }
+
+    return $events;
+}
+
+/**
  * The styles a project declared, for the tests that work on them.
  *
- * @param  array<string, mixed>  $styles
+ * @param  array<int|string, mixed>  $styles
  */
 function withStyles(array $styles): void
 {
@@ -510,7 +530,7 @@ function links(string $html): array
     $anchors = $document->getElementsByTagName('a');
     $attributes = [];
 
-    foreach ($anchors->item(0)?->attributes ?? [] as $attribute) {
+    foreach ($anchors->item(0)->attributes ?? [] as $attribute) {
         $attributes[$attribute->nodeName] = $attribute->nodeValue;
     }
 
@@ -536,6 +556,10 @@ function mentionElements(string $html): array
     $mentions = [];
 
     foreach ((new DOMXPath($document))->query('//*[@data-type="mention"]') ?: [] as $element) {
+        if (! $element instanceof DOMElement) {
+            continue;
+        }
+
         $mentions[] = [
             'tag' => $element->tagName,
             'class' => $element->getAttribute('class'),

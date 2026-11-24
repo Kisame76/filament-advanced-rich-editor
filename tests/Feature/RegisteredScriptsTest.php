@@ -63,7 +63,7 @@ function registeredScriptKeys(): array
 
     sort($keys);
 
-    return array_values($keys);
+    return $keys;
 }
 
 /**

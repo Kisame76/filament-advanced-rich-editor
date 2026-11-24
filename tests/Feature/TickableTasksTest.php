@@ -364,14 +364,9 @@ it('tells the page a tick was written', function (): void {
 
     $entry->toggleTask(2);
 
-    $events = array_map(
-        fn (object $event): array => (fn (): array => [$this->name, $this->params])->call($event),
-        Livewire\store($entry->getLivewire())->get('dispatched') ?? [],
-    );
-
-    expect($events)->toBe([[
-        'arte-task-toggled',
-        ['attribute' => 'content', 'recordKey' => $record->getKey(), 'index' => 2, 'checked' => true],
+    expect(dispatchedEvents($entry->getLivewire()))->toBe([[
+        'name' => 'arte-task-toggled',
+        'params' => ['attribute' => 'content', 'recordKey' => $record->getKey(), 'index' => 2, 'checked' => true],
     ]]);
 });
 

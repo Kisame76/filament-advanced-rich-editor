@@ -23,6 +23,8 @@ it('edits the html in a code editor rather than a text box', function (): void {
 
     $field = $action->getSchema(testSchema())->getComponents()[0];
 
+    assert($field instanceof CodeEditor);
+
     expect($field)->toBeInstanceOf(CodeEditor::class)
         ->and($field->getLanguage())->toBe(Language::Html);
 });

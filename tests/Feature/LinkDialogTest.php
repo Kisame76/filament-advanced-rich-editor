@@ -113,8 +113,10 @@ function linkDialogHref(AdvancedRichEditor $editor): ?TextInput
 
     $schema = $editor->getAction('link')?->schemaComponent($editor)->getSchema(testSchema());
 
-    return collect($schema?->getFlatComponents() ?? [])
+    $field = collect($schema?->getFlatComponents() ?? [])
         ->first(static fn (object $component): bool => $component instanceof TextInput && ($component->getName() === 'href'));
+
+    return $field instanceof TextInput ? $field : null;
 }
 
 it('asks nothing about a typed address unless the field says so', function (): void {

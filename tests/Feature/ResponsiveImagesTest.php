@@ -76,6 +76,8 @@ it('offers the sizes Spatie made of an uploaded picture', function (): void {
     $uuid = ($this->upload)(($this->picture)());
     $media = Media::findByUuid($uuid);
 
+    assert($media instanceof Media);
+
     $img = ($this->rendered)('<p><img src="/storage/stale.png" data-id="'.$uuid.'"></p>');
 
     $expected = $media->responsiveImages()->files
@@ -96,7 +98,11 @@ it('leaves the blurred placeholder out of the list', function (): void {
 
     $img = ($this->rendered)('<p><img src="/storage/stale.png" data-id="'.$uuid.'"></p>');
 
-    expect(Media::findByUuid($uuid)->getSrcset())->toContain('data:image/svg+xml')
+    $media = Media::findByUuid($uuid);
+
+    assert($media instanceof Media);
+
+    expect($media->getSrcset())->toContain('data:image/svg+xml')
         ->and($img->getAttribute('srcset'))->not->toContain('data:')
         ->and($img->getAttribute('srcset'))->not->toStartWith(',');
 });
@@ -167,6 +173,8 @@ it('keeps a private picture to its signed address', function (): void {
 it('offers the sizes of the conversion the picture is shown as', function (): void {
     $uuid = ($this->upload)();
     $media = Media::findByUuid($uuid);
+
+    assert($media instanceof Media);
 
     $img = ($this->rendered)('<p><img src="/storage/stale.png" data-id="'.$uuid.'"></p>', ($this->provider)(conversion: 'arte-wide'));
 

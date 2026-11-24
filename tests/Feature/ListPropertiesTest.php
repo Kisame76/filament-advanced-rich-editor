@@ -21,7 +21,7 @@ function listAttributes(string $html, string $tag = 'ol'): array
 
     $attributes = [];
 
-    foreach ($element?->attributes ?? [] as $attribute) {
+    foreach ($element->attributes ?? [] as $attribute) {
         $attributes[$attribute->nodeName] = $attribute->nodeValue;
     }
 

@@ -28,7 +28,11 @@ function markupTemplates(string $html): array
 
     $templates = [];
 
-    foreach ($xpath->query('//template[@data-arte-markup]') as $template) {
+    foreach ($xpath->query('//template[@data-arte-markup]') ?: [] as $template) {
+        if (! $template instanceof DOMElement) {
+            continue;
+        }
+
         $templates[] = [
             'key' => $template->getAttribute('data-arte-markup'),
             'bars' => array_map(

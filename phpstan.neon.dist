@@ -16,4 +16,58 @@ parameters:
     paths:
         - src
         - config
+        - tests
+    # The fixture models' columns, read from the migrations that create them rather than
+    # written out a second time as annotations.
+    databaseMigrationsPath:
+        - tests/Fixtures/database/migrations
+    ignoreErrors:
+        # Pest declares the closure of `it()`, `test()` and the hooks as bound to its own
+        # `TestCall`, which has none of the properties a `beforeEach()` sets nor the test
+        # case's methods, so every `$this->editor` and `$this->artisan()` in the suite read
+        # as undefined. At runtime the closure runs on the test case, which takes whatever a
+        # hook puts on it. A stub rebinding the closures would be the tighter answer, but
+        # PHPStan validates a stub against nothing but other stubs and refuses one that
+        # names either class; declaring `TestCall` a universal object crate instead hands
+        # every property its `__get()`, which answers `TestCall`.
+        -
+            message: '#^Access to an undefined property Pest\\PendingCalls\\TestCall::\$\w+\.$#'
+            identifier: property.notFound
+            path: tests/*
+        -
+            message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall(\|Pest\\Support\\HigherOrderTapProxy)?::\w+\(\)\.$#'
+            identifier: method.notFound
+            path: tests/*
+        # `not` and `each` are properties Pest declares on `Expectation` and not on the mixin
+        # its assertions return, so `->toBe(…)->not->…` reads as undefined. Pest's typing,
+        # not this suite's.
+        -
+            message: '#^Access to an undefined property Pest\\Mixins\\Expectation<.+>::\$(not|each)\.$#'
+            identifier: property.notFound
+            path: tests/*
+        # The generics `collect()` and `expect()` cannot be resolved for a value the analyser
+        # has no type for - which every value reached through Pest's `$this` is, see above -
+        # and `and()` carries its template over from the previous call in the chain. Both
+        # say something about the analyser's view of Pest, not about a test.
+        -
+            identifier: argument.templateType
+            path: tests/*
+        -
+            message: '#^Parameter \#1 \$value of method Pest\\Expectation<.+>::and\(\) expects .+, .+ given\.$#'
+            identifier: argument.type
+            path: tests/*
+            # Not every combination of Pest and PHPStan carries the template over.
+            reportUnmatched: false
+        # `minHeight()` is Filament's from 5.9 on, and the test drawing this fixture is skipped
+        # before it. Not reported where the installed release has the method.
+        -
+            message: '#^Call to an undefined method Kisame76\\FilamentAdvancedRichEditor\\Forms\\Components\\AdvancedRichEditor::minHeight\(\)\.$#'
+            identifier: method.notFound
+            path: tests/Fixtures/Livewire/SizedEditorFormComponent.php
+            reportUnmatched: false
+        # The suite's database comes from the environment CI sets, which is what `env()` is
+        # for outside an application's config.
+        -
+            identifier: larastan.noEnvCallsOutsideOfConfig
+            path: tests/TestCase.php
     tmpDir: build/phpstan

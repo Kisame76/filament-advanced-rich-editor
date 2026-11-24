@@ -11,6 +11,9 @@ use Livewire\Livewire;
  * The keys a project moves. Which key runs what is worked out here, in PHP, and handed to
  * the script as a finished list; the script that binds it is tested in
  * `tests/js/shortcuts.test.js`.
+ *
+ * @param  array<string, string|false|null>  $shortcuts
+ * @return array<string, array<int, string>>
  */
 function shortcutRows(array $shortcuts): array
 {
@@ -141,6 +144,8 @@ it('loads its script only where a key was moved, and hands it the bindings', fun
     $document = new DOMDocument;
     $document->loadHTML('<?xml encoding="utf-8"?>'.Livewire::test(EditorFormComponent::class)->html(), LIBXML_NOERROR | LIBXML_NOWARNING);
     $element = (new DOMXPath($document))->query('//*[@data-arte-shortcuts]')->item(0);
+
+    assert($element instanceof DOMElement);
 
     expect($element)->toBeInstanceOf(DOMElement::class)
         ->and($element->getAttribute('x-ref'))->toBe('editor')

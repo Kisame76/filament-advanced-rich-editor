@@ -54,4 +54,4 @@ it('hands Filament the minimum height for its stylesheet to keep', function (): 
     expect($html)->toContain('--min-height: 12rem')
         ->toContain('--fi-arte-max-height: 32rem')
         ->not->toMatch('/(?<![\\w-])--max-height:/');
-})->skip(! method_exists(RichEditor::class, 'minHeight'), 'Filament\'s rich editor has no minHeight() before 5.9');
+})->skip(! (new ReflectionClass(RichEditor::class))->hasMethod('minHeight'), 'Filament\'s rich editor has no minHeight() before 5.9');

@@ -458,6 +458,8 @@ it('waits behind Filament\'s loading placeholder where Filament draws one', func
     $wrapper = $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " fi-async-component ")]')->item(0);
     $content = $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " fi-async-component-content ")]')->item(0);
 
+    assert($wrapper instanceof DOMElement && $content instanceof DOMElement);
+
     expect($wrapper)->toBeInstanceOf(DOMElement::class)
         ->and($wrapper->getAttribute('x-on:async-component-ready.stop'))->toBe('isLoading = false')
         ->and($content)->toBeInstanceOf(DOMElement::class)

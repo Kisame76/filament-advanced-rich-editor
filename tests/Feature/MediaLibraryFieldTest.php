@@ -65,7 +65,7 @@ function foreignAttachmentPlugin(): RichContentPlugin
             return $this;
         }
 
-        public function getFileAttachmentUrl(mixed $file): ?string
+        public function getFileAttachmentUrl(mixed $file): string
         {
             return 'https://dam.example/'.$file;
         }
@@ -75,7 +75,7 @@ function foreignAttachmentPlugin(): RichContentPlugin
             return 'dam-id';
         }
 
-        public function getDefaultFileAttachmentVisibility(): ?string
+        public function getDefaultFileAttachmentVisibility(): string
         {
             return 'public';
         }
@@ -92,7 +92,7 @@ function foreignAttachmentPlugin(): RichContentPlugin
     {
         public function __construct(protected FileAttachmentProvider $provider) {}
 
-        public function getFileAttachmentProvider(): ?FileAttachmentProvider
+        public function getFileAttachmentProvider(): FileAttachmentProvider
         {
             return $this->provider;
         }
@@ -177,6 +177,8 @@ it('has nothing to browse where the field takes no attachments', function (): vo
 
 it('browses the disk for a field that stores plain files', function (): void {
     $source = editor()->fileAttachmentsDirectory('article-attachments')->getMediaSource();
+
+    assert($source instanceof DiskMediaSource);
 
     expect($source)->toBeInstanceOf(DiskMediaSource::class)
         ->and($source->hasFolders())->toBeTrue()
@@ -311,8 +313,11 @@ it('opens the browser as soon as the attachments have a directory of their own',
         ->fileAttachmentsDirectory('article-attachments')
         ->container(Schema::make(new TestSchemaComponent)->operation('edit')->record(Post::create(['title' => 'P'])));
 
-    expect($editor->getMediaSource())->toBeInstanceOf(DiskMediaSource::class)
-        ->and($editor->getMediaSource()->getRoot())->toBe('article-attachments');
+    $source = $editor->getMediaSource();
+
+    assert($source instanceof DiskMediaSource);
+
+    expect($source->getRoot())->toBe('article-attachments');
 });
 
 it('opens no browser over a file attachment provider it does not know', function (): void {
@@ -375,18 +380,21 @@ it('holds a replacement apart from the uploads waiting to be inserted', function
     $replacement = collect($schema?->getComponents() ?? [])
         ->first(fn (Component $component): bool => ($component instanceof FileUpload) && ($component->getName() === 'replacement'));
 
-    expect($replacement)->not->toBeNull()
-        ->and($replacement?->getExtraAttributes())->toHaveKey('class', 'fi-arte-media-replacer')
-        ->and($replacement?->isMultiple())->toBeFalse()
-        ->and($replacement?->getMaxSize())->toBe($editor->getFileAttachmentsMaxSize());
+    assert($replacement instanceof FileUpload);
+
+    expect($replacement->getExtraAttributes())->toHaveKey('class', 'fi-arte-media-replacer')
+        ->and($replacement->isMultiple())->toBeFalse()
+        ->and($replacement->getMaxSize())->toBe($editor->getFileAttachmentsMaxSize());
 });
 
 it('tells the grid what this field may do to its library', function (): void {
     $picker = function (AdvancedRichEditor $editor): ?MediaPicker {
         $schema = browserAction($editor)?->schemaComponent($editor)->getSchema(testSchema());
 
-        return collect($schema?->getComponents() ?? [])
+        $picker = collect($schema?->getComponents() ?? [])
             ->first(fn (Component $component): bool => $component instanceof MediaPicker);
+
+        return $picker instanceof MediaPicker ? $picker : null;
     };
 
     Storage::fake('public');

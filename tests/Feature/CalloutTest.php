@@ -26,7 +26,7 @@ function callouts(string $html): array
         'classes' => $first instanceof DOMElement
             ? array_values(array_filter(explode(' ', $first->getAttribute('class'))))
             : [],
-        'text' => $first?->textContent ?? '',
+        'text' => $first->textContent ?? '',
         'type' => $first instanceof DOMElement ? $first->getAttribute('data-type') : '',
     ];
 }

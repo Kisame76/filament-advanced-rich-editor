@@ -73,6 +73,7 @@ it('acts on the selected image', function (): void {
 it('accepts a widget in a floating toolbar', function (): void {
     // The parent implementation type-hints every item as `string | ToolbarButtonGroup`,
     // which is why the getter is reimplemented; this pins that it stays reimplemented.
+    // @phpstan-ignore argument.type (Filament types the setter for its own buttons alone; the widget is what is being pinned)
     expect(editor()->floatingToolbars(['image' => [ToolbarImageLock::make()]])->getFloatingToolbars()['image'][0])
         ->toBeInstanceOf(ToolbarImageLock::class);
 });
