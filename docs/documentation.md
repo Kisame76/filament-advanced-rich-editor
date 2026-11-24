@@ -38,6 +38,7 @@ on top of it, checked against the current Filament v5 release:
 | **Mentions** | The `@` menu — the ids sit in the document, and reading them back out is yours to write | [A picture and a line of context](#mentions) under each name, so five people called the same thing are five different rows — and `Mentions::in($post->content)` for the `saved()` hook that has to send the mail |
 | **Editor chrome** | — | [Fullscreen](#fullscreen), [a toolbar for touch screens](#on-a-touch-screen), [a maximum height](#maximum-height), [a shortcut list](#help) with [keys a project can move](#keyboard-shortcuts), [emoji](#emoji), [special characters](#special-characters), [snippets](#snippets-and-templates) and [today's date](#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](#anchors), [a table of contents](#table-of-contents) from the same slug pass, [column widths that reach the page](#table-column-widths) and [Markdown](#markdown) with the checkboxes intact |
+| **Printing it** | — | [A PDF from stored content](#pdf-export), without an editor or a panel — `RichEditorPdf::forRecord($article, 'content')->download()` from an action, `->save()` from a job — on A3 to Legal, upright or turned, with every picture embedded rather than fetched. DomPDF by default, or Chromium through Gotenberg or Browsershot when the paper has to match the screen |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](#floating-toolbars), [normalising imported HTML through the field's own schema](#source-code), [the character and word counts as numbers](#character-count), [asking a stored document whether it is blank](#required-and-what-counts-as-empty), [an event when one is written](#being-told-a-document-was-saved), and [swapping any icon](#icons) or [translating any label](#translations). The [contents list](#contents) is the whole of it |
 
 Everything is off, on or replaceable per field, and the defaults live in one config file.
@@ -99,7 +100,8 @@ Everything is off, on or replaceable per field, and the defaults live in one con
 
 **[Rendering](#rendering)** — [Table column widths](#table-column-widths) ·
 [Anchors](#anchors) · [Table of contents](#table-of-contents) · [Mentions](#mentions) ·
-[Markdown](#markdown) · [Excerpts](#excerpts) · [Blade component](#blade-component) ·
+[Markdown](#markdown) · [Excerpts](#excerpts) · [PDF export](#pdf-export) ·
+[Blade component](#blade-component) ·
 [On a view page](#on-a-view-page) · [Ticking a box there](#ticking-a-box-on-the-view-page) · [In a table](#in-a-table) ·
 [Caching a render](#caching-a-render) · [Extending the renderer](#extending-the-renderer)
 
@@ -5258,6 +5260,146 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Excerpt;
 
 Excerpt::from($text, 160);
 ```
+
+### PDF export
+
+Stored content as a PDF, without an editor, a form or a panel - from a controller, a job, a
+command or tinker:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Pdf\RichEditorPdf;
+
+RichEditorPdf::forRecord($article, 'content')->save('exports/article.pdf', 's3');
+```
+
+Nothing is installed with the package to print with. Install the engine you choose; DomPDF is
+the default:
+
+```bash
+composer require dompdf/dompdf
+```
+
+**What goes in.** `forRecord()` reads one rich content attribute of a model along with
+everything the model registered for it - its plugins, its mentions, its merge tags, and the
+disk or provider its pictures are read from - which is also all a queued job needs: the record
+and the name of the column. Content that is not on a model, or a renderer your pages already
+configure, works too:
+
+```php
+RichEditorPdf::make($html);
+
+RichEditorPdf::fromRenderer(AdvancedRichContentRenderer::make($article->content)->anchorHeadings());
+
+RichEditorPdf::forRecord($article, 'content')
+    ->renderer(fn (AdvancedRichContentRenderer $renderer) => $renderer->highlightCode());
+```
+
+The markup comes from `toHtml()`, so a document prints with the same nodes, captions, column
+widths and mention labels it has on the page - out of the render cache where that renderer
+was told to keep one. The PDF itself is not cached.
+
+**The sheet.** A4 upright with 20 mm margins, unless the config file or the call says
+otherwise:
+
+```php
+RichEditorPdf::forRecord($article, 'content')
+    ->page('letter')            // a3, a4, a5, letter, legal
+    ->landscape()
+    ->margins(25, 20)           // millimetres, read like CSS: top and bottom, then the sides
+    ->title($article->title)    // shown in the reader's window, and the download's name
+    ->language('de')            // the application's locale where none is given
+    ->stylesheet('body { font-size: 11pt; }');
+
+RichEditorPdf::make($html)->size(100, 150);  // any sheet, in millimetres
+```
+
+**What comes out.**
+
+```php
+$pdf->toString();                  // the bytes
+$pdf->save('article.pdf');         // a path on this machine...
+$pdf->save('article.pdf', 's3');   // ...or a disk
+$pdf->download('article.pdf');     // a response, from a controller or a Filament action
+$pdf->inline();                    // the same, opened in the browser
+$pdf->toHtml();                    // the document the engine is handed
+```
+
+A Filament action returns the download as it is:
+
+```php
+use Filament\Actions\Action;
+
+Action::make('pdf')
+    ->action(fn (Article $record) => RichEditorPdf::forRecord($record, 'content')
+        ->title($record->title)
+        ->download());
+```
+
+**What changes on paper.** The document is not changed - the export works on a copy of the
+markup - but a few things on a page mean nothing on a sheet, and each becomes the nearest
+thing paper has:
+
+| On the page | In the PDF |
+| --- | --- |
+| A YouTube, Vimeo or other embed | A link to the page the service shares, the timestamp kept |
+| A video or a recording | A link to the file under its name, with the video's still above it |
+| A task's checkbox | ☑ or ☐ in front of the item |
+| A collapsible section | Open, its summary as a bold first line |
+| A grid | A table, each column at its share of the width |
+| The `#` a heading links itself with | Gone; the heading keeps its id, so links to it still land |
+| A link relative to the site | Absolute, against `app.url` or `->baseUrl()` |
+| A picture that cannot be read | Its description in brackets; a decorative one leaves nothing |
+
+**Pictures.** The engine fetches nothing - a document is text somebody typed, and an engine
+that requests addresses can be pointed at the server's own network by an `<img>`. Every
+picture is embedded before the engine sees it, read in this order:
+
+1. by its attachment id, from the disk or provider that would have written its address -
+   private files included, without a signed URL that could expire before a queued export gets
+   to it. A provider of your own can join in by implementing
+   `RichEditor\Media\Contracts\ProvidesFileContents`; this package's Spatie provider does;
+2. by its address, where that is a file on one of the application's **public** disks;
+3. over the network, only from hosts you named, and without following redirects:
+
+```php
+RichEditorPdf::forRecord($article, 'content')->imageHosts(['images.example.com']);
+```
+
+PNG, JPEG, GIF, WebP, BMP and SVG are embedded, up to 10 MB each by default; the hosts, the
+limit and the timeout live under `pdf.images` in the config.
+
+**Engines.** Three ship, and a class implementing `Pdf\Contracts\PdfDriver` is a fourth:
+
+| Driver | Needs | Good for |
+| --- | --- | --- |
+| `dompdf` (default) | `composer require dompdf/dompdf` | Any host - plain PHP, nothing to install on the server |
+| `gotenberg` | A [Gotenberg](https://gotenberg.dev) service, `pdf.gotenberg.url` | What the screen shows, without Chromium on the application server |
+| `browsershot` | `composer require spatie/browsershot`, Node and Chromium | What the screen shows, without a service to run |
+
+```php
+RichEditorPdf::make($html)->driver('gotenberg');
+RichEditorPdf::make($html)->driver(new BrowsershotDriver(fn (Browsershot $browsershot) => $browsershot->noSandbox()));
+RichEditorPdf::make($html)->driver(new DomPdfDriver(['dpi' => 150]));
+```
+
+The same document goes to all three: the package prints with a stylesheet of its own written
+in CSS 2.1, because DomPDF reads nothing newer - no flex boxes, no custom properties, no
+logical sides. The inline styles the renderer writes are reduced the same way on the way out.
+A project's CSS goes in with `->stylesheet()` and comes after the package's, so it wins; the
+document around the content is the view `filament-advanced-rich-editor::pdf.document`, which
+can be published.
+
+Two limits of DomPDF are worth knowing before choosing it:
+
+- **Right-to-left scripts.** DomPDF sets glyphs one after another from the left, without
+  shaping: Arabic or Hebrew comes out in the wrong order with its letters unjoined. Either
+  Chromium driver prints it correctly.
+- **Typefaces.** It ships DejaVu, which covers far more than Latin-1, and uses it by
+  default. A face of your own goes in with `@font-face` through `->stylesheet()`; DomPDF
+  converts it once and keeps it with its font cache under `storage/framework/cache/dompdf-fonts`.
+
+Headers, footers, page numbers, page breaks and several documents in one PDF are not part of
+the export yet.
 
 ### Blade component
 

@@ -4,6 +4,35 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- `RichEditorPdf` prints stored content as a PDF without an editor, a form or a panel -
+  `RichEditorPdf::forRecord($article, 'content')->save('article.pdf', 's3')` from a job,
+  `->download()` from a Filament action, `->toString()` for the bytes. `forRecord()` takes
+  everything the model registered for the attribute, and the markup is the renderer's own,
+  out of its cache where it keeps one. A3, A4, A5, Letter, Legal or any size in millimetres,
+  upright or turned, margins read like the CSS shorthand, a title, a language and a project's
+  own stylesheet on top of the package's
+
+- Three engines behind one `PdfDriver` contract: DomPDF by default, which is plain PHP and
+  runs on any host, and Gotenberg or Browsershot where the paper has to match the screen. None
+  of them is a dependency - `composer require dompdf/dompdf` for the default - and a missing
+  one says what to install. The package prints with a stylesheet of its own in CSS 2.1, the
+  only CSS DomPDF reads, and reduces the inline styles the renderer writes the same way, so
+  all three engines print one document
+
+- What means nothing on paper becomes the nearest thing that does: an embed is a link to the
+  page the service shares, a video a link to its file under its still, a checkbox ☑ or ☐, a
+  collapsible section opens, a grid becomes a table, the `#` a heading links itself with goes
+  and relative links become absolute
+
+- Every picture is embedded before the engine sees it, and the engine fetches nothing: by
+  attachment id from the disk or provider that owns it - private files included, without a
+  signed URL that could expire before a queued export runs - then by address from a public
+  disk, then over the network from hosts the project named, without following redirects. A
+  picture that cannot be read leaves its description in brackets. A provider of a project's
+  own joins in through `ProvidesFileContents`, which the Spatie provider implements
+
 ### Fixed
 
 - The PHPDoc of `headingLevels()`, `backgroundColors()` and the colour pickers' `text()`,

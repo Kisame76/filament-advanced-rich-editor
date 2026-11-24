@@ -9,8 +9,10 @@ use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileA
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\ContentHash;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\MediaSource;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesFileContents;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaDimensions;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaUrl;
@@ -22,6 +24,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\FileAdderFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\MediaLibrary\ResponsiveImages\ResponsiveImage;
+use Throwable;
 
 /**
  * Stores rich editor image attachments as `spatie/laravel-medialibrary` media instead of
@@ -35,7 +38,7 @@ use Spatie\MediaLibrary\ResponsiveImages\ResponsiveImage;
  * project that never uses this provider is unaffected by its absence; only actually using the
  * feature raises an exception telling the developer to install the package.
  */
-class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider, ProvidesSrcset
+class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider, ProvidesFileContents, ProvidesSrcset
 {
     /**
      * The custom property every attachment this package uploads is stamped with.
@@ -310,6 +313,39 @@ class SpatieMediaLibraryFileAttachmentProvider implements FileAttachmentProvider
         }
 
         return $this->getMediaUrl($media);
+    }
+
+    /**
+     * The file behind an attachment, read from its disk: the conversion the address would have
+     * pointed at where it was generated, the original otherwise.
+     *
+     * The same record scope as the address - `resolveMedia()` answers for both - so a document
+     * cannot embed a file it could not have linked to.
+     */
+    public function getFileAttachmentContents(mixed $file): ?string
+    {
+        $media = $this->resolveMedia($file);
+
+        if (! $media) {
+            return null;
+        }
+
+        $conversion = $this->getConversion();
+        $isPicture = str_starts_with(strtolower((string) $media->getAttributeValue('mime_type')), 'image/');
+
+        if (blank($conversion) || ! $isPicture || ! $media->hasGeneratedConversion($conversion)) {
+            $conversion = '';
+        }
+
+        $disk = ($conversion === '')
+            ? (string) $media->getAttributeValue('disk')
+            : (string) ($media->getAttributeValue('conversions_disk') ?: $media->getAttributeValue('disk'));
+
+        try {
+            return Storage::disk($disk)->get($media->getPathRelativeToRoot($conversion));
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

@@ -91,17 +91,22 @@ function shippedStylesheets(): string
 /**
  * @return array<int, string>
  */
-function emittedArteClasses(): array
+function emittedArteClasses(bool $pdf = false): array
 {
     $root = dirname(__DIR__, 2);
 
     $files = [];
 
+    // The PDF export writes its own markup for its own stylesheet, which a PDF engine reads
+    // and a browser never loads. Its classes are held to that sheet, and the screen's to the
+    // screen's - a rule in the wrong one styles nothing anybody sees.
+    $isPdf = static fn (string $path): bool => str_contains($path, '/src/Pdf/') || str_contains($path, '/resources/views/pdf/');
+
     foreach (['src', 'resources/js', 'resources/views'] as $dir) {
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/'.$dir));
 
         foreach ($iterator as $file) {
-            if ($file->isFile() && in_array($file->getExtension(), ['php', 'js'], strict: true)) {
+            if ($file->isFile() && in_array($file->getExtension(), ['php', 'js'], strict: true) && ($isPdf($file->getPathname()) === $pdf)) {
                 $files[] = $file->getPathname();
             }
         }
@@ -138,6 +143,18 @@ it('styles every class it writes into the markup', function (): void {
     ));
 
     expect($missing)->toBe([], 'These classes are written into the markup but have no rule: '.implode(', ', $missing));
+});
+
+it('styles every class the PDF export writes in the stylesheet it prints with', function (): void {
+    $css = (string) file_get_contents(dirname(__DIR__, 2).'/resources/pdf/document.css');
+
+    $missing = array_values(array_filter(
+        emittedArteClasses(pdf: true),
+        fn (string $class): bool => ! styleSheetDefines($css, $class),
+    ));
+
+    expect(emittedArteClasses(pdf: true))->not->toBe([])
+        ->and($missing)->toBe([], 'These classes are written into the PDF markup but have no rule: '.implode(', ', $missing));
 });
 
 it('keeps the published assets identical to the source ones', function (): void {

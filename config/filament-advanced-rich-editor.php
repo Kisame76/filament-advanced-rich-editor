@@ -1930,4 +1930,58 @@ return [
         'disk' => null,
         'visibility' => 'public',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | PDF export
+    |--------------------------------------------------------------------------
+    | Defaults for `RichEditorPdf`, which prints stored content without an editor:
+    | `RichEditorPdf::make($article->content)->save('article.pdf')`.
+    |
+    |   'driver'       the engine. 'dompdf' is plain PHP and runs on any host, but reads
+    |                  CSS 2.1 and cannot lay out right-to-left scripts. 'gotenberg'
+    |                  and 'browsershot' print with Chromium: what the screen shows,
+    |                  for a service or a local Chromium. None of the three libraries is
+    |                  a dependency of this package - install the one you choose:
+    |                  `composer require dompdf/dompdf`, `spatie/browsershot`, or
+    |                  nothing at all for Gotenberg. A class name works too.
+    |   'page'         a4, a3, a5, letter or legal. Per export: `->page('letter')`, or
+    |                  `->size($width, $height)` in millimetres.
+    |   'orientation'  portrait or landscape.
+    |   'margins'      in millimetres, the way CSS reads them: one value, or top and
+    |                  sides, or all four clockwise from the top.
+    |   'images'       every picture is embedded before the engine sees it, read from the
+    |                  attachment's disk or provider, or from a public disk by its URL.
+    |                  'hosts' are further hosts whose pictures may be fetched over the
+    |                  network - none by default, since that is a request the server
+    |                  makes because a document says so. Per export: `->imageHosts()`.
+    */
+    'pdf' => [
+        'driver' => 'dompdf',
+        'page' => 'a4',
+        'orientation' => 'portrait',
+        'margins' => [20, 20, 20, 20],
+        'images' => [
+            'hosts' => [],
+            'max_bytes' => 10 * 1024 * 1024,
+            'timeout' => 10,
+        ],
+        'dompdf' => [
+            // Where DomPDF keeps the metrics it reads its fonts by, and converts a typeface
+            // named in a project's `@font-face`. A cache: inside `storage/framework/cache`,
+            // which an application's repository already ignores.
+            'font_directory' => storage_path('framework/cache/dompdf-fonts'),
+        ],
+        'gotenberg' => [
+            // e.g. 'http://gotenberg:3000'
+            'url' => null,
+            'timeout' => 60,
+        ],
+        'browsershot' => [
+            // Paths to the binaries, where they are not on the PATH Browsershot searches.
+            'node' => null,
+            'npm' => null,
+            'chrome' => null,
+        ],
+    ],
 ];

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Dompdf\Dompdf;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
@@ -33,6 +34,8 @@ use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
 use League\HTMLToMarkdown\HtmlConverter;
 use Livewire\Component as LivewireComponent;
 use Phiki\Phiki;
+use Smalot\PdfParser\Parser;
+use Spatie\Browsershot\Browsershot;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tiptap\Core\Extension;
 use Tiptap\Editor;
@@ -680,6 +683,9 @@ function requires(string $package): void
         'league/html-to-markdown' => HtmlConverter::class,
         'phiki/phiki' => Phiki::class,
         'spatie/laravel-medialibrary' => Media::class,
+        'dompdf/dompdf' => Dompdf::class,
+        'smalot/pdfparser' => Parser::class,
+        'spatie/browsershot' => Browsershot::class,
     ][$package];
 
     if (! class_exists($class)) {

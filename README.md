@@ -52,6 +52,7 @@ checked against the current Filament v5 release:
 | **Editor chrome** | — | [Fullscreen](docs/documentation.md#fullscreen), [a toolbar for touch screens](docs/documentation.md#on-a-touch-screen), [a maximum height](docs/documentation.md#maximum-height), [a shortcut list](docs/documentation.md#help) with [keys a project can move](docs/documentation.md#keyboard-shortcuts), [emoji](docs/documentation.md#emoji), [special characters](docs/documentation.md#special-characters) and [today's date](docs/documentation.md#date-and-time) in the application's language and Filament's display timezone |
 | **Rendering** | `toHtml()`, `toText()`, `toArray()` | + [heading anchors](docs/documentation.md#anchors), [a table of contents](docs/documentation.md#table-of-contents) from the same slug pass, [column widths that reach the page](docs/documentation.md#table-column-widths), [Markdown](docs/documentation.md#markdown) with the checkboxes intact — in both directions, and the way back in is the one that has to be careful, because a footnote read as a link reference definition deletes the note and leaves valid markup behind — and [an excerpt](docs/documentation.md#excerpts) for the meta description — plus the two repairs that made one possible, a sentence that stops breaking apart at a link and entities that are spelled out |
 | **Showing it outside the form** | Assemble a renderer by hand in every template, entry and column | [`<x-arte-content>`](docs/documentation.md#blade-component) for a page, [`AdvancedRichEntry`](docs/documentation.md#on-a-view-page) for a view page and [`AdvancedRichColumn`](docs/documentation.md#in-a-table) for a table — each reading what the model already declares about the attribute, and [a cache](docs/documentation.md#caching-a-render) keyed on the content *and* the configuration |
+| **Printing it** | — | [A PDF from stored content](docs/documentation.md#pdf-export), without an editor or a panel — `RichEditorPdf::forRecord($article, 'content')->download()` from an action, `->save()` from a job — on A3 to Legal, upright or turned, with every picture embedded rather than fetched. DomPDF by default, or Chromium through Gotenberg or Browsershot when the paper has to match the screen |
 | **Adding a node of your own** | A plugin reaches the editor; the page is on you | [One line in a service provider](docs/documentation.md#extending-the-renderer) and every render declares it — plus a pass over the finished markup for the half a schema cannot do, turning an attribute into a structure |
 | **And the smaller half** | Mostly yours to write | The parts you reach for once rather than daily: [rebuilding the image bar button by button](docs/documentation.md#floating-toolbars), [normalising imported HTML through the field's own schema](docs/documentation.md#source-code), [the character and word counts as numbers](docs/documentation.md#character-count), [asking a stored document whether it is blank](docs/documentation.md#required-and-what-counts-as-empty), [an event when one is written](docs/documentation.md#being-told-a-document-was-saved), and [swapping any icon](docs/documentation.md#icons) or [translating any label](docs/documentation.md#translations). The [contents list](docs/documentation.md#contents) is the whole of it |
 
@@ -167,9 +168,17 @@ AdvancedRichEntry::make('content')->anchorHeadings()->columnSpanFull();
 AdvancedRichColumn::make('content')->excerptLength(80)->searchable();
 ```
 
+And as a PDF, from anywhere a record is - an action, a job, a command:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Pdf\RichEditorPdf;
+
+RichEditorPdf::forRecord($article, 'content')->page('a4')->save('exports/article.pdf', 's3');
+```
+
 **[Read the full documentation](https://github.com/Kisame76/filament-advanced-rich-editor/blob/main/docs/documentation.md)** for every option: the toolbar tokens and dropdowns,
 the media browser, the slash menu, video embeds, code blocks, mentions, the table of contents,
-Markdown in and out, and the config file.
+Markdown in and out, the PDF export, and the config file.
 
 ## Languages
 

@@ -42,6 +42,7 @@
     "ueberdosis/tiptap-php": "^2.0"
   },
   "require-dev": {
+    "dompdf/dompdf": "^3.1",
     "filament/filament": "^5.7",
     "larastan/larastan": "^3.0",
     "laravel/pint": "^1.0",
@@ -50,6 +51,8 @@
     "pestphp/pest": "^3.0||^4.0",
     "pestphp/pest-plugin-laravel": "^3.0||^4.0",
     "phiki/phiki": "^2.2",
+    "smalot/pdfparser": "^2.12",
+    "spatie/browsershot": "^5.0",
     "spatie/laravel-medialibrary": "^11.0"
   },
   "conflict": {
@@ -59,7 +62,9 @@
     "filament/tables": "Required for AdvancedRichColumn, which renders stored content in a table cell (^5.7).",
     "spatie/laravel-medialibrary": "Required to store editor image attachments in a media library collection (^11.0).",
     "league/html-to-markdown": "Required to render stored rich content as Markdown with `AdvancedRichContentRenderer::toMarkdown()` (^5.1).",
-    "phiki/phiki": "Required to colour code blocks when rendering stored content with `AdvancedRichContentRenderer::highlightCode()` (^2.2)."
+    "phiki/phiki": "Required to colour code blocks when rendering stored content with `AdvancedRichContentRenderer::highlightCode()` (^2.2).",
+    "dompdf/dompdf": "Required to export stored content as a PDF with `RichEditorPdf` and the default `dompdf` driver (^3.1).",
+    "spatie/browsershot": "Required to export stored content as a PDF through a local Chromium with the `browsershot` driver (^5.0)."
   },
   "autoload": {
     "psr-4": {

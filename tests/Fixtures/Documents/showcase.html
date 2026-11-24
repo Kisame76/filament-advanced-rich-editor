@@ -1,0 +1,43 @@
+<h1>Quarterly report</h1>
+<div class="lead"><p>Everything the editor can put in a document, once, so an export can be checked against all of it.</p></div>
+<h2>Text</h2>
+<p>Plain, <strong>bold</strong>, <em>italic</em>, <u>underlined</u>, <s>struck</s>, <code>inline code</code>, a <a href="https://example.com/terms">link</a>, H<sub>2</sub>O and E = mc<sup>2</sup>.</p>
+<p><mark data-color="#fef08a">Highlighted</mark>, <span style="font-size: 24px">large</span>, <span style="font-family: Georgia">serif</span> text.</p>
+<p style="text-align: center">Centred.</p>
+<p style="text-align: right">Right aligned.</p>
+<p style="text-align: justify; line-height: 2">Justified with a loose line height, long enough to wrap onto a second line so that the spacing between lines and the alignment of both edges can be seen at once.</p>
+<p dir="rtl">مرحبا بالعالم</p>
+<p><small>Small print.</small></p>
+<h3>Third level</h3>
+<h4>Fourth level</h4>
+<h5>Fifth level</h5>
+<h6>Sixth level</h6>
+<h2>Lists</h2>
+<ul><li><p>First</p><ul><li><p>Nested</p></li></ul></li><li><p>Second</p></li></ul>
+<ol><li><p>One</p></li><li><p>Two</p><ol><li><p>Two point one</p></li></ol></li></ol>
+<ul data-type="taskList" class="fi-arte-task-list"><li data-type="taskItem" data-checked="true"><p>Done</p></li><li data-type="taskItem" data-checked="false"><p>Open</p></li></ul>
+<dl class="fi-arte-description-list"><dt>Term</dt><dd>What the term means.</dd></dl>
+<h2>Blocks</h2>
+<blockquote><p>A quotation, set apart from the text around it.</p></blockquote>
+<pre><code class="language-php">echo 'Hello';</code></pre>
+<hr>
+<div class="fi-arte-callout fi-arte-callout-note" data-type="callout"><p>A note.</p></div>
+<div class="fi-arte-callout fi-arte-callout-tip" data-type="callout"><p>A tip.</p></div>
+<div class="fi-arte-callout fi-arte-callout-warning" data-type="callout"><p>A warning.</p></div>
+<div class="fi-arte-callout fi-arte-callout-danger" data-type="callout"><p>A danger.</p></div>
+<details><summary>Details summary</summary><div data-type="detailsContent"><p>Details content.</p></div></details>
+<div class="grid-layout" data-cols="2"><div class="grid-layout-col" data-col-span="1"><p>Left column.</p></div><div class="grid-layout-col" data-col-span="1"><p>Right column.</p></div></div>
+<div class="grid-layout" data-cols="3"><div class="grid-layout-col" data-col-span="1"><p>A third.</p></div><div class="grid-layout-col" data-col-span="2"><p>Two thirds, wider than the column beside it.</p></div></div>
+<div data-type="locked"><p>A locked clause.</p></div>
+<h2>Table</h2>
+<table><tbody><tr><th data-colwidth="200"><p>Region</p></th><th><p>Revenue</p></th></tr><tr><td data-colwidth="200"><p>North</p></td><td><p>1,200</p></td></tr><tr><td data-colwidth="200"><p>South</p></td><td><p>900</p></td></tr></tbody></table>
+<h2>Media</h2>
+<p><img src="/storage/harbour.png" alt="Harbour" data-caption="The harbour at dawn"></p>
+<p><img src="/storage/harbour.png" alt="Floated" style="float: right; margin-inline-start: 1em; margin-block-end: 1em" width="120">Text flowing around a picture floated to the right, long enough to sit beside it for a line or two before it carries on underneath.</p>
+<p><img src="/storage/harbour.png" alt="Centred" style="display: block; margin-inline: auto" width="200"></p>
+<div data-type="embed" style="aspect-ratio: 16 / 9"><iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe></div>
+<video src="/storage/tiny.mp4" controls="controls"></video>
+<p><a class="fi-arte-file" data-type="file" href="/storage/report.pdf" download="report.pdf"><span class="fi-arte-file-name">report.pdf</span> <span class="fi-arte-file-size">88 KB</span></a></p>
+<a class="fi-arte-link-preview" data-type="link-preview" href="https://laravel.com/docs"><span class="fi-arte-link-preview-title">Laravel documentation</span> <span class="fi-arte-link-preview-description">The framework's own guide.</span> <span class="fi-arte-link-preview-site">laravel.com</span></a>
+<p><img src="https://elsewhere.example/picture.png" alt="A picture from elsewhere"></p>
+<p>See <a href="/terms">the terms</a>. Ping <span data-type="mention" data-id="2" data-label="Ada Lovelace" data-char="@"></span> please.</p>

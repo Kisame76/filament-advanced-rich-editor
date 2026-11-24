@@ -12,6 +12,7 @@ use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\RichEditor\TipTapExtensions\MentionExtension;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Kisame76\FilamentAdvancedRichEditor\FileAttachmentProviders\SpatieMediaLibraryFileAttachmentProvider;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Contracts\TransformsRenderedHtml;
@@ -26,6 +27,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Language;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\Link;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\StyleClass;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Marks\TextBackground;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesFileContents;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\Contracts\ProvidesSrcset;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\FileAttachments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Nodes\Callout;
@@ -56,6 +58,7 @@ use League\CommonMark\Extension\Footnote\FootnoteExtension;
 use League\HTMLToMarkdown\HtmlConverter;
 use ReflectionClass;
 use RuntimeException;
+use Throwable;
 use Tiptap\Core\Extension;
 use Tiptap\Editor;
 use Tiptap\Marks\Link as BaseLink;
@@ -486,6 +489,36 @@ class AdvancedRichContentRenderer extends RichContentRenderer
             // transforms markup adds no extension, so the list above cannot see it.
             'globalPlugins' => static::getGlobalPlugins(),
         ]);
+    }
+
+    /**
+     * The file behind an attachment id, read rather than addressed - what the PDF export
+     * embeds in place of fetching the address.
+     *
+     * Answered by the same party that answers for the address: the provider where there is
+     * one, and only if it can (`ProvidesFileContents`); the render's disk otherwise. The id
+     * comes from the document exactly as it does for `getFileAttachmentUrl()`, and reads no
+     * file that method would not have handed out an address for.
+     */
+    public function getFileAttachmentContents(mixed $file): ?string
+    {
+        if (! is_string($file) || ($file === '')) {
+            return null;
+        }
+
+        if (($provider = $this->getFileAttachmentProvider()) !== null) {
+            return ($provider instanceof ProvidesFileContents)
+                ? $provider->getFileAttachmentContents($file)
+                : null;
+        }
+
+        try {
+            $storage = Storage::disk($this->fileAttachmentsDiskName ?? config('filament.default_filesystem_disk'));
+
+            return $storage->exists($file) ? $storage->get($file) : null;
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

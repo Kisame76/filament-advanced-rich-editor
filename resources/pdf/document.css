@@ -1,0 +1,336 @@
+/*
+ * The stylesheet a PDF is printed with.
+ *
+ * Not the editor's. That one is written for a browser - flex boxes, `color-mix()`, `oklab`,
+ * `:where()`, masks, logical properties throughout - and DomPDF reads none of it. This is a
+ * second, independent sheet in CSS 2.1 and `@page`: tables rather than flex, physical
+ * sides rather than logical ones, absolute sizes rather than `rem`, every colour a plain hex
+ * value. A Chromium driver reads it just as well, so all three drivers print one document.
+ *
+ * The size of the sheet and its margins come in front of this file as an `@page` rule; a
+ * project's own CSS comes after it and wins.
+ */
+
+html {
+    font-size: 10.5pt;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    /* DejaVu ships with DomPDF and covers far more than Latin-1; Helvetica, the engine's own
+       default, prints a Polish or Turkish letter or the euro sign as a question mark. */
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #18181b;
+}
+
+/* -- Text ----------------------------------------------------------------- */
+
+p {
+    margin: 0 0 8pt 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 16pt 0 6pt 0;
+    line-height: 1.25;
+    font-weight: bold;
+    color: #09090b;
+    page-break-after: avoid;
+}
+
+h1 { font-size: 22pt; }
+
+/* Nothing above the first block but the page's own margin. */
+.fi-arte-pdf > :first-child {
+    margin-top: 0;
+}
+h2 { font-size: 16pt; }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; }
+h5 { font-size: 10.5pt; }
+h6 { font-size: 10.5pt; color: #52525b; }
+
+a {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+strong, b { font-weight: bold; }
+em, i { font-style: italic; }
+u { text-decoration: underline; }
+s, del { text-decoration: line-through; }
+
+sub, sup {
+    font-size: 75%;
+    line-height: 0;
+}
+
+small {
+    font-size: 85%;
+}
+
+mark {
+    background-color: #fef08a;
+    color: inherit;
+}
+
+code {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 90%;
+    padding: 0 2pt;
+    background-color: #f4f4f5;
+}
+
+/* Filament's lead paragraph. */
+.lead p,
+p.lead {
+    font-size: 13pt;
+    color: #3f3f46;
+}
+
+hr {
+    height: 0;
+    margin: 14pt 0;
+    border: 0;
+    border-top: 1px solid #d4d4d8;
+}
+
+/* -- Lists ---------------------------------------------------------------- */
+
+ul, ol {
+    margin: 0 0 8pt 0;
+    padding: 0 0 0 18pt;
+}
+
+ul ul, ul ol, ol ul, ol ol {
+    margin-bottom: 0;
+}
+
+li {
+    margin: 0 0 2pt 0;
+}
+
+li p {
+    margin: 0;
+}
+
+ul.fi-arte-task-list {
+    padding-left: 0;
+    list-style: none;
+}
+
+ul.fi-arte-task-list li {
+    list-style: none;
+}
+
+.fi-arte-pdf-task-box {
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 12pt;
+    line-height: 1;
+}
+
+.fi-arte-task-item-checked .fi-arte-task-item-content {
+    color: #71717a;
+}
+
+dl {
+    margin: 0 0 8pt 0;
+}
+
+dt {
+    font-weight: bold;
+}
+
+dd {
+    margin: 0 0 4pt 18pt;
+}
+
+/* -- Blocks --------------------------------------------------------------- */
+
+blockquote {
+    margin: 0 0 8pt 0;
+    padding: 2pt 0 2pt 10pt;
+    border-left: 3px solid #d4d4d8;
+    color: #3f3f46;
+}
+
+pre {
+    margin: 0 0 8pt 0;
+    padding: 8pt 10pt;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 9pt;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    background-color: #f4f4f5;
+    border: 1px solid #e4e4e7;
+}
+
+pre code {
+    padding: 0;
+    font-size: 100%;
+    background-color: transparent;
+}
+
+.fi-arte-callout {
+    margin: 0 0 8pt 0;
+    padding: 6pt 10pt;
+    border-left: 3px solid #a1a1aa;
+    background-color: #f4f4f5;
+    page-break-inside: avoid;
+}
+
+.fi-arte-callout p:last-child {
+    margin-bottom: 0;
+}
+
+.fi-arte-callout-note    { border-left-color: #2563eb; background-color: #eff6ff; }
+.fi-arte-callout-tip     { border-left-color: #16a34a; background-color: #f0fdf4; }
+.fi-arte-callout-warning { border-left-color: #ca8a04; background-color: #fefce8; }
+.fi-arte-callout-danger  { border-left-color: #dc2626; background-color: #fef2f2; }
+
+.fi-arte-pdf-details {
+    margin: 0 0 8pt 0;
+    padding: 6pt 10pt;
+    border: 1px solid #e4e4e7;
+}
+
+.fi-arte-pdf-details-summary {
+    font-weight: bold;
+    margin-bottom: 4pt;
+}
+
+/* Filament's grid, rewritten into a table: columns side by side, no rules between them. */
+table.fi-arte-pdf-grid {
+    width: 100%;
+    margin: 0 0 8pt 0;
+    border: 0;
+}
+
+table.fi-arte-pdf-grid td {
+    padding: 0 6pt 0 0;
+    border: 0;
+    vertical-align: top;
+}
+
+/* -- Tables --------------------------------------------------------------- */
+
+table {
+    width: 100%;
+    margin: 0 0 8pt 0;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 4pt 6pt;
+    border: 1px solid #d4d4d8;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    font-weight: bold;
+    background-color: #f4f4f5;
+}
+
+th p, td p {
+    margin: 0;
+}
+
+tr {
+    page-break-inside: avoid;
+}
+
+/* -- Media ---------------------------------------------------------------- */
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+figure {
+    margin: 0 0 8pt 0;
+    page-break-inside: avoid;
+}
+
+figcaption {
+    margin-top: 3pt;
+    font-size: 9pt;
+    color: #52525b;
+}
+
+.fi-arte-pdf-missing-image {
+    color: #71717a;
+    font-style: italic;
+}
+
+.fi-arte-pdf-embed a,
+.fi-arte-pdf-media a {
+    word-wrap: break-word;
+}
+
+.fi-arte-pdf-media img {
+    display: block;
+    margin-bottom: 3pt;
+}
+
+/* A file card: the coloured badge carries the type, the name beside it. */
+.fi-arte-file {
+    display: inline-block;
+    padding: 6pt 8pt;
+    border: 1px solid #d4d4d8;
+    color: #18181b;
+    text-decoration: none;
+}
+
+/* The badge's square comes inline with the card; its letters are centred in it by the
+   line they stand on, since the flex box that centres them on screen is not there. */
+.fi-arte-file-kind {
+    display: inline-block;
+    text-align: center;
+    line-height: 36px !important;
+    font-weight: bold;
+    color: #ffffff;
+    vertical-align: middle;
+}
+
+.fi-arte-file-text,
+.fi-arte-file-name {
+    display: inline;
+    vertical-align: middle;
+}
+
+.fi-arte-file-size {
+    margin-left: 4pt;
+    color: #71717a;
+    font-size: 8.5pt;
+}
+
+.fi-arte-link-preview {
+    display: block;
+    padding: 6pt 10pt;
+    margin: 0 0 8pt 0;
+    border: 1px solid #d4d4d8;
+    color: #18181b;
+    text-decoration: none;
+}
+
+.fi-arte-link-preview span {
+    display: block;
+}
+
+.fi-arte-link-preview-icon {
+    display: none;
+}
+
+.fi-arte-mention {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+/* The `#` that links a heading to itself is taken out before printing; a project that
+   kept one in its own markup does not want it in the PDF either. */
+.fi-arte-anchor {
+    display: none;
+}
