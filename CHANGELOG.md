@@ -2,6 +2,14 @@
 
 All notable changes to `filament-advanced-rich-editor` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- The checkbox on a view page with `->tickableTasks()` sits on the first line of its item again.
+  The button that replaces the label there was missed by the rule that centres the label, and
+  the box dropped to the text's baseline
+
 ## 1.9.0 - 2026-11-10
 
 ### Added

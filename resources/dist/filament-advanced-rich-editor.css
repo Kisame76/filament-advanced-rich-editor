@@ -254,8 +254,11 @@
  * The checkbox is centred inside a box exactly one prose line tall so that it lands on
  * the item's FIRST line. Centring it against the whole item would drift downwards on
  * multi-line entries and break the checklist's left column.
+ *
+ * The button is the same box on a view page where a tick can be set: `TickableTasks`
+ * swaps the label for it, and without it here the box sat on the text's baseline.
  */
-.fi-arte-task-item > label {
+.fi-arte-task-item > :is(label, .fi-arte-task-item-tickable) {
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
@@ -274,7 +277,7 @@
 }
 
 @supports (height: 1lh) {
-    .fi-arte-task-item > label {
+    .fi-arte-task-item > :is(label, .fi-arte-task-item-tickable) {
         height: var(--fi-arte-task-line, 1lh);
     }
 }

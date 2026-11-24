@@ -200,6 +200,16 @@ it('scopes the loading state to its own call', function (): void {
     expect($html)->toContain('wire:target="toggleTask"');
 });
 
+it('centres the button the way it centres the label', function (): void {
+    // `TickableTasks` swaps the label for a button, and a rule written for the label alone
+    // left the box on the text's baseline.
+    $css = file_get_contents(__DIR__.'/../../resources/css/filament-advanced-rich-editor.css');
+
+    expect(substr_count($css, '.fi-arte-task-item > :is(label, .fi-arte-task-item-tickable) {'))->toBe(2)
+        ->and($css)->not->toContain('.fi-arte-task-item > label {')
+        ->and(file_get_contents(__DIR__.'/../../resources/dist/filament-advanced-rich-editor.css'))->toBe($css);
+});
+
 it('draws the buttons on a record that declares its rich content', function (): void {
     // `getState()` answers with a `RichContentAttribute` rather than with the column on a
     // model implementing `HasRichContent`, so anything reading the state as a document has
