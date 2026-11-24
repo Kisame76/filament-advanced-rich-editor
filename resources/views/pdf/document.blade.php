@@ -31,6 +31,11 @@
     @if (filled($footer))
         <div class="fi-arte-pdf-footer">{!! $footer !!}</div>
     @endif
+    @if (filled($tableOfContents))
+        <nav class="fi-arte-pdf-toc">
+{!! $tableOfContents !!}
+        </nav>
+    @endif
     <main class="fi-arte-pdf">
 {!! $body !!}
     </main>

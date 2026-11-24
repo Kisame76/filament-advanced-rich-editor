@@ -614,4 +614,8 @@ return [
     'lightbox' => [
         'close' => 'Close',
     ],
+    // The heading over the list of parts in a combined PDF.
+    'pdf' => [
+        'table_of_contents' => 'Contents',
+    ],
 ];

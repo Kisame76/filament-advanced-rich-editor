@@ -611,4 +611,7 @@ return [
     'lightbox' => [
         'close' => 'Luk',
     ],
+    'pdf' => [
+        'table_of_contents' => 'Indhold',
+    ],
 ];

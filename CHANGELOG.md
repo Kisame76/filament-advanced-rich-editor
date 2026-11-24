@@ -30,6 +30,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   where `{pages}` is asked for; Gotenberg and Browsershot hand them to Chromium as its own
   header and footer templates
 
+- Several documents as one PDF: `RichEditorPdf::combine($parts)` prints each part on a page of
+  its own under its title, with page numbers that run on across all of them, and
+  `->tableOfContents()` lists the parts after the cover with the page each one starts on and a
+  link to it. Put together as HTML and printed once rather than merged afterwards, so there is
+  no PDF library on top. Each part keeps its own renderer, language, pictures and stylesheets,
+  and its ids are prefixed so two parts with the same heading or footnote do not share an
+  anchor
+
 - What means nothing on paper becomes the nearest thing that does: an embed is a link to the
   page the service shares, a video a link to its file under its still, a checkbox ☑ or ☐, a
   collapsible section opens, a grid becomes a table, the `#` a heading links itself with goes

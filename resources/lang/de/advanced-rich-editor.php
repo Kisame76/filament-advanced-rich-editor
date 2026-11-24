@@ -587,4 +587,7 @@ return [
     'lightbox' => [
         'close' => 'Schließen',
     ],
+    'pdf' => [
+        'table_of_contents' => 'Inhalt',
+    ],
 ];

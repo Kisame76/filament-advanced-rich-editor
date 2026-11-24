@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers;
 
+use DOMElement;
+use Dompdf\Canvas;
 use Dompdf\Dompdf;
+use Dompdf\Frame;
 use Dompdf\Options;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Contracts\PdfDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\MissingPdfLibrary;
@@ -35,22 +38,48 @@ class DomPdfDriver implements PdfDriver
             throw MissingPdfLibrary::for('dompdf', 'dompdf/dompdf');
         }
 
-        $dompdf = $this->print($document);
+        $references = array_fill_keys($document->pageReferences(), true);
+        $pages = [];
 
-        // The number of pages, where a header or a footer shows it. DomPDF knows it only once
-        // it has laid the document out, and CSS's `counter(pages)` comes out as nought - so it
-        // prints once to count and again with the number written in. The header and the footer
-        // stand in the margins and move nothing in the text, so the count holds.
-        if ($document->countsPages()) {
-            $dompdf = $this->print($document->withPageCount($dompdf->getCanvas()->get_page_count()));
+        // Where each element a table of contents points at starts, noted as the pages are
+        // drawn: the first time a frame of it is, since an element split across pages is
+        // drawn once on each.
+        $dompdf = $this->print($document, ($references === []) ? [] : [[
+            'event' => 'begin_frame',
+            'f' => static function (Frame $frame, Canvas $canvas) use ($references, &$pages): void {
+                $node = $frame->get_node();
+
+                if (($node instanceof DOMElement) && isset($references[$id = $node->getAttribute('id')]) && (! isset($pages[$id]))) {
+                    $pages[$id] = $canvas->get_page_number();
+                }
+            },
+        ]]);
+
+        // The number of pages, where a header or a footer shows it, and the pages a table of
+        // contents shows. DomPDF knows them only once it has laid the document out, and CSS's
+        // `counter(pages)` comes out as nought - so it prints once to count and again with the
+        // numbers written in. The header and the footer stand in the margins, and a number in
+        // a table of contents sits in a column of its own, so nothing in the text moves and
+        // the numbers hold.
+        if ($document->countsPages() || ($references !== [])) {
+            $dompdf = $this->print($document
+                ->withPageCount($dompdf->getCanvas()->get_page_count())
+                ->withPageNumbers($pages));
         }
 
         return (string) $dompdf->output();
     }
 
-    protected function print(PdfDocument $document): Dompdf
+    /**
+     * @param  array<int, array{event: string, f: callable}>  $callbacks
+     */
+    protected function print(PdfDocument $document, array $callbacks = []): Dompdf
     {
         $dompdf = new Dompdf(new Options([...$this->defaultOptions(), ...$this->options]));
+
+        if ($callbacks !== []) {
+            $dompdf->setCallbacks($callbacks);
+        }
 
         $dompdf->setPaper([0.0, 0.0, ...$document->page->sizeInPoints()]);
         $dompdf->loadHtml($document->html, 'UTF-8');

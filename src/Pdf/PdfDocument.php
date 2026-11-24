@@ -29,6 +29,16 @@ final readonly class PdfDocument
      */
     public const PAGE_COUNT = '<span class="fi-arte-pdf-page-count totalPages"></span>';
 
+    /**
+     * Where the number of the page an element starts on stands - the element named by its
+     * `id`. DomPDF writes it in after a first pass, as it does the number of pages; Chromium
+     * has no way to tell, and leaves it empty.
+     */
+    public static function pageOf(string $id): string
+    {
+        return '<span class="fi-arte-pdf-page-of" data-page-of="'.e($id).'"></span>';
+    }
+
     public function __construct(
         public string $html,
         public PdfPage $page,
@@ -52,6 +62,38 @@ final readonly class PdfDocument
             $this->header,
             $this->footer,
         );
+    }
+
+    /**
+     * The ids whose page the document asks for, through `pageOf()`.
+     *
+     * @return list<string>
+     */
+    public function pageReferences(): array
+    {
+        preg_match_all('/<span class="fi-arte-pdf-page-of" data-page-of="([^"]*)"><\/span>/', $this->html, $matches);
+
+        return array_values(array_unique(array_map(
+            static fn (string $id): string => html_entity_decode($id, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            $matches[1],
+        )));
+    }
+
+    /**
+     * The document with the pages of the elements it asks for written in. An id missing
+     * from `$pages` stays empty.
+     *
+     * @param  array<string, int>  $pages
+     */
+    public function withPageNumbers(array $pages): self
+    {
+        $replacements = [];
+
+        foreach ($pages as $id => $page) {
+            $replacements[self::pageOf((string) $id)] = str_replace('></span>', '>'.$page.'</span>', self::pageOf((string) $id));
+        }
+
+        return new self(strtr($this->html, $replacements), $this->page, $this->header, $this->footer);
     }
 
     /**

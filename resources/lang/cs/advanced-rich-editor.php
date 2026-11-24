@@ -612,4 +612,7 @@ return [
     'lightbox' => [
         'close' => 'Zavřít',
     ],
+    'pdf' => [
+        'table_of_contents' => 'Obsah',
+    ],
 ];

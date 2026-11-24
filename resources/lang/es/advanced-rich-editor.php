@@ -612,4 +612,7 @@ return [
     'lightbox' => [
         'close' => 'Cerrar',
     ],
+    'pdf' => [
+        'table_of_contents' => 'Índice',
+    ],
 ];

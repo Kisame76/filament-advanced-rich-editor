@@ -81,6 +81,56 @@ body {
     white-space: nowrap;
 }
 
+/* -- Combined documents --------------------------------------------------- */
+
+/* The list of parts, on a page of its own after the cover. */
+.fi-arte-pdf-toc {
+    page-break-after: always;
+}
+
+.fi-arte-pdf-toc-heading {
+    margin: 0 0 10pt 0;
+}
+
+table.fi-arte-pdf-toc-entries {
+    width: 100%;
+    border: 0;
+}
+
+table.fi-arte-pdf-toc-entries td {
+    padding: 3pt 0;
+    border: 0;
+    border-bottom: 1px solid #e4e4e7;
+}
+
+.fi-arte-pdf-toc-title a {
+    color: #18181b;
+    text-decoration: none;
+}
+
+.fi-arte-pdf-toc-page {
+    width: 15mm;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* Every part but one that follows the cover or the list - those end their page themselves. */
+.fi-arte-pdf-new-page {
+    page-break-before: always;
+}
+
+.fi-arte-pdf-part > :first-child {
+    margin-top: 0;
+}
+
+.fi-arte-pdf-part-title {
+    margin-bottom: 12pt;
+}
+
+.fi-arte-pdf-page-of {
+    white-space: nowrap;
+}
+
 /* -- Text ----------------------------------------------------------------- */
 
 p {

@@ -161,11 +161,11 @@ describe('printed by DomPDF', function (): void {
                 parent::__construct();
             }
 
-            protected function print(PdfDocument $document): Dompdf\Dompdf
+            protected function print(PdfDocument $document, array $callbacks = []): Dompdf\Dompdf
             {
                 $this->printed++;
 
-                return parent::print($document);
+                return parent::print($document, $callbacks);
             }
         };
 

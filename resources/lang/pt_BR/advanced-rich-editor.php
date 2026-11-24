@@ -612,4 +612,7 @@ return [
     'lightbox' => [
         'close' => 'Fechar',
     ],
+    'pdf' => [
+        'table_of_contents' => 'Sumário',
+    ],
 ];

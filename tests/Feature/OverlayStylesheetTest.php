@@ -308,6 +308,9 @@ function interpolatedArteClassValues(): array
         'fi-arte-media-' => MediaUrl::KINDS,
         // Nodes\LinkPreview and link-preview.js: the parts of the card.
         'fi-arte-link-preview-' => ['title', 'description', 'site', 'icon'],
+        // RichEditorPdf: the id of each part of a combined PDF, numbered - an id the table of
+        // contents links to, not a class, and printed rather than drawn.
+        'fi-arte-pdf-part-' => null,
         // TipTapExtensions\Mention: the trigger's name.
         'fi-arte-mention-' => array_values(Mention::TRIGGERS),
         // BuildsTheToolbar: where the groups sit, and which edge the pinned buttons keep.

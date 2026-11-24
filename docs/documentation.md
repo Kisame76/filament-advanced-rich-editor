@@ -5372,6 +5372,45 @@ With a Chromium driver Chromium prints the header and the footer itself, from te
 read none of the document's stylesheets - only the package's small one for them and the
 `style` attributes in your markup - and Chromium may print them on the cover as well.
 
+**Several documents as one.** `combine()` takes parts, each a `RichEditorPdf`, and prints
+them as one document - each part on a page of its own, under its title, the page numbers
+running on across all of them:
+
+```php
+RichEditorPdf::combine($articles->map(
+    fn (Article $article) => RichEditorPdf::forRecord($article, 'content')->title($article->title),
+))
+    ->title('Collected articles')
+    ->cover()
+    ->tableOfContents()                                  // after the cover: each part's title and the page it starts on
+    ->pageNumbers('Page {page} of {pages}')
+    ->download();
+```
+
+The parts are put together as HTML and printed once, not printed one by one and merged: no
+PDF library on top, numbers that need no fixing afterwards, and a table of contents that knows
+where every part starts. A part brings what belongs to its content - the renderer, its title,
+its language, `baseUrl()`, `imageHosts()` and its stylesheets, each stylesheet printed once
+however many parts bring it. The sheet, the cover, the header, the footer, the title
+`{title}` stands for and the driver are the combined document's; the same calls on a part are
+not read.
+
+- `->append($part)` adds one part or several after the ones there are. Content of the
+  document's own - `make($preface)->append(...)` rather than `combine()` - comes first, as a
+  preface. A part cannot have parts of its own.
+- `->tableOfContents()` lists every part that has a title, linked to where it starts, on a
+  page of its own after the cover. The heading is "Contents" in the document's language; pass
+  a string for another. DomPDF writes the page numbers in from a first pass, which it shares
+  with `{pages}`; a Chromium driver prints the list without them. It lists parts only - the
+  headings of a single document are what `TableOfContents` is for, and asking a document
+  without parts for one throws.
+- `->partTitles(false)` leaves the titles out of the text, for content that starts with its
+  own heading. The table of contents still lists them.
+- Every part gets ids of its own: two articles each with a heading "Introduction" or a first
+  footnote would otherwise share an id, and a link in the second would land in the first. The
+  package prefixes them per part - `#introduction` in the second part becomes
+  `#part-2-introduction`, the link to it as well.
+
 **What changes on paper.** The document is not changed - the export works on a copy of the
 markup - but a few things on a page mean nothing on a sheet, and each becomes the nearest
 thing paper has:

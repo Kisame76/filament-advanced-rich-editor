@@ -11,6 +11,7 @@ use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -21,6 +22,7 @@ use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\BrowsershotDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\DomPdfDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\GotenbergDriver;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\AdvancedRichContentRenderer;
+use LogicException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -28,6 +30,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Stored rich content as a PDF, from anywhere: a controller, a job, a command, tinker.
  *
  *     RichEditorPdf::make($article->content)->page('a4')->save('exports/article.pdf');
+ *
+ * Or several documents as one, each on a page of its own:
+ *
+ *     RichEditorPdf::combine($articles->map(
+ *         fn (Article $article) => RichEditorPdf::forRecord($article, 'content')->title($article->title),
+ *     ))->cover()->tableOfContents()->pageNumbers()->save('exports/articles.pdf');
  *
  * Built on the renderer and not on the editor, which is the point of it: an export that is
  * a button in a form cannot be queued, attached to a mail or put together with others. The
@@ -83,6 +91,15 @@ class RichEditorPdf
 
     protected DateTimeInterface|string|null $date = null;
 
+    /**
+     * @var list<RichEditorPdf>
+     */
+    protected array $parts = [];
+
+    protected string|bool $tableOfContents = false;
+
+    protected bool $hasPartTitles = true;
+
     final public function __construct(AdvancedRichContentRenderer $renderer)
     {
         $this->renderer = $renderer;
@@ -121,6 +138,83 @@ class RichEditorPdf
     public static function fromRenderer(AdvancedRichContentRenderer $renderer): static
     {
         return new static($renderer);
+    }
+
+    /**
+     * Several documents as one PDF, each starting on a new page, with page numbers that run
+     * on across all of them and a table of contents over all of them.
+     *
+     * Put together as HTML and printed once - not printed one by one and merged, which would
+     * need a PDF library on top, number every part from one and leave nothing to build a
+     * table of contents from.
+     *
+     * Each part is a `RichEditorPdf` and brings what belongs to its content: the renderer,
+     * the title it is listed and headed with, its language, the address its links and
+     * pictures are read against, the hosts its pictures may come from, and its stylesheets.
+     * The sheet, the cover, the header, the footer, the title `{title}` stands for and the
+     * driver are the combined document's, and the same settings on a part are not read.
+     *
+     * @param  iterable<RichEditorPdf>  $parts
+     */
+    public static function combine(iterable $parts = []): static
+    {
+        return (new static(AdvancedRichContentRenderer::make(null)))->append($parts);
+    }
+
+    /**
+     * Adds parts after the ones there are. Content of the document's own - from `make()`
+     * rather than `combine()` - comes before all of them, as a preface.
+     *
+     * @param  RichEditorPdf | iterable<RichEditorPdf>  $parts
+     */
+    public function append(RichEditorPdf|iterable $parts): static
+    {
+        foreach (($parts instanceof RichEditorPdf) ? [$parts] : $parts as $part) {
+            // A part prints its own content and nothing else, so parts of parts would be
+            // dropped without a word - and a document that is its own part would never end.
+            if (($part === $this) || ($part->parts !== [])) {
+                throw new InvalidArgumentException('A part of a combined PDF cannot have parts of its own. Append its parts instead.');
+            }
+
+            $this->parts[] = $part;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return list<RichEditorPdf>
+     */
+    public function getParts(): array
+    {
+        return $this->parts;
+    }
+
+    /**
+     * A list of the parts on a page of its own, after the cover: each part's title, linked
+     * to where it starts, and the page it starts on.
+     *
+     * A part without a title is not listed. The heading is "Contents" in the document's
+     * language unless it is given; DomPDF writes in the page numbers, a Chromium driver
+     * prints the list without them. For a combined document only - a single one has its
+     * headings, and `TableOfContents` lists those.
+     */
+    public function tableOfContents(string|bool $heading = true): static
+    {
+        $this->tableOfContents = $heading;
+
+        return $this;
+    }
+
+    /**
+     * Whether each part opens with its title as a heading. On by default; off for content
+     * that carries its own.
+     */
+    public function partTitles(bool $condition = true): static
+    {
+        $this->hasPartTitles = $condition;
+
+        return $this;
     }
 
     /**
@@ -372,9 +466,68 @@ class RichEditorPdf
     }
 
     /**
-     * The content as the engine receives it, without the document around it.
+     * The content as the engine receives it, without the document around it: the document's
+     * own, then each part in a section of its own.
      */
     public function toBodyHtml(): string
+    {
+        $sections = [];
+
+        if (trim($content = $this->contentHtml()) !== '') {
+            $sections[] = $content;
+        }
+
+        foreach ($this->parts as $index => $part) {
+            $sections[] = $this->partHtml($part, $index + 1, startsPage: $sections !== []);
+        }
+
+        return implode("\n", $sections);
+    }
+
+    /**
+     * One part: its content, under its title, in a section the table of contents links to.
+     *
+     * The ids in it are made its own. Every part hands its headings and footnotes ids from
+     * one, so two articles with a heading "Introduction" or a first footnote would share an
+     * id, and a link in the second would land in the first.
+     */
+    protected function partHtml(RichEditorPdf $part, int $number, bool $startsPage): string
+    {
+        $id = static::partId($number);
+        $prefix = "part-{$number}-";
+
+        $content = (string) preg_replace_callback(
+            '/(?<=\s)(id="|href="#)([^"]+)"/',
+            static fn (array $match): string => $match[1].$prefix.$match[2].'"',
+            $part->contentHtml(),
+        );
+
+        $title = ($this->hasPartTitles && filled($part->title))
+            ? '<h1 class="fi-arte-pdf-part-title">'.e((string) $part->title).'</h1>'
+            : '';
+
+        // A part written in another language than the document around it says so, for the
+        // hyphenation a Chromium driver does by it.
+        $language = (filled($part->language) && ($part->language !== $this->getLanguage()))
+            ? ' lang="'.e((string) $part->language).'"'
+            : '';
+
+        // The first part follows the cover or the table of contents, which end their page
+        // themselves; a break before it as well would leave a page blank.
+        $class = 'fi-arte-pdf-part'.($startsPage ? ' fi-arte-pdf-new-page' : '');
+
+        return "<section id=\"{$id}\" class=\"{$class}\"{$language}>{$title}{$content}</section>";
+    }
+
+    protected static function partId(int $number): string
+    {
+        return "fi-arte-pdf-part-{$number}";
+    }
+
+    /**
+     * The document's own content, finished for the engine.
+     */
+    protected function contentHtml(): string
     {
         $images = new PdfImages(
             renderer: $this->renderer,
@@ -424,8 +577,9 @@ class RichEditorPdf
             'cover' => $cover,
             'header' => $apart ? null : $header,
             'footer' => $apart ? null : $footer,
+            'tableOfContents' => $this->tableOfContentsHtml(),
             'language' => $this->getLanguage(),
-            'stylesheet' => implode("\n", [...$stylesheet, static::packageStylesheet(), ...$this->stylesheets]),
+            'stylesheet' => implode("\n", [...$stylesheet, static::packageStylesheet(), ...$this->getStylesheets()]),
             'title' => $this->title,
         ])->render();
 
@@ -464,6 +618,72 @@ class RichEditorPdf
         return Carbon::instance($this->date ?? now())
             ->locale(str_replace('-', '_', $this->getLanguage()))
             ->isoFormat('LL');
+    }
+
+    /**
+     * The document's stylesheets, then those its parts brought, each once.
+     *
+     * @return list<string>
+     */
+    public function getStylesheets(): array
+    {
+        return array_values(array_unique([
+            ...$this->stylesheets,
+            ...array_merge(...array_map(static fn (RichEditorPdf $part): array => $part->stylesheets, $this->parts)),
+        ]));
+    }
+
+    protected function tableOfContentsHtml(): ?string
+    {
+        if ($this->tableOfContents === false) {
+            return null;
+        }
+
+        if ($this->parts === []) {
+            throw new LogicException('A table of contents lists the parts of a combined PDF, and this one has none. Use RichEditorPdf::combine(), or TableOfContents for the headings of a single document.');
+        }
+
+        $entries = [];
+
+        foreach ($this->parts as $index => $part) {
+            if (blank($part->title)) {
+                continue;
+            }
+
+            $entries[] = [
+                'title' => (string) $part->title,
+                'target' => static::partId($index + 1),
+                'page' => new HtmlString(PdfDocument::pageOf(static::partId($index + 1))),
+            ];
+        }
+
+        if ($entries === []) {
+            throw new LogicException('A table of contents lists the parts by their titles, and none of them has one. Give each part a title().');
+        }
+
+        return view('filament-advanced-rich-editor::pdf.table-of-contents', [
+            'heading' => is_string($this->tableOfContents) ? $this->tableOfContents : $this->tableOfContentsHeading(),
+            'entries' => $entries,
+        ])->render();
+    }
+
+    /**
+     * "Contents" in the document's language rather than the application's: a German export
+     * from an English panel is German throughout. A regional language falls back to its
+     * language - `de-AT` reads the German line.
+     */
+    protected function tableOfContentsHeading(): string
+    {
+        $key = 'filament-advanced-rich-editor::advanced-rich-editor.pdf.table_of_contents';
+        $language = str_replace('-', '_', $this->getLanguage());
+
+        foreach (array_unique([$language, Str::before($language, '_')]) as $locale) {
+            if (Lang::hasForLocale($key, $locale)) {
+                return (string) __($key, [], $locale);
+            }
+        }
+
+        return (string) __($key);
     }
 
     protected function coverHtml(): ?string
