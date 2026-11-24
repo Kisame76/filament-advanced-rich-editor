@@ -22,6 +22,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- On Filament 5.12 the editor waits behind Filament's loading placeholder until its script is
+  ready, the way every other field there does. The view this package draws is a copy of
+  Filament's, and 5.12 added the wrapper to Filament's alone, so the editor showed half-built
+  while its script loaded. The wrapper is Filament's own and is drawn only where the installed
+  release has it
+
 - The checkbox on a view page with `->tickableTasks()` sits on the first line of its item again.
   The button that replaces the label there was missed by the rule that centres the label, and
   the box dropped to the text's baseline

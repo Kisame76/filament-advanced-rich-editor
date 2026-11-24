@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Composer\InstalledVersions;
 use Filament\Forms\Components\RichEditor;
 use Kisame76\FilamentAdvancedRichEditor\Forms\Components\AdvancedRichEditor;
+use Kisame76\FilamentAdvancedRichEditor\Tests\Fixtures\Livewire\EditorFormComponent;
+use Livewire\Livewire;
 
 /**
  * The forked editor view has to keep offering the Alpine component exactly what upstream
@@ -431,4 +433,37 @@ it('still renders the fork rather than the embedded HTML', function (): void {
 
     expect($field->hasView())->toBeTrue()
         ->and($field->getView())->toBe('filament-advanced-rich-editor::rich-editor');
+});
+
+it('waits behind Filament\'s loading placeholder where Filament draws one', function (): void {
+    // Filament 5.12 keeps a field inert behind a placeholder until its script reports it is
+    // ready. The fork draws the same wrapper - Filament's own, asked for by marker - and only
+    // where the installed release has it: an older script never reports ready, and an editor
+    // waiting for it would never take a keystroke.
+    $html = Livewire::test(EditorFormComponent::class)->html();
+    $hasPlaceholder = (new ReflectionClass(RichEditor::class))->hasMethod('wrapAsyncComponentHtml');
+
+    if (! $hasPlaceholder) {
+        expect($html)->not->toContain('fi-async-component')
+            ->not->toContain('isLoading')
+            ->and(editor()->getAsyncComponentWrapper())->toBeNull();
+
+        return;
+    }
+
+    $document = new DOMDocument;
+    @$document->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
+    $xpath = new DOMXPath($document);
+
+    $wrapper = $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " fi-async-component ")]')->item(0);
+    $content = $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " fi-async-component-content ")]')->item(0);
+
+    expect($wrapper)->toBeInstanceOf(DOMElement::class)
+        ->and($wrapper->getAttribute('x-on:async-component-ready.stop'))->toBe('isLoading = false')
+        ->and($content)->toBeInstanceOf(DOMElement::class)
+        // The editor itself, inside the wrapper, and inert until the wrapper says otherwise.
+        ->and($content->parentNode->isSameNode($wrapper))->toBeTrue()
+        ->and($content->hasAttribute('x-load'))->toBeTrue()
+        ->and($content->getAttribute('x-bind:inert'))->toBe('isLoading')
+        ->and($content->hasAttribute('inert'))->toBeTrue();
 });
