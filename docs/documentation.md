@@ -5410,6 +5410,21 @@ already wrote, and writes nothing.
 Each button is named after the first line of its item, so a screen reader says which task it
 is about rather than only "toggle button, not pressed".
 
+**Being told a box was ticked.** A tick is written straight to the record, past the form, so
+anything else on the page that shows the record does not know about it. Two ways to hear:
+
+```php
+AdvancedRichEntry::make('content')
+    ->tickableTasks()
+    ->afterTaskToggled(fn (Ticket $record, int $index, bool $checked) => $record->touch())
+```
+
+The callback runs once the tick is written, with the record, the item's position in the
+document and its new state. And the page's Livewire component dispatches `arte-task-toggled`
+with `attribute`, `recordKey`, `index` and `checked`, for a component elsewhere on the page that
+listens with `#[On('arte-task-toggled')]` — an activity feed that should show the change
+without a reload. A click that changed nothing triggers neither.
+
 Two mechanics worth knowing:
 
 - **The buttons are added after the sanitiser**, which is the opposite of every other pass in

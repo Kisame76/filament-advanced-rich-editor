@@ -315,6 +315,66 @@ it('gives hand-written markup no class it never had', function (): void {
         ->toContain('<li data-type="taskItem" data-checked="true"><p>Zwei</p></li>');
 });
 
+it('writes once when the same click arrives twice', function (): void {
+    $record = Post::create(['title' => 'Titel', 'content' => taskDocument()]);
+    $calls = 0;
+
+    $entry = tickableEntry($record)->afterTaskToggled(function () use (&$calls): void {
+        $calls++;
+    });
+
+    $entry->toggleTask(1, checked: true);
+    $entry->toggleTask(1, checked: true);
+
+    expect($record->fresh()->content)
+        ->toContain('<li data-type="taskItem" data-checked="true"><p>Zwei</p></li>')
+        ->and($calls)->toBe(1);
+});
+
+it('calls back once a tick is written, with the record, the item and its state', function (): void {
+    $record = Post::create(['title' => 'Titel', 'content' => taskDocument()]);
+    $seen = null;
+
+    tickableEntry($record)
+        ->afterTaskToggled(function (Post $record, int $index, bool $checked) use (&$seen): void {
+            // Written already: a callback that reloads the record sees the new state.
+            $seen = [$record->title, $index, $checked, DocumentTasks::isChecked($record->fresh()->content, $index)];
+        })
+        ->toggleTask(0);
+
+    expect($seen)->toBe(['Titel', 0, false, false]);
+});
+
+it('calls nothing back where nothing was written', function (): void {
+    $record = Post::create(['title' => 'Titel', 'content' => taskDocument()]);
+    $calls = 0;
+    $count = function () use (&$calls): void {
+        $calls++;
+    };
+
+    tickableEntry($record)->afterTaskToggled($count)->toggleTask(99);
+    tickableEntry($record, fn (): bool => false)->afterTaskToggled($count)->toggleTask(1);
+
+    expect($calls)->toBe(0);
+});
+
+it('tells the page a tick was written', function (): void {
+    $record = Post::create(['title' => 'Titel', 'content' => taskDocument()]);
+    $entry = tickableEntry($record);
+
+    $entry->toggleTask(2);
+
+    $events = array_map(
+        fn (object $event): array => (fn (): array => [$this->name, $this->params])->call($event),
+        Livewire\store($entry->getLivewire())->get('dispatched') ?? [],
+    );
+
+    expect($events)->toBe([[
+        'arte-task-toggled',
+        ['attribute' => 'content', 'recordKey' => $record->getKey(), 'index' => 2, 'checked' => true],
+    ]]);
+});
+
 it('centres the button the way it centres the label', function (): void {
     // `TickableTasks` swaps the label for a button, and a rule written for the label alone
     // left the box on the text's baseline.

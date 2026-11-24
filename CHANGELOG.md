@@ -4,6 +4,14 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ## Unreleased
 
+### Added
+
+- `AdvancedRichEntry::afterTaskToggled()` runs once a tick on the view page has been written,
+  with the record, the item's position and the state it now has - for an activity feed or a
+  counter beside the document. The page's Livewire component also dispatches
+  `arte-task-toggled` with the attribute, the record key, the index and the state, for a
+  component that listens rather than being called. A click that changed nothing calls neither
+
 ### Fixed
 
 - The checkbox on a view page with `->tickableTasks()` sits on the first line of its item again.

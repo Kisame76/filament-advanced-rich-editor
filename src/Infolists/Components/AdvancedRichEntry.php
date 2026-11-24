@@ -31,6 +31,8 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
 
     protected bool|Closure $isTickable = false;
 
+    protected ?Closure $afterTaskToggled = null;
+
     public function toEmbeddedHtml(): string
     {
         $state = $this->getState();
@@ -90,6 +92,28 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
     public function tickableTasks(bool|Closure $condition = true): static
     {
         $this->isTickable = $condition;
+
+        return $this;
+    }
+
+    /**
+     * Runs once a tick has been written, with the record, the item's position in the
+     * document and the state it now has.
+     *
+     * For whatever else on the page should know: an activity feed that lists the change, a
+     * counter of open tasks. A click that changed nothing - the second half of a double
+     * click - does not call it.
+     *
+     *     AdvancedRichEntry::make('content')
+     *         ->tickableTasks()
+     *         ->afterTaskToggled(fn (Ticket $record, int $index, bool $checked) => $record->touch())
+     *
+     * The page's Livewire component also dispatches `arte-task-toggled` either way, for a
+     * component elsewhere on the page that listens rather than being called.
+     */
+    public function afterTaskToggled(?Closure $callback): static
+    {
+        $this->afterTaskToggled = $callback;
 
         return $this;
     }
@@ -165,5 +189,18 @@ class AdvancedRichEntry extends Entry implements HasEmbeddedView
 
         $record->setAttribute($attribute, $updated);
         $record->save();
+
+        $this->evaluate($this->afterTaskToggled, [
+            'index' => $index,
+            'checked' => $checked,
+        ]);
+
+        $this->getLivewire()->dispatch(
+            'arte-task-toggled',
+            attribute: $attribute,
+            recordKey: $record->getKey(),
+            index: $index,
+            checked: $checked,
+        );
     }
 }
