@@ -16,8 +16,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 - Three engines behind one `PdfDriver` contract: DomPDF by default, which is plain PHP and
   runs on any host, and Gotenberg or Browsershot where the paper has to match the screen. None
-  of them is a dependency - `composer require dompdf/dompdf` for the default - and a missing
-  one says what to install. The package prints with a stylesheet of its own in CSS 2.1, the
+  of them is a dependency - `composer require dompdf/dompdf` for the default, 3.1.6 or later,
+  since every release before it has known security advisories - and a missing one says what to
+  install. The package prints with a stylesheet of its own in CSS 2.1, the
   only CSS DomPDF reads, and reduces the inline styles the renderer writes the same way, so
   all three engines print one document
 

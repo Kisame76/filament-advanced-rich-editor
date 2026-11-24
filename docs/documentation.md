@@ -5276,8 +5276,11 @@ Nothing is installed with the package to print with. Install the engine you choo
 the default:
 
 ```bash
-composer require dompdf/dompdf
+composer require "dompdf/dompdf:^3.1.6"
 ```
+
+3.1.6 or later: every DomPDF release before it has known security advisories, among them
+reading local files through an SVG and getting round its `chroot`.
 
 **What goes in.** `forRecord()` reads one rich content attribute of a model along with
 everything the model registered for it - its plugins, its mentions, its merge tags, and the
@@ -5372,7 +5375,7 @@ limit and the timeout live under `pdf.images` in the config.
 
 | Driver | Needs | Good for |
 | --- | --- | --- |
-| `dompdf` (default) | `composer require dompdf/dompdf` | Any host - plain PHP, nothing to install on the server |
+| `dompdf` (default) | `composer require "dompdf/dompdf:^3.1.6"` | Any host - plain PHP, nothing to install on the server |
 | `gotenberg` | A [Gotenberg](https://gotenberg.dev) service, `pdf.gotenberg.url` | What the screen shows, without Chromium on the application server |
 | `browsershot` | `composer require spatie/browsershot`, Node and Chromium | What the screen shows, without a service to run |
 

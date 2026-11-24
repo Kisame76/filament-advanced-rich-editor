@@ -78,22 +78,13 @@ describe('DomPDF', function (): void {
     });
 
     it('passes DomPDF options through', function (): void {
-        $indent = static function (array $options): float {
-            $pdf = (new DomPdfDriver($options))->render('<style>@page { margin: 0; }</style><p style="margin: 0 0 0 96px;">Hello</p>', a4(0));
+        $text = static fn (array $options): string => trim((string) preg_replace('/\s+/', ' ', (new Parser)->parseContent(
+            (new DomPdfDriver($options))->render('<style>@media print { .screen-only { display: none; } }</style><p class="screen-only">Screen</p><p>After</p>', a4()),
+        )->getText()));
 
-            foreach ((new Parser)->parseContent($pdf)->getPages()[0]->getDataTm() as [$matrix, $text]) {
-                if (str_contains($text, 'Hello')) {
-                    return round((float) $matrix[4]);
-                }
-            }
-
-            return -1.0;
-        };
-
-        // 96 CSS pixels are an inch, 72pt, at DomPDF's own resolution; told 72 dots to the
-        // inch, the same 96 pixels are 96pt.
-        expect($indent([]))->toBe(72.0)
-            ->and($indent(['dpi' => 72]))->toBe(96.0);
+        // DomPDF reads a document as a screen unless told otherwise.
+        expect($text([]))->toBe('Screen After')
+            ->and($text(['defaultMediaType' => 'print']))->toBe('After');
     });
 
     it('says how to install DomPDF where it is missing', function (): void {
