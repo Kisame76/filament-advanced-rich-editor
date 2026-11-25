@@ -599,4 +599,13 @@ return [
             'failed' => 'Deine PDF konnte nicht erstellt werden',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Vergrößern',
+        'zoom_out' => 'Verkleinern',
+        'reset' => 'Originalgröße',
+        'fit' => 'An Breite anpassen',
+        'portrait' => 'Hochformat',
+        'landscape' => 'Querformat',
+    ],
 ];

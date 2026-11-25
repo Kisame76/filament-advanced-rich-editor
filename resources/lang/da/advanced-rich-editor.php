@@ -623,4 +623,13 @@ return [
             'failed' => 'Din PDF kunne ikke oprettes',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Zoom ind',
+        'zoom_out' => 'Zoom ud',
+        'reset' => 'Faktisk størrelse',
+        'fit' => 'Tilpas til bredde',
+        'portrait' => 'Stående',
+        'landscape' => 'Liggende',
+    ],
 ];

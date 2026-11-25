@@ -624,4 +624,13 @@ return [
             'failed' => 'Je pdf kon niet worden gemaakt',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Inzoomen',
+        'zoom_out' => 'Uitzoomen',
+        'reset' => 'Ware grootte',
+        'fit' => 'Aanpassen aan breedte',
+        'portrait' => 'Staand',
+        'landscape' => 'Liggend',
+    ],
 ];

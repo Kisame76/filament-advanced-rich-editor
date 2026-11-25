@@ -39,6 +39,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PlacesImages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\PreviewsContent;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\RemembersWithinARender;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ServesTheMediaBrowser;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\ShowsPages;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\UploadsDocuments;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Concerns\WritesWithoutAToolbar;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Icons;
@@ -83,6 +84,7 @@ use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MediaReplacePlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\MentionMenuPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PageBreakPlugin;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PageViewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PasteCleanupPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\PreviewPlugin;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Plugins\ShortcutsPlugin;
@@ -135,6 +137,7 @@ class AdvancedRichEditor extends RichEditor
     use PreviewsContent;
     use RemembersWithinARender;
     use ServesTheMediaBrowser;
+    use ShowsPages;
     use UploadsDocuments;
     use WritesWithoutAToolbar;
 
@@ -336,6 +339,12 @@ class AdvancedRichEditor extends RichEditor
         $this->plugins(
             static fn (AdvancedRichEditor $component): array => $component->hasPageBreak()
                 ? [PageBreakPlugin::make()]
+                : [],
+        );
+
+        $this->plugins(
+            static fn (AdvancedRichEditor $component): array => $component->hasPageView()
+                ? [PageViewPlugin::make()]
                 : [],
         );
 

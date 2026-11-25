@@ -429,6 +429,21 @@ figcaption {
     display: none;
 }
 
+/* The card's three lines, the way the Word file sets them too. */
+.fi-arte-link-preview-title {
+    font-weight: bold;
+}
+
+.fi-arte-link-preview-description {
+    font-size: 9pt;
+    color: #52525b;
+}
+
+.fi-arte-link-preview-site {
+    font-size: 8pt;
+    color: #71717a;
+}
+
 .fi-arte-mention {
     color: #2563eb;
     text-decoration: none;

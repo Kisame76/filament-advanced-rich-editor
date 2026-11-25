@@ -1157,6 +1157,39 @@ break with nothing after it is dropped, since it would only print an empty sheet
 [combined PDF](#pdf-export) each part starts on a page of its own anyway. A stored break
 renders whether or not the field that renders it has the feature switched on.
 
+### Page view
+
+The editor drawn as a sheet of paper instead of a column of text: the width of the page, its
+margins, at least one page tall, on a desk around it - and a page break as the gap between
+two sheets. **Off by default.** What is stored does not change: it is still flowing text,
+which is what a web page needs, and the format belongs to the field, not to the document.
+
+```php
+AdvancedRichEditor::make('content')->page();                       // the sheet the PDF export prints on
+AdvancedRichEditor::make('content')->page('letter')->pageLandscape()->pageMargins(25, 20);
+```
+
+`page()` with nothing in it is the sheet `RichEditorPdf` prints on - `pdf.page`,
+`pdf.orientation` and `pdf.margins` in the config file - so the lines break in the editor
+where they break in the PDF. A format of its own is `a4`, `a3`, `a5`, `letter` or `legal`;
+`pageMargins()` reads millimetres the way CSS reads its shorthand. Project-wide:
+`page_view => true` or a format.
+
+A bar over the sheet names the format and holds the zoom: smaller, the size it is at (click
+for 100 %), larger, and fit to the width. It starts at the width that fits and never larger
+than the sheet itself, so a page view in a narrow form does not have to scroll sideways; a
+size somebody chooses is remembered in their browser for every field. The zoom is CSS `zoom`,
+so a smaller sheet takes less room rather than leaving its old size empty, and dragging a
+picture's corner on a zoomed sheet still moves it with the cursor - the package measures the
+drag back into the page's own pixels.
+
+The desk scrolls sideways only while the sheet is zoomed wider than it is: a box that scrolls
+clips whatever is positioned outside it, the toolbar over a picture among them. Under a
+`maxHeight()` the sheet is the window that scrolls, and does not insist on being a page tall.
+
+The page view shows where a page break ends a page. It does not predict where the PDF will
+break a page that simply runs full - that is the engine's layout, made when it prints.
+
 ### Lists: markers, numbering and direction
 
 ```php
@@ -5567,6 +5600,59 @@ Two limits of DomPDF are worth knowing before choosing it:
 
 Page breaks of your own and several documents in one PDF are not part of the export yet.
 
+### Word export
+
+The same document as a Word file, configured exactly as the PDF is:
+
+```php
+use Kisame76\FilamentAdvancedRichEditor\Docx\RichEditorDocx;
+
+RichEditorDocx::forRecord($article, 'content')
+    ->title($article->title)
+    ->header('<p>{title}<span style="float: right">{date}</span></p>')
+    ->pageNumbers('Page {page} of {pages}')
+    ->download();                                       // or ->save($path, $disk), ->toString()
+```
+
+`RichEditorDocx` and `RichEditorPdf` share everything that is not the output - both extend
+`Export\RichEditorExport`: the sheet and its margins, the title and the language, the cover,
+the header and the footer with `{page}`, `{pages}`, `{title}` and `{date}`, page breaks, and a
+combined document with `combine()`, its parts' titles as Word headings and `tableOfContents()`
+as Word's own table of contents, which Word fills in as the file opens. `stylesheet()` is a
+PDF's only.
+
+**Install it where you need it.** PHPWord is not a dependency of this package - a field that
+never exports to Word should not make its project carry a word processor's file format:
+
+```bash
+composer require phpoffice/phpword
+```
+
+Asked for a Word file without it, `RichEditorDocx` throws a `MissingDocxLibrary` that names
+the line to run.
+
+**How it is written.** From the same markup the PDF is printed from - every picture already
+embedded, embeds and players already links, task boxes already ☑ and ☐ - walked element by
+element into PHPWord, not through PHPWord's own HTML reader, which drops callouts, task
+lists, definition lists, file cards and column widths:
+
+| In the editor | In the Word file |
+| --- | --- |
+| Headings | Word headings 1-6, in the navigation pane; in a combined document one level under their part's title |
+| Bold, italic, underline, strike, sub- and superscript, code, highlight, colour, size, typeface | The same run formatting; a CSS font stack becomes one face Word can look up - Consolas for a monospaced one |
+| Alignment, line height, indent, right-to-left | Paragraph formatting |
+| Bulleted, numbered and lettered lists, nested | Word numbering, each list numbered on its own from the number it was given |
+| Task lists | Their boxes, ☑ and ☐, without a bullet in front |
+| Tables | Tables with the column widths, merged cells, shaded header cells and the header row repeated on every page |
+| Callouts, quotations, code | A box of one cell: the callout's tint and bar, a bar beside the quotation, monospaced code with every space kept |
+| Pictures | Embedded from the bytes the export already read - PNG, JPEG and GIF as they are, WebP and BMP as PNG; an SVG leaves its description in brackets |
+| Links, file cards, link cards | Hyperlinks; a link to a heading in the document is a link to a bookmark on it |
+| Page breaks, horizontal rules, definition lists, details | A page break, a line, a bold term over its indented description, the summary in bold over the content |
+
+The text is escaped on the way into the file - PHPWord writes it as it is unless told
+otherwise, and the document is text somebody typed - and PHPWord's global settings are put
+back the way they were found once the file is written.
+
 ### Blade component
 
 One tag instead of three lines of renderer assembly in every template that prints a
@@ -5944,6 +6030,7 @@ the whole project; the method sets it for one field and wins.
 | Source view | `source_code` | `->sourceCode()` |
 | Definition lists | `description_list` | `->descriptionList()` |
 | Page breaks | `page_break` | `->pageBreak()` |
+| Page view | `page_view` | `->page()` |
 | Marking styled text in the editor | `style_preview` | `->stylePreview()` |
 | `null` in the column for an empty document | `null_when_empty` | `->nullWhenEmpty()` |
 | Named styles (the list ships empty, so the dropdown is absent) | `styles` | `->styles([...])` |

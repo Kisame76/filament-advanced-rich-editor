@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Kisame76\FilamentAdvancedRichEditor\Export\RichEditorExport;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\Drivers\GotenbergDriver;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfDocument;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfPage;
@@ -54,7 +55,7 @@ describe('assembling', function (): void {
     it('takes parts one at a time, from a collection, or both', function (): void {
         $pdf = RichEditorPdf::combine(collect(parts(['One', 'Two'])))->append(RichEditorPdf::make('<p>x</p>')->title('Three'));
 
-        expect(array_map(fn (RichEditorPdf $part): ?string => (fn () => $this->title)->call($part), $pdf->getParts()))
+        expect(array_map(fn (RichEditorExport $part): ?string => (fn () => $this->title)->call($part), $pdf->getParts()))
             ->toBe(['One', 'Two', 'Three']);
     });
 

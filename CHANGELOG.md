@@ -44,6 +44,20 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   Chromium all break there without the package's stylesheet. A break another editor wrote is
   read as one, Markdown leaves it out, and a PDF drops one with nothing after it
 
+- A Word export, `RichEditorDocx`, configured exactly as the PDF is - both now extend
+  `Export\RichEditorExport` - with the sheet, the cover, the header and the footer with
+  Word's own page fields, page breaks, and a combined document with Word's own table of
+  contents. Written from the markup the PDF is printed from, element by element, not through
+  PHPWord's HTML reader: headings, lists, tables with merged cells and column widths,
+  callouts, code, pictures and links come through. PHPWord is a suggestion, not a
+  dependency - `composer require phpoffice/phpword` where Word files are wanted
+
+- A page view, `->page()`, off by default: the editor drawn as a sheet - the PDF export's
+  configured one unless the field names a format, `->pageLandscape()`, `->pageMargins()` -
+  with a page break as the gap between two sheets and a zoom over it that starts at the
+  width that fits. Dragging a picture's corner on a zoomed sheet still moves it with the
+  cursor
+
 - PDF exports on the queue: a project defines an export once as a `PdfExport` that carries
   data and builds the PDF from it, and runs it now with `->download()` or `->save()`, or on
   a worker with `->queue('exports/articles.pdf', 's3', notify: $user)`. The job runs on the
@@ -65,6 +79,9 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
   own joins in through `ProvidesFileContents`, which the Spatie provider implements
 
 ### Fixed
+
+- Text coloured with Filament's text colour printed black in a PDF: the colour rides in a
+  custom property no PDF engine reads, and is now read out of it
 
 - The PHPDoc of `headingLevels()`, `backgroundColors()` and the colour pickers' `text()`,
   `background()` and `colors()` says what they take: numeric strings and gaps for the levels,

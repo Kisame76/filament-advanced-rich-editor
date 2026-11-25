@@ -623,4 +623,13 @@ return [
             'failed' => 'PDF-en kunne ikke lages',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Zoom inn',
+        'zoom_out' => 'Zoom ut',
+        'reset' => 'Faktisk størrelse',
+        'fit' => 'Tilpass bredden',
+        'portrait' => 'Stående',
+        'landscape' => 'Liggende',
+    ],
 ];

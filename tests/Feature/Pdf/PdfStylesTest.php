@@ -53,6 +53,13 @@ it('drops what only a flex or grid container reads', function (): void {
         ->toBe('display: block; color: #333;');
 });
 
+it('reads Filament\'s text colour out of the custom property its stylesheet would have used', function (): void {
+    // `<span class="color" style="--color: #ef4444; --dark-color: #f87171">`: on paper the
+    // light one, and nothing a PDF engine or a Word file could not read.
+    expect(PdfStyles::reduce('--color: #ef4444; --dark-color: #f87171'))->toBe('color: #ef4444;')
+        ->and(PdfStyles::reduce('--color: var(--danger-500)'))->toBe('');
+});
+
 it('drops custom properties and the values a PDF engine cannot read', function (): void {
     expect(PdfStyles::reduce('--cols: repeat(2, minmax(0, 1fr)); color: var(--gray-600); background: color-mix(in oklab, red 10%, transparent); border-color: oklch(0.5 0.1 200); inline-size: fit-content; font-weight: 600'))
         ->toBe('font-weight: 600;');

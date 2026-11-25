@@ -624,4 +624,13 @@ return [
             'failed' => 'Nie udało się utworzyć pliku PDF',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Powiększenie',
+        'zoom_in' => 'Powiększ',
+        'zoom_out' => 'Pomniejsz',
+        'reset' => 'Rzeczywisty rozmiar',
+        'fit' => 'Dopasuj do szerokości',
+        'portrait' => 'Pionowo',
+        'landscape' => 'Poziomo',
+    ],
 ];

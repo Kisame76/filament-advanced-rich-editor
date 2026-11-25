@@ -624,4 +624,13 @@ return [
             'failed' => 'No se pudo crear tu PDF',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Acercar',
+        'zoom_out' => 'Alejar',
+        'reset' => 'Tamaño real',
+        'fit' => 'Ajustar al ancho',
+        'portrait' => 'Vertical',
+        'landscape' => 'Horizontal',
+    ],
 ];

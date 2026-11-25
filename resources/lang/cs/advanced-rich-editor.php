@@ -624,4 +624,13 @@ return [
             'failed' => 'PDF se nepodařilo vytvořit',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Lupa',
+        'zoom_in' => 'Přiblížit',
+        'zoom_out' => 'Oddálit',
+        'reset' => 'Skutečná velikost',
+        'fit' => 'Přizpůsobit šířce',
+        'portrait' => 'Na výšku',
+        'landscape' => 'Na šířku',
+    ],
 ];

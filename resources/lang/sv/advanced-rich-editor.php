@@ -624,4 +624,13 @@ return [
             'failed' => 'Din PDF kunde inte skapas',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Zooma in',
+        'zoom_out' => 'Zooma ut',
+        'reset' => 'Verklig storlek',
+        'fit' => 'Anpassa till bredd',
+        'portrait' => 'Stående',
+        'landscape' => 'Liggande',
+    ],
 ];

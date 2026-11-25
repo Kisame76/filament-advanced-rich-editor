@@ -1146,6 +1146,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Page view
+    |--------------------------------------------------------------------------
+    | Draws the editor as a sheet of paper rather than a column of text: the width of the
+    | page, its margins, a page break as the gap to the next sheet, and a zoom over it.
+    | What is stored does not change - it is still flowing text.
+    |
+    | false for none, true for the sheet the PDF export prints on (`pdf.page`,
+    | `pdf.orientation`, `pdf.margins`), or a format of its own: 'a4', 'a3', 'a5',
+    | 'letter', 'legal'. Per field: `->page()`, `->page('letter')`, `->pageLandscape()`,
+    | `->pageMargins(25, 20)`.
+    */
+    'page_view' => false,
+
+    /*
+    |--------------------------------------------------------------------------
     | Callouts
     |--------------------------------------------------------------------------
     | The note, tip, warning and danger boxes: a paragraph pulled out of the flow and

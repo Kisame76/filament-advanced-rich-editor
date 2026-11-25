@@ -25,6 +25,66 @@ final readonly class PdfPage
     public const POINTS_PER_MILLIMETRE = 72 / 25.4;
 
     /**
+     * A named sheet, turned and with margins where they are given and from the configuration
+     * where they are not - the sheet an export prints on, and the one a page view draws.
+     *
+     * @param  array{0: float, 1: float, 2: float, 3: float}|null  $margins  Clockwise from the top.
+     */
+    public static function configured(?PageFormat $format = null, ?bool $isLandscape = null, ?array $margins = null): self
+    {
+        [$width, $height] = ($format ?? self::configuredFormat())->dimensions();
+
+        if (($isLandscape ?? self::isConfiguredLandscape()) === ($width < $height)) {
+            [$width, $height] = [$height, $width];
+        }
+
+        [$top, $right, $bottom, $left] = $margins ?? self::configuredMargins();
+
+        return new self($width, $height, $top, $right, $bottom, $left);
+    }
+
+    public static function configuredFormat(): PageFormat
+    {
+        $format = (string) config('filament-advanced-rich-editor.pdf.page', 'a4');
+
+        return PageFormat::tryFrom(strtolower($format)) ?? PageFormat::A4;
+    }
+
+    public static function isConfiguredLandscape(): bool
+    {
+        return config('filament-advanced-rich-editor.pdf.orientation', 'portrait') === 'landscape';
+    }
+
+    /**
+     * @return array{0: float, 1: float, 2: float, 3: float}
+     */
+    public static function configuredMargins(): array
+    {
+        return self::shorthand(array_map('floatval', (array) config('filament-advanced-rich-editor.pdf.margins', [20, 20, 20, 20])));
+    }
+
+    /**
+     * Margins as CSS reads its shorthand: one value for all four sides, two for top and
+     * bottom then the sides, three for top, the sides and bottom, four clockwise from the
+     * top. Anything else is the default twenty millimetres all round.
+     *
+     * @param  array<int|string, float>  $values
+     * @return array{0: float, 1: float, 2: float, 3: float}
+     */
+    public static function shorthand(array $values): array
+    {
+        $values = array_values($values);
+
+        return match (count($values)) {
+            1 => [$values[0], $values[0], $values[0], $values[0]],
+            2 => [$values[0], $values[1], $values[0], $values[1]],
+            3 => [$values[0], $values[1], $values[2], $values[1]],
+            4 => [$values[0], $values[1], $values[2], $values[3]],
+            default => [20.0, 20.0, 20.0, 20.0],
+        };
+    }
+
+    /**
      * The size in PostScript points, which is what DomPDF's paper takes.
      *
      * @return array{0: float, 1: float}

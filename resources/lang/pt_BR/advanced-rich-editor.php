@@ -624,4 +624,13 @@ return [
             'failed' => 'Não foi possível criar seu PDF',
         ],
     ],
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Aumentar zoom',
+        'zoom_out' => 'Diminuir zoom',
+        'reset' => 'Tamanho real',
+        'fit' => 'Ajustar à largura',
+        'portrait' => 'Retrato',
+        'landscape' => 'Paisagem',
+    ],
 ];

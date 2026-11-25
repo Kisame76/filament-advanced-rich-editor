@@ -107,6 +107,13 @@ class PdfStyles
      */
     protected static function translate(string $property, string $value): array
     {
+        // Filament's text colour: the colour rides in a custom property that its stylesheet
+        // reads, and no PDF engine - nor a Word file - reads custom properties. The light one
+        // is the colour on paper; `--dark-color` goes with the rest of them.
+        if (($property === '--color') && (preg_match(self::UNREADABLE_VALUES, $value) !== 1)) {
+            return ['color' => $value];
+        }
+
         if (str_starts_with($property, '--') || in_array($property, self::DROPPED, strict: true)) {
             return [];
         }

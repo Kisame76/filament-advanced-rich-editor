@@ -99,8 +99,11 @@ function emittedArteClasses(bool $pdf = false): array
 
     // The PDF export writes its own markup for its own stylesheet, which a PDF engine reads
     // and a browser never loads. Its classes are held to that sheet, and the screen's to the
-    // screen's - a rule in the wrong one styles nothing anybody sees.
-    $isPdf = static fn (string $path): bool => str_contains($path, '/src/Pdf/') || str_contains($path, '/resources/views/pdf/');
+    // screen's - a rule in the wrong one styles nothing anybody sees. The Word file is written
+    // from the same markup and reads the same classes, and what the two exports share sits in
+    // `src/Export`.
+    $isPdf = static fn (string $path): bool => str_contains($path, '/src/Pdf/') || str_contains($path, '/src/Docx/')
+        || str_contains($path, '/src/Export/') || str_contains($path, '/resources/views/pdf/');
 
     foreach (['src', 'resources/js', 'resources/views'] as $dir) {
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/'.$dir));

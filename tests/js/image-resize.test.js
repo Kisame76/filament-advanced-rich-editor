@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import imageResizeExtension from '../../resources/js/image-resize.js'
+import imageResizeExtension, { zoomAround } from '../../resources/js/image-resize.js'
 
 /**
  * What the module adds to Filament's resizable pictures: a size readout while a handle is
@@ -1197,5 +1197,66 @@ describe('being taken away', () => {
         touch(handle)
 
         expect(storage.resizing).toBe(false)
+    })
+})
+
+describe('a drag on a zoomed page', () => {
+    /*
+     * The page view draws the sheet with CSS `zoom`. The node view measures the pointer in
+     * screen pixels and sizes the picture in the page's own, so at 50 % the picture grew at
+     * half the speed of the cursor - the reason a page view could not simply be scaled.
+     */
+    const zoomed = (factor) => {
+        const original = window.getComputedStyle.bind(window)
+
+        return vi.spyOn(window, 'getComputedStyle').mockImplementation((node, ...rest) => {
+            const style = original(node, ...rest)
+
+            return node?.hasAttribute?.('data-zoomed')
+                ? new Proxy(style, { get: (target, property) => (property === 'zoom' ? String(factor) : Reflect.get(target, property)) })
+                : style
+        })
+    }
+
+    it('multiplies every zoom on the way up, as the browser draws it', () => {
+        const outer = document.createElement('div')
+        const inner = document.createElement('div')
+        const leaf = document.createElement('span')
+
+        outer.append(inner)
+        inner.append(leaf)
+
+        const zooms = new Map([[outer, '2'], [inner, '0.5'], [leaf, 'normal']])
+
+        expect(zoomAround(leaf, (node) => ({ zoom: zooms.get(node) ?? '1' }))).toBe(1)
+        expect(zoomAround(inner, (node) => ({ zoom: node === inner ? '0.75' : '1' }))).toBe(0.75)
+        expect(zoomAround(null)).toBe(1)
+    })
+
+    it('measures the pointer back into the page\'s pixels, so the picture keeps up with it', () => {
+        const spy = zoomed(0.5)
+        const { editorView } = mount()
+
+        editorView.dom.setAttribute('data-zoomed', '')
+
+        const shown = picture(editorView, { handles: ['right'] })
+
+        press(shown.handle)
+        shown.nodeView.handleResize(30, 0)
+
+        // Thirty screen pixels at half size are sixty on the page.
+        expect(shown.nodeView.calls[0].deltaX).toBe(60)
+
+        spy.mockRestore()
+    })
+
+    it('leaves the drag alone on a page that is not zoomed', () => {
+        const { editorView } = mount()
+        const shown = picture(editorView, { handles: ['right'] })
+
+        press(shown.handle)
+        shown.nodeView.handleResize(30, 0)
+
+        expect(shown.nodeView.calls[0].deltaX).toBe(30)
     })
 })

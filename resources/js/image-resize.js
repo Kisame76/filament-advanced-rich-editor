@@ -12,6 +12,25 @@
  * The lock is a drag-time modifier, not content: it lives on the editor rather than on the
  * image node, because Filament's HTML sanitiser drops unknown attributes anyway.
  */
+/**
+ * How much larger an element is drawn than it is laid out: every CSS `zoom` on the way up
+ * multiplied together - the page view's, around a picture on a zoomed sheet. Mirrors
+ * `effectiveZoom()` in `page-view.js`; neither can import the other.
+ */
+export function zoomAround(element, style = (node) => window.getComputedStyle(node)) {
+    let zoom = 1
+
+    for (let node = element; node && node.nodeType === 1; node = node.parentElement) {
+        const own = Number.parseFloat(style(node)?.zoom)
+
+        if (Number.isFinite(own) && own > 0) {
+            zoom *= own
+        }
+    }
+
+    return zoom
+}
+
 export default () => {
     const tiptap = window.FilamentRichEditor?.tiptap
 
@@ -446,7 +465,16 @@ export default () => {
 
                                 const originalHandleResize = nodeView.handleResize.bind(nodeView)
 
-                                nodeView.handleResize = (deltaX, deltaY) => {
+                                // On a zoomed page the pointer moves in screen pixels and the
+                                // picture is sized in the page's own: at 50 % it grew at half
+                                // the speed of the cursor. The drag is measured back into the
+                                // page's pixels before anything else reads it.
+                                const zoom = zoomAround(nodeView.element ?? handle)
+
+                                nodeView.handleResize = (screenX, screenY) => {
+                                    const deltaX = screenX / zoom
+                                    const deltaY = screenY / zoom
+
                                     /*
                                      * With the ratio kept, one number drives both sides -
                                      * and for a corner the node view only ever reads the

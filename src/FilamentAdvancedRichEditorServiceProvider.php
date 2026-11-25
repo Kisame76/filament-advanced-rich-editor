@@ -193,6 +193,10 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
                 Js::make('advanced-rich-editor/callout', __DIR__.'/../resources/dist/js/callout.js')
                     ->loadedOnRequest(),
 
+                // The zoom over a field drawn as a sheet of paper. Loaded only by those fields.
+                Js::make('advanced-rich-editor/page-view', __DIR__.'/../resources/dist/js/page-view.js')
+                    ->loadedOnRequest(),
+
                 // Where a printed document starts a new page. Loaded only by fields that offer it.
                 Js::make('advanced-rich-editor/page-break', __DIR__.'/../resources/dist/js/page-break.js')
                     ->loadedOnRequest(),

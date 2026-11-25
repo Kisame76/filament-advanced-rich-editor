@@ -216,6 +216,137 @@
 }
 
 /* -------------------------------------------------------------------------- */
+/* Page view                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * The field drawn as a sheet of paper on a desk: the document is the sheet - its width, its
+ * margins as padding, at least one page tall - and the box around it is the desk. Everything
+ * comes from the --fi-arte-page-* properties the field writes on its wrapper (`ShowsPages`),
+ * so the first paint is already a page; `page-view.js` only adds the zoom.
+ *
+ * Five classes deep on purpose: the height cap further up styles the same element with
+ * four, and the sheet's own margins have to win over the room it makes for its scrollbar.
+ *
+ * The desk does not scroll unless the sheet is zoomed wider than it: a box that scrolls
+ * clips whatever its children position outside it, and the toolbar over a picture is one of
+ * those - see the height cap above. So the zoom starts at the width that fits.
+ */
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content {
+    padding: 0.75rem 1rem 1.5rem;
+    background-color: var(--gray-100, #f4f4f5);
+}
+
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content:where(.dark, .dark *) {
+    background-color: var(--gray-950, #09090b);
+}
+
+/* On the desk itself rather than the field: the field's attributes are Livewire's to reset
+   on every round trip, the desk sits inside the part it leaves alone. */
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content.fi-arte-page-overflowing {
+    overflow-x: auto;
+}
+
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content > .tiptap {
+    box-sizing: border-box;
+    width: var(--fi-arte-page-width);
+    max-width: none;
+    min-height: var(--fi-arte-page-height);
+    margin-inline: auto;
+    padding: var(--fi-arte-page-margin-top) var(--fi-arte-page-margin-right) var(--fi-arte-page-margin-bottom) var(--fi-arte-page-margin-left);
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
+    zoom: var(--fi-arte-page-zoom, 1);
+}
+
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content > .tiptap:where(.dark, .dark *) {
+    background-color: var(--gray-900, #18181b);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 2px 6px rgb(0 0 0 / 0.5);
+}
+
+/* Under a height cap the sheet is the window that scrolls, so it cannot also insist on being
+   a page tall. */
+.fi-fo-rich-editor.fi-arte.fi-arte-paged.fi-arte-max-height .fi-fo-rich-editor-content > .tiptap {
+    min-height: 0;
+}
+
+/* A page break is where the sheet ends: the rest of its page, a strip of desk, and the top
+   margin of the next. */
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content .fi-arte-page-break {
+    height: 1.25rem;
+    margin-top: var(--fi-arte-page-margin-bottom);
+    margin-bottom: var(--fi-arte-page-margin-top);
+    margin-left: calc(var(--fi-arte-page-margin-left) * -1);
+    margin-right: calc(var(--fi-arte-page-margin-right) * -1);
+    border: 0;
+    background-color: var(--gray-100, #f4f4f5);
+    box-shadow: inset 0 3px 3px -3px rgb(0 0 0 / 0.18), inset 0 -3px 3px -3px rgb(0 0 0 / 0.18);
+}
+
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content .fi-arte-page-break:where(.dark, .dark *) {
+    background-color: var(--gray-950, #09090b);
+}
+
+.fi-fo-rich-editor.fi-arte.fi-arte-paged .fi-fo-rich-editor-content .fi-arte-page-break::after {
+    inset-block-start: 50%;
+}
+
+/* The bar over the sheet: its format at the start, the zoom at the end. It stays in view
+   while a sheet zoomed wider than the desk is scrolled sideways. */
+.fi-arte-page-bar {
+    position: sticky;
+    inset-inline-start: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-block-end: 0.75rem;
+    color: var(--gray-600, #52525b);
+    font-size: 0.75rem;
+    line-height: 1.5rem;
+    user-select: none;
+}
+
+.fi-arte-page-bar:where(.dark, .dark *) {
+    color: var(--gray-400, #a1a1aa);
+}
+
+.fi-arte-page-bar-sheet {
+    margin-inline-end: auto;
+}
+
+.fi-arte-page-bar-button {
+    min-width: 1.5rem;
+    padding-inline: 0.375rem;
+    border-radius: 0.375rem;
+    color: inherit;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.fi-arte-page-bar-button:hover {
+    background-color: var(--gray-200, #e4e4e7);
+}
+
+.fi-arte-page-bar-button:where(.dark, .dark *):hover {
+    background-color: var(--gray-800, #27272a);
+}
+
+.fi-arte-page-bar-button[aria-pressed="true"] {
+    background-color: var(--gray-200, #e4e4e7);
+    color: var(--gray-950, #09090b);
+}
+
+.fi-arte-page-bar-button[aria-pressed="true"]:where(.dark, .dark *) {
+    background-color: var(--gray-800, #27272a);
+    color: #ffffff;
+}
+
+.fi-arte-page-bar-button:focus-visible {
+    outline: 2px solid var(--primary-500, #f59e0b);
+    outline-offset: 1px;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Locked parts                                                               */
 /* -------------------------------------------------------------------------- */
 

@@ -28,10 +28,13 @@
         $codeBlockSettings, $findSettings, $emojiSettings, $characterSettings,
         $pasteSettings, $dragHandleSettings, $autosaveSettings, $accessibilitySettings,
         $typographySettings, $characterCountSettings, $indentSettings, $shortcutSettings,
-        $lockedSettings, $documentUploadSettings, $pageBreakSettings), resolved alongside them
+        $lockedSettings, $documentUploadSettings, $pageBreakSettings, $pageViewSettings),
+        resolved alongside them
       - x-filament::input.wrapper ->class([...]): added 'fi-arte' so every rule this
         package ships can be scoped to our editor and never leaks into a plain
-        Filament RichEditor rendered on the same page
+        Filament RichEditor rendered on the same page; and 'fi-arte-paged', with the
+        sheet's --fi-arte-page-* properties in ->style([...]), where the field shows
+        its content on a page (`ShowsPages`), so the first paint is already a sheet
       - x-filament::input.wrapper ->merge([...]): x-load-css and data-css-after, which
         load the package's overlay stylesheet - what only an action opens - as Alpine
         reaches the field and place it straight after the page stylesheet, ahead of the
@@ -143,6 +146,8 @@
     $lockedSettings = $getLockedRegionSettingsForJs();
     $documentUploadSettings = $getDocumentUploadSettingsForJs();
     $pageBreakSettings = $getPageBreakSettingsForJs();
+    $pageViewSettings = $getPageViewSettingsForJs();
+    $pageViewStyles = $getPageViewStyles();
     // Filament v5.9. Each closure exists only where the installed release has the method.
     $hasUpstreamStickyToolbar = isset($hasStickyToolbar) && $hasStickyToolbar();
     $hasUpstreamStickyPanels = isset($hasStickyPanels) && $hasStickyPanels();
@@ -175,8 +180,9 @@
                     'x-load-js' => '[' . \Illuminate\Support\Js::from($menuPositionScript) . ']',
                     'data-js-as-module' => 'true',
                 ])
-                ->class(['fi-fo-rich-editor', 'fi-arte', 'fi-arte-max-height' => filled($maxHeight)])
+                ->class(['fi-fo-rich-editor', 'fi-arte', 'fi-arte-max-height' => filled($maxHeight), 'fi-arte-paged' => filled($pageViewSettings)])
                 ->style([
+                    ...array_map(static fn (string $property, string $value): string => $property . ': ' . $value, array_keys($pageViewStyles), $pageViewStyles),
                     '--fi-arte-max-height: ' . $maxHeight => filled($maxHeight),
                     '--min-height: ' . $minHeight => filled($minHeight),
                     '--fi-arte-image-float-gap: ' . $imageFloatGap => filled($imageFloatGap),
@@ -363,6 +369,7 @@
                     @if ($lockedSettings) data-arte-locked="{{ json_encode($lockedSettings) }}" @endif
                     @if ($documentUploadSettings) data-arte-document-upload="{{ json_encode($documentUploadSettings) }}" @endif
                     @if ($pageBreakSettings) data-arte-page-break="{{ json_encode($pageBreakSettings) }}" @endif
+                    @if ($pageViewSettings) data-arte-page="{{ json_encode($pageViewSettings) }}" @endif
                 >
                     @php ob_start(); @endphp
                     @foreach ($floatingToolbars as $nodeName => $buttons)

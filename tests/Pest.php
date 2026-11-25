@@ -34,6 +34,7 @@ use Kisame76\FilamentAdvancedRichEditor\Tests\TestCase;
 use League\HTMLToMarkdown\HtmlConverter;
 use Livewire\Component as LivewireComponent;
 use Phiki\Phiki;
+use PhpOffice\PhpWord\PhpWord;
 use Smalot\PdfParser\Parser;
 use Spatie\Browsershot\Browsershot;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -686,6 +687,7 @@ function requires(string $package): void
         'dompdf/dompdf' => Dompdf::class,
         'smalot/pdfparser' => Parser::class,
         'spatie/browsershot' => Browsershot::class,
+        'phpoffice/phpword' => PhpWord::class,
     ][$package];
 
     if (! class_exists($class)) {

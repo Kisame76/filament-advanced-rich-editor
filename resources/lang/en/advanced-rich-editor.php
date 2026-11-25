@@ -628,4 +628,14 @@ return [
             'failed' => 'Your PDF could not be created',
         ],
     ],
+    // The bar over a field shown as a sheet of paper.
+    'page_view' => [
+        'zoom' => 'Zoom',
+        'zoom_in' => 'Zoom in',
+        'zoom_out' => 'Zoom out',
+        'reset' => 'Actual size',
+        'fit' => 'Fit width',
+        'portrait' => 'Portrait',
+        'landscape' => 'Landscape',
+    ],
 ];
