@@ -80,6 +80,12 @@ All notable changes to `filament-advanced-rich-editor` will be documented in thi
 
 ### Fixed
 
+- A file card opened its file instead of saving it, and a link lost the referrer policy set
+  in the dialog, once `symfony/html-sanitizer` 8.1.12 stopped counting `download` and
+  `referrerpolicy` as safe. Both are allowed back on links (`link.sanitizer`), the policy
+  only where it withholds the address of the page - `unsafe-url` and
+  `no-referrer-when-downgrade` are dropped, and the dialog no longer offers them
+
 - Text coloured with Filament's text colour printed black in a PDF: the colour rides in a
   custom property no PDF engine reads, and is now read out of it
 

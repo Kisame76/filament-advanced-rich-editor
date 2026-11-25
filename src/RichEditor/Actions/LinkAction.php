@@ -135,7 +135,7 @@ class LinkAction
                         ]),
                     Select::make('referrerpolicy')
                         ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.link.referrerpolicy'))
-                        ->options(array_combine(Link::REFERRER_POLICIES, Link::REFERRER_POLICIES)),
+                        ->options(array_combine(Link::PRIVATE_REFERRER_POLICIES, Link::PRIVATE_REFERRER_POLICIES)),
                     TextInput::make('hreflang')
                         ->label(__('filament-advanced-rich-editor::advanced-rich-editor.tools.link.hreflang'))
                         ->placeholder('de'),

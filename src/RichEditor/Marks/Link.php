@@ -45,6 +45,23 @@ class Link extends BaseLink
     ];
 
     /**
+     * The policies that never send a page's path or query to another site - what the link
+     * dialog offers, and all the sanitiser lets through. `unsafe-url` and
+     * `no-referrer-when-downgrade` send the whole address across; the browser's own default
+     * does not, so neither of them withholds anything.
+     *
+     * @var array<int, string>
+     */
+    public const PRIVATE_REFERRER_POLICIES = [
+        'no-referrer',
+        'origin',
+        'origin-when-cross-origin',
+        'same-origin',
+        'strict-origin',
+        'strict-origin-when-cross-origin',
+    ];
+
+    /**
      * @return array<string, mixed>
      */
     public function addAttributes(): array

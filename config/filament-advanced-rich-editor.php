@@ -578,9 +578,17 @@ return [
     | link in every stored document and fails where one is broken, which makes it something
     | to schedule. 'dialog' asks a typed address as the link dialog's field is left, and
     | warns where it does not answer; per field: `->linkCheck()`.
+    |
+    | 'sanitizer' lets `download` (a file card's) and `referrerpolicy` (the dialog's) through
+    | the application's HTML sanitiser on links, which Symfony stopped counting as safe in
+    | 8.1.12 - a referrer policy only where it withholds. It changes a configuration the whole
+    | application shares, hence a key: off, file cards open rather than save, and a link's
+    | policy is dropped.
     */
     'link' => [
         'attributes' => true,
+
+        'sanitizer' => true,
 
         /*
          * Link cards - the page's title, a line about it and the site it is on, read from the

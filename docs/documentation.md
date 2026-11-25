@@ -6017,6 +6017,15 @@ $this->app->extend(
 a video embed keep its `<iframe>` — still applies afterwards. Do it while booting: the config
 is resolved once, and an `extend()` after that reaches nothing.
 
+The package widens it twice, and both can be switched off where a project would rather not
+share the change. `embed.sanitizer` lets an embed keep its `<iframe>`, narrowed to the hosts
+the embed services frame from. `link.sanitizer` lets two attributes back onto links that
+Symfony's sanitiser stopped counting as safe in 8.1.12: `download`, which makes a file card
+save its file rather than open it, and `referrerpolicy` from the link dialog — only the
+policies that withhold the address of the page. `unsafe-url` and `no-referrer-when-downgrade`
+send it whole to the site a link leads to; they are dropped, and the dialog no longer offers
+them.
+
 ## Configuration
 
 ### What ships on

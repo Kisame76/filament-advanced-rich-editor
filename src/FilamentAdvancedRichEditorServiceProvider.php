@@ -13,6 +13,7 @@ use Kisame76\FilamentAdvancedRichEditor\Console\DiagnoseCommand;
 use Kisame76\FilamentAdvancedRichEditor\Console\MediaCoversCommand;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedHostSanitizer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\EmbedProviders\EmbedProviders;
+use Kisame76\FilamentAdvancedRichEditor\RichEditor\Links\ReferrerPolicySanitizer;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\Media\MediaKinds;
 use Kisame76\FilamentAdvancedRichEditor\RichEditor\RenderLedger;
 use Kisame76\FilamentAdvancedRichEditor\View\Components\Content;
@@ -312,6 +313,7 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
 
         $this->registerIconSet();
         $this->allowEmbedIframes();
+        $this->allowLinkAttributes();
         $this->allowMediaPreviews();
 
         // Every render of a component starts the count of what its editors share again -
@@ -364,6 +366,28 @@ class FilamentAdvancedRichEditorServiceProvider extends PackageServiceProvider
      * This changes a configuration the whole application shares, which is why it is a
      * config key rather than something installing the package does.
      */
+    /**
+     * Gives a link the two attributes this package writes and Symfony's sanitiser stopped
+     * counting as safe in 8.1.12: `download`, which makes a file card save its file rather
+     * than open it, and `referrerpolicy`, from the link dialog - narrowed to the policies that
+     * withhold (`ReferrerPolicySanitizer`), so what is allowed back is privacy, not the leak
+     * the change closed. On links only, and only where the project leaves it on.
+     */
+    protected function allowLinkAttributes(): void
+    {
+        if (! config('filament-advanced-rich-editor.link.sanitizer', true)) {
+            return;
+        }
+
+        $this->app->extend(
+            HtmlSanitizerConfig::class,
+            static fn (HtmlSanitizerConfig $config): HtmlSanitizerConfig => $config
+                ->allowAttribute('download', 'a')
+                ->allowAttribute('referrerpolicy', 'a')
+                ->withAttributeSanitizer(new ReferrerPolicySanitizer),
+        );
+    }
+
     protected function allowEmbedIframes(): void
     {
         if (! config('filament-advanced-rich-editor.embed.sanitizer', true)) {
