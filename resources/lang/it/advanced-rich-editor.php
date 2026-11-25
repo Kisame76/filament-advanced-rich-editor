@@ -624,6 +624,12 @@ return [
             'failed' => 'Non è stato possibile creare il PDF',
         ],
     ],
+    'docx' => [
+        'export' => [
+            'ready' => 'Il file Word è pronto',
+            'failed' => 'Non è stato possibile creare il file Word',
+        ],
+    ],
     'page_view' => [
         'zoom' => 'Zoom',
         'zoom_in' => 'Ingrandisci',

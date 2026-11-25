@@ -628,6 +628,13 @@ return [
             'failed' => 'Your PDF could not be created',
         ],
     ],
+    // The notification a queued Word export sends, as the PDF one does above.
+    'docx' => [
+        'export' => [
+            'ready' => 'Your Word file is ready',
+            'failed' => 'Your Word file could not be created',
+        ],
+    ],
     // The bar over a field shown as a sheet of paper.
     'page_view' => [
         'zoom' => 'Zoom',

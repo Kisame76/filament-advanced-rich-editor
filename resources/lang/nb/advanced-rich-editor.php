@@ -623,6 +623,12 @@ return [
             'failed' => 'PDF-en kunne ikke lages',
         ],
     ],
+    'docx' => [
+        'export' => [
+            'ready' => 'Word-filen er klar',
+            'failed' => 'Word-filen kunne ikke lages',
+        ],
+    ],
     'page_view' => [
         'zoom' => 'Zoom',
         'zoom_in' => 'Zoom inn',

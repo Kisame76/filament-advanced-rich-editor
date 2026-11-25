@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Kisame76\FilamentAdvancedRichEditor\Pdf\Jobs;
+namespace Kisame76\FilamentAdvancedRichEditor\Export\Jobs;
 
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -13,20 +13,20 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Traits\Localizable;
-use Kisame76\FilamentAdvancedRichEditor\Pdf\Events\PdfExported;
-use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfExport;
+use Kisame76\FilamentAdvancedRichEditor\Export\DocumentExport;
+use Kisame76\FilamentAdvancedRichEditor\Export\Events\DocumentExported;
 use RuntimeException;
 use Throwable;
 
 /**
- * Prints a `PdfExport` on a queue worker and writes it to a disk.
+ * Writes a `DocumentExport` - a PDF or a Word file - on a queue worker, to a disk.
  *
- * Dispatched by `PdfExport::queue()`, onto whatever queue the application is configured
+ * Dispatched by `DocumentExport::queue()`, onto whatever queue the application is configured
  * with - `QUEUE_CONNECTION` unless `pdf.queue.connection` names another. Everything it
  * carries is data: the export, which brings its models as ids, the path, the disk, the
  * person to tell, and the locale the request had, which the worker does not.
  */
-class ExportPdf implements ShouldQueue
+class ExportDocument implements ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -49,7 +49,7 @@ class ExportPdf implements ShouldQueue
     public ?int $timeout = null;
 
     public function __construct(
-        public PdfExport $export,
+        public DocumentExport $export,
         public string $path,
         ?string $disk = null,
         public ?Model $notifiable = null,
@@ -69,11 +69,11 @@ class ExportPdf implements ShouldQueue
     public function handle(): void
     {
         $this->withLocale($this->locale, function (): void {
-            if (! $this->export->pdf()->save($this->path, $this->disk)) {
-                throw new RuntimeException("The PDF could not be written to [{$this->path}] on the [{$this->disk}] disk.");
+            if (! $this->export->document()->save($this->path, $this->disk)) {
+                throw new RuntimeException("The file could not be written to [{$this->path}] on the [{$this->disk}] disk.");
             }
 
-            PdfExported::dispatch($this->export, $this->path, $this->disk);
+            DocumentExported::dispatch($this->export, $this->path, $this->disk);
 
             if ($this->notifiable === null) {
                 return;
@@ -83,7 +83,7 @@ class ExportPdf implements ShouldQueue
 
             Notification::make()
                 ->success()
-                ->title(__('filament-advanced-rich-editor::advanced-rich-editor.pdf.export.ready'))
+                ->title(__($this->messageKey('ready')))
                 ->body(basename($this->path))
                 ->actions(($url === null) ? [] : [
                     Action::make('download')
@@ -107,9 +107,20 @@ class ExportPdf implements ShouldQueue
         $this->withLocale($this->locale, function (): void {
             Notification::make()
                 ->danger()
-                ->title(__('filament-advanced-rich-editor::advanced-rich-editor.pdf.export.failed'))
+                ->title(__($this->messageKey('failed')))
                 ->body(basename($this->path))
                 ->sendToDatabase($this->notifiable, isEventDispatched: true);
         });
+    }
+
+    /**
+     * What the notification says, by the file it is about: a Word file is not a PDF. Read off
+     * the path rather than the document, which a failed export may never have finished.
+     */
+    protected function messageKey(string $message): string
+    {
+        $format = (strtolower(pathinfo($this->path, PATHINFO_EXTENSION)) === 'docx') ? 'docx' : 'pdf';
+
+        return "filament-advanced-rich-editor::advanced-rich-editor.{$format}.export.{$message}";
     }
 }

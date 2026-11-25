@@ -624,6 +624,12 @@ return [
             'failed' => 'Je pdf kon niet worden gemaakt',
         ],
     ],
+    'docx' => [
+        'export' => [
+            'ready' => 'Je Word-bestand is klaar',
+            'failed' => 'Je Word-bestand kon niet worden gemaakt',
+        ],
+    ],
     'page_view' => [
         'zoom' => 'Zoom',
         'zoom_in' => 'Inzoomen',

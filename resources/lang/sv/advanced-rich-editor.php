@@ -624,6 +624,12 @@ return [
             'failed' => 'Din PDF kunde inte skapas',
         ],
     ],
+    'docx' => [
+        'export' => [
+            'ready' => 'Din Word-fil är klar',
+            'failed' => 'Din Word-fil kunde inte skapas',
+        ],
+    ],
     'page_view' => [
         'zoom' => 'Zoom',
         'zoom_in' => 'Zooma in',

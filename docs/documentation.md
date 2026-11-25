@@ -5478,18 +5478,19 @@ not read.
   `#part-2-introduction`, the link to it as well.
 
 **On the queue.** A collection of two hundred pages does not belong in a web request. Define
-the export once, as a class that carries data and builds the PDF from it, and run it either
-way:
+the export once, as a class that carries data and builds the document from it, and run it
+either way:
 
 ```php
-use Kisame76\FilamentAdvancedRichEditor\Pdf\PdfExport;
+use Kisame76\FilamentAdvancedRichEditor\Export\DocumentExport;
+use Kisame76\FilamentAdvancedRichEditor\Export\RichEditorExport;
 use Kisame76\FilamentAdvancedRichEditor\Pdf\RichEditorPdf;
 
-class ArticlesPdf extends PdfExport
+class ArticlesExport extends DocumentExport
 {
     public function __construct(public array $ids) {}
 
-    public function pdf(): RichEditorPdf
+    public function document(): RichEditorExport
     {
         return RichEditorPdf::combine(Article::findMany($this->ids)->map(
             fn (Article $article) => RichEditorPdf::forRecord($article, 'content')->title($article->title),
@@ -5497,8 +5498,8 @@ class ArticlesPdf extends PdfExport
     }
 }
 
-(new ArticlesPdf($ids))->download('articles.pdf');                      // now, in the request
-(new ArticlesPdf($ids))->queue('exports/articles.pdf', 's3', notify: auth()->user()); // on a worker
+(new ArticlesExport($ids))->download('articles.pdf');                      // now, in the request
+(new ArticlesExport($ids))->queue('exports/articles.pdf', 's3', notify: auth()->user()); // on a worker
 ```
 
 Why a class and not the `RichEditorPdf` itself: the renderer holds closures and objects -
@@ -5529,7 +5530,10 @@ its properties travel as their ids and are read afresh there, as a mailable's do
   local disk with `serve`), valid for `pdf.queue.link_lifetime` minutes; a plain URL on a disk
   with an address of its own, such as `public`; and none on any other. Override
   `downloadUrl()` on the export to point at a route of your own instead.
-- **Anything else.** The job dispatches `Pdf\Events\PdfExported` with the export, the path
+- **A Word file.** `document()` may build a `RichEditorDocx` as well - from a format the
+  export carries, say - and the worker writes that instead; queue it under a `.docx` path, and
+  the notification speaks of a Word file.
+- **Anything else.** The job dispatches `Export\Events\DocumentExported` with the export, the path
   and the disk, for a mail with the file attached, a webhook or a cleanup.
 
 **What changes on paper.** The document is not changed - the export works on a copy of the
@@ -5629,7 +5633,8 @@ composer require phpoffice/phpword
 ```
 
 Asked for a Word file without it, `RichEditorDocx` throws a `MissingDocxLibrary` that names
-the line to run.
+the line to run. A long Word export goes on the queue the way a PDF does: a `DocumentExport`
+whose `document()` builds a `RichEditorDocx` - see [On the queue](#pdf-export).
 
 **How it is written.** From the same markup the PDF is printed from - every picture already
 embedded, embeds and players already links, task boxes already ☑ and ☐ - walked element by

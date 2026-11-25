@@ -623,6 +623,12 @@ return [
             'failed' => 'Din PDF kunne ikke oprettes',
         ],
     ],
+    'docx' => [
+        'export' => [
+            'ready' => 'Din Word-fil er klar',
+            'failed' => 'Din Word-fil kunne ikke oprettes',
+        ],
+    ],
     'page_view' => [
         'zoom' => 'Zoom',
         'zoom_in' => 'Zoom ind',

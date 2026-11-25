@@ -2,51 +2,51 @@
 
 declare(strict_types=1);
 
-namespace Kisame76\FilamentAdvancedRichEditor\Pdf;
+namespace Kisame76\FilamentAdvancedRichEditor\Export;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
-use Kisame76\FilamentAdvancedRichEditor\Pdf\Jobs\ExportPdf;
+use Kisame76\FilamentAdvancedRichEditor\Export\Jobs\ExportDocument;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * An export a project defines once and runs either way: now, in the request, or later, on
- * a queue worker.
+ * a queue worker - as a PDF or as a Word file, whichever `document()` builds.
  *
- *     class ArticlesPdf extends PdfExport
+ *     class ArticlesExport extends DocumentExport
  *     {
  *         public function __construct(public array $ids) {}
  *
- *         public function pdf(): RichEditorPdf
+ *         public function document(): RichEditorExport
  *         {
  *             return RichEditorPdf::combine(Article::findMany($this->ids)->map(...))->tableOfContents();
  *         }
  *     }
  *
- *     (new ArticlesPdf($ids))->download();                                   // now
- *     (new ArticlesPdf($ids))->queue('exports/articles.pdf', notify: $user); // on the queue
+ *     (new ArticlesExport($ids))->download();                                   // now
+ *     (new ArticlesExport($ids))->queue('exports/articles.pdf', notify: $user); // on the queue
  *
  * Why a class and not the `RichEditorPdf` itself: a renderer holds closures and objects - its
  * node processors, merge tags that are closures, mention providers - and none of it survives
  * a trip through the queue. What does is data. So the export carries data, the record ids,
- * the attribute, anything its constructor takes, and builds the PDF from it on the worker.
- * Models among its properties travel as their ids and are read afresh there, the way a
- * Laravel mailable's do.
+ * the attribute, anything its constructor takes, and builds the document from it on the
+ * worker. Models among its properties travel as their ids and are read afresh there, the way
+ * a Laravel mailable's do.
  */
-abstract class PdfExport
+abstract class DocumentExport
 {
     use SerializesModels;
 
     /**
-     * The PDF, built from what this export carries. Runs on the worker for a queued export,
-     * in the locale the export was queued in.
+     * The document - a `RichEditorPdf` or a `RichEditorDocx` - built from what this export
+     * carries. Runs on the worker for a queued export, in the locale it was queued in.
      */
-    abstract public function pdf(): RichEditorPdf;
+    abstract public function document(): RichEditorExport;
 
     /**
-     * Prints in the background and writes the PDF to a disk - the application's default
+     * Writes the document in the background, to a disk - the application's default
      * where none is named, or the one the configuration names for exports.
      *
      * It goes onto the queue the application is configured with: `QUEUE_CONNECTION`, so
@@ -54,27 +54,27 @@ abstract class PdfExport
      * and `pdf.queue.queue` send exports elsewhere, and the dispatch that comes back takes
      * `onConnection()`, `onQueue()` and `delay()` as any other does.
      *
-     * Whoever is given as `$notify` gets a Filament database notification when the PDF is
+     * Whoever is given as `$notify` gets a Filament database notification when the file is
      * written, with a link to it, and one if it could not be.
      */
     public function queue(string $path, ?string $disk = null, ?Model $notify = null): PendingDispatch
     {
-        return ExportPdf::dispatch($this, $path, $disk, $notify);
+        return ExportDocument::dispatch($this, $path, $disk, $notify);
     }
 
     public function save(string $path, ?string $disk = null): bool
     {
-        return $this->pdf()->save($path, $disk);
+        return $this->document()->save($path, $disk);
     }
 
     public function download(?string $filename = null): StreamedResponse
     {
-        return $this->pdf()->download($filename);
+        return $this->document()->download($filename);
     }
 
     public function toString(): string
     {
-        return $this->pdf()->toString();
+        return $this->document()->toString();
     }
 
     /**

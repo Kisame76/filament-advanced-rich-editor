@@ -624,6 +624,12 @@ return [
             'failed' => 'PDF se nepodařilo vytvořit',
         ],
     ],
+    'docx' => [
+        'export' => [
+            'ready' => 'Soubor Word je připraven',
+            'failed' => 'Soubor Word se nepodařilo vytvořit',
+        ],
+    ],
     'page_view' => [
         'zoom' => 'Lupa',
         'zoom_in' => 'Přiblížit',
